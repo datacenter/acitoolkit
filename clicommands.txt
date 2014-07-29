@@ -1,0 +1,94 @@
+Show the tenants or a specific tenant
+show tenant [<tenant-name>]
+
+Show the bridge domains, a specific bridge domain, or even a detailed view of the bridge domain(s)
+fabric# show bridge-domain [<bd-name>] [detail]
+
+Show the interfaces
+fabric# show interface [detail]
+
+Show the Contexts
+fabric# show context
+
+Enter configuration mode
+fabric# configure terminal
+
+Create a tenant
+fabric(config)# [no] tenant <tenant-name>
+
+Switch to a tenant configuration mode (ala VDC)
+fabric# switchto tenant <tenant-name>
+fabric-tenant# switchback
+
+Create a Context and don't enforce contracts on it
+fabric-tenant(config)# [no] context <context-name>
+fabric-tenant(config-ctx)# [no] allow-all
+
+Create a bridge domain and assign it to a context
+fabric-tenant(config)# [no] bridge-domain <bd-name> 
+fabric-tenant(config-bd)# [no] context <context-name>
+
+Create a subnet under the bridge domain
+fabric-tenant(config-bd)# [no] ip address <ip-address>/<masklength> [ name <subnet-name> ]
+
+Create an application profile
+fabric-tenant(config)# [no] app <app-profile-name>
+
+Create an EPG and assign it to a bridge domain 
+fabric-tenant(config-app)# [no] epg <epg-name>
+fabric-tenant(config-epg)# [no] bridge-domain <bd-name>
+
+Assign an EPG to an interface and optionally specify the encapsulation and segmentation id used
+fabric-tenant(config)# interface <pod>/<node>/<module>/<port>
+fabric-tenant(config-if)# [no] epg <epg-name> [vlan <vlan-id> | vxlan <vnid> <mcast-addr> | nvgre <vsid>]
+
+Configure a Contract (has an implicit deny any and default scope is context)
+fabric-tenant(config)# [no] contract <contract-name>
+fabric-tenant(config-contract)# [no] scope { app-profile | tenant | context | global }
+
+fabric-tenant(config-contract)# [no] permit <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
+
+fabric-tenant(config-contract)# [no] permit tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
+
+fabric-tenant(config-contract)# [no] permit ethertype <ethertype-number>
+
+fabric-tenant(config-contract)# [no] permit arp [request | response]
+
+Apply a Contract between EPGs
+fabric-tenant(config)# [no] epg <epg-name>
+fabric-tenant(config-epg)# [no] provide <contract-name>
+
+fabric(config)# [no] epg <epg-name>
+fabric(config-epg)# [no] consume <contract-name>
+
+Configure a taboo (has an implicit permit any and default scope is context )
+fabric(config)# [no] taboo <taboo-name>
+fabric(config-taboo)# [no] scope { app-profile | tenant | context | global } 
+
+fabric(config-taboo)# [no] deny <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
+
+fabric(config-taboo)# [no] deny tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
+
+fabric(config-taboo)# [no] deny ethertype <ethertype-number>
+
+fabric(config-taboo)# [no] deny arp [request | response]
+
+Apply a Taboo to an EPG
+fabric(config)# [no] epg <epg-name>
+fabric(config-epg)# [no] taboo <taboo-name>
+
+Configure an OSPF Routing Instance
+fabric(config)# [no] router ospf <context-name>
+fabric(config-rtr)# [no] router-id <ipaddress> <node>
+fabric(config-rtr)# [no] network <ipaddress> <mask> area <area-id>
+
+Configure OSPF Routing on a Interface
+fabric(config-if)# [no] ip address <ipaddress>/<mask>
+fabric(config-if)# [no] ip router ospf <context-name> area <area-id>
+fabric(config-if)# [no] ip ospf authentication message-digest
+fabric(config-if)# [no] ip ospf message-digest-key <key-id> md5 <auth-key>
+
+
+
+
+
