@@ -2,13 +2,15 @@
 """
 from acitoolkit import *
 import unittest
-import string, random
+import string
+import random
 from credentials import *
 import xml.dom.minidom
 import sys
 
 LIVE_TEST = True
 MAX_RANDOM_STRING_SIZE = 20
+
 
 def random_string(size):
     """Generates a random string of a certain specified size
@@ -17,12 +19,14 @@ def random_string(size):
     return ''.join(random.choice(string.ascii_uppercase +
                                  string.digits) for _ in range(size))
 
+
 def random_size_string():
     """Generates a random string between 1 and
        MAX_RANDOM_STRING_SIZE characters
     RETURNS: String
     """
     return random_string(random.randint(1, MAX_RANDOM_STRING_SIZE))
+
 
 class TestBaseRelation(unittest.TestCase):
     """Tests on the BaseRelation class.  These do not communicate with the APIC
@@ -65,6 +69,7 @@ class TestBaseRelation(unittest.TestCase):
         self.assertFalse(relation.is_attached())
         self.assertTrue(relation.is_detached())
 
+
 class MockACIObject(BaseACIObject):
     def get_json(self):
         super(MockACIObject, self).get_json('mock')
@@ -74,6 +79,7 @@ class MockACIObject(BaseACIObject):
            coming from 3rd party libraries
         """
         pass
+
 
 class TestBaseACIObject(unittest.TestCase):
     def test_create_valid(self):
@@ -131,6 +137,7 @@ class TestBaseACIObject(unittest.TestCase):
         obj1.detach(obj2)
         self.assertFalse(obj1.is_attached(obj2))
 
+
 class TestTenant(unittest.TestCase):
     def test_create(self):
         tenant = Tenant('tenant')
@@ -139,6 +146,7 @@ class TestTenant(unittest.TestCase):
     def test_json(self):
         tenant = Tenant('tenant')
         self.assertTrue(type(tenant.get_json()) == dict)
+
 
 class TestAppProfile(unittest.TestCase):
     def test_create(self):
@@ -166,10 +174,30 @@ class TestAppProfile(unittest.TestCase):
         app.mark_as_deleted()
         self.assertTrue(app.is_deleted())
 
+    def test_eq(self):
+        tenant = Tenant('tenant')
+        app1 = AppProfile('app', tenant)
+        app2 = AppProfile('app', tenant)
+        self.assertEqual(app1, app2)
+
+    def test_not_eq_different_name(self):
+        tenant = Tenant('tenant')
+        app1 = AppProfile('app1', tenant)
+        app2 = AppProfile('app2', tenant)
+        self.assertNotEqual(app1, app2)
+
+    def test_not_eq_different_parent(self):
+        tenant1 = Tenant('tenant1')
+        tenant2 = Tenant('tenant2')
+        app1 = AppProfile('app', tenant1)
+        app2 = AppProfile('app', tenant2)
+        self.assertNotEqual(app1, app2)
+
     def test_json(self):
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         self.assertTrue(type(app.get_json()) == dict)
+
 
 class TestBridgeDomain(unittest.TestCase):
     def create_bd(self):
@@ -284,12 +312,22 @@ class TestBridgeDomain(unittest.TestCase):
         bd.add_context(context)
         self.assertTrue(bd.get_context() == context)
 
-    def test_add_context(self):
+    def test_add_context_twice(self):
+        tenant, bd = self.create_bd()
+        context = Context('ctx', tenant)
+        bd.add_context(context)
+        bd.add_context(context)
+        self.assertTrue(bd.get_context() == context)
+        bd.remove_context()
+        self.assertTrue(bd.get_context() is None)
+
+    def test_remove_context(self):
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
         bd.remove_context()
         self.assertTrue(bd.get_context() is None)
+
 
 class TestL2Interface(unittest.TestCase):
     def test_create_valid_vlan(self):
@@ -307,13 +345,16 @@ class TestL2Interface(unittest.TestCase):
         self.assertTrue(l2if is not None)
 
     def test_invalid_create_bad_encap_type(self):
-        self.assertRaises(ValueError, L2Interface, 'vlan5_on_eth1/1/1/1', 'invalid_encap', '5')
+        self.assertRaises(ValueError, L2Interface,
+                          'vlan5_on_eth1/1/1/1', 'invalid_encap', '5')
 
     def test_invalid_create_bad_encap_id_non_number(self):
-        self.assertRaises(ValueError, L2Interface, 'vlan5_on_eth1/1/1/1', 'invalid_encap', 'vlan')
+        self.assertRaises(ValueError, L2Interface,
+                          'vlan5_on_eth1/1/1/1', 'invalid_encap', 'vlan')
 
     def test_invalid_create_bad_encap_id_none(self):
-        self.assertRaises(ValueError, L2Interface, 'vlan5_on_eth1/1/1/1', 'invalid_encap', None)
+        self.assertRaises(ValueError, L2Interface,
+                          'vlan5_on_eth1/1/1/1', 'invalid_encap', None)
 
     def test_invalid_create_bad_name_none(self):
         self.assertRaises(TypeError, L2Interface, None, 'vlan', '5')
@@ -334,6 +375,7 @@ class TestL2Interface(unittest.TestCase):
         l2if.attach(physif)
         self.assertTrue(l2if.get_path() is not None)
 
+
 class TestInterface(unittest.TestCase):
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
@@ -350,8 +392,9 @@ class TestInterface(unittest.TestCase):
     def test_parse_name_space(self):
         self.parse_name('eth 1/2/3/4')
 
-    #def test_parse_name_no_space(self):
+    # def test_parse_name_no_space(self):
     #    self.parse_name('eth1/2/3/4')
+
 
 class TestEPG(unittest.TestCase):
     def create_epg(self):
@@ -399,7 +442,7 @@ class TestEPG(unittest.TestCase):
         epg.remove_bd()
         # Verify that a dangling BD was not left behind
         self.assertFalse(epg.has_bd())
-        self.assertTrue(epg.get_bd() == None)
+        self.assertTrue(epg.get_bd() is None)
 
     def test_add_bd_two_different(self):
         tenant, app, epg, bd = self.create_epg_with_bd()
@@ -503,6 +546,7 @@ class TestJson(unittest.TestCase):
         self.assertTrue(output == expected,
                         'Did not see expected JSON returned')
 
+
 class TestInterfaces(unittest.TestCase):
     def test_portchannel(self):
         if1 = Interface('eth', '1', '101', '1', '8')
@@ -511,7 +555,7 @@ class TestInterfaces(unittest.TestCase):
         pc.attach(if1)
         pc.attach(if2)
 
-        #print pc.get_json()
+        # print pc.get_json()
 
 
 class TestOspf(unittest.TestCase):
@@ -537,9 +581,10 @@ class TestOspf(unittest.TestCase):
         contract2 = Contract('contract-2')
         outside.consume(contract2)
         outside.attach(ospfif)
-        #print outside.get_json()
+        # print outside.get_json()
 
-@unittest.skipIf(LIVE_TEST == False, 'Not performing live APIC testing')
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -550,7 +595,8 @@ class TestLiveAPIC(unittest.TestCase):
         self.assertTrue(resp.ok)
         return session
 
-@unittest.skipIf(LIVE_TEST == False, 'Not performing live APIC testing')
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveTenant(TestLiveAPIC):
     def get_all_tenants(self):
         session = self.login_to_apic()
@@ -623,7 +669,8 @@ class TestLiveTenant(TestLiveAPIC):
         names = self.get_all_tenant_names()
         self.assertTrue(new_tenant.name not in names)
 
-@unittest.skipIf(LIVE_TEST == False, 'Not performing live APIC testing')
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveInterface(TestLiveAPIC):
     def test_get_all_interfaces(self):
         session = self.login_to_apic()
@@ -635,7 +682,8 @@ class TestLiveInterface(TestLiveAPIC):
             path = interface.get_path()
             self.assertTrue(isinstance(path, str))
 
-@unittest.skipIf(LIVE_TEST == False, 'Not performing live APIC testing')
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAppProfile(TestLiveAPIC):
     def test_invalid_app(self):
         session = self.login_to_apic()
@@ -644,7 +692,8 @@ class TestLiveAppProfile(TestLiveAPIC):
     def test_valid_preexisting_app(self):
         session = self.login_to_apic()
 
-@unittest.skipIf(LIVE_TEST == False, 'Not performing live APIC testing')
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveEPG(TestLiveAPIC):
     def test_get_epgs(self):
         session = self.login_to_apic()
@@ -657,7 +706,7 @@ class TestLiveEPG(TestLiveAPIC):
                     self.assertTrue(isinstance(epg, EPG))
 
 
-@unittest.skipIf(LIVE_TEST == False, 'Not performing live APIC testing')
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestApic(unittest.TestCase):
     def base_test_setup(self):
         # Login to APIC
@@ -758,11 +807,15 @@ class TestApic(unittest.TestCase):
     def test_get_subnets(self):
         (session, tenant, app, epg) = self.base_test_setup()
         Subnet.get(session, tenant)
-            
+
     def test_get_contexts(self):
         (session, tenant, app, epg) = self.base_test_setup()
         Context.get(session, tenant)
-            
+
+    def test_get_contexts_invalid_tenant_as_string(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        self.assertRaises(TypeError, Context.get, session, 'tenant')
+
     def test_assign_epg_to_port_channel(self):
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
@@ -779,10 +832,10 @@ class TestApic(unittest.TestCase):
         pc.attach(intf4)
         (fabric, infra) = pc.get_json()
         expected = ('{"fabricProtPol": {"attributes": {"name": "vpc101"}, '
-                    '"children": [{"fabricExplicitGEp": {"attributes": {"name":'
-                    ' "vpc101", "id": "101"}, "children": [{"fabricNodePEp":'
-                    ' {"attributes": {"id": "101"}}}, {"fabricNodePEp": '
-                    '{"attributes": {"id": "102"}}}]}}]}}')
+                    '"children": [{"fabricExplicitGEp": {"attributes": '
+                    '{"name": "vpc101", "id": "101"}, "children": [{'
+                    '"fabricNodePEp": {"attributes": {"id": "101"}}}, '
+                    '{"fabricNodePEp": {"attributes": {"id": "102"}}}]}}]}}')
         self.assertTrue(json.dumps(fabric) == expected)
         if fabric is not None:
             resp = session.push_to_apic('/api/mo/uni/fabric.json', data=fabric)
@@ -897,6 +950,7 @@ class TestApic(unittest.TestCase):
         ospfif.attach(l3_intf)
 
         # Create the Outside EPG
+        self.assertRaises(TypeError, OutsideEPG, 'out-1', 'tenant')
         outside = OutsideEPG('out-1', tenant)
         outside.attach(ospfif)
 
@@ -915,7 +969,8 @@ class TestApic(unittest.TestCase):
         # Cleanup
         self.base_test_teardown(session, tenant)
 
-@unittest.skipIf(LIVE_TEST == False, 'Not performing live APIC testing')
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveContracts(unittest.TestCase):
     def get_2_entries(self, contract):
         entry1 = FilterEntry('entry1',

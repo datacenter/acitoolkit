@@ -414,14 +414,13 @@ class L3Interface(BaseACIObject):
     # Context references
     def add_context(self, context):
         """ Add context to the EPG """
+        if self.has_context():
+            self.remove_context()
         self._add_relation(context)
 
-    def remove_context(self, context=None):
+    def remove_context(self):
         """ Remove context from the EPG """
-        if context:
-            self._remove_relation(context)
-        else:
-            self._remove_all_relation(Context)
+        self._remove_all_relation(Context)
 
     def get_context(self):
         """ Return the assigned context """
@@ -521,27 +520,19 @@ class BridgeDomain(BaseACIObject):
     # Context references
     def add_context(self, context):
         """Set the Context for this BD """
-        ctx = BaseRelation(context, 'attached')
-        self._relations.append(ctx)
+        self._add_relation(context)
 
     def remove_context(self):
         """Remove the Context for this BD """
-        for relation in self._relations:
-            if isinstance(relation.item, Context) and relation.is_attached():
-                self._relations.remove(relation)
+        self._remove_all_relation(Context)
 
     def get_context(self):
         """Get the Context for this BD """
-        for relation in self._relations:
-            if isinstance(relation.item, Context) and relation.is_attached():
-                return relation.item
+        return self._get_any_relation(Context)
 
     def has_context(self):
         """Check if the Context has been set for this BD """
-        for relation in self._relations:
-            if isinstance(relation.item, Context) and relation.is_attached():
-                return True
-        return False
+        return self._has_any_relation(Context)
 
     # Subnet
     def add_subnet(self, subnet):
