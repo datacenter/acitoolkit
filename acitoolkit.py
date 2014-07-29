@@ -88,7 +88,7 @@ class L2Interface(BaseACIObject):
         super(L2Interface, self).__init__(name)
         if encap_type not in ('vlan', 'vxlan', 'nvgre'):
             raise ValueError("Encap type must be one of 'vlan',"
-                              " 'vxlan', or 'nvgre'")
+                             " 'vxlan', or 'nvgre'")
         self.encap_type = encap_type
         self.encap_id = encap_id
 
@@ -365,10 +365,10 @@ class L3Interface(BaseACIObject):
     """ Creates a L3 interface that can be attached to a L2 interface.
         This interface defines the L3 address i.e. IPv4
     """
-    def __init__(self, name, l3if_type=None):
+    def __init__(self, name):
         super(L3Interface, self).__init__(name)
         self._addr = None
-        self._l3if_type = l3if_type
+        self._l3if_type = None
 
     def is_interface(self):
         """ Check if this is an interface object.
@@ -489,7 +489,8 @@ class OSPFInterface(BaseACIObject):
 class OSPFRouter(BaseACIObject):
     """Represents the global settings of the OSPF Router
     """
-    def __init__(self):
+    def __init__(self, name):
+        super(OSPFRouter, self).__init__(name)
         self._router_id = None
         self._node = None
 

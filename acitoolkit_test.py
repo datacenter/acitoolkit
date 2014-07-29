@@ -266,11 +266,25 @@ class TestBridgeDomain(unittest.TestCase):
         tenant, bd = self.create_bd()
         sub1 = Subnet('sub1', bd)
         self.assertRaises(ValueError, bd.add_subnet, sub1)
+        self.assertRaises(ValueError, bd.get_json)
+
+    def test_add_subnet_wrong_parent(self):
+        tenant, bd = self.create_bd()
+        self.assertRaises(TypeError, Subnet, 'sub1', tenant)
 
     def test_add_subnet_twice(self):
         bd, sub1 = self.create_bd_with_subnet()
         bd.add_subnet(sub1)
         self.assertTrue(len(bd.get_subnets()) == 1)
+
+    def test_add_subnet_different_bd(self):
+        tenant, bd = self.create_bd()
+        subnet = Subnet('subnet', bd)
+        subnet.set_addr('1.2.3.4/24')
+        bd.add_subnet(subnet)
+        bd2 = BridgeDomain('bd2', tenant)
+        bd2.add_subnet(subnet)
+        self.assertTrue(bd2.has_subnet(subnet))
 
     def test_set_subnet_addr_to_none(self):
         bd, sub1 = self.create_bd_with_subnet()
@@ -376,9 +390,69 @@ class TestL2Interface(unittest.TestCase):
         self.assertTrue(l2if.get_path() is not None)
 
 
+class TestL3Interface(unittest.TestCase):
+    def test_create_valid(self):
+        l3if = L3Interface('l3ifname')
+
+    def test_create_invalid_no_name(self):
+        self.assertRaises(TypeError, L3Interface)
+
+    def test_is_interface(self):
+        l3if = L3Interface('l3ifname')
+        self.assertTrue(l3if.is_interface())
+
+    def test_set_addr(self):
+        l3if = L3Interface('l3ifname')
+        self.assertEqual(l3if.get_addr(), None)
+        l3if.set_addr('1.2.3.4/24')
+        self.assertEqual(l3if.get_addr(), '1.2.3.4/24')
+
+    def test_set_l3if_type(self):
+        l3if = L3Interface('l3ifname')
+        l3if.set_l3if_type('l3-port')
+        self.assertEqual(l3if.get_l3if_type(), 'l3-port')
+
+    def test_set_l3if_type_invalid(self):
+        l3if = L3Interface('l3ifname')
+        self.assertRaises(ValueError, l3if.set_l3if_type, 'invalid')
+
+    def test_add_context(self):
+        l3if = L3Interface('l3ifname')
+        ctx = Context('ctx')
+        l3if.add_context(ctx)
+        self.assertEqual(l3if.get_context(), ctx)
+
+    def test_add_context_twice(self):
+        l3if = L3Interface('l3ifname')
+        ctx = Context('ctx')
+        l3if.add_context(ctx)
+        l3if.add_context(ctx)
+        self.assertEqual(l3if.get_context(), ctx)
+        l3if.remove_context()
+        self.assertIsNone(l3if.get_context())
+
+    def test_add_context_different(self):
+        l3if = L3Interface('l3ifname')
+        ctx1 = Context('ctx1')
+        ctx2 = Context('ctx2')
+        l3if.add_context(ctx1)
+        l3if.add_context(ctx2)
+        self.assertEqual(l3if.get_context(), ctx2)
+        self.assertTrue(l3if.has_context())
+
+    def test_remove_context(self):
+        l3if = L3Interface('l3ifname')
+        ctx = Context('ctx')
+        l3if.add_context(ctx)
+        l3if.remove_context()
+        self.assertIsNone(l3if.get_context())
+        self.assertFalse(l3if.has_context())
+
+
 class TestInterface(unittest.TestCase):
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
+        intf.get_json()
         self.assertTrue(intf is not None)
 
     def parse_name(self, text):
@@ -547,7 +621,29 @@ class TestJson(unittest.TestCase):
                         'Did not see expected JSON returned')
 
 
-class TestInterfaces(unittest.TestCase):
+class TestPortChannel(unittest.TestCase):
+    def test_create(self):
+        if1 = Interface('eth', '1', '101', '1', '8')
+        if2 = Interface('eth', '1', '101', '1', '9')
+        pc = PortChannel('pc1')
+        pc.attach(if1)
+        pc.attach(if2)
+        self.assertTrue(pc.is_interface())
+        self.assertFalse(pc.is_vpc())
+
+        # Add a 3rd interface to make it a VPC
+        if3 = Interface('eth', '1', '102', '1', '9')
+        pc.attach(if3)
+        self.assertTrue(pc.is_vpc())
+
+        # Remove the 3rd interface
+        pc.detach(if3)
+        self.assertFalse(pc.is_vpc())
+        path = pc.get_path()
+        self.assertTrue(isinstance(path, str))
+        fabric, infra = pc.get_json()
+        self.assertTrue(fabric is None)
+
     def test_portchannel(self):
         if1 = Interface('eth', '1', '101', '1', '8')
         if2 = Interface('eth', '1', '101', '1', '9')
@@ -566,7 +662,8 @@ class TestOspf(unittest.TestCase):
         phyif = Interface('eth', '1', '101', '1', '8')
         l2if = L2Interface('eth 1/101/1/8.5', 'vlan', '5')
         l2if.attach(phyif)
-        l3if = L3Interface('l3if', 'l3-port')
+        l3if = L3Interface('l3if')
+        l3if.set_l3if_type('l3-port')
         l3if.addr = '10.1.1.1/24'
         l3if.add_context(context)
         l3if.attach(l2if)
@@ -582,6 +679,9 @@ class TestOspf(unittest.TestCase):
         outside.consume(contract2)
         outside.attach(ospfif)
         # print outside.get_json()
+
+    def test_ospf_router(self):
+        rtr = OSPFRouter('rtr-1')
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
@@ -674,6 +774,7 @@ class TestLiveTenant(TestLiveAPIC):
 class TestLiveInterface(TestLiveAPIC):
     def test_get_all_interfaces(self):
         session = self.login_to_apic()
+        self.assertRaises(TypeError, Interface.get, None)
         intfs = Interface.get(session)
         for interface in intfs:
             self.assertTrue(isinstance(interface, Interface))
@@ -785,6 +886,8 @@ class TestApic(unittest.TestCase):
         epg.add_bd(bd)
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
+
+        BridgeDomain.get(session, tenant)
 
         # Check the JSON that was sent
         expected = ('{"fvTenant": {"attributes": {"name": "aci-toolkit-test"},'
@@ -934,7 +1037,8 @@ class TestApic(unittest.TestCase):
         l2_intf.attach(intf)
 
         # Create an L3 Interface on the L2 Interface
-        l3_intf = L3Interface('l3if', 'l3-port')
+        l3_intf = L3Interface('l3if')
+        l3_intf.set_l3if_type('l3-port')
         l3_intf.set_addr('10.3.1.1/24')
         l3_intf.add_context(context)
         l3_intf.attach(l2_intf)
