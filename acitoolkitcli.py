@@ -47,7 +47,7 @@ class SubMode(Cmd):
         if len(words) > 1:
             if words[1] == 'detail':
                 detail = True
-        temp = self.complete_show(args, '', 0, len(words[0])+5)
+        temp = self.complete_show('', 'show '+args, 0, 0)
         if len(temp) == 1:
             words[0] = temp[0]
 
@@ -161,7 +161,7 @@ class SubMode(Cmd):
 
     def complete_show(self, text, line, begidx, endidx):
         show_args = ['bridgedomain', 'context', 'contract', 'app', 'port-channel', 'epg', 'interface', 'tenant']
-        completions = [a for a in show_args if a.startswith(text[0:endidx-5])]
+        completions = [a for a in show_args if a.startswith(line[5:])]
         return completions
 
     def do_exit(self, args):
@@ -233,7 +233,7 @@ class BridgeDomainConfigSubMode(SubMode):
 
     def complete_ip(self, text, line, begidx, endidx):
         ip_args = ['address']
-        completions = [a for a in ip_args if a.startswith(text[0:endidx-3])]
+        completions = [a for a in ip_args if a.startswith(line[3:])]
         return completions
 
 class ContextConfigSubMode(SubMode):
