@@ -502,8 +502,8 @@ class ConfigSubMode(SubMode):
 
     def do_app(self, args):
         " Application Profile Creation\tapp <app-profile-name> "
-        if len(args.split()) > 1:
-            print '%% app requires only 1 name\n'
+        if len(args.split()) > 1 or len(args.split()) == 0:
+            print '%% app requires 1 name\n'
             return
         if self.tenant == None:
             print '%% app requires switchto tenant\n'
@@ -709,7 +709,6 @@ class CmdLine(SubMode):
     def __init__(self):
         Cmd.__init__(self)
         self.apic = apic
-        self.db = db
         if not READLINE:
             self.completekey = None
         self.tenant = None
@@ -841,22 +840,13 @@ if __name__ == '__main__':
                         filename=DEBUGFILE, filemode='w',
                         level=DEBUGLEVEL)
 
-    #apic = APIC(url, login, password, dryrun)
     apic = Session(URL, LOGIN, PASSWORD)
-    db = ''
-    #db = ConfigDB(apic)
     apic.login()
-    #db.populate_db()
 
-    try:
-        if TESTFILE:
-            sys.stdin = MockStdin(TESTFILE)
-    except NameError:
-        pass
+    if 'TESTFILE' in locals():
+        sys.stdin = MockStdin(TESTFILE)
 
     cmdLine = CmdLine()
     cmdLine.apic = apic
-    cmdLine.db = db
     cmdLine.cmdloop()
-    logging.debug('Dumping Configuration DB:\n%s', db)
     
