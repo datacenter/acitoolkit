@@ -3,17 +3,32 @@ show tenant
 show app
 show epg
 show interface
+show context
+show invalid
 config t
 interface eth 1/101/1/65
 epg
 epg epg1
 exit
+bridgedomain
+bridgedomain bd1 bd2
+bridgedomain bd1
+context
+context ctx1
+context ctx1 ctx2
 tenant
 tenant acitoolkit acitoolkit
 tenant acitoolkit
 no tenant acitoolkit
 tenant acitoolkit
 exit
+switchto acitoolkit
+switchback acitoolkit
+switchback
+no switchto acitoolkit
+switchto
+switchto acitoolkit acitoolkit
+switchto dlfkdjflshf
 switchto acitoolkit
 conf t
 bridgedomain bd1
@@ -23,10 +38,13 @@ show app
 show epg
 show interface
 exit
+context ctx
+exit
 app app1
 epg epg1
 exit
 exit
+no tenant acitoolkit
 exit
 exit
 
