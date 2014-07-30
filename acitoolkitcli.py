@@ -204,22 +204,19 @@ class BridgeDomainConfigSubMode(SubMode):
         self.prompt += '(config-bd)# '
 
     def do_ip(self, args):
-        " Context Creation\tcontext <context-name> "
+        """ IP subnet creation\nip address <ip-address>/<mask> """
         args = args.split()
         if len(args) <= 1:
-            print '%% ip requires at least two arguments: method and ip'
+            print '%% ip command requires the following format: ip address <ip-address>/<mask>'
             return
-        elif len(args) > 3:
-            print '%% ip takes 3 arguments (%i are given). %len(args.split())'
+        elif len(args) > 2:
+            print '%% ip command requires the following format: ip address <ip-address>/<mask>'            
             return
-        if self.tenant == None:
-            print '%% context requires switchto tenant'
-            return
-        subnet_name = args[1].replace('/',':')
-        subnet = Subnet(subnet_name, self.bridgedomain)
-        subnet.set_addr(args[1])
-
         if args[0] == 'address':
+            subnet_name = args[1].replace('/',':')
+            subnet = Subnet(subnet_name, self.bridgedomain)
+            subnet.set_addr(args[1])
+
             if self.negative:
                 print 'Executing delete subnet command'
                 # self.bridgedomain.remove_subnet(subnet)  ## remove_subnet()

@@ -37,6 +37,10 @@ switchto dlfkdjflshf
 switchto acitoolkit
 conf t
 bridgedomain bd1
+ip
+ip address
+ip address address address
+ip address 1.2.3.4/24
 show bridgedomain
 show tenant
 show app
@@ -54,12 +58,15 @@ app
 app app1 app2
 app app1
 epg
+epg epg1 epg2
 epg epg1
 bridgedomain
 bridgedomain bd1 bd2
 bridgedomain bd1
 no bridgedomain bd1
 exit
+no epg epg2
+no epg epg1
 exit
 no app app1
 no tenant acitoolkit
