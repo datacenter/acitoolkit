@@ -1,0 +1,33 @@
+show bridgedomain
+show tenant
+show app
+show epg
+show interface
+config t
+interface eth 1/101/1/65
+epg
+epg epg1
+exit
+tenant
+tenant acitoolkit acitoolkit
+tenant acitoolkit
+no tenant acitoolkit
+tenant acitoolkit
+exit
+switchto acitoolkit
+conf t
+bridgedomain bd1
+show bridgedomain
+show tenant
+show app
+show epg
+show interface
+exit
+app app1
+epg epg1
+exit
+exit
+exit
+exit
+
+
