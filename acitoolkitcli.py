@@ -1,7 +1,9 @@
 """This module implements a CLI similar to Cisco IOS and NXOS
    for use with the ACI Toolkit.
 """
-import sys, getopt, logging
+import sys
+import getopt
+import logging
 from cmd import Cmd
 from acitoolkit import *
 import pprint
@@ -21,9 +23,11 @@ except:
     except:
         READLINE = False
 
+
 def error_message(resp):
     print 'Error:  Unable to push configuration to APIC'
     print 'Reason:', resp.text
+
 
 class SubMode(Cmd):
     """
@@ -41,7 +45,6 @@ class SubMode(Cmd):
 
     def do_show(self, args):
         """Show running system information"""
-        #sys.stdout.write('Executing Show Command\n')
         detail = False
         words = args.strip().split(' ')
         if len(words) > 1:
@@ -57,10 +60,6 @@ class SubMode(Cmd):
             for tenant in tenants:
                 tenant_dict[tenant.name] = []
             pprint.pprint(tenant_dict)
-            #print 'Tenant'
-            #print '------'
-            #for tenant in tenants:
-            #    print tenant
         elif words[0] == 'bridgedomain':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -87,30 +86,13 @@ class SubMode(Cmd):
                 pprint.pprint(context_dict)
         elif words[0] == 'contract':
             raise NotImplementedError
-            contracts = self.db.get_class(Contract)
-            contract_dict = {}
-            for contract in contracts:
-                if self.tenant is not None and self.tenant != contract.get_parent():
-                    continue
-                if contract.get_parent().name not in contract_dict:
-                    contract_dict[contract.get_parent().name] = {}
-                contract_dict[contract.get_parent().name][contract.name] = {}
-                subjects = contract.get_children()
-                for subject in subjects:
-                    filts = subject.get_children()
-                    for filt in filts:
-                        filt = filt.get_relation()
-                    if filt:
-                        for entry in filt.get_children():
-                            contract_dict[contract.get_parent().name][contract.name][entry.name] = {}
-            pprint.pprint(contract_dict)
         elif words[0] == 'interface':
             ifs = Interface.get(self.apic)
             print 'Interface\tType\tStatus\tSpeed\tMTU'
             for interface in ifs:
                 print interface
         elif words[0] == 'port-channel':
-            pcs = PortChannel
+            raise NotImplementedError
         elif words[0] == 'app':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -446,56 +428,6 @@ class ConfigSubMode(SubMode):
                     return
                 except:
                     return
-            
-                url = 'mo/uni.json'
-                data = {'infraInfra':{'children':[{'infraFuncP':{'children':[{'infraAccBndlGrp':{'attributes':{'name':'portchannelgroup2', 'lagT':'link'}}}]}}]}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-                
-                data = {'infraInfra':{'children':[{'infraAccPortP':{'attributes':{'name':'ports22and23'}, 'children':[{'infraHPortS':{'attributes':{'name':'ports', 'type':'range'}, 'children':[{'infraPortBlk':{'attributes':{'name':'blk', 'fromCard':'1', 'toCard':'1', 'fromPort':'22','toPort':'23'}}},{'infraRsAccBaseGrp':{'attributes':{'tDn':'uni/infra/funcprof/accbundle-portchannelgroup2'}}}]}}]}}]}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-
-                data = {'infraInfra':{'children':[{'infraAccPortP':{'attributes':{'name':'ports22and23'}, 'children':[{'infraHPortS':{'attributes':{'name':'ports', 'type':'range'}, 'children':[{'infraPortBlk':{'attributes':{'name':'blk', 'fromCard':'1', 'toCard':'1', 'fromPort':'20','toPort':'21'}}},{'infraRsAccBaseGrp':{'attributes':{'tDn':'uni/infra/funcprof/accbundle-portchannelgroup2'}}}]}}, {'infraHPortS':{'attributes':{'name':'ports2', 'type':'range'}, 'children':[{'infraPortBlk':{'attributes':{'name':'blk', 'fromCard':'1', 'toCard':'1', 'fromPort':'15','toPort':'16'}}},{'infraRsAccBaseGrp':{'attributes':{'tDn':'uni/infra/funcprof/accbundle-portchannelgroup2'}}}]}}]}}]}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-
-                return
-            
-                data = {'infraInfra':{'children':[{'infraNodeP':{'attributes':{'name':'leafs101'}, 'children':[{'infraLeafS':{'attributes':{'name':'leafsforpc', 'type':'range'}, 'children':[{'infraNodeBlk':{'attributes':{'name':'test', 'from_':'101', 'to_':'101'}}}]}},{'infraRsAccPortP':{'attributes':{'tDn':'uni/infra/accportprof-ports22and23'}}}]}}]}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-
-
-            
-                url = 'node/mo/uni/infra/funcprof/accbundle-%s.json' % 'pc1'
-                
-                #data = {'infraAccBndlGrp':{'attributes':{'lagT':'link'}}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-
-                url = 'node/mo/uni/infra/accportprof-%s.json' % 'pc1'
-                data = {'infraAccPortP':{'attributes':{}}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-
-                url = 'node/mo/uni/infra/accportprof-%s/hports-%s-typ-%s.json' % ('pc1','pc1','range')
-                data = {'infraHPortS':{'attributes':{}}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-                
-                url = 'node/mo/uni/infra/accportprof-%s/hports-%s-typ-%s/portblk-%s.json' % ('pc1','pc1','range','blk')
-                data = {'infraPortBlk':{'attributes':{'fromCard':'1', 'toCard':'1',
-                                                      'fromPort':'37', 'toPort':'38'}}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-
-                url = 'node/mo/uni/infra/accportprof-%s/hports-%s-typ-%s/rsaccBaseGrp.json' % ('pc1','pc1','range')
-                data = {'infraRsAccBaseGrp':{'attributes':{'tDn':'uni/infra/funcprof/accbundle-pc1.json'}}}
-                resp = self.apic.post(url, data=json.dumps(data))
-                print 'Response:', resp, resp.text
-                
-                print 'Must be port channel', interface_type, port
 
     def do_app(self, args):
         " Application Profile Creation\tapp <app-profile-name> "

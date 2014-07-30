@@ -39,9 +39,9 @@ class BaseRelation(object):
         self.status = 'detached'
 
     def __eq__(self, other):
-        return self.item == other.item and \
-            self.status == other.status and \
-            self.relation_type == other.relation_type
+        return (self.item == other.item and
+                self.status == other.status and
+                self.relation_type == other.relation_type)
 
 
 class BaseACIObject(object):
