@@ -788,6 +788,14 @@ class CmdLine(SubMode):
         completions = ['terminal']
         return completions
 
+class MockStdin:
+    def __init__(self, filename):
+        f = open(filename)
+        self.lines = f.readlines()
+        f.close()
+
+    def readline(self):
+        return self.lines.pop(0)
 
 # *** MAIN LOOP ***
 if __name__ == '__main__':
@@ -799,13 +807,13 @@ if __name__ == '__main__':
     DEBUGLEVEL = logging.CRITICAL
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                   "hl:p:u:do:f:",
+                                   "hl:p:u:do:f:t:",
                                    ["help", "apic-login=", "apic-password=",
                                     "apic-url=", "enable-debug", "output-file=",
-                                    "debug-file="])
+                                    "debug-file=", "test-file="])
     except getopt.GetoptError:
         print 'aci-toolkit-cli.py -l <login> -p <password> -u <url>'
-        print 'aci-toolkit-cli.py -t -o <output-file>'
+        print 'aci-toolkit-cli.py -o <output-file> -t <test-file>'
         sys.exit(2)
     for opt, arg in opts:
         if opt in ('-h', '--help'):
@@ -823,6 +831,8 @@ if __name__ == '__main__':
             DEBUGLEVEL = logging.DEBUG
         elif opt in ('-f', '--debug-file'):
             DEBUGFILE = arg
+        elif opt in ('-t', '--test-file'):
+            TESTFILE = arg
 
     logging.basicConfig(format=('%(levelname)s:[%(module)s:'
                                 '%(funcName)s]:%(message)s'),
@@ -835,6 +845,12 @@ if __name__ == '__main__':
     #db = ConfigDB(apic)
     apic.login()
     #db.populate_db()
+
+    try:
+        if TESTFILE:
+            sys.stdin = MockStdin(TESTFILE)
+    except NameError:
+        pass
 
     cmdLine = CmdLine()
     cmdLine.apic = apic
