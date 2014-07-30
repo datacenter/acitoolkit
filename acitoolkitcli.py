@@ -795,7 +795,9 @@ class MockStdin:
         f.close()
 
     def readline(self):
-        return self.lines.pop(0)
+        line = self.lines.pop(0)
+        print line
+        return line
 
 # *** MAIN LOOP ***
 if __name__ == '__main__':
