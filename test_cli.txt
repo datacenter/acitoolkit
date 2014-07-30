@@ -6,6 +6,7 @@ show interface
 show context
 show invalid
 help show
+?
 config t
 interface eth 1/101/1/65
 epg
@@ -17,7 +18,9 @@ bridgedomain bd1
 context
 context ctx1
 context ctx1 ctx2
+no context ctx1
 contract contract1
+app app1
 tenant
 tenant acitoolkit acitoolkit
 tenant acitoolkit
@@ -42,6 +45,7 @@ show interface
 exit
 context ctx
 exit
+no context ctx
 contract contract1 contract2
 contract contract1
 exit
@@ -51,8 +55,13 @@ app app1 app2
 app app1
 epg
 epg epg1
+bridgedomain
+bridgedomain bd1 bd2
+bridgedomain bd1
+no bridgedomain bd1
 exit
 exit
+no app app1
 no tenant acitoolkit
 exit
 exit
