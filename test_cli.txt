@@ -48,6 +48,8 @@ show epg
 show interface
 exit
 context ctx
+allowall
+no allowall
 exit
 no context ctx
 contract contract1 contract2
