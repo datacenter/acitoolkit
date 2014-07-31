@@ -60,6 +60,7 @@ class SubMode(Cmd):
             for tenant in tenants:
                 tenant_dict[tenant.name] = []
             pprint.pprint(tenant_dict)
+            return tenant_dict
         elif words[0] == 'bridgedomain':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -708,6 +709,11 @@ class CmdLine(SubMode):
             self.set_prompt()
         else:
             print '%% Tenant %s does not exist' % tenant.name
+
+    def complete_switchto(self, text, line, begidx, endidx):
+        ip_2args = [a for a in self.do_show('tenant').keys()]
+        completions = [a for a in ip_2args if a.startswith(line[9:])]
+        return completions
 
     def do_switchback(self, args):
         " Switch back out of a particular tenant "
