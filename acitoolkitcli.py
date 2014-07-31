@@ -201,18 +201,27 @@ class BridgeDomainConfigSubMode(SubMode):
 
             if self.negative:
                 print 'Executing delete subnet command'
-                # self.bridgedomain.remove_subnet(subnet)  ## remove_subnet()
+                self.bridgedomain.remove_subnet(subnet)  ## remove_subnet()
                 subnet.mark_as_deleted()
             else:
                 print 'Executing create subnet command'
-                # self.bridgedomain.add_subnet(subnet)  ## remove_subnet()
+                self.bridgedomain.add_subnet(subnet)  ## remove_subnet()
             resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
 
     def complete_ip(self, text, line, begidx, endidx):
         ip_args = ['address']
-        completions = [a for a in ip_args if a.startswith(line[3:])]
+        num_args = len(line.split())
+        if num_args > 2:
+
+            # TODO: after "show subnet" is done, this need to be rewritten.
+            # ip_2args = [a.get_addr() for a in do_show('subnet')]
+            ip_2args = [a.get_addr() for a in self.bridgedomain.get_subnets()]
+
+            completions = [a for a in ip_2args if a.startswith(line[11:])]
+        else:
+            completions = [a for a in ip_args if a.startswith(line[3:])]
         return completions
 
 class ContextConfigSubMode(SubMode):
