@@ -43,7 +43,7 @@ class SubMode(Cmd):
         self.negative = False
         self.apic = None
 
-    def do_show(self, args):
+    def do_show(self, args, to_return=False):
         """Show running system information"""
         detail = False
         words = args.strip().split(' ')
@@ -59,8 +59,9 @@ class SubMode(Cmd):
             tenant_dict = {}
             for tenant in tenants:
                 tenant_dict[tenant.name] = []
+            if to_return:
+                return tenant_dict
             pprint.pprint(tenant_dict)
-            return tenant_dict
         elif words[0] == 'bridgedomain':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -72,6 +73,8 @@ class SubMode(Cmd):
                 bd_dict[tenant.name] = []
                 for bd in bds:
                     bd_dict[tenant.name].append(bd.name)
+                if to_return:
+                    return bd_dict
                 pprint.pprint(bd_dict)
         elif words[0] == 'context':
             if self.tenant is None:
@@ -378,6 +381,11 @@ class ConfigSubMode(SubMode):
             self.bridgedomain_submode.bridgedomain = bridgedomain
             self.bridgedomain_submode.set_prompt()
             self.bridgedomain_submode.cmdloop()
+
+    def complete_bridgedomain(self, text, line, begidx, endidx):
+        bridgedomain_args = [a for a in self.do_show('bridgedomain', to_return=True).values()[0]]
+        completions = [a for a in bridgedomain_args if a.startswith(line[13:])]
+        return completions
 
     def do_context(self, args):
         " Context Creation\tcontext <context-name> "
@@ -711,8 +719,8 @@ class CmdLine(SubMode):
             print '%% Tenant %s does not exist' % tenant.name
 
     def complete_switchto(self, text, line, begidx, endidx):
-        ip_2args = [a for a in self.do_show('tenant').keys()]
-        completions = [a for a in ip_2args if a.startswith(line[9:])]
+        switchto_args = [a for a in self.do_show('tenant', to_return=True).keys()]
+        completions = [a for a in switchto_args if a.startswith(line[9:])]
         return completions
 
     def do_switchback(self, args):
