@@ -717,7 +717,8 @@ class CmdLine(SubMode):
         return completions
 
 class MockStdin:
-    def __init__(self, filename):
+    def __init__(self, filename, original_stdin):
+        self.original_stdin = original_stdin
         f = open(filename)
         self.lines = f.readlines()
         f.close()
@@ -725,6 +726,8 @@ class MockStdin:
     def readline(self):
         line = self.lines.pop(0)
         print line
+        if len(self.lines) == 0:
+            sys.stdin = self.original_stdin
         return line
 
 # *** MAIN LOOP ***
@@ -773,7 +776,7 @@ if __name__ == '__main__':
     apic.login()
 
     if 'TESTFILE' in locals():
-        sys.stdin = MockStdin(TESTFILE)
+        sys.stdin = MockStdin(TESTFILE, sys.stdin)
 
     cmdLine = CmdLine()
     cmdLine.apic = apic
