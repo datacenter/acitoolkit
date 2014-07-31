@@ -10,17 +10,22 @@ Please consult the wiki associated with this Github repository for documentation
 
 ## Environment
 
+Required
+
+* Python 2.7+
+* [requests library](http://docs.python-requests.org/en/latest/user/install/#install)
+
 ## Downloading
 
 Option A:
 
-If you have git installed clone the repository
+If you have git installed, clone the repository
 
-    git clonehttps://github.com/datacenter/Simple-ACI-Toolkit.git
+    git clone https://github.com/datacenter/Simple-ACI-Toolkit.git
 
 Option B:
 
-If you don't have git [download a zip copy of the repository](https://github.com/datacenter/Simple-ACI-Toolkit/archive/master.zip) and extract.
+If you don't have git, [download a zip copy of the repository](https://github.com/datacenter/Simple-ACI-Toolkit/archive/master.zip) and extract.
 
 
 ## Installing

@@ -28,6 +28,10 @@ no tenant acitoolkit
 tenant acitoolkit
 exit
 switchto acitoolkit
+config t
+interface eth 1/101/1/65
+exit
+exit
 switchback acitoolkit
 switchback
 no switchto acitoolkit
@@ -47,6 +51,7 @@ show app
 show epg
 show interface
 exit
+no bridgedomain bd1
 context ctx
 allowall
 no allowall
