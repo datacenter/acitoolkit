@@ -596,6 +596,20 @@ class ContractConfigSubMode(SubMode):
         SubMode.__init__(self)
         self.entry_name = None
 
+    def do_scope(self, args):
+        pdb.set_trace()
+        if self.negative == True:
+            print 'You can not delete contract scope'
+            return
+        self.contract.set_scope(args.split()[0])
+        print 'contract scope change to be ', self.contract.get_scope()
+
+    def complete_scope(self, text, line, begidx, endidx):
+        print self.negative
+        scope_args = ['context', 'global', 'tenant', 'application-profile']
+        completions = [a for a in scope_args if a.startswith(line[6:])]
+        return completions
+
     def do_permit(self, args):
         """ Filter Entry\n\tpermit <protocol> [src-port <operator> {port|protocol-port}]
             \t[dest-port <operator> {port|protocol-port}] [fragments]
@@ -640,14 +654,15 @@ class ContractConfigSubMode(SubMode):
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-contract)# '
 
-    def precmd(self, line):
-        line = SubMode.precmd(self, line)
-
-        # Get the entry name from the start
-        if line.strip().split()[0] != 'exit':
-            self.entry_name = line.strip().split()[0]
-            line = line.strip()[len(self.entry_name):]
-        return line
+    # Bon: I am not sure what this for taking out the first arg.
+    # def precmd(self, line):
+    #     line = SubMode.precmd(self, line)
+    #
+    #     # Get the entry name from the start
+    #     if line.strip().split()[0] != 'exit':
+    #         self.entry_name = line.strip().split()[0]
+    #         line = line.strip()[len(self.entry_name):]
+    #     return line
 
 class CmdLine(SubMode):
     """
