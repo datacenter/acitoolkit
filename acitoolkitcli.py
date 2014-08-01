@@ -597,7 +597,6 @@ class ContractConfigSubMode(SubMode):
         self.entry_name = None
 
     def do_scope(self, args):
-        pdb.set_trace()
         if self.negative == True:
             print 'You can not delete contract scope'
             return
@@ -605,7 +604,6 @@ class ContractConfigSubMode(SubMode):
         print 'contract scope change to be ', self.contract.get_scope()
 
     def complete_scope(self, text, line, begidx, endidx):
-        print self.negative
         scope_args = ['context', 'global', 'tenant', 'application-profile']
         completions = [a for a in scope_args if a.startswith(line[6:])]
         return completions
