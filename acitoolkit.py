@@ -575,6 +575,9 @@ class BridgeDomain(BaseACIObject):
         """
         return BaseACIObject.get(session, cls, 'fvBD', tenant, tenant)
 
+    def _get_url_extension(self):
+        return '/BD-%s' % self.name
+
 
 class Subnet(BaseACIObject):
     """ Subnet :  roughly equivalent to fvSubnet """
@@ -615,11 +618,17 @@ class Subnet(BaseACIObject):
         attributes['ip'] = self.get_addr()
         return super(Subnet, self).get_json('fvSubnet', attributes=attributes)
 
-    @classmethod
-    def get(cls, session, tenant):
-        """Gets all of the Subnets from the APIC.
+    def _populate_from_attributes(self, attributes):
+        """Sets the attributes when creating objects from the APIC.
+           Called from the base object when calling the classmethod get()
         """
-        return BaseACIObject.get(session, cls, 'fvSubnet', tenant=tenant)
+        self.set_addr(attributes['ip'])
+
+    @classmethod
+    def get(cls, session, bridgedomain, tenant):
+        """Gets all of the Subnets from the APIC for a particular tenant and bridgedomain
+        """
+        return BaseACIObject.get(session, cls, 'fvSubnet', parent=bridgedomain, tenant=tenant)
 
 
 class Context(BaseACIObject):

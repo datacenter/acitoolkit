@@ -255,6 +255,13 @@ class BaseACIObject(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
+        """
+        pass
+
     @classmethod
     def get(cls, session, toolkit_class, apic_class, parent=None, tenant=None):
         """Gets all of a particular class.
@@ -274,8 +281,9 @@ class BaseACIObject(object):
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
         resp = []
-        for obj in data:
-            name = str(obj[apic_class]['attributes']['name'])
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
             obj = toolkit_class(name, parent)
+            obj._populate_from_attributes(object_data[apic_class]['attributes'])
             resp.append(obj)
         return resp

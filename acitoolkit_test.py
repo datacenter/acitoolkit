@@ -907,10 +907,6 @@ class TestApic(unittest.TestCase):
         # Clean up
         self.base_test_teardown(session, tenant)
 
-    def test_get_subnets(self):
-        (session, tenant, app, epg) = self.base_test_setup()
-        Subnet.get(session, tenant)
-
     def test_get_contexts(self):
         (session, tenant, app, epg) = self.base_test_setup()
         Context.get(session, tenant)
@@ -1010,6 +1006,9 @@ class TestApic(unittest.TestCase):
         # Push to APIC and verify a successful request
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
+
+        subnets = Subnet.get(session, bd, tenant)
+        self.assertNotEqual(len(subnets), 0)
 
         # Cleanup
         self.base_test_teardown(session, tenant)
