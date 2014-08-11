@@ -46,13 +46,13 @@ Configure a Contract (has an implicit deny any and default scope is context)
 fabric-tenant(config)# [no] contract <contract-name>
 fabric-tenant(config-contract)# [no] scope { app-profile | tenant | context | global }
 
-fabric-tenant(config-contract)# [no] permit <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
+fabric-tenant(config-contract)# [no] <sequence-number> permit <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
 
-fabric-tenant(config-contract)# [no] permit tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
+fabric-tenant(config-contract)# [no] <sequence-number> permit tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
 
-fabric-tenant(config-contract)# [no] permit ethertype <ethertype-number>
+fabric-tenant(config-contract)# [no] <sequence-number> permit ethertype <ethertype-number>
 
-fabric-tenant(config-contract)# [no] permit arp [request | response]
+fabric-tenant(config-contract)# [no] <sequence-number> permit arp [request | response]
 
 Apply a Contract between EPGs
 fabric-tenant(config)# [no] epg <epg-name>
@@ -65,13 +65,13 @@ Configure a taboo (has an implicit permit any and default scope is context )
 fabric(config)# [no] taboo <taboo-name>
 fabric(config-taboo)# [no] scope { app-profile | tenant | context | global } 
 
-fabric(config-taboo)# [no] deny <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
+fabric(config-taboo)# [no] <sequence-number> deny <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
 
-fabric(config-taboo)# [no] deny tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
+fabric(config-taboo)# [no] <sequence-number> deny tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
 
-fabric(config-taboo)# [no] deny ethertype <ethertype-number>
+fabric(config-taboo)# [no] <sequence-number> deny ethertype <ethertype-number>
 
-fabric(config-taboo)# [no] deny arp [request | response]
+fabric(config-taboo)# [no] <sequence-number> deny arp [request | response]
 
 Apply a Taboo to an EPG
 fabric(config)# [no] epg <epg-name>
