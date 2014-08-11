@@ -146,7 +146,8 @@ class SubMode(Cmd):
         pass
 
     def complete_show(self, text, line, begidx, endidx):
-        show_args = ['bridgedomain', 'context', 'contract', 'app', 'port-channel', 'epg', 'interface', 'tenant']
+        show_args = ['bridgedomain', 'context', 'contract', 'app',
+                     'port-channel', 'epg', 'interface', 'tenant']
         completions = [a for a in show_args if a.startswith(line[5:])]
         return completions
 
@@ -174,7 +175,8 @@ class SubMode(Cmd):
                 sys.stdout.write('\n')
             return ''
         return line
-    
+
+
 class BridgeDomainConfigSubMode(SubMode):
     """
     Bridge domain configuration sub mode
@@ -185,7 +187,7 @@ class BridgeDomainConfigSubMode(SubMode):
         fabric-tenant(config-bd)#
         """
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-bd)# '
 
@@ -193,24 +195,27 @@ class BridgeDomainConfigSubMode(SubMode):
         """ IP subnet creation\nip address <ip-address>/<mask> """
         args = args.split()
         if len(args) <= 1:
-            print '%% ip command requires the following format: ip address <ip-address>/<mask>'
+            print('%% ip command requires the following '
+                  'format: ip address <ip-address>/<mask>')
             return
         elif len(args) > 2:
-            print '%% ip command requires the following format: ip address <ip-address>/<mask>'            
+            print('%% ip command requires the following '
+                  'format: ip address <ip-address>/<mask>')
             return
         if args[0] == 'address':
-            subnet_name = args[1].replace('/',':')
+            subnet_name = args[1].replace('/', ':')
             subnet = Subnet(subnet_name, self.bridgedomain)
             subnet.set_addr(args[1])
 
             if self.negative:
                 print 'Executing delete subnet command'
-                self.bridgedomain.remove_subnet(subnet)  ## remove_subnet()
+                self.bridgedomain.remove_subnet(subnet)
                 subnet.mark_as_deleted()
             else:
                 print 'Executing create subnet command'
-                self.bridgedomain.add_subnet(subnet)  ## remove_subnet()
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+                self.bridgedomain.add_subnet(subnet)
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
 
@@ -228,6 +233,7 @@ class BridgeDomainConfigSubMode(SubMode):
             completions = [a for a in ip_args if a.startswith(line[3:])]
         return completions
 
+
 class ContextConfigSubMode(SubMode):
     """
     Context domain configuration sub mode
@@ -238,24 +244,26 @@ class ContextConfigSubMode(SubMode):
         fabric-tenant(config-ctx)#
         """
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-ctx)# '
 
-    def do_allowall(self,args):
+    def do_allowall(self, args):
         if self.negative:
             self.context.set_allow_all(False)
         else:
             self.context.set_allow_all(True)
-        resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+        resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                      self.tenant.get_json())
         if not resp.ok:
             error_message(resp)
         else:
             print 'push configuration to APIC'
 
-    def do_getjson(self,args):
+    def do_getjson(self, args):
         pdb.set_trace()
         print self.context.get_json()
+
 
 class InterfaceConfigSubMode(SubMode):
     def __init__(self):
@@ -264,10 +272,12 @@ class InterfaceConfigSubMode(SubMode):
         self.set_prompt()
         self.negative = False
         self.apic = None
-        self.intf = None     
+        self.intf = None
 
     def do_epg(self, args):
-        " Endpoint Group assignment\tepg <app-name>/<epg-name> [vlan <vlanid>] "
+        """ Endpoint Group assignment
+            \tepg <app-name>/<epg-name> [vlan <vlanid>]
+        """
         num_args = len(args.split())
         if num_args == 0:
             print '%% epg called with no epg-name'
@@ -303,7 +313,8 @@ class InterfaceConfigSubMode(SubMode):
             l2if = L2Interface(l2if_name, encap_type, encap_id)
             l2if.attach(self.intf)
             epg.attach(l2if)
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
 
@@ -313,9 +324,10 @@ class InterfaceConfigSubMode(SubMode):
         fabric-tenant(config-if)#
         """
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-if)# '
+
 
 class ConfigSubMode(SubMode):
     def __init__(self):
@@ -332,7 +344,7 @@ class ConfigSubMode(SubMode):
 
     def set_prompt(self):
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config)# '
 
@@ -343,7 +355,7 @@ class ConfigSubMode(SubMode):
         self.app_submode.apic = apic
         self.app_submode.epg_submode.apic = apic
         self.interface_submode.apic = apic
-        
+
     def do_tenant(self, args):
         " Tenant Creation\ttenant <tenant-name> "
         if len(args.split()) > 1:
@@ -365,7 +377,7 @@ class ConfigSubMode(SubMode):
         if len(args.split()) > 1:
             print '%% bridge-domain requires only 1 name'
             return
-        if self.tenant == None:
+        if self.tenant is None:
             print '%% bridge-domain requires switchto tenant'
             return
         bridgedomain = BridgeDomain(args.strip(), self.tenant)
@@ -383,7 +395,8 @@ class ConfigSubMode(SubMode):
             self.bridgedomain_submode.cmdloop()
 
     def complete_bridgedomain(self, text, line, begidx, endidx):
-        bridgedomain_args = [a for a in self.do_show('bridgedomain', to_return=True).values()[0]]
+        bridgedomain_args = [a for a in self.do_show('bridgedomain',
+                                                     to_return=True).values()[0]]
         completions = [a for a in bridgedomain_args if a.startswith(line[13:])]
         return completions
 
@@ -395,7 +408,7 @@ class ConfigSubMode(SubMode):
         elif len(args.split()) > 1:
             print '%% context requires only 1 name'
             return
-        if self.tenant == None:
+        if self.tenant is None:
             print '%% context requires switchto tenant'
             return
         context = Context(args.strip(), self.tenant)
@@ -405,7 +418,8 @@ class ConfigSubMode(SubMode):
             context.mark_as_deleted()
         else:
             print 'Executing create context command'
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
             else:
@@ -415,23 +429,26 @@ class ConfigSubMode(SubMode):
                 self.context_submode.cmdloop()
 
     def do_interface(self, args):
-        "Interface Configuration\ninterface eth <pod>/<node>/<module>/<port>\ninterface port-channel <port>\n"
+        """Interface Configuration
+           interface eth <pod>/<node>/<module>/<port>
+           interface port-channel <port>
+        """
         if len(args.split()) > 2:
             sys.stdout.write('%% Invalid interface name\n')
             return
         if self.negative:
-            pass # only relevant for port-channels
+            pass  # only relevant for port-channels
         else:
-            sys.stdout.write('Executing interface command\n')
+            print 'Executing interface command'
             name = args.strip()
-            try: # Physical Interface
-                (interface_type, pod, node, module, port) = Interface.parse_name(name)
-                intf = Interface(interface_type, pod, node, module, port)
+            try:  # Physical Interface
+                (if_type, pod, node, module, port) = Interface.parse_name(name)
+                intf = Interface(if_type, pod, node, module, port)
                 self.interface_submode.tenant = self.tenant
                 self.interface_submode.intf = intf
                 self.interface_submode.set_prompt()
                 self.interface_submode.cmdloop()
-            except ValueError: # Port Channel
+            except ValueError:  # Port Channel
                 interface_type = args.split()[0]
                 if interface_type != 'port-channel':
                     sys.stdout.write('%% Invalid interface name\n')
@@ -452,20 +469,22 @@ class ConfigSubMode(SubMode):
         if len(args.split()) > 1 or len(args.split()) == 0:
             print '%% app requires 1 name\n'
             return
-        if self.tenant == None:
+        if self.tenant is None:
             print '%% app requires switchto tenant\n'
             return
         if self.negative:
             print 'Executing delete app command\n'
             app = AppProfile(args.strip(), self.tenant)
             app.mark_as_deleted()
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
         else:
             print 'Executing create app command'
             app = AppProfile(args.strip(), self.tenant)
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
             else:
@@ -479,14 +498,15 @@ class ConfigSubMode(SubMode):
         if len(args.split()) > 1:
             sys.stdout.write('%% contract requires only 1 name\n')
             return
-        if self.tenant == None:
+        if self.tenant is None:
             sys.stdout.write('%% contract requires switchto tenant\n')
             return
         if self.negative:
             contract = Contract(args.strip(), self.tenant)
             contract.mark_as_deleted()
             print 'Deleting Contract'
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
             else:
@@ -494,7 +514,8 @@ class ConfigSubMode(SubMode):
         else:
             print 'Executing create contract command'
             contract = Contract(args.strip(), self.tenant)
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
             else:
@@ -507,20 +528,21 @@ class ConfigSubMode(SubMode):
         " Exit the Configuration submode "
         return -1
 
+
 class EPGConfigSubMode(SubMode):
     """
     Endpoint Group configuration sub mode
     """
     def __init__(self):
         SubMode.__init__(self)
-        
+
     def set_prompt(self):
         """
         Set the prompt to something like:
         fabric-tenant(config-epg)#
         """
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-epg)# '
 
@@ -534,11 +556,13 @@ class EPGConfigSubMode(SubMode):
         else:
             bridgedomain = BridgeDomain(args.strip(), self.tenant)
             self.epg.add_bd(bridgedomain)
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
             else:
                 print 'Assigned bridgedomain to EPG.'
+
 
 class AppProfileConfigSubMode(SubMode):
     """
@@ -547,15 +571,15 @@ class AppProfileConfigSubMode(SubMode):
     def __init__(self):
         SubMode.__init__(self)
         self.epg_submode = EPGConfigSubMode()
-        #self.app = None
-        
+        # self.app = None
+
     def set_prompt(self):
         """
         Set the prompt to something like:
         fabric-tenant(config-app)#
         """
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-app)# '
 
@@ -571,14 +595,16 @@ class AppProfileConfigSubMode(SubMode):
             print 'Executing delete epg command'
             epg = EPG(args.strip(), self.app)
             epg.mark_as_deleted()
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
         else:
             print 'Executing create epg command'
             epg_name = args.strip()
             epg = EPG(epg_name, self.app)
-            resp = self.apic.push_to_apic(self.tenant.get_url(), self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
             else:
@@ -587,6 +613,7 @@ class AppProfileConfigSubMode(SubMode):
                 self.epg_submode.app = self.app
                 self.epg_submode.epg = epg
                 self.epg_submode.cmdloop()
+
 
 class ContractConfigSubMode(SubMode):
     """
@@ -597,7 +624,7 @@ class ContractConfigSubMode(SubMode):
         self.entry_name = None
 
     def do_scope(self, args):
-        if self.negative == True:
+        if self.negative is True:
             print 'You can not delete contract scope'
             return
         self.contract.set_scope(args.split()[0])
@@ -609,17 +636,19 @@ class ContractConfigSubMode(SubMode):
         return completions
 
     def do_permit(self, args):
-        """ Filter Entry\n\tpermit <protocol> [src-port <operator> {port|protocol-port}]
+        """ Filter Entry
+            \tpermit <protocol> [src-port <operator> {port|protocol-port}]
             \t[dest-port <operator> {port|protocol-port}] [fragments]
-            \n\tpermit tcp [src-port <operator> {port|protocol-port}][dest-port <operator>
-            \t{port|protocol-port}] [fragments] [{+|-} <flag-name>]
+            \tpermit tcp [src-port <operator> {port|protocol-port}]
+            [dest-port <operator>\t{port|protocol-port}] [fragments]
+             [{+|-} <flag-name>]
         """
         args = args.strip().split()
         protocol = None
         src_port = None
         dest_port = None
         fragments = False
-        
+
         while len(args):
             if protocol is None:
                 protocol = args.pop(0)
@@ -639,16 +668,17 @@ class ContractConfigSubMode(SubMode):
             else:
                 print '%% Unrecognized command'
                 return
-                
-        print 'name:',self.entry_name,'protocol:',protocol,'src_port:',src_port,'dest_port:',dest_port,'fragments:',fragments
-        
+
+        print('name:', self.entry_name, 'protocol:', protocol, 'src_port:',
+              src_port, 'dest_port:', dest_port, 'fragments:', fragments)
+
     def set_prompt(self):
         """
         Set the prompt to something like:
         fabric-tenant(config-contract)#
         """
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-contract)# '
 
@@ -662,10 +692,11 @@ class ContractConfigSubMode(SubMode):
     #         line = line.strip()[len(self.entry_name):]
     #     return line
 
+
 class CmdLine(SubMode):
     """
     Help is available through '?'
-    """    
+    """
     def __init__(self):
         Cmd.__init__(self)
         self.apic = apic
@@ -683,7 +714,7 @@ class CmdLine(SubMode):
 
     def set_prompt(self):
         self.prompt = 'fabric'
-        if self.tenant != None:
+        if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '# '
 
@@ -698,7 +729,6 @@ class CmdLine(SubMode):
         else:
             sys.stdout.write('% Unrecognized command\n')
 
-
     def do_help(self, arg):
         doc_strings = [(i[3:], getattr(self, i).__doc__)
                        for i in dir(self) if i.startswith('do_')]
@@ -707,7 +737,8 @@ class CmdLine(SubMode):
         sys.stdout.write('Commands:\n%s\n' % ''.join(doc_strings))
 
     def completedefault(self, text, line, begidx, endidx):
-        print 'text:', text, 'line:', line, 'begidx:', begidx, 'endidx:', endidx
+        print('text:', text, 'line:', line,
+              'begidx:', begidx, 'endidx:', endidx)
 
     def do_configure(self, args):
         " Enter the Configuration submode "
@@ -732,7 +763,8 @@ class CmdLine(SubMode):
             print '%% Tenant %s does not exist' % tenant.name
 
     def complete_switchto(self, text, line, begidx, endidx):
-        switchto_args = [a for a in self.do_show('tenant', to_return=True).keys()]
+        switchto_args = [a for a in self.do_show('tenant',
+                                                 to_return=True).keys()]
         completions = [a for a in switchto_args if a.startswith(line[9:])]
         return completions
 
@@ -751,6 +783,7 @@ class CmdLine(SubMode):
     def complete_configure(self, text, line, begidx, endidx):
         completions = ['terminal']
         return completions
+
 
 class MockStdin:
     def __init__(self, filename, original_stdin):
@@ -778,11 +811,12 @@ if __name__ == '__main__':
         opts, args = getopt.getopt(sys.argv[1:],
                                    "hl:p:u:do:f:t:",
                                    ["help", "apic-login=", "apic-password=",
-                                    "apic-url=", "enable-debug", "output-file=",
-                                    "debug-file=", "test-file="])
+                                    "apic-url=", "enable-debug",
+                                    "output-file=", "debug-file=",
+                                    "test-file="])
     except getopt.GetoptError:
-        print 'aci-toolkit-cli.py -l <login> -p <password> -u <url>'
-        print 'aci-toolkit-cli.py -o <output-file> -t <test-file>'
+        print 'acitoolkitcli.py -l <login> -p <password> -u <url>'
+        print 'acitoolkitcli.py -o <output-file> -t <test-file>'
         sys.exit(2)
     for opt, arg in opts:
         if opt in ('-h', '--help'):
@@ -817,4 +851,3 @@ if __name__ == '__main__':
     cmdLine = CmdLine()
     cmdLine.apic = apic
     cmdLine.cmdloop()
-    
