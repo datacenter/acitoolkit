@@ -1,6 +1,7 @@
 """This module implements a CLI similar to Cisco IOS and NXOS
    for use with the ACI Toolkit.
 """
+import re
 import sys
 import getopt
 import logging
@@ -220,19 +221,18 @@ class BridgeDomainConfigSubMode(SubMode):
                 error_message(resp)
 
     def complete_ip(self, text, line, begidx, endidx):
+        line = re.sub('\s+', ' ', line)
         ip_args = ['address']
-        num_args = len(line.split())
-        if num_args > 2:
-
-            # TODO: after "show subnet" is done, this need to be rewritten.
-            # ip_2args = [a.get_addr() for a in do_show('subnet')]
-            ip_2args = [a.get_addr() for a in self.bridgedomain.get_subnets()]
-
-            completions = [a for a in ip_2args if a.startswith(line[11:])]
+        num_args = line.count(' ')
+        if num_args == 1:
+            completions = ip_args
+        elif num_args == 2:
+            completions = [a for a in [a.get_addr() for a in self.bridgedomain.get_subnets()] if a.startswith(line[11:])]
+        elif num_args == 3:
+            completions = ['name']
         else:
-            completions = [a for a in ip_args if a.startswith(line[3:])]
+            completions = ''
         return completions
-
 
 class ContextConfigSubMode(SubMode):
     """
