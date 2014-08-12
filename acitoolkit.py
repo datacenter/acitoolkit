@@ -884,15 +884,15 @@ class PortChannel(BaseACIObject):
         """Attach an interface to this PortChannel"""
         if interface not in self._interfaces:
             self._interfaces.append(interface)
-        self.update_nodes()
+        self._update_nodes()
 
     def detach(self, interface):
         """Detach an interface from this PortChannel"""
         if interface in self._interfaces:
             self._interfaces.remove(interface)
-        self.update_nodes()
+        self._update_nodes()
 
-    def update_nodes(self):
+    def _update_nodes(self):
         """Updates the nodes that are participating in this PortChannel"""
         nodes = []
         for interface in self._interfaces:
@@ -907,7 +907,7 @@ class PortChannel(BaseACIObject):
         """Returns True since a PortChannel is an interface"""
         return True
 
-    def get_nodes(self):
+    def _get_nodes(self):
         """ Returns a single node id or multiple node ids in the
             case that this is a VPC
         """
@@ -920,7 +920,7 @@ class PortChannel(BaseACIObject):
         assert len(self._interfaces)
         pod = self._interfaces[0].pod
         if self.is_vpc():
-            (node1, node2) = self.get_nodes()
+            (node1, node2) = self._get_nodes()
             path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (pod,
                                                                     node1,
                                                                     node2,
