@@ -2,7 +2,7 @@ Show the tenants or a specific tenant
 show tenant [<tenant-name>]
 
 Show the bridge domains, a specific bridge domain, or even a detailed view of the bridge domain(s)
-fabric# show bridge-domain [<bd-name>] [detail]
+fabric# show bridgedomain [<bd-name>] [detail]
 
 Show the interfaces
 fabric# show interface [detail]
@@ -25,7 +25,7 @@ fabric-tenant(config)# [no] context <context-name>
 fabric-tenant(config-ctx)# [no] allow-all
 
 Create a bridge domain and assign it to a context
-fabric-tenant(config)# [no] bridge-domain <bd-name> 
+fabric-tenant(config)# [no] bridgedomain <bd-name> 
 fabric-tenant(config-bd)# [no] context <context-name>
 
 Create a subnet under the bridge domain
@@ -36,7 +36,7 @@ fabric-tenant(config)# [no] app <app-profile-name>
 
 Create an EPG and assign it to a bridge domain 
 fabric-tenant(config-app)# [no] epg <epg-name>
-fabric-tenant(config-epg)# [no] bridge-domain <bd-name>
+fabric-tenant(config-epg)# [no] bridgedomain <bd-name>
 
 Assign an EPG to an interface and optionally specify the encapsulation and segmentation id used
 fabric-tenant(config)# interface <pod>/<node>/<module>/<port>
