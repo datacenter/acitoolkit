@@ -452,8 +452,61 @@ class TestL3Interface(unittest.TestCase):
 class TestInterface(unittest.TestCase):
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
-        intf.get_json()
+        actual_json = intf.get_json()
+        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
+                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
+                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
+                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
+                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
+                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
+                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
+                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
+                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
+                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
+                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
+                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
+                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
+                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
+                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
+                         "0G', 'autoNeg': 'on', 'speed': '10G', 'name': 'speed"
+                         "10G'}, 'children': []}}, {'infraFuncP': {'attributes"
+                         "': {}, 'children': [{'infraAccPortGrp': {'attributes"
+                         "': {'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', '"
+                         "name': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'"
+                         "attributes': {'tnFabricHIfPolName': 'speed10G'}, 'ch"
+                         "ildren': []}}]}}]}}]}}")
         self.assertTrue(intf is not None)
+        self.assertEqual(str(actual_json), expected_json)
+
+    def test_set_speed(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.speed = '1G'
+        actual_json = intf.get_json()
+        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
+                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
+                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
+                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
+                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
+                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
+                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
+                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
+                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
+                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
+                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
+                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
+                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
+                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
+                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
+                         "G', 'autoNeg': 'on', 'speed': '1G', 'name': 'speed1G"
+                         "'}, 'children': []}}, {'infraFuncP': {'attributes': "
+                         "{}, 'children': [{'infraAccPortGrp': {'attributes': "
+                         "{'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', 'nam"
+                         "e': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'att"
+                         "ributes': {'tnFabricHIfPolName': 'speed1G'}, 'childr"
+                         "en': []}}]}}]}}]}}")
+        self.assertEqual(str(actual_json), expected_json)
 
     def parse_name(self, text):
         (intf_type, pod, node, module, port) = Interface.parse_name(text)
@@ -622,19 +675,69 @@ class TestJson(unittest.TestCase):
 
 
 class TestPortChannel(unittest.TestCase):
-    def test_create(self):
+    def create_pc(self):
         if1 = Interface('eth', '1', '101', '1', '8')
         if2 = Interface('eth', '1', '101', '1', '9')
         pc = PortChannel('pc1')
         pc.attach(if1)
         pc.attach(if2)
+        return pc
+
+    def test_create_pc(self):
+        pc = self.create_pc()
         self.assertTrue(pc.is_interface())
         self.assertFalse(pc.is_vpc())
+        fabric, infra = pc.get_json()
+
+        expected_resp = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+                         "utes': {'name': '1-101-1-8'}, 'children': [{'infraLe"
+                         "afS': {'attributes': {'type': 'range', 'name': '1-10"
+                         "1-1-8'}, 'children': [{'infraNodeBlk': {'attributes'"
+                         ": {'from_': '101', 'name': '1-101-1-8', 'to_': '101'"
+                         "}, 'children': []}}]}}, {'infraRsAccPortP': {'attrib"
+                         "utes': {'tDn': 'uni/infra/accportprof-1-101-1-8'}, '"
+                         "children': []}}]}}, {'infraAccPortP': {'attributes':"
+                         " {'name': '1-101-1-8'}, 'children': [{'infraHPortS':"
+                         " {'attributes': {'type': 'range', 'name': '1-101-1-8"
+                         "'}, 'children': [{'infraPortBlk': {'attributes': {'t"
+                         "oPort': '8', 'fromPort': '8', 'fromCard': '1', 'name"
+                         "': '1-101-1-8', 'toCard': '1'}, 'children': []}}, {'"
+                         "infraRsAccBaseGrp': {'attributes': {'tDn': 'uni/infr"
+                         "a/funcprof/accbundle-1-101-1-8'}, 'children': []}}]}"
+                         "}]}}, {'infraNodeP': {'attributes': {'name': '1-101-"
+                         "1-9'}, 'children': [{'infraLeafS': {'attributes': {'"
+                         "type': 'range', 'name': '1-101-1-9'}, 'children': [{"
+                         "'infraNodeBlk': {'attributes': {'from_': '101', 'nam"
+                         "e': '1-101-1-9', 'to_': '101'}, 'children': []}}]}},"
+                         " {'infraRsAccPortP': {'attributes': {'tDn': 'uni/inf"
+                         "ra/accportprof-1-101-1-9'}, 'children': []}}]}}, {'i"
+                         "nfraAccPortP': {'attributes': {'name': '1-101-1-9'},"
+                         " 'children': [{'infraHPortS': {'attributes': {'type'"
+                         ": 'range', 'name': '1-101-1-9'}, 'children': [{'infr"
+                         "aPortBlk': {'attributes': {'toPort': '9', 'fromPort'"
+                         ": '9', 'fromCard': '1', 'name': '1-101-1-9', 'toCard"
+                         "': '1'}, 'children': []}}, {'infraRsAccBaseGrp': {'a"
+                         "ttributes': {'tDn': 'uni/infra/funcprof/accbundle-1-"
+                         "101-1-9'}, 'children': []}}]}}]}}, {'infraFuncP': {'"
+                         "attributes': {}, 'children': [{'infraAccBndlGrp': {'"
+                         "attributes': {'lagT': 'link', 'name': 'pc1'}, 'child"
+                         "ren': []}}]}}]}}")
+
+        self.assertEqual(str(infra), expected_resp)
+
+        # Not a VPC, so fabric should be None
+        self.assertIsNone(fabric)
+
+    def test_create_3rd_interface_as_vpc(self):
+        pc = self.create_pc()
 
         # Add a 3rd interface to make it a VPC
         if3 = Interface('eth', '1', '102', '1', '9')
         pc.attach(if3)
         self.assertTrue(pc.is_vpc())
+        fabric, infra = pc.get_json()
+        # VPC, so fabric should have some configuration
+        self.assertIsNotNone(fabric)
 
         # Remove the 3rd interface
         pc.detach(if3)
@@ -643,15 +746,6 @@ class TestPortChannel(unittest.TestCase):
         self.assertTrue(isinstance(path, str))
         fabric, infra = pc.get_json()
         self.assertTrue(fabric is None)
-
-    def test_portchannel(self):
-        if1 = Interface('eth', '1', '101', '1', '8')
-        if2 = Interface('eth', '1', '101', '1', '9')
-        pc = PortChannel('pc1')
-        pc.attach(if1)
-        pc.attach(if2)
-
-        # print pc.get_json()
 
 
 class TestOspf(unittest.TestCase):

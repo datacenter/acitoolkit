@@ -626,9 +626,11 @@ class Subnet(BaseACIObject):
 
     @classmethod
     def get(cls, session, bridgedomain, tenant):
-        """Gets all of the Subnets from the APIC for a particular tenant and bridgedomain
+        """Gets all of the Subnets from the APIC for a particular tenant and
+           bridgedomain
         """
-        return BaseACIObject.get(session, cls, 'fvSubnet', parent=bridgedomain, tenant=tenant)
+        return BaseACIObject.get(session, cls, 'fvSubnet',
+                                 parent=bridgedomain, tenant=tenant)
 
 
 class Context(BaseACIObject):
@@ -780,7 +782,55 @@ class FilterEntry(BaseACIObject):
         return text
 
 
-class Interface(BaseACIObject):
+class BaseInterface(BaseACIObject):
+    """Abstract class used to provide base functionality to other Interface
+       classes.
+    """
+    def get_name_for_json(self):
+        return '%s-%s-%s-%s' % (self.pod, self.node,
+                                self.module, self.port)
+
+    def _get_port_selector_json(self, type):
+        """Returns the json used for selecting the specified interfaces
+        """
+        name = self.get_name_for_json()
+        port_blk = {'name': name,
+                    'fromCard': self.module,
+                    'toCard': self.module,
+                    'fromPort': self.port,
+                    'toPort': self.port}
+        port_blk = {'infraPortBlk': {'attributes': port_blk,
+                                     'children': []}}
+        pc_url = 'uni/infra/funcprof/%s-%s' % (type, name)
+        accbasegrp = {'infraRsAccBaseGrp': {'attributes': {'tDn': pc_url},
+                                            'children': []}}
+        portselect = {'infraHPortS': {'attributes': {'name': name,
+                                                     'type': 'range'},
+                                      'children': [port_blk, accbasegrp]}}
+        accport_selector = {'infraAccPortP': {'attributes': {'name': name},
+                                              'children': [portselect]}}
+        node_blk = {'name': name,
+                    'from_': self.node, 'to_': self.node}
+        node_blk = {'infraNodeBlk': {'attributes': node_blk, 'children': []}}
+        leaf_selector = {'infraLeafS': {'attributes': {'name': name,
+                                                       'type': 'range'},
+                                        'children': [node_blk]}}
+        accport = {'infraRsAccPortP':
+                   {'attributes': {'tDn': 'uni/infra/accportprof-%s' % name},
+                    'children': []}}
+        node_profile = {'infraNodeP': {'attributes': {'name': name},
+                                       'children': [leaf_selector,
+                                                    accport]}}
+        return node_profile, accport_selector
+
+    def get_port_selector_json(self):
+        return self._get_port_selector_json('accportgrp')
+
+    def get_port_channel_selector_json(self):
+        return self._get_port_selector_json('accbundle')
+
+
+class Interface(BaseInterface):
     """This class defines a physical interface.
     """
     def __init__(self, interface_type, pod, node, module, port, parent=None):
@@ -794,7 +844,7 @@ class Interface(BaseACIObject):
         super(Interface, self).__init__(self.if_name, None)
         self.porttype = ''
         self.adminstatus = ''
-        self.speed = ''
+        self.speed = '10G'
         self.mtu = ''
 
     def is_interface(self):
@@ -803,7 +853,29 @@ class Interface(BaseACIObject):
     def get_json(self):
         """ Not implemented yet
         """
-        pass
+        infra = {'infraInfra': {'children': []}}
+        node_profile, accport_selector = self.get_port_selector_json()
+        infra['infraInfra']['children'].append(node_profile)
+        infra['infraInfra']['children'].append(accport_selector)
+        speed_name = 'speed%s' % self.speed
+        hifpol_dn = 'uni/infra/hintfpol-%s' % speed_name
+        speed = {'fabricHIfPol': {'attributes': {'autoNeg': 'on',
+                                                 'dn': hifpol_dn,
+                                                 'name': speed_name,
+                                                 'speed': self.speed},
+                                  'children': []}}
+        infra['infraInfra']['children'].append(speed)
+        name = self.get_name_for_json()
+        accportgrp_dn = 'uni/infra/funcprof/accportgrp-%s' % name
+        speed_attr = {'tnFabricHIfPolName': speed_name}
+        speed_children = {'infraRsHIfPol': {'attributes': speed_attr,
+                                            'children': []}}
+        speed_ref = {'infraAccPortGrp': {'attributes': {'dn': accportgrp_dn,
+                                                        'name': name},
+                                         'children': [speed_children]}}
+        speed_ref = {'infraFuncP': {'attributes': {}, 'children': [speed_ref]}}
+        infra['infraInfra']['children'].append(speed_ref)
+        return infra
 
     def get_path(self):
         """Get the path of this interface used when communicating with
@@ -872,7 +944,7 @@ class Interface(BaseACIObject):
         return ret
 
 
-class PortChannel(BaseACIObject):
+class PortChannel(BaseInterface):
     """This class defines a port channel interface.
     """
     def __init__(self, name):
@@ -946,37 +1018,7 @@ class PortChannel(BaseACIObject):
         infra = {'infraInfra': {'children': []}}
         # Add the node and port selectors
         for interface in self._interfaces:
-            name = '%s-%s-%s-%s' % (interface.pod, interface.node,
-                                    interface.module, interface.port)
-            port_blk = {'name': name,
-                        'fromCard': interface.module,
-                        'toCard': interface.module,
-                        'fromPort': interface.port,
-                        'toPort': interface.port}
-            port_blk = {'infraPortBlk': {'attributes': port_blk,
-                                         'children': []}}
-            pc_url = 'uni/infra/funcprof/accbundle-%s' % self.name
-            accbasegrp = {'infraRsAccBaseGrp': {'attributes': {'tDn': pc_url},
-                                                'children': []}}
-            portselect = {'infraHPortS': {'attributes':
-                                          {'name': name, 'type': 'range'},
-                                          'children': [port_blk, accbasegrp]}}
-            accport_selector = {'infraAccPortP': {'attributes': {'name': name},
-                                                  'children': [portselect]}}
-            node_blk = {'name': name,
-                        'from_': interface.node, 'to_': interface.node}
-            node_blk = {'infraNodeBlk': {'attributes':
-                                         node_blk, 'children': []}}
-            leaf_selector = {'infraLeafS': {'attributes':
-                                            {'name': name, 'type': 'range'},
-                                            'children': [node_blk]}}
-            accport = {'infraRsAccPortP':
-                       {'attributes': {'tDn':
-                                       'uni/infra/accportprof-%s' % name},
-                        'children': []}}
-            node_profile = {'infraNodeP': {'attributes': {'name': name},
-                                           'children': [leaf_selector,
-                                                        accport]}}
+            node_profile, accport_selector = interface.get_port_channel_selector_json()
             infra['infraInfra']['children'].append(node_profile)
             infra['infraInfra']['children'].append(accport_selector)
         # Add the actual port-channel
