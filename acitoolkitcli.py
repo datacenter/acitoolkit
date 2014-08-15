@@ -622,6 +622,7 @@ class ContractConfigSubMode(SubMode):
     def __init__(self):
         SubMode.__init__(self)
         self.entry_name = None
+        self.sequence_number = None
 
     def do_scope(self, args):
         if self.negative is True:
@@ -636,41 +637,50 @@ class ContractConfigSubMode(SubMode):
         return completions
 
     def do_permit(self, args):
-        """ Filter Entry
-            \tpermit <protocol> [src-port <operator> {port|protocol-port}]
-            \t[dest-port <operator> {port|protocol-port}] [fragments]
-            \tpermit tcp [src-port <operator> {port|protocol-port}]
-            [dest-port <operator>\t{port|protocol-port}] [fragments]
-             [{+|-} <flag-name>]
-        """
-        args = args.strip().split()
-        protocol = None
-        src_port = None
-        dest_port = None
-        fragments = False
-
-        while len(args):
-            if protocol is None:
-                protocol = args.pop(0)
-            elif args[0] == 'src-port':
-                args.pop(0)
-                if len(args) == 0:
-                    return
-                src_port = args.pop(0)
-            elif args[0] == 'dest-port':
-                args.pop(0)
-                if len(args) == 0:
-                    return
-                dest_port = args.pop(0)
-            elif args[0] == 'fragments':
-                args.pop(0)
-                fragments = True
+        args = args.split()
+        if args[0] == 'arp':
+            if len(args) > 2:
+                print '%% arp takes one arguments, %s are given\n' % len(args)
+            if len(args) == 1 or args[1] in ['unspecified', 'DEFAULT'] or self.negative:
+                return 0, self.negative, self.sequence_number
+            elif args[1] in ['request', '1', 1]:
+                return 1, self.negative, self.sequence_number
+            elif args[1] in ['response', '2', 2]:
+                return 2, self.negative, self.sequence_number
+        elif args[0] == 'ethertype':
+            if len(args) != 2:
+                print '%% ethertype must be called with 1 ethertype number\n'
             else:
-                print '%% Unrecognized command'
-                return
+                if self.negative:
+                    return 0, self.sequence_number
+                else:
+                    return args[1], self.sequence_number
+        elif args[0] in ['eigrp', 'egp', 'icmp', 'igmp', 'igp', 'l2tp', 'ospfigp', 'pim', 'Unspecified']:
+            return args[0], self.sequence_number
+        elif args[0] in ['tcp', 'udp']:
+            pass ## TODO Bon: operator and port (from/to)
+            if args[0] == 'tcp':
+                pass ## TODO Bon: flag for tcp
 
-        print('name:', self.entry_name, 'protocol:', protocol, 'src_port:',
-              src_port, 'dest_port:', dest_port, 'fragments:', fragments)
+
+    def complete_permit(self, text, line, begidx, endidx):
+        permit_args = ['arp', 'ethertype', 'icmp', 'igmp', 'tcp', 'egp', 'igp', 'udp', 'eigrp', 'ospfigp', 'pim',
+                       'l2tp', 'Unspecified']
+        args = line.split()
+        num_args = len(args)
+        if num_args >= 2:
+            if args[1] == 'arp':
+                arp_args = ['unspecified', 'response', 'request', 'DEFAULT']
+                completions = [a for a in arp_args if a.startswith(line[11:])]
+            elif args[1] == 'ethertype':
+                ethertype_args = ['unspecified', 'trill', 'arp', 'mpls_ucast', 'mac_security', 'fcoe', 'ip', 'DEFAULT']
+                ethertype_args = ['0', '0x22F3', '0x806', '0x8847', '0x88E5', '0x8906', '0xABCD']
+                completions = [a for a in ethertype_args if a.startswith(line[16:])]
+            else:
+                completions = [a for a in permit_args if a.startswith(line[7:])]
+        else:
+            completions = [a for a in permit_args if a.startswith(line[7:])]
+        return completions
 
     def set_prompt(self):
         """
@@ -682,15 +692,34 @@ class ContractConfigSubMode(SubMode):
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-contract)# '
 
-    # Bon: I am not sure what this for taking out the first arg.
-    # def precmd(self, line):
-    #     line = SubMode.precmd(self, line)
-    #
-    #     # Get the entry name from the start
-    #     if line.strip().split()[0] != 'exit':
-    #         self.entry_name = line.strip().split()[0]
-    #         line = line.strip()[len(self.entry_name):]
-    #     return line
+    def precmd(self, line):
+        # Check for negative of the command (no in front)
+        if line.strip()[0:len('no ')] == 'no ':
+            line = line.strip()[len('no'):]
+            self.negative = True
+        else:
+            self.negative = False
+
+        if line.strip() == 'help':
+            sys.stdout.write('%s\n' % self.__doc__)
+            return ''
+
+        cmd, arg, line = self.parseline(line)
+
+        # to achieve the sequence_number of the subject.
+        try:
+            self.sequence_number = int(cmd)
+            cmd, arg, line = self.parseline(arg)
+        except ValueError:
+            pass
+
+        if arg == '?':
+            cmds = self.completenames(cmd)
+            if cmds:
+                self.columnize(cmds)
+                sys.stdout.write('\n')
+            return ''
+        return line
 
 
 class CmdLine(SubMode):
