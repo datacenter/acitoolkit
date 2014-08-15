@@ -850,6 +850,9 @@ class Interface(BaseInterface):
     def is_interface(self):
         return True
 
+    def get_url(self):
+        return '/api/mo/uni.json'
+
     def get_json(self):
         """ Not implemented yet
         """

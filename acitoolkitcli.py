@@ -318,6 +318,29 @@ class InterfaceConfigSubMode(SubMode):
             if not resp.ok:
                 error_message(resp)
 
+    def do_speed(self, args):
+        """ Interface speed assignment
+            \tspeed <speed-value>
+            Valid speed values: 100M, 1G, 10G, 40G
+        """
+        num_args = len(args.split())
+        if num_args != 1:
+            print '%% speed called with invalid format'
+            print '%% Proper format is speed <speed-value>'
+            return
+        speed = args.upper()
+        if speed not in ('100M', '1G', '10G', '40G'):
+            print '%% Valid speed values are 100M, 1G, 10G, and 40G'
+            return
+        if self.negative:
+            print 'Reverting to default speed (10G)'
+            speed = '10G'
+        self.intf.speed = speed
+        resp = self.apic.push_to_apic(self.intf.get_url(),
+                                      self.intf.get_json())
+        if not resp.ok:
+            error_message(resp)
+
     def set_prompt(self):
         """
         Set the prompt to something like:

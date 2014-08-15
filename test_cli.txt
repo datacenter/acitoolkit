@@ -9,6 +9,11 @@ help show
 ?
 config t
 interface eth 1/101/1/65
+speed 1G 1G
+speed 1000G
+speed 100M
+no speed 100M
+speed 10G
 epg
 epg epg1
 exit
