@@ -859,6 +859,8 @@ if __name__ == '__main__':
     OUTPUTFILE = ''
     DEBUGFILE = None
     DEBUGLEVEL = logging.CRITICAL
+    usage = ('Usage: acitoolkitcli.py -l <login> -p <password> -u <url> '
+             '[-o <output-file>] [-t <test-file>]')
     try:
         opts, args = getopt.getopt(sys.argv[1:],
                                    "hl:p:u:do:f:t:",
@@ -867,12 +869,12 @@ if __name__ == '__main__':
                                     "output-file=", "debug-file=",
                                     "test-file="])
     except getopt.GetoptError:
-        print 'acitoolkitcli.py -l <login> -p <password> -u <url>'
-        print 'acitoolkitcli.py -o <output-file> -t <test-file>'
+        print sys.argv[0], ': illegal option'
+        print usage
         sys.exit(2)
     for opt, arg in opts:
         if opt in ('-h', '--help'):
-            print 'TODO help'
+            print usage
             sys.exit()
         elif opt in ('-l', '--apic-login'):
             LOGIN = arg
@@ -888,6 +890,10 @@ if __name__ == '__main__':
             DEBUGFILE = arg
         elif opt in ('-t', '--test-file'):
             TESTFILE = arg
+
+    if URL == '':
+        print usage
+        sys.exit(2)
 
     logging.basicConfig(format=('%(levelname)s:[%(module)s:'
                                 '%(funcName)s]:%(message)s'),
