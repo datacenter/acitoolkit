@@ -786,11 +786,7 @@ class BaseInterface(BaseACIObject):
     """Abstract class used to provide base functionality to other Interface
        classes.
     """
-    def get_name_for_json(self):
-        return '%s-%s-%s-%s' % (self.pod, self.node,
-                                self.module, self.port)
-
-    def _get_port_selector_json(self, type):
+    def _get_port_selector_json(self, port_type, port_name):
         """Returns the json used for selecting the specified interfaces
         """
         name = self.get_name_for_json()
@@ -801,7 +797,7 @@ class BaseInterface(BaseACIObject):
                     'toPort': self.port}
         port_blk = {'infraPortBlk': {'attributes': port_blk,
                                      'children': []}}
-        pc_url = 'uni/infra/funcprof/%s-%s' % (type, name)
+        pc_url = 'uni/infra/funcprof/%s-%s' % (port_type, port_name)
         accbasegrp = {'infraRsAccBaseGrp': {'attributes': {'tDn': pc_url},
                                             'children': []}}
         portselect = {'infraHPortS': {'attributes': {'name': name,
@@ -824,10 +820,10 @@ class BaseInterface(BaseACIObject):
         return node_profile, accport_selector
 
     def get_port_selector_json(self):
-        return self._get_port_selector_json('accportgrp')
+        return self._get_port_selector_json('accportgrp', self.get_name_for_json())
 
-    def get_port_channel_selector_json(self):
-        return self._get_port_selector_json('accbundle')
+    def get_port_channel_selector_json(self, port_name):
+        return self._get_port_selector_json('accbundle', port_name)
 
 
 class Interface(BaseInterface):
@@ -852,6 +848,10 @@ class Interface(BaseInterface):
 
     def get_url(self):
         return '/api/mo/uni/fabric.json', '/api/mo/uni.json'
+
+    def get_name_for_json(self):
+        return '%s-%s-%s-%s' % (self.pod, self.node,
+                                self.module, self.port)
 
     def get_json(self):
         """ Get the json for an interface.  Returns a tuple since the json is
@@ -1023,6 +1023,9 @@ class PortChannel(BaseInterface):
 
         return path
 
+    def get_name_for_json(self):
+        return self.name
+
     def get_json(self):
         """ Returns json representation of the PortChannel
 
@@ -1036,7 +1039,7 @@ class PortChannel(BaseInterface):
         infra = {'infraInfra': {'children': []}}
         # Add the node and port selectors
         for interface in self._interfaces:
-            node_profile, accport_selector = interface.get_port_channel_selector_json()
+            node_profile, accport_selector = interface.get_port_channel_selector_json(self.name)
             infra['infraInfra']['children'].append(node_profile)
             infra['infraInfra']['children'].append(accport_selector)
         # Add the actual port-channel
