@@ -843,19 +843,21 @@ class Interface(BaseInterface):
         self.if_name += self.node + '/' + self.module + '/' + self.port
         super(Interface, self).__init__(self.if_name, None)
         self.porttype = ''
-        self.adminstatus = ''
-        self.speed = '10G'
+        self.adminstatus = ''    # up or down
+        self.speed = '10G'       # 100M, 1G, 10G or 40G
         self.mtu = ''
 
     def is_interface(self):
         return True
 
     def get_url(self):
-        return '/api/mo/uni.json'
+        return '/api/mo/uni/fabric.json', '/api/mo/uni.json'
 
     def get_json(self):
-        """ Not implemented yet
+        """ Get the json for an interface.  Returns a tuple since the json is
+            required to be sent in 2 posts.
         """
+        fabric = None
         infra = {'infraInfra': {'children': []}}
         node_profile, accport_selector = self.get_port_selector_json()
         infra['infraInfra']['children'].append(node_profile)
@@ -878,7 +880,20 @@ class Interface(BaseInterface):
                                          'children': [speed_children]}}
         speed_ref = {'infraFuncP': {'attributes': {}, 'children': [speed_ref]}}
         infra['infraInfra']['children'].append(speed_ref)
-        return infra
+
+        if self.adminstatus != '':
+            adminstatus_attributes = {}
+            adminstatus_attributes['tDn'] = self.get_path()
+            if self.adminstatus == 'up':
+                adminstatus_attributes['dn'] = 'uni/fabric/outofsvc/rsoosPath-[' + self.get_path() + ']'
+                adminstatus_attributes['status'] = 'deleted'
+            else:
+                adminstatus_attributes['lc'] = 'blacklist'
+            adminstatus_json = {'fabricRsOosPath': {'attributes': adminstatus_attributes,
+                                                    'children': []}}
+            fabric = {'fabricOOServicePol': {'children': [adminstatus_json]}}
+
+        return fabric, infra
 
     def get_path(self):
         """Get the path of this interface used when communicating with

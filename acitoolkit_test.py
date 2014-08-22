@@ -452,7 +452,7 @@ class TestL3Interface(unittest.TestCase):
 class TestInterface(unittest.TestCase):
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
-        actual_json = intf.get_json()
+        (fabric_json, infra_json) = intf.get_json()
         expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
@@ -477,12 +477,12 @@ class TestInterface(unittest.TestCase):
                          "attributes': {'tnFabricHIfPolName': 'speed10G'}, 'ch"
                          "ildren': []}}]}}]}}]}}")
         self.assertTrue(intf is not None)
-        self.assertEqual(str(actual_json), expected_json)
+        self.assertEqual(str(infra_json), expected_json)
 
     def test_set_speed(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.speed = '1G'
-        actual_json = intf.get_json()
+        (fabric_json, infra_json) = intf.get_json()
         expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
@@ -506,7 +506,35 @@ class TestInterface(unittest.TestCase):
                          "e': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'att"
                          "ributes': {'tnFabricHIfPolName': 'speed1G'}, 'childr"
                          "en': []}}]}}]}}]}}")
-        self.assertEqual(str(actual_json), expected_json)
+        self.assertEqual(str(infra_json), expected_json)
+
+    def test_adminstate_not_set(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.adminstate = ''
+        fabric_url, infra_url = intf.get_url()
+        fabric_json, infra_json = intf.get_json()
+        self.assertIsNone(fabric_json)
+
+    def test_adminstate_up(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.adminstatus = 'up'
+        fabric_json, infra_json = intf.get_json()
+        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
+                         "th': {'attributes': {'dn': 'uni/fabric/outofsvc/rsoo"
+                         "sPath-[topology/pod-1/paths-1/pathep-[eth1/1]]', 'st"
+                         "atus': 'deleted', 'tDn': 'topology/pod-1/paths-1/pat"
+                         "hep-[eth1/1]'}, 'children': []}}]}}")
+        self.assertEqual(str(fabric_json), expected_json)
+
+    def test_adminstate_down(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.adminstatus = 'down'
+        fabric_json, infra_json = intf.get_json()
+        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
+                         "th': {'attributes': {'tDn': 'topology/pod-1/paths-1/"
+                         "pathep-[eth1/1]', 'lc': 'blacklist'}, 'children': []"
+                         "}}]}}")
+        self.assertEqual(str(fabric_json), expected_json)
 
     def parse_name(self, text):
         (intf_type, pod, node, module, port) = Interface.parse_name(text)

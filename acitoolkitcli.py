@@ -318,6 +318,25 @@ class InterfaceConfigSubMode(SubMode):
             if not resp.ok:
                 error_message(resp)
 
+    def do_shutdown(self, args):
+        num_args = len(args.split())
+        if num_args:
+            print '%% shutdown takes no arguments'
+            return
+        if self.negative:
+            self.intf.adminstatus = 'up'
+        else:
+            self.intf.adminstatus = 'down'
+        (fabric_url, infra_url) = self.intf.get_url()
+        fabric, infra = self.intf.get_json()
+        if fabric is not None:
+            resp = self.apic.push_to_apic(fabric_url, fabric)
+            if not resp.ok:
+                error_message(resp)
+        resp = self.apic.push_to_apic(infra_url, infra)
+        if not resp.ok:
+            error_message(resp)
+
     def do_speed(self, args):
         """ Interface speed assignment
             \tspeed <speed-value>
@@ -336,8 +355,14 @@ class InterfaceConfigSubMode(SubMode):
             print 'Reverting to default speed (10G)'
             speed = '10G'
         self.intf.speed = speed
-        resp = self.apic.push_to_apic(self.intf.get_url(),
-                                      self.intf.get_json())
+
+        (fabric_url, infra_url) = self.intf.get_url()
+        fabric, infra = self.intf.get_json()
+        if fabric is not None:
+            resp = self.apic.push_to_apic(fabric_url, fabric)
+            if not resp.ok:
+                error_message(resp)
+        resp = self.apic.push_to_apic(infra_url, infra)
         if not resp.ok:
             error_message(resp)
 
