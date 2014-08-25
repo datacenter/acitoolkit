@@ -1023,9 +1023,6 @@ class PortChannel(BaseInterface):
 
         return path
 
-    def get_name_for_json(self):
-        return self.name
-
     def get_json(self):
         """ Returns json representation of the PortChannel
 
@@ -1075,3 +1072,20 @@ class PortChannel(BaseInterface):
                                              'children': [fabric_group]}}
 
         return fabric_prot_pol, infra
+
+    @staticmethod
+    def get(session):
+        """Gets all of the port channel interfaces from the APIC
+        """
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+        interface_query_url = ('/api/node/class/infraAccBndlGrp.json?'
+                               'query-target=self')
+        portchannels = []
+        ret = session.get(interface_query_url)
+        pc_data = ret.json()['imdata']
+        for pc in pc_data:
+            portchannel_name = str(pc['infraAccBndlGrp']['attributes']['name'])
+            portchannel = PortChannel(portchannel_name)
+            portchannels.append(portchannel)
+        return portchannels

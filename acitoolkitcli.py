@@ -97,7 +97,11 @@ class SubMode(Cmd):
             for interface in ifs:
                 print interface
         elif words[0] == 'port-channel':
-            raise NotImplementedError
+            portchannels = PortChannel.get(self.apic)
+            print 'Port Channel'
+            print '------------'
+            for pc in portchannels:
+                print pc
         elif words[0] == 'app':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)

@@ -55,6 +55,7 @@ show tenant
 show app
 show epg
 show interface
+show port-channel
 exit
 no bridgedomain bd1
 context ctx

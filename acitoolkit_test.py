@@ -907,6 +907,18 @@ class TestLiveInterface(TestLiveAPIC):
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
+class TestLivePortChannel(TestLiveAPIC):
+    def test_get_all_portchannels(self):
+        session = self.login_to_apic()
+        self.assertRaises(TypeError, PortChannel.get, None)
+        portchannels = PortChannel.get(session)
+        for pc in portchannels:
+            self.assertTrue(isinstance(pc, PortChannel))
+            pc_as_a_string = str(pc)
+            self.assertTrue(isinstance(pc_as_a_string, str))
+
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAppProfile(TestLiveAPIC):
     def test_invalid_app(self):
         session = self.login_to_apic()
