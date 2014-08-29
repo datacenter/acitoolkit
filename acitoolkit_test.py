@@ -450,9 +450,18 @@ class TestL3Interface(unittest.TestCase):
 
 
 class TestInterface(unittest.TestCase):
+    def test_create_valid_phydomain(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        (phydomain_json, fabric_json, infra_json) = intf.get_json()
+        expected_json = ("{'physDomP': {'attributes': {'name': 'allvlans'}, 'c"
+                         "hildren': [{'infraRsVlanNs': {'attributes': {'tDn': "
+                         "'uni/infra/vlanns-allvlans-static'}, 'children': []}"
+                         "}]}}")
+        self.assertEqual(str(phydomain_json), expected_json)
+
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
-        (fabric_json, infra_json) = intf.get_json()
+        (phydomain_json, fabric_json, infra_json) = intf.get_json()
         expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
@@ -475,14 +484,59 @@ class TestInterface(unittest.TestCase):
                          "': {'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', '"
                          "name': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'"
                          "attributes': {'tnFabricHIfPolName': 'speed10G'}, 'ch"
-                         "ildren': []}}]}}]}}]}}")
+                         "ildren': []}}, {'infraRsAttEntP': {'attributes': {'t"
+                         "Dn': 'uni/infra/attentp-allvlans'}, 'children': []}}"
+                         "]}}]}}, {'infraAttEntityP': {'attributes': {'name': "
+                         "'allvlans'}, 'children': [{'infraRsDomP': {'attribut"
+                         "es': {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanIn"
+                         "stP': {'attributes': {'name': 'allvlans', 'allocMode"
+                         "': 'static'}, 'children': [{'fvnsEncapBlk': {'attrib"
+                         "utes': {'to': 'vlan-4092', 'from': 'vlan-1', 'name':"
+                         " 'encap'}}}]}}]}}")
         self.assertTrue(intf is not None)
         self.assertEqual(str(infra_json), expected_json)
 
-    def test_set_speed(self):
+    def test_set_speed_10G(self):
+        intf = Interface('eth', '1', '101', '1', '5')
+        intf.speed = '10G'
+        (phys_domain_json, fabric_json, infra_json) = intf.get_json()
+        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+                         "utes': {'name': '1-101-1-5'}, 'children': [{'infraLe"
+                         "afS': {'attributes': {'type': 'range', 'name': '1-10"
+                         "1-1-5'}, 'children': [{'infraNodeBlk': {'attributes'"
+                         ": {'from_': '101', 'name': '1-101-1-5', 'to_': '101'"
+                         "}, 'children': []}}]}}, {'infraRsAccPortP': {'attrib"
+                         "utes': {'tDn': 'uni/infra/accportprof-1-101-1-5'}, '"
+                         "children': []}}]}}, {'infraAccPortP': {'attributes':"
+                         " {'name': '1-101-1-5'}, 'children': [{'infraHPortS':"
+                         " {'attributes': {'type': 'range', 'name': '1-101-1-5"
+                         "'}, 'children': [{'infraPortBlk': {'attributes': {'t"
+                         "oPort': '5', 'fromPort': '5', 'fromCard': '1', 'name"
+                         "': '1-101-1-5', 'toCard': '1'}, 'children': []}}, {'"
+                         "infraRsAccBaseGrp': {'attributes': {'tDn': 'uni/infr"
+                         "a/funcprof/accportgrp-1-101-1-5'}, 'children': []}}]"
+                         "}}]}}, {'fabricHIfPol': {'attributes': {'dn': 'uni/i"
+                         "nfra/hintfpol-speed10G', 'autoNeg': 'on', 'speed': '"
+                         "10G', 'name': 'speed10G'}, 'children': []}}, {'infra"
+                         "FuncP': {'attributes': {}, 'children': [{'infraAccPo"
+                         "rtGrp': {'attributes': {'dn': 'uni/infra/funcprof/ac"
+                         "cportgrp-1-101-1-5', 'name': '1-101-1-5'}, 'children"
+                         "': [{'infraRsHIfPol': {'attributes': {'tnFabricHIfPo"
+                         "lName': 'speed10G'}, 'children': []}}, {'infraRsAttE"
+                         "ntP': {'attributes': {'tDn': 'uni/infra/attentp-allv"
+                         "lans'}, 'children': []}}]}}]}}, {'infraAttEntityP': "
+                         "{'attributes': {'name': 'allvlans'}, 'children': [{'"
+                         "infraRsDomP': {'attributes': {'tDn': 'uni/phys-allvl"
+                         "ans'}}}]}}, {'fvnsVlanInstP': {'attributes': {'name'"
+                         ": 'allvlans', 'allocMode': 'static'}, 'children': [{"
+                         "'fvnsEncapBlk': {'attributes': {'to': 'vlan-4092', '"
+                         "from': 'vlan-1', 'name': 'encap'}}}]}}]}}")
+        self.assertEqual(str(infra_json), expected_json)
+
+    def test_set_speed_1G(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.speed = '1G'
-        (fabric_json, infra_json) = intf.get_json()
+        (phys_domain_json, fabric_json, infra_json) = intf.get_json()
         expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
@@ -505,20 +559,29 @@ class TestInterface(unittest.TestCase):
                          "{'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', 'nam"
                          "e': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'att"
                          "ributes': {'tnFabricHIfPolName': 'speed1G'}, 'childr"
-                         "en': []}}]}}]}}]}}")
+                         "en': []}}, {'infraRsAttEntP': {'attributes': {'tDn':"
+                         " 'uni/infra/attentp-allvlans'}, 'children': []}}]}}]"
+                         "}}, {'infraAttEntityP': {'attributes': {'name': 'all"
+                         "vlans'}, 'children': [{'infraRsDomP': {'attributes':"
+                         " {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanInstP'"
+                         ": {'attributes': {'name': 'allvlans', 'allocMode': '"
+                         "static'}, 'children': [{'fvnsEncapBlk': {'attributes"
+                         "': {'to': 'vlan-4092', 'from': 'vlan-1', 'name': 'en"
+                         "cap'}}}]}}]}}")
+
         self.assertEqual(str(infra_json), expected_json)
 
     def test_adminstate_not_set(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstate = ''
         fabric_url, infra_url = intf.get_url()
-        fabric_json, infra_json = intf.get_json()
+        phys_domain_json, fabric_json, infra_json = intf.get_json()
         self.assertIsNone(fabric_json)
 
     def test_adminstate_up(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstatus = 'up'
-        fabric_json, infra_json = intf.get_json()
+        phys_domain_json, fabric_json, infra_json = intf.get_json()
         expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
                          "th': {'attributes': {'dn': 'uni/fabric/outofsvc/rsoo"
                          "sPath-[topology/pod-1/paths-1/pathep-[eth1/1]]', 'st"
@@ -529,7 +592,7 @@ class TestInterface(unittest.TestCase):
     def test_adminstate_down(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstatus = 'down'
-        fabric_json, infra_json = intf.get_json()
+        phys_domain_json, fabric_json, infra_json = intf.get_json()
         expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
                          "th': {'attributes': {'tDn': 'topology/pod-1/paths-1/"
                          "pathep-[eth1/1]', 'lc': 'blacklist'}, 'children': []"
@@ -683,12 +746,13 @@ class TestJson(unittest.TestCase):
                             'Did not find %s in returned json' % check)
 
     def test_epg_attach_to_VLAN_interface(self):
-        expected = ('{"fvTenant": {"attributes": {"name": "cisco"}, '
-                    '"children": [{"fvAp": {"attributes": {"name": '
-                    '"ordersystem"}, "children": [{"fvAEPg": {"attributes":'
-                    ' {"name": "web"}, "children": [{"fvRsPathAtt": '
-                    '{"attributes": {"tDn": "topology/pod-1/paths-1/pathep'
-                    '-[eth1/1]", "encap": "vlan-5"}}}]}}]}}]}}')
+        expected_json = ("{'fvTenant': {'attributes': {'name': 'cisco'}, 'chil"
+                         "dren': [{'fvAp': {'attributes': {'name': 'ordersyste"
+                         "m'}, 'children': [{'fvAEPg': {'attributes': {'name':"
+                         " 'web'}, 'children': [{'fvRsPathAtt': {'attributes':"
+                         " {'tDn': 'topology/pod-1/paths-1/pathep-[eth1/1]', '"
+                         "encap': 'vlan-5'}}}, {'fvRsDomAtt': {'attributes': {"
+                         "'tDn': 'uni/phys-allvlans'}}}]}}]}}]}}")
         tenant = Tenant('cisco')
         app = AppProfile('ordersystem', tenant)
         web_epg = EPG('web', app)
@@ -696,9 +760,9 @@ class TestJson(unittest.TestCase):
         vlan_intf = L2Interface('v5', 'vlan', '5')
         vlan_intf.attach(intf)
         web_epg.attach(vlan_intf)
-        output = json.dumps(tenant.get_json())
+        output = str(tenant.get_json())
 
-        self.assertTrue(output == expected,
+        self.assertTrue(output == expected_json,
                         'Did not see expected JSON returned')
 
 

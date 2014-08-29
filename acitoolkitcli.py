@@ -62,12 +62,16 @@ class SubMode(Cmd):
                 tenant_dict[tenant.name] = []
             if to_return:
                 return tenant_dict
-            pprint.pprint(tenant_dict)
+            print 'Tenant'
+            print '------'
+            for tenant in tenants:
+                print tenant.name
         elif words[0] == 'bridgedomain':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
             else:
                 tenants = [self.tenant]
+            output = []
             for tenant in tenants:
                 bds = BridgeDomain.get(self.apic, tenant)
                 bd_dict = {}
@@ -76,19 +80,28 @@ class SubMode(Cmd):
                     bd_dict[tenant.name].append(bd.name)
                 if to_return:
                     return bd_dict
-                pprint.pprint(bd_dict)
+                for bd in bds:
+                    output.append((tenant.name, bd.name))
+            template = '{0:19} {1:20}'
+            print template.format('Tenant', 'BridgeDomain')
+            print template.format('------', '------------')
+            for rec in output:
+                print template.format(*rec)
         elif words[0] == 'context':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
             else:
                 tenants = [self.tenant]
+            output = []
             for tenant in tenants:
                 contexts = Context.get(self.apic, tenant)
-                context_dict = {}
-                context_dict[tenant.name] = []
                 for context in contexts:
-                    context_dict[tenant.name].append(context.name)
-                pprint.pprint(context_dict)
+                    output.append((tenant.name, context.name))
+            template = '{0:19} {1:20}'
+            print template.format('Tenant', 'Context')
+            print template.format('------', '-------')
+            for rec in output:
+                print template.format(*rec)
         elif words[0] == 'contract':
             raise NotImplementedError
         elif words[0] == 'interface':
@@ -107,17 +120,18 @@ class SubMode(Cmd):
                 tenants = Tenant.get(self.apic)
             else:
                 tenants = [Tenant(self.tenant.name)]
+            output = []
             for tenant in tenants:
                 apps = AppProfile.get(self.apic, tenant)
-                app_dict = {}
                 for app in apps:
                     if tenant is not None and tenant != app.get_parent():
                         continue
-                    if app.get_parent().name not in app_dict:
-                        app_dict[app.get_parent().name] = []
-                    app_dict[app.get_parent().name].append(app.name)
-                if app_dict:
-                    pprint.pprint(app_dict)
+                    output.append((app.get_parent().name, app.name))
+            template = '{0:19} {1:20}'
+            print template.format('Tenant', 'App Profile')
+            print template.format('------', '-----------')
+            for rec in output:
+                print template.format(*rec)
         elif words[0] == 'epg':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)

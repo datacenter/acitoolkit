@@ -304,12 +304,18 @@ class EPG(CommonEPG):
             text = {'fvRsBd': {'attributes': {'tnFvBDName':
                                               self.get_bd().name}}}
             children.append(text)
+        is_interfaces = False
         for interface in self.get_interfaces():
+            is_interfaces = True
             text = {'fvRsPathAtt': {'attributes':
                                     {'encap': '%s-%s' % (interface.encap_type,
                                                          interface.encap_id),
                                      'tDn': interface.get_path()}}}
             children.append(text)
+        if is_interfaces:
+            text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
+            children.append(text)
+
         for interface in self.get_interfaces('detached'):
             text = {'fvRsPathAtt': {'attributes':
                                     {'encap': '%s-%s' % (interface.encap_type,
@@ -858,6 +864,13 @@ class Interface(BaseInterface):
             required to be sent in 2 posts.
         """
         fabric = None
+        # Physical Domain json
+        vlan_ns_ref = {'infraRsVlanNs':{'attributes':{'tDn':'uni/infra/vlanns-allvlans-static'},
+                                        'children': []}}
+        phys_domain = {'physDomP': {'attributes': {'name':'allvlans'},
+                                    'children': [vlan_ns_ref]}}
+
+        # Infra json
         infra = {'infraInfra': {'children': []}}
         node_profile, accport_selector = self.get_port_selector_json()
         infra['infraInfra']['children'].append(node_profile)
@@ -875,11 +888,18 @@ class Interface(BaseInterface):
         speed_attr = {'tnFabricHIfPolName': speed_name}
         speed_children = {'infraRsHIfPol': {'attributes': speed_attr,
                                             'children': []}}
+        att_ent_p = {'infraRsAttEntP': {'attributes': {'tDn': 'uni/infra/attentp-allvlans'},
+                                        'children': []}}
         speed_ref = {'infraAccPortGrp': {'attributes': {'dn': accportgrp_dn,
                                                         'name': name},
-                                         'children': [speed_children]}}
+                                         'children': [speed_children, att_ent_p]}}
         speed_ref = {'infraFuncP': {'attributes': {}, 'children': [speed_ref]}}
         infra['infraInfra']['children'].append(speed_ref)
+
+        rs_dom_p = {'infraRsDomP': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
+        infra_att_entity_p = {'infraAttEntityP': {'attributes': {'name': 'allvlans'},
+                                                  'children': [rs_dom_p]}}
+        infra['infraInfra']['children'].append(infra_att_entity_p)
 
         if self.adminstatus != '':
             adminstatus_attributes = {}
@@ -893,7 +913,15 @@ class Interface(BaseInterface):
                                                     'children': []}}
             fabric = {'fabricOOServicePol': {'children': [adminstatus_json]}}
 
-        return fabric, infra
+        fvns_encap_blk = {'fvnsEncapBlk': {'attributes': {'name': 'encap',
+                                                          'from': 'vlan-1',
+                                                          'to': 'vlan-4092'}}}
+        fvns_vlan_inst_p = {'fvnsVlanInstP': {'attributes': {'name': 'allvlans',
+                                                             'allocMode': 'static'},
+                                              'children': [fvns_encap_blk]}}
+        infra['infraInfra']['children'].append(fvns_vlan_inst_p)
+
+        return phys_domain, fabric, infra
 
     def get_path(self):
         """Get the path of this interface used when communicating with
