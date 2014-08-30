@@ -722,12 +722,15 @@ class ContractConfigSubMode(SubMode):
     """
     Contract configuration sub mode
     """
+
     def __init__(self):
         SubMode.__init__(self)
         self.entry_name = None
         self.sequence_number = None
         self.aa = 0
         self.seq_num_array = ['123', '456', '789', '100']  # TODO: Bon we need a get method to obtain the array.
+        self.operators = ['lt', 'gt', 'eq', 'neq', 'range']
+        self.permit_args = [ 'eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp']
 
     def do_scope(self, args):
         if self.negative is True:
@@ -745,22 +748,27 @@ class ContractConfigSubMode(SubMode):
 
         def check_from_to_args(args, cmd):
             if cmd in args:
-                print cmd, args
                 idx = args.index(cmd)
-                print idx
                 try:
                     oprt = args[idx+1]
+                    if oprt not in self.operators:
+                        print 'Error, invalid Operator.'
+                        return
                     port = args[idx+2: idx+4 if oprt == 'range' else idx+3]
                 except IndexError:
                     print 'too few arguemnts.'
                     return
-                return oprt, port
+                port.insert(0, oprt)
+                port.insert(0, cmd)
+                return port
+            else:
+                return [cmd]
 
         def check_flag_name(args):
             def check_name(args, sign):
                 idx = args.index(sign)
                 try:
-                    return sign, args[idx+1]
+                    return [sign, args[idx+1]]
                 except IndexError:
                     print 'Error, flag name is not defined.'
             if ('+') in args:
@@ -788,12 +796,12 @@ class ContractConfigSubMode(SubMode):
                     print 0, self.negative, self.sequence_number
                 else:
                     print args[1], self.sequence_number
-        elif args[0] in ['eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'Unspecified']:
+        elif args[0] in self.permit_args + ['unspecified'] and args[0] not in ['tcp', 'udp']:
             if args[len(args)-1] == 'fragment':
                 print args[0], self.negative, self.sequence_number, 'fragment'
             # print args[0], self.negative, self.sequence_number
         elif args[0] in ['tcp', 'udp']:
-            out_put = [args[0], self.negative, self.sequence_number]
+            out_put = [self.negative, self.sequence_number, args[0]]
             from_arg = check_from_to_args(args, 'from-port')
             to_arg = check_from_to_args(args, 'to-port')
             if args[0] == 'tcp':
@@ -804,14 +812,12 @@ class ContractConfigSubMode(SubMode):
 
 
     def complete_permit(self, text, line, begidx, endidx):
-        permit_args = ['arp', 'ethertype', 'eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp', 'Unspecified']
-        operators = ['lt', 'gt', 'eq', 'neq', 'range']
         signs = ['+', '-']
         protocol_args = ['from-port', 'to-port']
 
         args, num, cmd = self.get_args_num_last(text, line)
         if cmd == 'permit':
-            return self.get_completions(text, permit_args)
+            return self.get_completions(text, self.permit_args+['arp', 'ethertype'])
         elif cmd == 'ethertype':
             if num == 2:
                 ethertype_args = ['unspecified', 'trill', 'arp', 'mpls_ucast', 'mac_security', 'fcoe', 'ip', 'DEFAULT']
@@ -820,7 +826,7 @@ class ContractConfigSubMode(SubMode):
             if num == 2:
                 arp_args = ['unspecified', 'response', 'request', 'DEFAULT']
                 return self.get_completions(text, arp_args)
-        elif cmd in ['eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim']:
+        elif cmd in self.permit_args and cmd not in ['tcp', 'udp']:
             return ['fragment']
         elif cmd in ['tcp', 'udp'] or cmd.isdigit():
             return self.get_completions(text, self.filter_args(line, protocol_args + signs if args[2] == 'tcp' else protocol_args))
@@ -828,7 +834,7 @@ class ContractConfigSubMode(SubMode):
             flag_name_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
             return self.get_completions(text, flag_name_array)
         elif cmd in protocol_args and num > 2:
-            return self.get_completions(text, operators)
+            return self.get_completions(text, self.operators)
 
     def complete_sequence_number(self, text, line, begidx, endidx, with_do_args=True):
         do_array = self.completenames(text) if with_do_args else []
