@@ -782,24 +782,25 @@ class ContractConfigSubMode(SubMode):
         if args[0] == 'arp':
             if len(args) > 2:
                 print '%% arp takes one arguments, %s are given\n' % len(args)
-            if len(args) == 1 or args[1] in ['unspecified', 'DEFAULT'] or self.negative:
-                print 0, self.negative, self.sequence_number
-            elif args[1] in ['request', '1', 1]:
-                print 1, self.negative, self.sequence_number
+                return
+            arp_arg = 0
+            if args[1] in ['request', '1', 1]:
+                arp_arg = 1
             elif args[1] in ['response', '2', 2]:
-                print 2, self.negative, self.sequence_number
+                arp_arg = 2
+            else:
+                print 'Invalid argument. Default value', arp_arg, 'is applied.'
+            print [self.negative, self.sequence_number, args[0], arp_arg]
         elif args[0] == 'ethertype':
             if len(args) != 2:
                 print '%% ethertype must be called with 1 ethertype number\n'
             else:
-                if self.negative:
-                    print 0, self.negative, self.sequence_number
-                else:
-                    print args[1], self.sequence_number
+                print [self.negative] + [self.sequence_number] + args
         elif args[0] in self.permit_args + ['unspecified'] and args[0] not in ['tcp', 'udp']:
+            apply_fra = False
             if args[len(args)-1] == 'fragment':
-                print args[0], self.negative, self.sequence_number, 'fragment'
-            # print args[0], self.negative, self.sequence_number
+                apply_fra = True
+            print [self.negative, self.sequence_number, args[0], apply_fra]
         elif args[0] in ['tcp', 'udp']:
             out_put = [self.negative, self.sequence_number, args[0]]
             from_arg = check_from_to_args(args, 'from-port')
