@@ -8,8 +8,8 @@ import logging
 from cmd import Cmd
 from acitoolkit import *
 import pprint
-import pdb
 READLINE = True
+NOT_NO_ARGS = 'show exit help configure switchto switchback interface no'
 try:
     import readline
     # The following is required for command completion on Mac OS
@@ -170,6 +170,22 @@ class SubMode(Cmd):
         completions = [a for a in show_args if a.startswith(line[5:])]
         return completions
 
+    def complete_no(self, text, line, begidx, endidx):
+        args, num, last_arg = self.get_args_num_last(text, line)
+        do_args = self.completenames('' if len(args) <= 1 else args[1])
+        pos_args = self.filter_args(NOT_NO_ARGS, do_args)
+        if num <= 1:
+            return pos_args
+        if args[1] in pos_args:
+            try:
+                compfunc = getattr(self, 'complete_' + args[1])
+            except AttributeError:
+                compfunc = self.completedefault
+            return compfunc(text, line.partition(' ')[2], begidx, endidx)
+
+    def do_no(self, *args):
+        pass
+
     def do_exit(self, args):
         " Exit the command mode "
         return -1
@@ -194,6 +210,28 @@ class SubMode(Cmd):
                 sys.stdout.write('\n')
             return ''
         return line
+        
+    def get_args_num_last(self, text, line):
+        args = line.split()
+        # the number of completed argument
+        num_completed_arg = len(args) - 1 if text == args[len(args)-1] else len(args)
+        # the last completed argument
+        last_completed_arg = args[num_completed_arg-1]
+        return args, num_completed_arg, last_completed_arg
+    
+    def get_completions(self, text, array):
+        if args == '':
+            return array
+        return [a for a in array if a.startswith(text)]
+    
+    def get_operator_port(self, line, arg):
+        line = line.split(' ')
+        if arg in line:
+            index = line.index(arg)
+            return line[index+1:index+3]
+    
+    def filter_args(self, line, array):
+        return list(set(array) - set(line.split()) & set(array))
 
 
 class BridgeDomainConfigSubMode(SubMode):
@@ -279,7 +317,6 @@ class ContextConfigSubMode(SubMode):
             print 'push configuration to APIC'
 
     def do_getjson(self, args):
-        pdb.set_trace()
         print self.context.get_json()
 
 
@@ -691,10 +728,15 @@ class ContractConfigSubMode(SubMode):
     """
     Contract configuration sub mode
     """
+
     def __init__(self):
         SubMode.__init__(self)
         self.entry_name = None
         self.sequence_number = None
+        self.aa = 0
+        self.seq_num_array = ['123', '456', '789', '100']  # TODO: Bon we need a get method to obtain the array.
+        self.operators = ['lt', 'gt', 'eq', 'neq', 'range']
+        self.permit_args = [ 'eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp']
 
     def do_scope(self, args):
         if self.negative is True:
@@ -704,55 +746,154 @@ class ContractConfigSubMode(SubMode):
         print 'contract scope change to be ', self.contract.get_scope()
 
     def complete_scope(self, text, line, begidx, endidx):
+        text = text.lstrip()
         scope_args = ['context', 'global', 'tenant', 'application-profile']
-        completions = [a for a in scope_args if a.startswith(line[6:])]
-        return completions
+        return self.get_completions(text, scope_args)
 
     def do_permit(self, args):
+
+        def check_from_to_args(args, cmd):
+            if cmd in args:
+                idx = args.index(cmd)
+                try:
+                    oprt = args[idx+1]
+                    if oprt not in self.operators:
+                        print 'Error, invalid Operator.'
+                        return
+                    port = args[idx+2: idx+4 if oprt == 'range' else idx+3]
+                except IndexError:
+                    print 'too few arguemnts.'
+                    return
+                port.insert(0, oprt)
+                port.insert(0, cmd)
+                return port
+            else:
+                return [cmd]
+
+        def check_flag_name(args):
+            def check_name(args, sign):
+                idx = args.index(sign)
+                try:
+                    return [sign, args[idx+1]]
+                except IndexError:
+                    print 'Error, flag name is not defined.'
+            if ('+') in args:
+                flag_sign = '+'
+                return check_name(args, flag_sign)
+            elif ('-') in args:
+                flag_sign = '-'
+                return check_name(args, flag_sign)
+
         args = args.split()
         if args[0] == 'arp':
             if len(args) > 2:
                 print '%% arp takes one arguments, %s are given\n' % len(args)
-            if len(args) == 1 or args[1] in ['unspecified', 'DEFAULT'] or self.negative:
-                return 0, self.negative, self.sequence_number
-            elif args[1] in ['request', '1', 1]:
-                return 1, self.negative, self.sequence_number
+                return
+            arp_arg = 0
+            if args[1] in ['request', '1', 1]:
+                arp_arg = 1
             elif args[1] in ['response', '2', 2]:
-                return 2, self.negative, self.sequence_number
+                arp_arg = 2
+            else:
+                print 'Invalid argument. Default value', arp_arg, 'is applied.'
+            print [self.negative, self.sequence_number, args[0], arp_arg]
         elif args[0] == 'ethertype':
             if len(args) != 2:
                 print '%% ethertype must be called with 1 ethertype number\n'
             else:
-                if self.negative:
-                    return 0, self.sequence_number
-                else:
-                    return args[1], self.sequence_number
-        elif args[0] in ['eigrp', 'egp', 'icmp', 'igmp', 'igp', 'l2tp', 'ospfigp', 'pim', 'Unspecified']:
-            return args[0], self.sequence_number
+                print [self.negative] + [self.sequence_number] + args
+        elif args[0] in self.permit_args + ['unspecified'] and args[0] not in ['tcp', 'udp']:
+            apply_fra = False
+            if args[len(args)-1] == 'fragment':
+                apply_fra = True
+            print [self.negative, self.sequence_number, args[0], apply_fra]
         elif args[0] in ['tcp', 'udp']:
-            pass ## TODO Bon: operator and port (from/to)
+            out_put = [self.negative, self.sequence_number, args[0]]
+            from_arg = check_from_to_args(args, 'from-port')
+            to_arg = check_from_to_args(args, 'to-port')
             if args[0] == 'tcp':
-                pass ## TODO Bon: flag for tcp
+                flag_name = check_flag_name(args)
+                print out_put, from_arg, to_arg, flag_name
+                return
+            print out_put, from_arg, to_arg
 
 
     def complete_permit(self, text, line, begidx, endidx):
-        permit_args = ['arp', 'ethertype', 'icmp', 'igmp', 'tcp', 'egp', 'igp', 'udp', 'eigrp', 'ospfigp', 'pim',
-                       'l2tp', 'Unspecified']
-        args = line.split()
-        num_args = len(args)
-        if num_args >= 2:
-            if args[1] == 'arp':
-                arp_args = ['unspecified', 'response', 'request', 'DEFAULT']
-                completions = [a for a in arp_args if a.startswith(line[11:])]
-            elif args[1] == 'ethertype':
+        signs = ['+', '-']
+        protocol_args = ['from-port', 'to-port']
+
+        args, num, cmd = self.get_args_num_last(text, line)
+        if cmd == 'permit':
+            return self.get_completions(text, self.permit_args+['arp', 'ethertype'])
+        elif cmd == 'ethertype':
+            if num == 2:
                 ethertype_args = ['unspecified', 'trill', 'arp', 'mpls_ucast', 'mac_security', 'fcoe', 'ip', 'DEFAULT']
-                ethertype_args = ['0', '0x22F3', '0x806', '0x8847', '0x88E5', '0x8906', '0xABCD']
-                completions = [a for a in ethertype_args if a.startswith(line[16:])]
+                return self.get_completions(text, ethertype_args)
+        elif cmd == 'arp':
+            if num == 2:
+                arp_args = ['unspecified', 'response', 'request', 'DEFAULT']
+                return self.get_completions(text, arp_args)
+        elif cmd in self.permit_args and cmd not in ['tcp', 'udp']:
+            return ['fragment']
+        elif cmd in ['tcp', 'udp'] or cmd.isdigit():
+            return self.get_completions(text, self.filter_args(line, protocol_args + signs if args[2] == 'tcp' else protocol_args))
+        elif cmd in ['+', '-'] and num > 2 and args[1] == 'tcp':
+            flag_name_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
+            return self.get_completions(text, flag_name_array)
+        elif cmd in protocol_args and num > 2:
+            return self.get_completions(text, self.operators)
+
+    def complete_sequence_number(self, text, line, begidx, endidx, with_do_args=True):
+        do_array = self.completenames(text) if with_do_args else []
+        pos_args = self.get_completions(text, self.seq_num_array+do_array)
+        if 'permit' in pos_args:
+            pos_args.remove('permit')
+        return pos_args
+
+    def completedefault(self, text, line, begidx, endidx):
+        return SubMode.complete_no(self, text, line, begidx, endidx)
+
+    def complete(self, text, state):
+        """
+        overwrite the origin complete function, but only change one line:
+        self.completenames => self.complete_sequence_number
+        """
+        if state == 0:
+            import readline
+            origline = readline.get_line_buffer()
+            line = origline.lstrip()
+            stripped = len(origline) - len(line)
+            begidx = readline.get_begidx() - stripped
+            endidx = readline.get_endidx() - stripped
+            if begidx>0:
+                cmd, args, foo = self.parseline(line)
+                if cmd == '':
+                    compfunc = self.completedefault
+                else:
+                    try:
+                        compfunc = getattr(self, 'complete_' + cmd)
+                    except AttributeError:
+                        compfunc = self.completedefault
             else:
-                completions = [a for a in permit_args if a.startswith(line[7:])]
-        else:
-            completions = [a for a in permit_args if a.startswith(line[7:])]
-        return completions
+                compfunc = self.complete_sequence_number
+            self.completion_matches = compfunc(text, line, begidx, endidx)
+        try:
+            return self.completion_matches[state]
+        except IndexError:
+            return None
+
+    def complete_no(self, text, line, begidx, endidx):
+        args, num, last = self.get_args_num_last(text, line)
+        if num == 1:
+            pos_args = self.complete_sequence_number(text, line, begidx, endidx, with_do_args=False)
+            return [a for a in pos_args if a.startswith(text)]
+        elif num == 2:
+            if args[1] == 'scope':
+                return self.complete_scope(text, line.partition(' ')[2], begidx, endidx)
+            elif 'permit'.startswith(text):
+                return ['permit']
+        elif num >= 3 and args[2] == 'permit':
+            return self.complete_permit(text, line.partition(' ')[2], begidx, endidx)
 
     def set_prompt(self):
         """
@@ -764,7 +905,7 @@ class ContractConfigSubMode(SubMode):
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-contract)# '
 
-    def precmd(self, line):
+    def precmd(self, line, check_no=False):
         # Check for negative of the command (no in front)
         if line.strip()[0:len('no ')] == 'no ':
             line = line.strip()[len('no'):]

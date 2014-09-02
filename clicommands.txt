@@ -46,9 +46,11 @@ Configure a Contract (has an implicit deny any and default scope is context)
 fabric-tenant(config)# [no] contract <contract-name>
 fabric-tenant(config-contract)# [no] scope { app-profile | tenant | context | global }
 
-fabric-tenant(config-contract)# [no] <sequence-number> permit <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
+fabric-tenant(config-contract)# [no] <sequence-number> permit <protocol>  [fragments]
 
-fabric-tenant(config-contract)# [no] <sequence-number> permit tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
+fabric-tenant(config-contract)# [no] <sequence-number> permit tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][{+ | - } <flag-name>]
+
+fabric-tenant(config-contract)# [no] <sequence-number> permit udp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}]
 
 fabric-tenant(config-contract)# [no] <sequence-number> permit ethertype <ethertype-number>
 
