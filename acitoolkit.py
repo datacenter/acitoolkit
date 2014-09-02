@@ -853,7 +853,10 @@ class Interface(BaseInterface):
         return True
 
     def get_url(self):
-        return '/api/mo/uni/fabric.json', '/api/mo/uni.json'
+        phys_domain_url = '/api/mo/uni.json'
+        fabric_url = '/api/mo/uni/fabric.json'
+        infra_url = '/api/mo/uni.json'
+        return phys_domain_url, fabric_url, infra_url
 
     def get_name_for_json(self):
         return '%s-%s-%s-%s' % (self.pod, self.node,

@@ -345,8 +345,11 @@ class InterfaceConfigSubMode(SubMode):
             self.intf.adminstatus = 'up'
         else:
             self.intf.adminstatus = 'down'
-        (fabric_url, infra_url) = self.intf.get_url()
-        fabric, infra = self.intf.get_json()
+        (phys_domain_url, fabric_url, infra_url) = self.intf.get_url()
+        phys_domain, fabric, infra = self.intf.get_json()
+        resp = self.apic.push_to_apic(phys_domain_url, phys_domain)
+        if not resp.ok:
+            error_message(resp)
         if fabric is not None:
             resp = self.apic.push_to_apic(fabric_url, fabric)
             if not resp.ok:
@@ -374,8 +377,11 @@ class InterfaceConfigSubMode(SubMode):
             speed = '10G'
         self.intf.speed = speed
 
-        (fabric_url, infra_url) = self.intf.get_url()
-        fabric, infra = self.intf.get_json()
+        (phys_domain_url, fabric_url, infra_url) = self.intf.get_url()
+        phys_domain, fabric, infra = self.intf.get_json()
+        resp = self.apic.push_to_apic(phys_domain_url, phys_domain)
+        if not resp.ok:
+            error_message(resp)
         if fabric is not None:
             resp = self.apic.push_to_apic(fabric_url, fabric)
             if not resp.ok:
