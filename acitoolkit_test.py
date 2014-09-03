@@ -574,7 +574,7 @@ class TestInterface(unittest.TestCase):
     def test_adminstate_not_set(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstate = ''
-        fabric_url, infra_url = intf.get_url()
+        phys_domain_url, fabric_url, infra_url = intf.get_url()
         phys_domain_json, fabric_json, infra_json = intf.get_json()
         self.assertIsNone(fabric_json)
 
@@ -850,7 +850,7 @@ class TestOspf(unittest.TestCase):
         l2if.attach(phyif)
         l3if = L3Interface('l3if')
         l3if.set_l3if_type('l3-port')
-        l3if.addr = '10.1.1.1/24'
+        l3if.set_addr('10.1.1.1/24')
         l3if.add_context(context)
         l3if.attach(l2if)
         ospfif = OSPFInterface('ospfif-1', '2')
