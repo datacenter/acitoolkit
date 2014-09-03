@@ -16,8 +16,8 @@ pc.attach(intf4)
 # Create a VLAN interface on the port channel
 # This is the L2 interface representing a single VLAN encap
 # on this particular interface.
-vp = L2Interface('vp', 'vlan', '5')
-vp.attach(pc)
+vlan5_on_pc = L2Interface('vlan5_on_pc', 'vlan', '5')
+vlan5_on_pc.attach(pc)
 
 # Create a tenant, app profile, and epg
 tenant = Tenant('coke')
@@ -27,7 +27,7 @@ epg = EPG('epg', app)
 # Connect EPG to the VLAN interface
 # Remember, this VLAN interface is on the port channel we created
 # so the EPG will be attached to the port channel on VLAN 5
-epg.attach(vp)
+epg.attach(vlan5_on_pc)
 
 # Print the resulting JSON
 print pc.get_json()

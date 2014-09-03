@@ -40,7 +40,7 @@ db_epg.provide(contract)
 web_epg.consume(contract)
 
 # Login to APIC and push the config
-session = Session(URL, LOGIN, PASSWORD, False)
+session = Session(URL, LOGIN, PASSWORD)
 session.login()
 resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
 if resp.ok:
