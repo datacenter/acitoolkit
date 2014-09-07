@@ -7,6 +7,7 @@ import getopt
 import logging
 from cmd import Cmd
 from acitoolkit import *
+import requests
 import pprint
 READLINE = True
 NOT_NO_ARGS = 'show exit help configure switchto switchback interface no'
@@ -1091,7 +1092,11 @@ if __name__ == '__main__':
                         level=DEBUGLEVEL)
 
     apic = Session(URL, LOGIN, PASSWORD)
-    apic.login()
+    try:
+        apic.login()
+    except requests.exceptions.ConnectionError:
+        print '%% Could not connect to APIC.'
+        sys.exit(2)
 
     if 'TESTFILE' in locals():
         sys.stdin = MockStdin(TESTFILE, sys.stdin)
