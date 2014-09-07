@@ -868,9 +868,9 @@ class Interface(BaseInterface):
         """
         fabric = None
         # Physical Domain json
-        vlan_ns_ref = {'infraRsVlanNs':{'attributes':{'tDn':'uni/infra/vlanns-allvlans-static'},
-                                        'children': []}}
-        phys_domain = {'physDomP': {'attributes': {'name':'allvlans'},
+        vlan_ns_ref = {'infraRsVlanNs': {'attributes': {'tDn': 'uni/infra/vlanns-allvlans-static'},
+                                         'children': []}}
+        phys_domain = {'physDomP': {'attributes': {'name': 'allvlans'},
                                     'children': [vlan_ns_ref]}}
 
         # Infra json
