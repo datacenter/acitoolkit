@@ -743,6 +743,12 @@ class Contract(BaseContract):
     def __init__(self, contract_name, parent=None):
         super(Contract, self).__init__(contract_name, 'vzBrCP', parent)
 
+    @classmethod
+    def get(cls, session, tenant):
+        """Gets all of the Contracts from the APIC for a particular tenant.
+        """
+        return BaseACIObject.get(session, cls, 'vzBrCP', tenant, tenant)
+
 
 class Taboo(BaseContract):
     """ Taboo :  Class for Taboos """

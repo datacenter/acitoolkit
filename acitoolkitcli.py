@@ -104,7 +104,20 @@ class SubMode(Cmd):
             for rec in output:
                 print template.format(*rec)
         elif words[0] == 'contract':
-            raise NotImplementedError
+            if self.tenant is None:
+                tenants = Tenant.get(self.apic)
+            else:
+                tenants = [self.tenant]
+            output = []
+            for tenant in tenants:
+                contracts = Contract.get(self.apic, tenant)
+                for contract in contracts:
+                    output.append((tenant.name, contract.name))
+            template = '{0:19} {1:20}'
+            print template.format('Tenant', 'Contract')
+            print template.format('------', '-------')
+            for rec in output:
+                print template.format(*rec)
         elif words[0] == 'interface':
             ifs = Interface.get(self.apic)
             print 'Interface\tType\tStatus\tSpeed\tMTU'

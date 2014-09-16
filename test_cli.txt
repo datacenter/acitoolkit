@@ -25,6 +25,7 @@ context ctx1
 context ctx1 ctx2
 no context ctx1
 contract contract1
+show contract
 app app1
 tenant
 tenant acitoolkit acitoolkit
@@ -56,6 +57,8 @@ show app
 show epg
 show interface
 show port-channel
+show context
+show contract
 exit
 no bridgedomain bd1
 context ctx

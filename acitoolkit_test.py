@@ -1272,7 +1272,7 @@ class TestApic(unittest.TestCase):
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
-class TestLiveContracts(unittest.TestCase):
+class TestLiveContracts(TestLiveAPIC):
     def get_2_entries(self, contract):
         entry1 = FilterEntry('entry1',
                              applyToFrag='no',
@@ -1298,17 +1298,20 @@ class TestLiveContracts(unittest.TestCase):
                              parent=contract)
         return(entry1, entry2)
 
+    def test_get(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+        tenant = tenants[0]
+        contracts = Contract.get(session, tenant)
+
     def test_create_basic_contract(self):
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract1', tenant)
 
         (entry1, entry2) = self.get_2_entries(contract)
 
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
-
+        session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
@@ -1323,11 +1326,7 @@ class TestLiveContracts(unittest.TestCase):
 
         (entry1, entry2) = self.get_2_entries(taboo)
 
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
-
+        session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
@@ -1341,10 +1340,7 @@ class TestLiveContracts(unittest.TestCase):
         contract = Contract('contract1', tenant)
         (entry1, entry2) = self.get_2_entries(contract)
 
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self.login_to_apic()
 
         # Test scopes
         # Verify the default
