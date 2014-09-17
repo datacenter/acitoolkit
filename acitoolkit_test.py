@@ -72,7 +72,8 @@ class TestBaseRelation(unittest.TestCase):
 
 class MockACIObject(BaseACIObject):
     def get_json(self):
-        super(MockACIObject, self).get_json('mock')
+        attr = self._generate_attributes()
+        super(MockACIObject, self).get_json('mock', attributes=attr)
 
     def write(self, text):
         """Used to override sys.stdout calls to avoid printing
@@ -612,6 +613,23 @@ class TestInterface(unittest.TestCase):
 
     # def test_parse_name_no_space(self):
     #    self.parse_name('eth1/2/3/4')
+
+
+class TestBaseContract(unittest.TestCase):
+    def test_get_contract_code(self):
+        contract = BaseContract('contract')
+        self.assertRaises(NotImplementedError,
+                          contract._get_contract_code)
+
+    def test_get_subject_code(self):
+        contract = BaseContract('contract')
+        self.assertRaises(NotImplementedError,
+                          contract._get_subject_code)
+
+    def test_get_subject_relation_code(self):
+        contract = BaseContract('contract')
+        self.assertRaises(NotImplementedError,
+                          contract._get_subject_relation_code)
 
 
 class TestEPG(unittest.TestCase):
