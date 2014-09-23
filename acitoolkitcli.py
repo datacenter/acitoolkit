@@ -224,7 +224,7 @@ class SubMode(Cmd):
                 sys.stdout.write('\n')
             return ''
         return line
-        
+
     def get_args_num_last(self, text, line):
         args = line.split()
         # the number of completed argument
@@ -232,18 +232,18 @@ class SubMode(Cmd):
         # the last completed argument
         last_completed_arg = args[num_completed_arg-1]
         return args, num_completed_arg, last_completed_arg
-    
+
     def get_completions(self, text, array):
         if args == '':
             return array
         return [a for a in array if a.startswith(text)]
-    
+
     def get_operator_port(self, line, arg):
         line = line.split(' ')
         if arg in line:
             index = line.index(arg)
             return line[index+1:index+3]
-    
+
     def filter_args(self, line, array):
         return list(set(array) - set(line.split()) & set(array))
 
@@ -1060,16 +1060,17 @@ if __name__ == '__main__':
     LOGIN = ''
     PASSWORD = ''
     URL = ''
+    VERIFY_CERTIFICATES = False
     OUTPUTFILE = ''
     DEBUGFILE = None
     DEBUGLEVEL = logging.CRITICAL
     usage = ('Usage: acitoolkitcli.py -l <login> -p <password> -u <url> '
-             '[-o <output-file>] [-t <test-file>]')
+             '[-o <output-file>] [-t <test-file>] [-c]')
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                   "hl:p:u:do:f:t:",
+                                   "hl:p:u:co:do:f:t:",
                                    ["help", "apic-login=", "apic-password=",
-                                    "apic-url=", "enable-debug",
+                                    "apic-url=", "verify-certificates", "enable-debug",
                                     "output-file=", "debug-file=",
                                     "test-file="])
     except getopt.GetoptError:
@@ -1086,6 +1087,8 @@ if __name__ == '__main__':
             PASSWORD = arg
         elif opt in ('-u', '--apic-url'):
             URL = arg
+        elif opt in ('-c', '--verify-certificates'):
+            VERIFY_CERTIFICATES = True
         elif opt in ('-o', '--output-file'):
             OUTPUTFILE = arg
         elif opt in ('-d', '--enable-debug'):
@@ -1104,10 +1107,14 @@ if __name__ == '__main__':
                         filename=DEBUGFILE, filemode='w',
                         level=DEBUGLEVEL)
 
-    apic = Session(URL, LOGIN, PASSWORD)
+    apic = Session(URL, LOGIN, PASSWORD, VERIFY_CERTIFICATES)
     try:
         apic.login()
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.SSLError as e:
+        print '%% SSL Error - are your certificates correctly signed?'
+        print '%% Could not connect to APIC.'
+        sys.exit(2)
+    except requests.exceptions.ConnectionError as e:
         print '%% Could not connect to APIC.'
         sys.exit(2)
 
@@ -1116,4 +1123,8 @@ if __name__ == '__main__':
 
     cmdLine = CmdLine()
     cmdLine.apic = apic
-    cmdLine.cmdloop()
+    try:
+        cmdLine.cmdloop()
+    except KeyboardInterrupt:
+        print '\n%% Caught Keyboard Interrupt - Exiting'
+
