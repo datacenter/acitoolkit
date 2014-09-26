@@ -196,6 +196,18 @@ class BaseACIObject(object):
                 resp.append(relation.item)
         return resp
 
+    def get_all_attached(self, attached_class, status='attached'):
+        """Get all of the relations of objects beloging to the
+           specified class
+        """
+        resp = []
+        for relation in self._relations:
+            same_class = isinstance(relation.item, attached_class)
+            same_status = relation.status == status
+            if same_class and same_status:
+                resp.append(relation.item)
+        return resp
+
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""
         return ''

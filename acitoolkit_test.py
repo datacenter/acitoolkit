@@ -8,7 +8,7 @@ from credentials import *
 import xml.dom.minidom
 import sys
 
-LIVE_TEST = True
+LIVE_TEST = False
 MAX_RANDOM_STRING_SIZE = 20
 
 
@@ -662,6 +662,10 @@ class TestEPG(unittest.TestCase):
         self.assertTrue(epg.has_bd())
         self.assertTrue(epg.get_bd() == bd)
 
+    def test_valid_add_bd_json(self):
+        tenant, app, epg, bd = self.create_epg_with_bd()
+        self.assertTrue('fvRsBd' in str(tenant.get_json()))
+
     def test_invalid_add_bd_as_none(self):
         tenant, app, epg = self.create_epg()
         self.assertRaises(TypeError, epg.add_bd, None)
@@ -696,6 +700,24 @@ class TestEPG(unittest.TestCase):
         epg.remove_bd()
         self.assertFalse(epg.has_bd())
         self.assertFalse(epg.get_bd() == bd)
+
+    def test_epg_provide(self):
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.provide(contract1)
+        output = tenant.get_json()
+        self.assertTrue('fvRsProv' in str(output))
+
+    def test_epg_consume(self):
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.consume(contract1)
+        output = tenant.get_json()
+        self.assertTrue('fvRsCons' in str(output))
 
     def test_epg_provide_consume(self):
         tenant = Tenant('tenant')
@@ -746,6 +768,24 @@ class TestEPG(unittest.TestCase):
         epg.dont_consume(contract2)
         epg.dont_consume(contract3)
         self.assertTrue(epg.get_all_consumed() == [])
+
+    def test_attach_epg(self):
+        tenant, app, epg = self.create_epg()
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_intf = L2Interface('v5', 'vlan', '5')
+        vlan_intf.attach(interface)
+        epg.attach(vlan_intf)
+        self.assertTrue('fvRsPathAtt' in str(tenant.get_json()))
+
+    def test_detach_epg(self):
+        tenant, app, epg = self.create_epg()
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_intf = L2Interface('v5', 'vlan', '5')
+        vlan_intf.attach(interface)
+        epg.attach(vlan_intf)
+        epg.detach(vlan_intf)
+        output = str(tenant.get_json())
+        self.assertTrue(all(x in output for x in ('fvRsPathAtt', 'deleted')))
 
 
 class TestJson(unittest.TestCase):

@@ -318,6 +318,14 @@ class EPG(CommonEPG):
             text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
             children.append(text)
 
+        is_vmms = False
+        for vmm in self.get_all_attached(VMM):
+            is_vmms = True
+            text = {'fvRsDomAtt': {'attributes':
+                                   {'tDn': vmm.get_path(),
+                                    'resImedcy': 'immediate'}}}
+            children.append(text)
+
         for interface in self.get_interfaces('detached'):
             text = {'fvRsPathAtt': {'attributes':
                                     {'encap': '%s-%s' % (interface.encap_type,
@@ -1185,3 +1193,134 @@ class PortChannel(BaseInterface):
             portchannel = PortChannel(portchannel_name)
             portchannels.append(portchannel)
         return portchannels
+
+
+class Endpoint(BaseACIObject):
+    @staticmethod
+    def get(session):
+        """Gets all of the endpoints connected to the fabric from the APIC
+        """
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+        endpoint_query_url = ('/api/node/class/fvCEp.json?'
+                              'query-target=subtree&rsp-subtree=full')
+        endpoints = []
+        ret = session.get(endpoint_query_url)
+        ep_data = ret.json()['imdata']
+        for ep in ep_data:
+            if 'fvCEp' in ep:
+                for child in ep['fvCEp']['children']:
+                    if 'fvIp' in child:
+                        print 'mac:', ep['fvCEp']['attributes']['mac'], 'ip:', child['fvIp']['attributes']['addr']
+                    if 'fvRsCEpToPathEp' in child:
+                        print 'path:', child['fvRsCEpToPathEp']['attributes']['tDn']
+        return endpoints
+
+
+class NetworkPool(BaseACIObject):
+    """This class defines a pool of network ids
+    """
+    def __init__(self, name, encap_type, start_id, end_id, mode):
+        super(NetworkPool, self).__init__(name)
+        valid_encap_types = ['vlan', 'vxlan']
+        if encap_type not in valid_encap_types:
+            raise ValueError('Encap type specified is not a valid encap type')
+        self.encap_type = encap_type
+        self.start_id = start_id
+        self.end_id = end_id
+        valid_modes = ['static', 'dynamic']
+        if mode not in valid_modes:
+            raise ValueError('Mode specified is not a valid mode')
+        self.mode = mode
+
+    def get_json(self):
+        from_id = self.encap_type + '-' + self.start_id
+        to_id = self.encap_type + '-' + self.end_id
+        fvnsEncapBlk = {'fvnsEncapBlk': {'attributes': {'name': 'encap',
+                                                        'from': from_id,
+                                                        'to': to_id},
+                                         'children': []}}
+        if self.encap_type == 'vlan':
+            fvnsEncapInstP_string = 'fvnsVlanInstP'
+        elif self.encap_type == 'vxlan':
+            fvnsEncapInstP_string = 'fvnsVxlanInstP'
+        fvnsEncapInstP = {fvnsEncapInstP_string:  {'attributes': {'name': self.name,
+                                                                  'allocMode': self.mode},
+                                                   'children': [fvnsEncapBlk]}}
+        infra = {'infraInfra': {'attributes': {},
+                                'children': [fvnsEncapInstP]}}
+        return infra
+
+
+class VMMCredentials(BaseACIObject):
+    """This class defines the credentials used to login to a Virtual
+       Machine Manager
+    """
+    def __init__(self, name, uid, pwd):
+        super(VMMCredentials, self).__init__(name)
+        self.uid = uid
+        self.pwd = pwd
+
+    def get_json(self):
+        vmmUsrAccP = {'vmmUsrAccP': {'attributes': {'name': self.name,
+                                                    'usr': self.uid,
+                                                    'pwd': self.pwd},
+                                     'children': []}}
+        return vmmUsrAccP
+
+
+class VMMvSwitchInfo(object):
+    """This class contains the information necessary for creating the
+       vSwitch on the Virtual Machine Manager
+    """
+    def __init__(self, vendor, container_name, vswitch_name):
+        valid_vendors = ['VMware', 'Microsoft']
+        if vendor not in valid_vendors:
+            raise ValueError('Vendor specified is not in valid vendor list')
+        self.vendor = vendor
+        self.container_name = container_name
+        self.vswitch_name = vswitch_name
+
+
+class VMM(BaseACIObject):
+    """This class defines an instance of connectivity to a
+       Virtual Machine Manager (such as VMware vCenter)
+    """
+    def __init__(self, name, ipaddr, credentials, vswitch_info, network_pool):
+        super(VMM, self).__init__(name)
+        self.ipaddr = ipaddr
+        self.credentials = credentials
+        self.vswitch_info = vswitch_info
+        self.network_pool = network_pool
+
+    def get_path(self):
+        return 'uni/vmmp-%s/dom-%s' % (self.vswitch_info.vendor,
+                                       self.vswitch_info.vswitch_name)
+
+    def get_json(self):
+        vmmUsrAccP = self.credentials.get_json()
+        vmmUsrAccDn = 'uni/vmmp-%s/dom-%s/usracc-%s' % (self.vswitch_info.vendor,
+                                                        self.vswitch_info.vswitch_name,
+                                                        self.credentials.name)
+        vmmRsAcc = {'vmmRsAcc': {'attributes': {'tDn': vmmUsrAccDn},
+                                 'children': []}}
+        vmmCtrlrP = {'vmmCtrlrP': {'attributes': {'name': self.name,
+                                                  'hostOrIp': self.ipaddr,
+                                                  'rootContName': self.vswitch_info.container_name},
+                                   'children': [vmmRsAcc]}}
+        infraNsDn = 'uni/infra/%sns-%s-%s' % (self.network_pool.encap_type,
+                                              self.network_pool.name,
+                                              self.network_pool.mode)
+
+        if self.network_pool.encap_type == 'vlan':
+            infraNsType = 'infraRsVlanNs'
+        elif self.network_pool.encap_type == 'vxlan':
+            infraNsType = 'infraRsVxlanNs'
+        infraRsNs = {infraNsType: {'attributes': {'tDn': infraNsDn},
+                                   'children': []}}
+        vmmDomP = {'vmmDomP': {'attributes': {'name': self.vswitch_info.vswitch_name},
+                               'children': [vmmUsrAccP, vmmCtrlrP, infraRsNs]}}
+        vmmProvP = {'vmmProvP': {'attributes': {'vendor': self.vswitch_info.vendor},
+                                 'children': [vmmDomP]}}
+
+        return vmmProvP
