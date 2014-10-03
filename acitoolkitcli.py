@@ -104,7 +104,20 @@ class SubMode(Cmd):
             for rec in output:
                 print template.format(*rec)
         elif words[0] == 'contract':
-            raise NotImplementedError
+            if self.tenant is None:
+                tenants = Tenant.get(self.apic)
+            else:
+                tenants = [self.tenant]
+            output = []
+            for tenant in tenants:
+                contracts = Contract.get(self.apic, tenant)
+                for contract in contracts:
+                    output.append((tenant.name, contract.name))
+            template = '{0:19} {1:20}'
+            print template.format('Tenant', 'Contract')
+            print template.format('------', '-------')
+            for rec in output:
+                print template.format(*rec)
         elif words[0] == 'interface':
             ifs = Interface.get(self.apic)
             print 'Interface\tType\tStatus\tSpeed\tMTU'
@@ -462,6 +475,7 @@ class ConfigSubMode(SubMode):
         self.apic = apic
         self.bridgedomain_submode.apic = apic
         self.context_submode.apic = apic
+        self.contract_submode.apic = apic
         self.app_submode.apic = apic
         self.app_submode.epg_submode.apic = apic
         self.interface_submode.apic = apic
@@ -738,18 +752,21 @@ class ContractConfigSubMode(SubMode):
         self.seq_num_array = ['123', '456', '789', '100']  # TODO: Bon we need a get method to obtain the array.
         self.operators = ['lt', 'gt', 'eq', 'neq', 'range']
         self.permit_args = [ 'eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp']
+        self.scope_args = ['context', 'global', 'tenant', 'application-profile']
 
     def do_scope(self, args):
         if self.negative is True:
             print 'You can not delete contract scope'
             return
+        if args.split()[0] not in self.scope_args:
+            print '%% Unknown scope. Valid values are:', self.scope_args
+            return
         self.contract.set_scope(args.split()[0])
-        print 'contract scope change to be ', self.contract.get_scope()
+        print 'contract scope set to', self.contract.get_scope()
 
     def complete_scope(self, text, line, begidx, endidx):
         text = text.lstrip()
-        scope_args = ['context', 'global', 'tenant', 'application-profile']
-        return self.get_completions(text, scope_args)
+        return self.get_completions(text, self.scope_args)
 
     def do_permit(self, args):
 
@@ -1096,6 +1113,9 @@ if __name__ == '__main__':
         apic.login()
     except requests.exceptions.ConnectionError:
         print '%% Could not connect to APIC.'
+        sys.exit(2)
+    except requests.exceptions.MissingSchema:
+        print '%% Invalid URL.'
         sys.exit(2)
 
     if 'TESTFILE' in locals():

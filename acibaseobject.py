@@ -196,6 +196,18 @@ class BaseACIObject(object):
                 resp.append(relation.item)
         return resp
 
+    def get_all_attached(self, attached_class, status='attached'):
+        """Get all of the relations of objects beloging to the
+           specified class
+        """
+        resp = []
+        for relation in self._relations:
+            same_class = isinstance(relation.item, attached_class)
+            same_status = relation.status == status
+            if same_class and same_status:
+                resp.append(relation.item)
+        return resp
+
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""
         return ''
@@ -224,8 +236,6 @@ class BaseACIObject(object):
                             children_json.append(item)
                     else:
                         children_json.append(data)
-        if 'name' not in attributes:
-            attributes['name'] = self.name
         if self._deleted:
             attributes['status'] = 'deleted'
         resp = {obj_class: {'attributes': attributes,
@@ -262,6 +272,13 @@ class BaseACIObject(object):
         """
         pass
 
+    def _generate_attributes(self):
+        """Gets the attributes used in generating the JSON for the object
+        """
+        attributes = {}
+        attributes['name'] = self.name
+        return attributes
+
     @classmethod
     def get(cls, session, toolkit_class, apic_class, parent=None, tenant=None):
         """Gets all of a particular class.
@@ -284,6 +301,7 @@ class BaseACIObject(object):
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
             obj = toolkit_class(name, parent)
-            obj._populate_from_attributes(object_data[apic_class]['attributes'])
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
             resp.append(obj)
         return resp

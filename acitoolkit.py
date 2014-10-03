@@ -15,7 +15,8 @@ class Tenant(BaseACIObject):
         INPUT:
         RETURNS: json dictionary of fvTenant
         """
-        return super(Tenant, self).get_json('fvTenant', attributes={})
+        attr = self._generate_attributes()
+        return super(Tenant, self).get_json('fvTenant', attributes=attr)
 
     @classmethod
     def get(cls, session):
@@ -64,7 +65,8 @@ class AppProfile(BaseACIObject):
         INPUT:
         RETURNS: json dictionary of fvAp
         """
-        return super(AppProfile, self).get_json('fvAp', attributes={})
+        attr = self._generate_attributes()
+        return super(AppProfile, self).get_json('fvAp', attributes=attr)
 
     @classmethod
     def get(cls, session, tenant):
@@ -316,6 +318,14 @@ class EPG(CommonEPG):
             text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
             children.append(text)
 
+        is_vmms = False
+        for vmm in self.get_all_attached(VMM):
+            is_vmms = True
+            text = {'fvRsDomAtt': {'attributes':
+                                   {'tDn': vmm.get_path(),
+                                    'resImedcy': 'immediate'}}}
+            children.append(text)
+
         for interface in self.get_interfaces('detached'):
             text = {'fvRsPathAtt': {'attributes':
                                     {'encap': '%s-%s' % (interface.encap_type,
@@ -323,8 +333,9 @@ class EPG(CommonEPG):
                                      'status': 'deleted',
                                      'tDn': interface.get_path()}}}
             children.append(text)
+        attr = self._generate_attributes()
         return super(EPG, self).get_json('fvAEPg',
-                                         attributes={},
+                                         attributes=attr,
                                          children=children)
 
 
@@ -362,8 +373,9 @@ class OutsideEPG(CommonEPG):
         for interface in self.get_interfaces():
             text = interface.get_json()
             children.append(text)
+        attr = self._generate_attributes()
         return super(OutsideEPG, self).get_json('l3extOut',
-                                                attributes={},
+                                                attributes=attr,
                                                 children=children)
 
 
@@ -520,8 +532,9 @@ class BridgeDomain(BaseACIObject):
             text = {'fvRsCtx': {'attributes':
                                 {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
+        attr = self._generate_attributes()
         return super(BridgeDomain, self).get_json('fvBD',
-                                                  attributes={},
+                                                  attributes=attr,
                                                   children=children)
 
     # Context references
@@ -618,7 +631,7 @@ class Subnet(BaseACIObject):
         INPUT:
         RETURNS: json dictionary of subnet
         """
-        attributes = {}
+        attributes = self._generate_attributes()
         if self.get_addr() is None:
             raise ValueError('Subnet address is not set')
         attributes['ip'] = self.get_addr()
@@ -663,7 +676,7 @@ class Context(BaseACIObject):
         INPUT:
         RETURNS: json dictionary of fvCtx object
         """
-        attributes = {}
+        attributes = self._generate_attributes()
         if self.get_allow_all():
             attributes['pcEnfPref'] = 'unenforced'
         else:
@@ -682,7 +695,18 @@ class BaseContract(BaseACIObject):
     def __init__(self, contract_name, contract_type='vzBrCP', parent=None):
         super(BaseContract, self).__init__(contract_name, parent)
         self._scope = 'context'
-        self._contract_type = contract_type
+
+    @staticmethod
+    def _get_contract_code():
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_subject_code():
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_subject_relation_code():
+        raise NotImplementedError
 
     def set_scope(self, scope):
         """Set the scope of this contract.
@@ -707,16 +731,12 @@ class BaseContract(BaseACIObject):
         RETURNS: json dictionary of the contract
         """
         resp_json = []
-        if self._contract_type == 'vzBrCP':
-            subj_code = 'vzSubj'
-            subj_relation_code = 'vzRsSubjFiltAtt'
-            attributes = {'scope': self.get_scope()}
-        else:
-            subj_code = 'vzTSubj'
-            subj_relation_code = 'vzRsDenyRule'
-            attributes = {}
+        subj_code = self._get_subject_code()
+        subj_relation_code = self._get_subject_relation_code()
+        attributes = self._generate_attributes()
 
-        contract = super(BaseContract, self).get_json(self._contract_type,
+        contract_code = self._get_contract_code()
+        contract = super(BaseContract, self).get_json(contract_code,
                                                       attributes=attributes,
                                                       get_children=False)
         # Create a subject for every entry with a relation to the filter
@@ -729,7 +749,7 @@ class BaseContract(BaseACIObject):
                     {'attributes': {'tnVzFilterName': filt_name}}}
             subject[subj_code]['children'] = [filt]
             subjects.append(subject)
-        contract[self._contract_type]['children'] = subjects
+        contract[self._get_contract_code()]['children'] = subjects
         resp_json.append(contract)
         for entry in self.get_children():
             entry_json = entry.get_json()
@@ -743,11 +763,48 @@ class Contract(BaseContract):
     def __init__(self, contract_name, parent=None):
         super(Contract, self).__init__(contract_name, 'vzBrCP', parent)
 
+    @staticmethod
+    def _get_contract_code():
+        return 'vzBrCP'
+
+    @staticmethod
+    def _get_subject_code():
+        return 'vzSubj'
+
+    @staticmethod
+    def _get_subject_relation_code():
+        return 'vzRsSubjFiltAtt'
+
+    def _generate_attributes(self):
+        attributes = super(Contract, self)._generate_attributes()
+        attributes['scope'] = self.get_scope()
+        return attributes
+
+    @classmethod
+    def get(cls, session, tenant):
+        """Gets all of the Contracts from the APIC for a particular tenant.
+        """
+        return BaseACIObject.get(session, cls, cls._get_contract_code(),
+                                 tenant, tenant)
+
 
 class Taboo(BaseContract):
     """ Taboo :  Class for Taboos """
     def __init__(self, contract_name, parent=None):
-        super(Taboo, self).__init__(contract_name, 'vzTaboo', parent)
+        super(Taboo, self).__init__(contract_name, self._get_contract_code(),
+                                    parent)
+
+    @staticmethod
+    def _get_contract_code():
+        return 'vzTaboo'
+
+    @staticmethod
+    def _get_subject_code():
+        return 'vzTSubj'
+
+    @staticmethod
+    def _get_subject_relation_code():
+        return 'vzRsDenyRule'
 
 
 class FilterEntry(BaseACIObject):
@@ -765,23 +822,28 @@ class FilterEntry(BaseACIObject):
         self.tcpRules = tcpRules
         super(FilterEntry, self).__init__(name, parent)
 
+    def _generate_attributes(self):
+        attributes = super(FilterEntry, self)._generate_attributes()
+        attributes['applyToFrag'] = self.applyToFrag
+        attributes['arpOpc'] = self.arpOpc
+        attributes['dFromPort'] = self.dFromPort
+        attributes['dToPort'] = self.dToPort
+        attributes['etherT'] = self.etherT
+        attributes['prot'] = self.prot
+        attributes['sFromPort'] = self.sFromPort
+        attributes['sToPort'] = self.sToPort
+        attributes['tcpRules'] = self.tcpRules
+        return attributes
+
     def get_json(self):
         """ Returns json representation of the FilterEntry
 
         INPUT:
         RETURNS: json dictionary of the FilterEntry
         """
-        attributes = {'applyToFrag': self.applyToFrag,
-                      'arpOpc': self.arpOpc,
-                      'dFromPort': self.dFromPort,
-                      'dToPort': self.dToPort,
-                      'etherT': self.etherT,
-                      'prot': self.prot,
-                      'sFromPort': self.sFromPort,
-                      'sToPort': self.sToPort,
-                      'tcpRules': self.tcpRules}
+        attr = self._generate_attributes()
         text = super(FilterEntry, self).get_json('vzEntry',
-                                                 attributes=attributes)
+                                                 attributes=attr)
         filter_name = self.get_parent().name + self.name
         text = {'vzFilter': {'attributes': {'name': filter_name},
                              'children': [text]}}
@@ -826,7 +888,8 @@ class BaseInterface(BaseACIObject):
         return node_profile, accport_selector
 
     def get_port_selector_json(self):
-        return self._get_port_selector_json('accportgrp', self.get_name_for_json())
+        return self._get_port_selector_json('accportgrp',
+                                            self.get_name_for_json())
 
     def get_port_channel_selector_json(self, port_name):
         return self._get_port_selector_json('accbundle', port_name)
@@ -868,7 +931,9 @@ class Interface(BaseInterface):
         """
         fabric = None
         # Physical Domain json
-        vlan_ns_ref = {'infraRsVlanNs': {'attributes': {'tDn': 'uni/infra/vlanns-allvlans-static'},
+        vlan_ns_dn = 'uni/infra/vlanns-allvlans-static'
+        vlan_ns_ref = {'infraRsVlanNs': {'attributes':
+                                         {'tDn': vlan_ns_dn},
                                          'children': []}}
         phys_domain = {'physDomP': {'attributes': {'name': 'allvlans'},
                                     'children': [vlan_ns_ref]}}
@@ -891,16 +956,20 @@ class Interface(BaseInterface):
         speed_attr = {'tnFabricHIfPolName': speed_name}
         speed_children = {'infraRsHIfPol': {'attributes': speed_attr,
                                             'children': []}}
-        att_ent_p = {'infraRsAttEntP': {'attributes': {'tDn': 'uni/infra/attentp-allvlans'},
+        att_ent_dn = 'uni/infra/attentp-allvlans'
+        att_ent_p = {'infraRsAttEntP': {'attributes': {'tDn': att_ent_dn},
                                         'children': []}}
         speed_ref = {'infraAccPortGrp': {'attributes': {'dn': accportgrp_dn,
                                                         'name': name},
-                                         'children': [speed_children, att_ent_p]}}
+                                         'children': [speed_children,
+                                                      att_ent_p]}}
         speed_ref = {'infraFuncP': {'attributes': {}, 'children': [speed_ref]}}
         infra['infraInfra']['children'].append(speed_ref)
 
-        rs_dom_p = {'infraRsDomP': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
-        infra_att_entity_p = {'infraAttEntityP': {'attributes': {'name': 'allvlans'},
+        phys_dom_dn = 'uni/phys-allvlans'
+        rs_dom_p = {'infraRsDomP': {'attributes': {'tDn': phys_dom_dn}}}
+        infra_att_entity_p = {'infraAttEntityP': {'attributes':
+                                                  {'name': 'allvlans'},
                                                   'children': [rs_dom_p]}}
         infra['infraInfra']['children'].append(infra_att_entity_p)
 
@@ -908,19 +977,23 @@ class Interface(BaseInterface):
             adminstatus_attributes = {}
             adminstatus_attributes['tDn'] = self.get_path()
             if self.adminstatus == 'up':
-                adminstatus_attributes['dn'] = 'uni/fabric/outofsvc/rsoosPath-[' + self.get_path() + ']'
+                admin_dn = 'uni/fabric/outofsvc/rsoosPath-['
+                admin_dn = admin_dn + self.get_path() + ']'
+                adminstatus_attributes['dn'] = admin_dn
                 adminstatus_attributes['status'] = 'deleted'
             else:
                 adminstatus_attributes['lc'] = 'blacklist'
-            adminstatus_json = {'fabricRsOosPath': {'attributes': adminstatus_attributes,
-                                                    'children': []}}
+            adminstatus_json = {'fabricRsOosPath':
+                                {'attributes': adminstatus_attributes,
+                                 'children': []}}
             fabric = {'fabricOOServicePol': {'children': [adminstatus_json]}}
 
         fvns_encap_blk = {'fvnsEncapBlk': {'attributes': {'name': 'encap',
                                                           'from': 'vlan-1',
                                                           'to': 'vlan-4092'}}}
-        fvns_vlan_inst_p = {'fvnsVlanInstP': {'attributes': {'name': 'allvlans',
-                                                             'allocMode': 'static'},
+        fvns_vlan_inst_p = {'fvnsVlanInstP': {'attributes':
+                                              {'name': 'allvlans',
+                                               'allocMode': 'static'},
                                               'children': [fvns_encap_blk]}}
         infra['infraInfra']['children'].append(fvns_vlan_inst_p)
 
@@ -1120,3 +1193,134 @@ class PortChannel(BaseInterface):
             portchannel = PortChannel(portchannel_name)
             portchannels.append(portchannel)
         return portchannels
+
+
+class Endpoint(BaseACIObject):
+    @staticmethod
+    def get(session):
+        """Gets all of the endpoints connected to the fabric from the APIC
+        """
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+        endpoint_query_url = ('/api/node/class/fvCEp.json?'
+                              'query-target=subtree&rsp-subtree=full')
+        endpoints = []
+        ret = session.get(endpoint_query_url)
+        ep_data = ret.json()['imdata']
+        for ep in ep_data:
+            if 'fvCEp' in ep:
+                for child in ep['fvCEp']['children']:
+                    if 'fvIp' in child:
+                        print 'mac:', ep['fvCEp']['attributes']['mac'], 'ip:', child['fvIp']['attributes']['addr']
+                    if 'fvRsCEpToPathEp' in child:
+                        print 'path:', child['fvRsCEpToPathEp']['attributes']['tDn']
+        return endpoints
+
+
+class NetworkPool(BaseACIObject):
+    """This class defines a pool of network ids
+    """
+    def __init__(self, name, encap_type, start_id, end_id, mode):
+        super(NetworkPool, self).__init__(name)
+        valid_encap_types = ['vlan', 'vxlan']
+        if encap_type not in valid_encap_types:
+            raise ValueError('Encap type specified is not a valid encap type')
+        self.encap_type = encap_type
+        self.start_id = start_id
+        self.end_id = end_id
+        valid_modes = ['static', 'dynamic']
+        if mode not in valid_modes:
+            raise ValueError('Mode specified is not a valid mode')
+        self.mode = mode
+
+    def get_json(self):
+        from_id = self.encap_type + '-' + self.start_id
+        to_id = self.encap_type + '-' + self.end_id
+        fvnsEncapBlk = {'fvnsEncapBlk': {'attributes': {'name': 'encap',
+                                                        'from': from_id,
+                                                        'to': to_id},
+                                         'children': []}}
+        if self.encap_type == 'vlan':
+            fvnsEncapInstP_string = 'fvnsVlanInstP'
+        elif self.encap_type == 'vxlan':
+            fvnsEncapInstP_string = 'fvnsVxlanInstP'
+        fvnsEncapInstP = {fvnsEncapInstP_string:  {'attributes': {'name': self.name,
+                                                                  'allocMode': self.mode},
+                                                   'children': [fvnsEncapBlk]}}
+        infra = {'infraInfra': {'attributes': {},
+                                'children': [fvnsEncapInstP]}}
+        return infra
+
+
+class VMMCredentials(BaseACIObject):
+    """This class defines the credentials used to login to a Virtual
+       Machine Manager
+    """
+    def __init__(self, name, uid, pwd):
+        super(VMMCredentials, self).__init__(name)
+        self.uid = uid
+        self.pwd = pwd
+
+    def get_json(self):
+        vmmUsrAccP = {'vmmUsrAccP': {'attributes': {'name': self.name,
+                                                    'usr': self.uid,
+                                                    'pwd': self.pwd},
+                                     'children': []}}
+        return vmmUsrAccP
+
+
+class VMMvSwitchInfo(object):
+    """This class contains the information necessary for creating the
+       vSwitch on the Virtual Machine Manager
+    """
+    def __init__(self, vendor, container_name, vswitch_name):
+        valid_vendors = ['VMware', 'Microsoft']
+        if vendor not in valid_vendors:
+            raise ValueError('Vendor specified is not in valid vendor list')
+        self.vendor = vendor
+        self.container_name = container_name
+        self.vswitch_name = vswitch_name
+
+
+class VMM(BaseACIObject):
+    """This class defines an instance of connectivity to a
+       Virtual Machine Manager (such as VMware vCenter)
+    """
+    def __init__(self, name, ipaddr, credentials, vswitch_info, network_pool):
+        super(VMM, self).__init__(name)
+        self.ipaddr = ipaddr
+        self.credentials = credentials
+        self.vswitch_info = vswitch_info
+        self.network_pool = network_pool
+
+    def get_path(self):
+        return 'uni/vmmp-%s/dom-%s' % (self.vswitch_info.vendor,
+                                       self.vswitch_info.vswitch_name)
+
+    def get_json(self):
+        vmmUsrAccP = self.credentials.get_json()
+        vmmUsrAccDn = 'uni/vmmp-%s/dom-%s/usracc-%s' % (self.vswitch_info.vendor,
+                                                        self.vswitch_info.vswitch_name,
+                                                        self.credentials.name)
+        vmmRsAcc = {'vmmRsAcc': {'attributes': {'tDn': vmmUsrAccDn},
+                                 'children': []}}
+        vmmCtrlrP = {'vmmCtrlrP': {'attributes': {'name': self.name,
+                                                  'hostOrIp': self.ipaddr,
+                                                  'rootContName': self.vswitch_info.container_name},
+                                   'children': [vmmRsAcc]}}
+        infraNsDn = 'uni/infra/%sns-%s-%s' % (self.network_pool.encap_type,
+                                              self.network_pool.name,
+                                              self.network_pool.mode)
+
+        if self.network_pool.encap_type == 'vlan':
+            infraNsType = 'infraRsVlanNs'
+        elif self.network_pool.encap_type == 'vxlan':
+            infraNsType = 'infraRsVxlanNs'
+        infraRsNs = {infraNsType: {'attributes': {'tDn': infraNsDn},
+                                   'children': []}}
+        vmmDomP = {'vmmDomP': {'attributes': {'name': self.vswitch_info.vswitch_name},
+                               'children': [vmmUsrAccP, vmmCtrlrP, infraRsNs]}}
+        vmmProvP = {'vmmProvP': {'attributes': {'vendor': self.vswitch_info.vendor},
+                                 'children': [vmmDomP]}}
+
+        return vmmProvP

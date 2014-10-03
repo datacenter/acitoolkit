@@ -8,7 +8,7 @@ from credentials import *
 import xml.dom.minidom
 import sys
 
-LIVE_TEST = True
+LIVE_TEST = False
 MAX_RANDOM_STRING_SIZE = 20
 
 
@@ -72,7 +72,8 @@ class TestBaseRelation(unittest.TestCase):
 
 class MockACIObject(BaseACIObject):
     def get_json(self):
-        super(MockACIObject, self).get_json('mock')
+        attr = self._generate_attributes()
+        super(MockACIObject, self).get_json('mock', attributes=attr)
 
     def write(self, text):
         """Used to override sys.stdout calls to avoid printing
@@ -614,6 +615,23 @@ class TestInterface(unittest.TestCase):
     #    self.parse_name('eth1/2/3/4')
 
 
+class TestBaseContract(unittest.TestCase):
+    def test_get_contract_code(self):
+        contract = BaseContract('contract')
+        self.assertRaises(NotImplementedError,
+                          contract._get_contract_code)
+
+    def test_get_subject_code(self):
+        contract = BaseContract('contract')
+        self.assertRaises(NotImplementedError,
+                          contract._get_subject_code)
+
+    def test_get_subject_relation_code(self):
+        contract = BaseContract('contract')
+        self.assertRaises(NotImplementedError,
+                          contract._get_subject_relation_code)
+
+
 class TestEPG(unittest.TestCase):
     def create_epg(self):
         tenant = Tenant('tenant')
@@ -643,6 +661,10 @@ class TestEPG(unittest.TestCase):
         tenant, app, epg, bd = self.create_epg_with_bd()
         self.assertTrue(epg.has_bd())
         self.assertTrue(epg.get_bd() == bd)
+
+    def test_valid_add_bd_json(self):
+        tenant, app, epg, bd = self.create_epg_with_bd()
+        self.assertTrue('fvRsBd' in str(tenant.get_json()))
 
     def test_invalid_add_bd_as_none(self):
         tenant, app, epg = self.create_epg()
@@ -678,6 +700,24 @@ class TestEPG(unittest.TestCase):
         epg.remove_bd()
         self.assertFalse(epg.has_bd())
         self.assertFalse(epg.get_bd() == bd)
+
+    def test_epg_provide(self):
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.provide(contract1)
+        output = tenant.get_json()
+        self.assertTrue('fvRsProv' in str(output))
+
+    def test_epg_consume(self):
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.consume(contract1)
+        output = tenant.get_json()
+        self.assertTrue('fvRsCons' in str(output))
 
     def test_epg_provide_consume(self):
         tenant = Tenant('tenant')
@@ -728,6 +768,24 @@ class TestEPG(unittest.TestCase):
         epg.dont_consume(contract2)
         epg.dont_consume(contract3)
         self.assertTrue(epg.get_all_consumed() == [])
+
+    def test_attach_epg(self):
+        tenant, app, epg = self.create_epg()
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_intf = L2Interface('v5', 'vlan', '5')
+        vlan_intf.attach(interface)
+        epg.attach(vlan_intf)
+        self.assertTrue('fvRsPathAtt' in str(tenant.get_json()))
+
+    def test_detach_epg(self):
+        tenant, app, epg = self.create_epg()
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_intf = L2Interface('v5', 'vlan', '5')
+        vlan_intf.attach(interface)
+        epg.attach(vlan_intf)
+        epg.detach(vlan_intf)
+        output = str(tenant.get_json())
+        self.assertTrue(all(x in output for x in ('fvRsPathAtt', 'deleted')))
 
 
 class TestJson(unittest.TestCase):
@@ -1272,7 +1330,7 @@ class TestApic(unittest.TestCase):
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
-class TestLiveContracts(unittest.TestCase):
+class TestLiveContracts(TestLiveAPIC):
     def get_2_entries(self, contract):
         entry1 = FilterEntry('entry1',
                              applyToFrag='no',
@@ -1298,17 +1356,20 @@ class TestLiveContracts(unittest.TestCase):
                              parent=contract)
         return(entry1, entry2)
 
+    def test_get(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+        tenant = tenants[0]
+        contracts = Contract.get(session, tenant)
+
     def test_create_basic_contract(self):
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract1', tenant)
 
         (entry1, entry2) = self.get_2_entries(contract)
 
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
-
+        session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
@@ -1323,11 +1384,7 @@ class TestLiveContracts(unittest.TestCase):
 
         (entry1, entry2) = self.get_2_entries(taboo)
 
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
-
+        session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
@@ -1341,10 +1398,7 @@ class TestLiveContracts(unittest.TestCase):
         contract = Contract('contract1', tenant)
         (entry1, entry2) = self.get_2_entries(contract)
 
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self.login_to_apic()
 
         # Test scopes
         # Verify the default
