@@ -11,13 +11,14 @@ class Session(object):
        This class contains the connectivity information for talking to the
        APIC.
     """
-    def __init__(self, ipaddr, uid, pwd):
+    def __init__(self, ipaddr, uid, pwd, verify_ssl=False):
         self.ipaddr = ipaddr
         self.uid = uid
         self.pwd = pwd
         # self.api = 'http://%s:80/api/' % self.ip # 7580
         self.api = ipaddr
         self.session = None
+        self.verify_ssl = verify_ssl
 
     def login(self):
         """Login to the APIC"""
@@ -27,7 +28,7 @@ class Session(object):
                                                'pwd': self.pwd}}}
         jcred = json.dumps(name_pwd)
         self.session = requests.Session()
-        ret = self.session.post(login_url, data=jcred)
+        ret = self.session.post(login_url, data=jcred, verify=self.verify_ssl)
         return ret
 
     def push_to_apic(self, url, data):
