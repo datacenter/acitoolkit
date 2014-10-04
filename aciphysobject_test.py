@@ -36,7 +36,7 @@ class TestPod(unittest.TestCase) :
         self.assertEqual(pod1, pod2)
 
         #check differnt types
-        pod2 = Node(pod_id, '2', 'Leaf1')
+        pod2 = Node(pod_id, '2', 'Leaf1',role='leaf')
         self.assertNotEqual(pod1, pod2)
     def test_pod_name(self) :
         pod_id = '2'
@@ -55,43 +55,43 @@ class TestPod(unittest.TestCase) :
         
 class TestNode(unittest.TestCase) :
     def test_node_id(self) :
-        node = Node('1','2', 'Leaf1')
+        node = Node('1','2', 'Leaf1', role='leaf')
         self.assertEqual(node.pod, '1')
         self.assertEqual(node.node, '2')
         self.assertEqual(node.name, 'Leaf1')
     def test_node_bad_name(self) :
         node_name = 1
-        self.assertRaises(TypeError, Node, '1', '2', node_name)
+        self.assertRaises(TypeError, Node, '1', '2', node_name, 'leaf')
 
     def test_node_role(self) :
         node_name = 'Leaf1'
         node_pod = '1'
         node_node = '3'
-        node_role = 'switch'
-        node = Node(node_pod, node_node, node_name, node_role)
+        node_role = 'leaf'
+        node = Node(node_pod, node_node, node_name, role=node_role)
         self.assertEqual(node.role, node_role)
         node_role = 'controller'
-        node = Node(node_pod, node_node, node_name, node_role)
+        node = Node(node_pod, node_node, node_name, role=node_role)
         self.assertEqual(node.role, node_role)
         node_role = 'bogus'
         self.assertRaises(ValueError, Node, node_pod, node_node, node_name, node_role)
         
     def test_node_type(self) :
-        node = Node('1','2', 'Leaf1')
+        node = Node('1','2', 'Leaf1', role='leaf')
         self.assertEqual(node.type,'node')
         
     def test_node_parent(self) :
         pod_id = '1'
         pod1 = Pod(pod_id)
-        node = Node('1','2','Spine1','switch',pod1)
+        node = Node('1','2','Spine1',role='leaf',parent=pod1)
         self.assertEqual(pod1, node.get_parent())
         
     def test_create_invalid(self) :
-        self.assertRaises(TypeError, Node, '1', '2','Leaf1','switch','1')
+        self.assertRaises(TypeError, Node, '1', '2','Leaf1','leaf','1')
         
     def test_invalid_session_populate_children(self) :
         pod1 = Pod('1')
-        node = Node('1','2','Spine1','switch',pod1)
+        node = Node('1','2','Spine1','spine',pod1)
         self.assertRaises(TypeError, node.populate_children)
 
     def test_get(self) :
@@ -104,7 +104,7 @@ class TestNode(unittest.TestCase) :
         node_name = 'Leaf1'
         node_pod = '1'
         node_node = '3'
-        node_role = 'switch'
+        node_role = 'leaf'
         node1 = Node(node_pod, node_node, node_name, node_role)
         
         node_name = 'Leaf2'
@@ -122,7 +122,7 @@ class TestNode(unittest.TestCase) :
         node_role = 'controller'
         node2 = Node(node_pod, node_node, node_name, node_role)
         self.assertNotEqual(node1, node2)
-        node_role = 'switch'
+        node_role = 'leaf'
         node2 = Node(node_pod, node_node, node_name, node_role)
         self.assertEqual(node1, node2)
 
@@ -135,7 +135,7 @@ class TestModule() :
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
-        node = Node(mod_pod, mod_node, 'Spine2', 'switch')
+        node = Node(mod_pod, mod_node, 'Spine2', 'leaf')
         mod = mod_class(mod_pod, mod_node, mod_slot)
         name = modNamePrefix+'-'+'/'.join([mod_pod, mod_node, mod_slot])
 
@@ -154,7 +154,7 @@ class TestModule() :
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
-        node = Node(mod_pod, mod_node, 'Spine2', 'switch')
+        node = Node(mod_pod, mod_node, 'Spine2', 'spine')
         mod1 = mod_class(mod_pod, mod_node, mod_slot, node)        
         self.assertEqual(mod1.get_parent(), node)
         self.assertEqual(node.get_children(),[mod1])
