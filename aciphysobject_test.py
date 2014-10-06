@@ -4,6 +4,7 @@ from acitoolkit import *
 from aciphysobject import *
 import sys
 import unittest
+LIVE_TEST = True
 
 class TestPod(unittest.TestCase) :
     def test_pod_id(self) :
@@ -12,10 +13,11 @@ class TestPod(unittest.TestCase) :
     def test_pod_name(self) :
         pod_id = '1'
         pod = Pod(pod_id)
-        self.assertEqual(pod.name, 'pod-'+pod_id)
+        self.assertEqual(pod.get_name(), 'pod-'+pod_id)
+        self.assertEqual(pod.get_pod(), '1')
     def test_pod_type(self) :
         pod = Pod('1')
-        self.assertEqual(pod.type,'pod')
+        self.assertEqual(pod.get_type(),'pod')
     def test_create_invalid(self) :
         self.assertRaises(TypeError, Pod, '1', '2')
     def test_pod_invalid_session(self) :
@@ -56,9 +58,9 @@ class TestPod(unittest.TestCase) :
 class TestNode(unittest.TestCase) :
     def test_node_id(self) :
         node = Node('1','2', 'Leaf1', role='leaf')
-        self.assertEqual(node.pod, '1')
-        self.assertEqual(node.node, '2')
-        self.assertEqual(node.name, 'Leaf1')
+        self.assertEqual(node.get_pod(), '1')
+        self.assertEqual(node.get_node(), '2')
+        self.assertEqual(node.get_name(), 'Leaf1')
     def test_node_bad_name(self) :
         node_name = 1
         self.assertRaises(TypeError, Node, '1', '2', node_name, 'leaf')
@@ -78,7 +80,7 @@ class TestNode(unittest.TestCase) :
         
     def test_node_type(self) :
         node = Node('1','2', 'Leaf1', role='leaf')
-        self.assertEqual(node.type,'node')
+        self.assertEqual(node.get_type(),'node')
         
     def test_node_parent(self) :
         pod_id = '1'
@@ -140,12 +142,12 @@ class TestModule() :
         name = modNamePrefix+'-'+'/'.join([mod_pod, mod_node, mod_slot])
 
         self.assertNotEqual(mod, node)
-        self.assertEqual(mod.pod, mod_pod)
-        self.assertEqual(mod.node, mod_node)
-        self.assertEqual(mod.slot, mod_slot)
+        self.assertEqual(mod.get_pod(), mod_pod)
+        self.assertEqual(mod.get_node(), mod_node)
+        self.assertEqual(mod.get_slot(), mod_slot)
         self.assertEqual(mod.get_parent(), None)
-        self.assertEqual(mod.type, modType)
-        self.assertEqual(mod.name, name)
+        self.assertEqual(mod.get_type(), modType)
+        self.assertEqual(mod.get_name(), name)
         self.assertEqual(str(mod), name)
         self.assertEqual(mod.session, None)
 
@@ -237,47 +239,209 @@ class TestSystemcontroller(unittest.TestCase) :
         TestModule.test_mod_get_url(self, mod_class)
         TestModule.test_mod_get_json(self, mod_class)
 
+class TestSystemcontroller2(unittest.TestCase) :
+    def test_fan(self) :
+        mod_class = Systemcontroller
+        TestModule.test_module(self,mod_class, 'SysC', 'systemctrlcard')
+        TestModule.test_mod_parent(self, mod_class)
+        TestModule.test_mod_instance(self, mod_class)
+        TestModule.test_mod_get_url(self, mod_class)
+        TestModule.test_mod_get_json(self, mod_class)
+
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
+class TestLiveAPIC(unittest.TestCase):
+    def login_to_apic(self):
+        """Login to the APIC
+           RETURNS:  Instance of class Session
+        """
+        session = Session(URL, LOGIN, PASSWORD)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+        return session
+
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
+class TestLivePod(TestLiveAPIC):
+    def get_all_pods(self):
+        session = self.login_to_apic()
+        pods = Pod.get(session)
+        self.assertTrue(len(pods) > 0)
+        return pods, session
+
+    def get_spine(self) :
+        session = self.login_to_apic()
+        nodes = Node.get(session)
+        for node in nodes :
+            if node.get_role() == 'spine' :
+                return node, session
+
+    def get_controller(self) :
+        session = self.login_to_apic()
+        nodes = Node.get(session)
+        for node in nodes :
+            if node.get_role() == 'controller' :
+                return node, session
+
+    def test_get_all_nodes(self) :
+        pods, session = self.get_all_pods()
+        for pod in pods :
+            nodes = Node.get(session)
+            self.assertTrue(len(nodes) > 0)
+
+    def test_node(self) :
+        session = self.login_to_apic()
+        nodes = Node.get(session)
+
+        for node in nodes :
+            self.assertIsInstance(node.get_name(), str)
+            self.assertTrue(len(node.get_name()) > 0)
+    
+            self.assertEqual(node.get_type(), 'node')
+                            
+            self.assertIsInstance(node.get_pod(), str)
+            self.assertTrue(len(node.get_pod()) > 0)
+                            
+            self.assertIsInstance(node.get_node(), str)
+            self.assertTrue(len(node.get_node()) > 0)
+                            
+            self.assertIn(node.get_role(), ['controller','leaf','spine'])
+        pods = Pod.get(session)
+        pod = pods[0]
+        nodes = Node.get(session, parent=pod)
+        self.assertEqual(len(nodes), len(pod.get_children()))
+        self.assertEqual(nodes[0].get_parent(), pod)
+
+    def test_switch_children(self) :
+        spine, session = self.get_spine()
+        spine.populate_children()
+        children = spine.get_children()
+        children_types = set()
+        for child in children :
+            children_types.add(child.get_type())
+
+        self.assertEqual(len(children_types),4)
+        self.assertIn('linecard',children_types)
+        self.assertIn('supervisor',children_types)
+        self.assertIn('powersupply',children_types)
+        self.assertIn('fantray',children_types)
+
+    def test_controller_children(self) :
+        controller, session = self.get_controller()
+        controller.populate_children()
+        children = controller.get_children()
+        children_types = set()
+        for child in children :
+            children_types.add(child.get_type())
+
+        self.assertEqual(len(children_types),2)
+        self.assertIn('systemctrlcard',children_types)
+        self.assertIn('fantray',children_types)
+
+    def test_linecard(self) :
+        session = self.login_to_apic()
+        linecards = Linecard.get(session)
+        for lc in linecards :
+            self.assertIsInstance(lc.get_name(), str)
+            self.assertTrue(len(lc.get_name()) > 0)
+    
+            self.assertEqual(lc.get_type(), 'linecard')
+                            
+            self.assertIsInstance(lc.get_pod(), str)
+            self.assertTrue(len(lc.get_pod()) > 0)
+                            
+            self.assertIsInstance(lc.get_node(), str)
+            self.assertTrue(len(lc.get_node()) > 0)
+
+            self.assertIsInstance(lc.get_slot(), str)
+            self.assertTrue(len(lc.get_slot()) > 0)
+
+            self.assertIsInstance(lc.serial, str)
+            self.assertIsInstance(lc.model, str)
+            self.assertIsInstance(lc.dn, str)
+            self.assertIsInstance(lc.descr, str)
+            
+    def test_powersupply(self) :
+        session = self.login_to_apic()
+        powersupplies = Powersupply.get(session)
+        for ps in powersupplies :
+            self.assertIsInstance(ps.get_name(), str)
+            self.assertTrue(len(ps.get_name()) > 0)
+    
+            self.assertEqual(ps.get_type(), 'powersupply')
+                            
+            self.assertIsInstance(ps.get_pod(), str)
+            self.assertTrue(len(ps.get_pod()) > 0)
+                            
+            self.assertIsInstance(ps.get_node(), str)
+            self.assertTrue(len(ps.get_node()) > 0)
+
+            self.assertIsInstance(ps.get_slot(), str)
+            self.assertTrue(len(ps.get_slot()) > 0)
+
+            self.assertIsInstance(ps.serial, str)
+            self.assertIsInstance(ps.model, str)
+            self.assertIsInstance(ps.dn, str)
+            self.assertIsInstance(ps.descr, str)
+            
+            self.assertIsInstance(ps.status, str)
+            self.assertIsInstance(ps.fan_status, str)
+            self.assertIsInstance(ps.voltage_source, str)
+    
+    
+    def test_fantray(self) :
+        session = self.login_to_apic()
+        fantrays = Fantray.get(session)
+        for ft in fantrays :
+            self.assertIsInstance(ft.get_name(), str)
+            self.assertTrue(len(ft.get_name()) > 0)
+    
+            self.assertEqual(ft.get_type(), 'fantray')
+                            
+            self.assertIsInstance(ft.get_pod(), str)
+            self.assertTrue(len(ft.get_pod()) > 0)
+                            
+            self.assertIsInstance(ft.get_node(), str)
+            self.assertTrue(len(ft.get_node()) > 0)
+
+            self.assertIsInstance(ft.get_slot(), str)
+            self.assertTrue(len(ft.get_slot()) > 0)
+
+            self.assertIsInstance(ft.serial, str)
+            self.assertIsInstance(ft.model, str)
+            self.assertIsInstance(ft.dn, str)
+            self.assertIsInstance(ft.descr, str)
+            
+            self.assertIsInstance(ft.status, str)
+
+    def test_populate_deep(self) :
+        session = self.login_to_apic()
+        pods = Pod.get(session)
+        pod = pods[0]
+        pod.populate_children(deep=True)
+        nodes = pod.get_children()
+        node_roles = set()
+        for node in nodes :
+            node_roles.add(node.get_role())
+            if node.get_role() == 'spine' :
+                spine = node
+            if node.get_role() == 'controller' :
+                controller = node
+
+        self.assertEqual(len(node_roles ^ set(['controller','spine','leaf'])),0)
+
+        modules = spine.get_children()
+        module_types = set()
+        for module in modules :
+            module_types.add(module.get_type())
+        self.assertEqual(len(module_types ^ set(['linecard','supervisor','powersupply', 'fantray'])), 0)
+        
+        modules = controller.get_children()
+        module_types = set()
+        for module in modules :
+            module_types.add(module.get_type())
+        self.assertEqual(len(module_types ^ set(['systemctrlcard', 'fantray'])),0)
         
     
-#class TestFan(unittest.TestCase) :
-#    def test_fan(self) :
-#        fan_pod = '1'
-#        fan_node = '5'
-#        fan_slot = '2'
-#        node = Node(fan_pod, fan_node, 'Spine2', 'switch')
-#        fan = mod_class(fan_pod, fan_node, fan_slot)
-#        name = 'Fan-'+'/'.join([fan_pod, fan_node, fan_slot])
-#
-#        
-#        self.assertEqual(fan.pod, fan_pod)
-#        self.assertEqual(fan.node, fan_node)
-#        self.assertEqual(fan.slot, fan_slot)
-#        self.assertEqual(fan.get_parent(), None)
-#        self.assertEqual(fan.type, 'fantray')
-#        self.assertEqual(fan.name, name)
-#        self.assertEqual(fan.session, None)
-#
-#    def test_fan_parent(self) :
-#        fan_pod = '1'
-#        fan_node = '5'
-#        fan_slot = '2'
-#        node = Node(fan_pod, fan_node, 'Spine2', 'switch')
-#        fan1 = mod_class(fan_pod, fan_node, fan_slot, node)        
-#        self.assertEqual(fan1.get_parent(), node)
-#        self.assertEqual(node.get_children(),[fan1])
-#        fan2 = mod_class(fan_pod, fan_node, fan_slot, node)        
-#        self.assertEqual(node.get_children(),[fan2])
-#        fan_slot = '3'
-#        fan3 = mod_class(fan_pod, fan_node, fan_slot, node)        
-#        self.assertEqual(node.get_children(),[fan2, fan3])
-#        self.assertEqual(node.get_children(mod_class),[fan2, fan3])
-#        
-#        # test illegal parent type
-#        self.assertRaises(TypeError, mod_class,fan_pod, fan_node, fan_slot, fan1)        
-    
-
-#check_json()
-#show_inventory()
-#check_exists()
 if __name__ == '__main__':
     unittest.main()
