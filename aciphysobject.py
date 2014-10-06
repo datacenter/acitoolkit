@@ -82,7 +82,22 @@ class BaseACIPhysObject(BaseACIObject) :
                 return True
         return False
     
+    def get_type(self) :
+        """Gets physical object type
+        """
+        return self.type
+    def get_pod(self) : 
+        """Gets pod id"""
+        return self.pod
 
+    def get_node(self) : 
+        """Gets node id"""
+        return self.node
+    def get_name(self) :
+        """Gets name
+        """
+        return self.name
+    
 class BaseACIPhysModule(BaseACIPhysObject):
     """ BaseACIPhysModule: base class for modules  """
 
@@ -102,16 +117,9 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.slot = str(slot)
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+self.pod+'/node-'+self.node+'/slot-'+self.slot)
         self._common_init(parent)
-    def get_pod(self) : 
-        """Gets pod id"""
-        return self.pod
-    def get_node(self) : 
-        """Gets node id"""
-        return self.node
     def get_slot(self) : 
         """Gets slot id"""
         return self.slot
-
         
     def __eq__(self, other):
         """ Two modules are considered equal if their class type is the same and pod, node, slot, type all match.
@@ -183,17 +191,17 @@ class BaseACIPhysModule(BaseACIPhysObject):
            Overridden by inheriting classes to provide the specific attributes
            when getting objects from the APIC.
         """
-        self.serial = attributes['ser']
-        self.model = attributes['model']
-        self.dn = attributes['dn']
-        self.descr = attributes['descr']
+        self.serial = str(attributes['ser'])
+        self.model = str(attributes['model'])
+        self.dn = str(attributes['dn'])
+        self.descr = str(attributes['descr'])
         
     def _additional_populate_from_attributes(self, attributes):
         """Fills in an object with the additional attributes.
            Overridden by inheriting classes to provide the specific attributes
            when getting objects from the APIC.
         """
-        self.type = attributes['type']
+        self.type = str(attributes['type'])
 
     def _get_firmware(self, dist_name) :
         """Gets the firmware and bios version for the module from the "running" object in APIC.
@@ -358,7 +366,7 @@ class Fantray(BaseACIPhysModule):
     def _additional_populate_from_attributes(self, attributes):
         """Fills in an object with additional attributes.
          """
-        self.status = attributes['operSt']
+        self.status = str(attributes['operSt'])
     @staticmethod
     def _get_firmware(dist_name) :
         """ Returns None for firmware and bios revisions"""
@@ -497,7 +505,10 @@ class Node(BaseACIPhysObject):
         self.session = None
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+self.pod+'/node-'+self.node)
         self._common_init(parent)
-        
+    def get_role(self) :
+        """ retrieves the node role
+        """
+        return self.role
     @staticmethod
     def _parse_dn(dn):
         """Parses the pod and node from a
