@@ -130,7 +130,56 @@ class TestNode(unittest.TestCase) :
 
         node2 = Pod(node_pod)
         self.assertNotEqual(node1, node2)
+        
+class TestLink(unittest.TestCase) :
+    def test_parameters(self) :
+        pod=Pod('1')
+        node1 ='2'
+        node2 = '3'
+        slot1 = '4'
+        slot2 = '5'
+        port1 = '6'
+        port2 = '7'
+        link = '101'
+        
+         
+        link1 = Link(pod.pod, link, node1, slot1, port1, node2, slot2, port2, pod)
+        self.assertEqual(link1.pod, pod.pod)
+        self.assertEqual(link1.link, link)
+        self.assertEqual(link1.node1, node1)
+        self.assertEqual(link1.slot1, slot1)
+        self.assertEqual(link1.port1, port1)
+        self.assertEqual(link1.node2, node2)
+        self.assertEqual(link1.slot2, slot2)
+        self.assertEqual(link1.port2, port2)
+        self.assertEqual(link1.get_parent(), pod)
 
+    def test_get_endpoint_objects(self) :
+        pod_id = '1'
+        node1_id ='2'
+        node2_id = '3'
+        slot1_id = '4'
+        slot2_id = '5'
+        port1_id = '6'
+        port2_id = '7'
+        link_id = '101'
+        
+        pod = Pod(pod_id)
+        node1 = Node(pod_id, node1_id, 'Spine','spine', pod)
+        node2 = Node(pod_id, node2_id, 'Leaf','leaf', pod)
+        linecard1 = Linecard(slot1_id, node1)
+        linecard2 = Linecard(slot2_id, node2)
+        interface1 = Interface(interface_type='eth', pod=pod_id, node=node1_id, module=slot1_id, port=port1_id, parent=linecard1)
+        inf = linecard1.get_children()
+        interface2 = Interface(interface_type='eth', pod=pod_id, node=node2_id, module=slot2_id, port=port2_id, parent=linecard2)
+        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id, node2_id, slot2_id, port2_id, pod)
+        self.assertEqual(node1, link1.get_node1())
+        self.assertEqual(node2, link1.get_node2())
+        self.assertEqual(linecard1, link1.get_slot1())
+        self.assertEqual(linecard2, link1.get_slot2())
+        self.assertEqual(interface1, link1.get_port1())
+        self.assertEqual(interface2, link1.get_port2())
+        
 class TestModule() :
     @staticmethod
     def test_module(self, mod_class, modNamePrefix, modType) :
@@ -231,15 +280,6 @@ class TestSupervisor(unittest.TestCase) :
         TestModule.test_mod_get_json(self, mod_class)
 
 class TestSystemcontroller(unittest.TestCase) :
-    def test_fan(self) :
-        mod_class = Systemcontroller
-        TestModule.test_module(self,mod_class, 'SysC', 'systemctrlcard')
-        TestModule.test_mod_parent(self, mod_class)
-        TestModule.test_mod_instance(self, mod_class)
-        TestModule.test_mod_get_url(self, mod_class)
-        TestModule.test_mod_get_json(self, mod_class)
-
-class TestSystemcontroller2(unittest.TestCase) :
     def test_fan(self) :
         mod_class = Systemcontroller
         TestModule.test_module(self,mod_class, 'SysC', 'systemctrlcard')
@@ -419,7 +459,7 @@ class TestLivePod(TestLiveAPIC):
         pods = Pod.get(session)
         pod = pods[0]
         pod.populate_children(deep=True)
-        nodes = pod.get_children()
+        nodes = pod.get_children(Node)
         node_roles = set()
         for node in nodes :
             node_roles.add(node.get_role())
@@ -434,14 +474,36 @@ class TestLivePod(TestLiveAPIC):
         module_types = set()
         for module in modules :
             module_types.add(module.get_type())
+            if module.get_type() == 'linecard' :
+                linecard = module
+                
         self.assertEqual(len(module_types ^ set(['linecard','supervisor','powersupply', 'fantray'])), 0)
-        
+
+        interfaces = linecard.get_children()
+        for interface in interfaces :
+            self.assertIsInstance(interface, Interface)
+                
         modules = controller.get_children()
         module_types = set()
         for module in modules :
             module_types.add(module.get_type())
         self.assertEqual(len(module_types ^ set(['systemctrlcard', 'fantray'])),0)
+
+        links = pod.get_children(Link)
+        for link in links :
+            self.assertIsInstance(link, Link)
+            self.assertIsInstance(link.node1, str)
+            self.assertIsInstance(link.node2, str)
+            self.assertIsInstance(link.slot1, str)
+            self.assertIsInstance(link.slot2, str)
+            self.assertIsInstance(link.port1, str)
+            self.assertIsInstance(link.port2, str)
+            self.assertIsInstance(link.link, str)
+
+            
         
+            
+
     
 if __name__ == '__main__':
     unittest.main()
