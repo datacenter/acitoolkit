@@ -3,6 +3,7 @@
 """
 from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
+#from aciphysobject import Linecard
 import json
 import logging
 
@@ -899,6 +900,10 @@ class Interface(BaseInterface):
     """This class defines a physical interface.
     """
     def __init__(self, interface_type, pod, node, module, port, parent=None):
+#        if parent :
+#            if not isinstance(parent, Linecard):
+#                raise TypeError('An instance of Linecard class is required as the parent')
+        
         self.interface_type = interface_type
         self.pod = pod
         self.node = node
@@ -911,7 +916,10 @@ class Interface(BaseInterface):
         self.adminstatus = ''    # up or down
         self.speed = '10G'       # 100M, 1G, 10G or 40G
         self.mtu = ''
-
+        self._parent = parent
+        if parent :
+            self._parent.add_child(self)
+        
     def is_interface(self):
         return True
 
@@ -1033,11 +1041,18 @@ class Interface(BaseInterface):
         return interface_type, pod, node, module, port
 
     @staticmethod
-    def get(session):
-        """Gets all of the physical interfaces from the APIC
+    def get(session, parent=None):
+        """Gets all of the physical interfaces from the APIC if no parent is specified.
+        If a parent, of type Linecard is specified, then only those interfaces on
+        that linecard are returned and they are also added as children to that linecard.
+
+        INPUT: session=Session, [parent=Linecard]
+
+        RETURNS: list of Interface
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
+
         interface_query_url = '/api/node/class/l1PhysIf.json?query-target=self'
         ret = session.get(interface_query_url)
         resp = []
@@ -1050,12 +1065,21 @@ class Interface(BaseInterface):
             mtu = str(interface['l1PhysIf']['attributes']['mtu'])
             (interface_type, pod, node,
              module, port) = Interface.parse_dn(dist_name)
-            interface_obj = Interface(interface_type, pod, node, module, port)
+            interface_obj = Interface(interface_type, pod, node, module, port, parent)
             interface_obj.porttype = porttype
             interface_obj.adminstatus = adminstatus
             interface_obj.speed = speed
             interface_obj.mtu = mtu
-            resp.append(interface_obj)
+            
+            if parent :
+                
+                if interface_obj.pod == parent.pod and interface_obj.node == parent.node and interface_obj.module == parent.slot:
+                    resp.append(interface_obj)
+                
+            else :
+                resp.append(interface_obj)
+
+                
         return resp
 
     def __str__(self):
