@@ -1,7 +1,10 @@
-"""  Node class
+"""ACI Toolkit module for physical objects
 """
+
 from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
+from acitoolkit import Interface
+
 import json
 import logging
 
@@ -63,9 +66,6 @@ class BaseACIPhysObject(BaseACIObject) :
             return children
         else :
             return self._children
-
-    def populate_children(self, deep=False) :
-        return None
 
     @classmethod
     def exists(cls, session, phys_obj):
@@ -294,13 +294,29 @@ class Systemcontroller(BaseACIPhysModule):
 
 class Linecard(BaseACIPhysModule):
     """ class for a linecard of a switch   """
-    def __init__(self, pod, node, slot, parent=None):
+    def __init__(self, arg0, arg1, slot=None, parent=None):
         """ Initialize the basic object.  It will create the name of the linecard and set the type
-        before calling the base class __init__ method
+        before calling the base class __init__ method.  If arg1 is an instance of a Node, then pod,
+        and node are derived from the Node and the slot_id is from arg0.  If arg1 is not a Node, then arg0
+        is the pod, arg1 is the node id, and slot is the slot_id
+
+        INPUT: arg0=str, arg0=[str,Node], [slot=str], [parent=Node]
+
+        RETURNS: None
         """
-        self.name = 'Lc-'+'/'.join([pod, node, slot])
+        if isinstance(arg1, Node) :
+            slot_id = arg0
+            pod = arg1.pod
+            node = arg1.node
+            parent = arg1
+        else :
+            slot_id = slot
+            pod = arg0
+            node = arg1
+            
+        self.name = 'Lc-'+'/'.join([pod, node, slot_id])
         self.type = 'linecard'
-        super(Linecard,self).__init__(pod, node, slot, parent)
+        super(Linecard,self).__init__(pod, node, slot_id, parent)
 
     @classmethod
     def get(cls,session, parent=None):
@@ -314,6 +330,22 @@ class Linecard(BaseACIPhysModule):
         OUTPUT: list of linecards
         """
         return cls.get_obj(session,'eqptLC', parent)
+    
+    def populate_children(self, deep=False) :
+        """populates all of the children of the linecard.  Children are the interfaces.
+        If deep is set to true, it will also try to populate the children of the children.
+        
+        INPUT: [boolean]
+
+        RETURNS: None
+        """
+        interfaces = Interface.get(self.session, self)
+        
+        if deep :
+            for child in self._children :
+                child.populate_children(deep=True)
+
+        return None
 
 class Supervisorcard(BaseACIPhysModule):
     """class representing the supervisor card of a switch
@@ -467,6 +499,9 @@ class Pod(BaseACIPhysObject):
         nodes = Node.get(self.session, self)
         for node in nodes :
             self.add_child(node)
+        links = Link.get(self.session, self)
+        for link in links :
+            self.add_child(link)
         if deep :
             for child in self._children :
                 child.populate_children(deep=True)
@@ -609,3 +644,208 @@ class Node(BaseACIPhysObject):
             for child in self._children :
                 child.populate_children(deep=True)
 
+class Link(BaseACIPhysObject) :
+    """Link class, equivalent to the fabricLink object in APIC"""
+    def __init__(self, pod, link, node1, slot1, port1, node2, slot2, port2, parent=None) :
+        self.node1 = node1
+        self.slot1 = slot1
+        self.port1 = port1
+        self.node2 = node2
+        self.slot2 = slot2
+        self.port2 = port2
+        self.linkstate = None
+        self.pod = pod
+        self.link = link
+        # check that parent is not a string
+        if isinstance(parent, str):
+            raise TypeError("Parent object can't be a string")
+
+        self.type = 'link'
+        self.session = None
+        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-%s link-%s' % (self.pod, self.link))
+        self._common_init(parent)
+
+    @staticmethod
+    def get(session, parent=None):
+        """Gets all of the Links from the APIC.  If the parent pod is specified,
+        only links of that pod will be retrieved.
+        """
+        if parent :
+            if not isinstance(parent, Pod) :
+                raise TypeError('An instance of Pod class is required')
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+        
+        interface_query_url = ('/api/node/class/fabricLink.json?'
+                               'query-target=self')
+        links = []
+        ret = session.get(interface_query_url)
+        link_data = ret.json()['imdata']
+        for apic_link in link_data:
+            dist_name = str(apic_link['fabricLink']['attributes']['dn'])
+            link_n1 = str(apic_link['fabricLink']['attributes']['n1'])
+            link_s1 = str(apic_link['fabricLink']['attributes']['s1'])
+            link_p1 = str(apic_link['fabricLink']['attributes']['p1'])
+            link_n2 = str(apic_link['fabricLink']['attributes']['n2'])
+            link_s2 = str(apic_link['fabricLink']['attributes']['s2'])
+            link_p2 = str(apic_link['fabricLink']['attributes']['p2'])
+            (pod, link) = Link._parse_dn(dist_name)
+            link = Link(pod, link, link_n1, link_s1, link_p1, link_n2, link_s2, link_p2, parent)
+            link.session = session
+            link._populate_from_attributes(apic_link['fabricLink']['attributes'])
+            if parent :
+                if link.pod == link._parent.pod :
+                    if link._parent.has_child(link):
+                        link._parent.remove_child(link)
+                    link._parent.add_child(link)
+                    links.append(link)
+            else :
+                links.append(link)
+        return links
+
+    
+    def _populate_from_attributes(self,attributes) :
+        """ populate various additional attributes """
+
+        self.linkstate = attributes['linkState']
+        
+    def __str__(self) :
+        text = 'n%s/s%s/p%s-n%s/s%s/p%s' % (self.node1, self.slot1, self.port1, self.node2, self.slot2, self.port2)
+        return text
+
+    def __eq__(self, other):
+        """ Two links are considered equal if their class type is the same and the end points match.  The link ids are not
+        checked.
+        """
+        
+        if type(self) is not type(other):
+            return False
+        return (self.pod == other.pod) and (self.node1 == other.node1) and (self.slot1 == other.slot1) and (self.port1 == other.port1)
+    
+        
+    def get_linkstatus(self) :
+        return self.linkstatus
+
+    def get_node1(self) :
+        """Returns the Node object that corresponds to the first node of the link.  The Node must be a child of
+        the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical heirarchy from the Pod down.
+
+        INPUT: None
+
+        OUTPUT: Node
+        """
+        
+        if not self._parent :
+            raise TypeError("Parent pod must be specified in order to get node")
+
+        nodes = self._parent.get_children(Node)
+        for node in nodes :
+            if node.node == self.node1 :
+                return node
+            
+    def get_node2(self) :
+        """Returns the Node object that corresponds to the second node of the link.  The Node must be a child of
+        the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical heirarchy from the Pod down.
+
+        INPUT: None
+
+        OUTPUT: Node
+        """
+        
+        if not self._parent :
+            raise TypeError("Parent pod must be specified in order to get node")
+
+        nodes = self._parent.get_children(Node)
+        for node in nodes :
+            if node.node == self.node2 :
+                return node
+            
+    def get_slot1(self) :
+        """Returns the Linecard object that corresponds to the first slot of the link.  The Linecard must be a child of
+        the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical heirarchy from the Pod down.
+
+        INPUT: None
+
+        OUTPUT: Node
+        """
+        
+        if not self._parent :
+            raise TypeError("Parent pod must be specified in order to get node")
+        node = self.get_node1()
+        linecards = node.get_children(Linecard)
+        for linecard in linecards :
+            if linecard.slot == self.slot1 :
+                return linecard
+        
+    def get_slot2(self) :
+        """Returns the Linecard object that corresponds to the second slot of the link.  The Linecard must be a child of
+        the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical heirarchy from the Pod down.
+
+        INPUT: None
+
+        OUTPUT: Node
+        """
+        
+        if not self._parent :
+            raise TypeError("Parent pod must be specified in order to get node")
+        node = self.get_node2()
+        linecards = node.get_children(Linecard)
+        for linecard in linecards :
+            if linecard.slot == self.slot2 :
+                return linecard
+            
+    def get_port1(self) :
+        """Returns the Linecard object that corresponds to the first port of the link.  The port must be a child of
+        the Linecard in the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical heirarchy from the Pod down.
+
+        INPUT: None
+
+        OUTPUT: Interface
+        """
+        
+        if not self._parent :
+            raise TypeError("Parent pod must be specified in order to get node")
+        linecard = self.get_slot1()
+        interfaces = linecard.get_children(Interface)
+        for interface in interfaces :
+            if interface.port == self.port1 :
+                return interface
+        
+    def get_port2(self) :
+        """Returns the Linecard object that corresponds to the second port of the link.  The port must be a child of
+        the Linecard in the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical heirarchy from the Pod down.
+
+        INPUT: None
+
+        OUTPUT: Interface
+        """
+        
+        if not self._parent :
+            raise TypeError("Parent pod must be specified in order to get node")
+        linecard = self.get_slot2()
+        interfaces = linecard.get_children(Interface)
+        for interface in interfaces :
+            if interface.port == self.port2 :
+                return interface
+        
+        
+    @staticmethod
+    def _parse_dn(dn):
+        """Parses the pod and link number from a
+           distinguished name of the link.
+
+           INPUT: str
+
+           OUTPUT: str, str
+        """
+        name = dn.split('/')
+        pod = str(name[1].split('-')[1])
+        link = str(name[2].split('-')[1])
+       
+        return pod, link
