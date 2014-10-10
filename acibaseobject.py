@@ -121,6 +121,12 @@ class BaseACIObject(object):
         """ Remove a child from the children list """
         self._children.remove(obj)
 
+    def populate_children(self, deep=False) :
+        """ Populates all of the children and then calls populate_children of those children if deep is True.
+        This method should be overridden by any object that does have children"""
+        
+        return None
+    
     def get_parent(self):
         """ Returns the parent of this object """
         return self._parent
