@@ -61,6 +61,7 @@ class BaseACIObject(object):
         self._children = []
         self._relations = []
         self._parent = parent
+        self.descr = None
         logging.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
