@@ -916,13 +916,18 @@ class Interface(BaseInterface):
         self.adminstatus = ''    # up or down
         self.speed = '10G'       # 100M, 1G, 10G or 40G
         self.mtu = ''
+        self.type = 'interface'
         self._parent = parent
         if parent :
             self._parent.add_child(self)
         
     def is_interface(self):
         return True
-
+    def get_type(self) :
+        return self.type
+    def get_serial(self) :
+        return None
+    
     def get_url(self):
         phys_domain_url = '/api/mo/uni.json'
         fabric_url = '/api/mo/uni/fabric.json'
