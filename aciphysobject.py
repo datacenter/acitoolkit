@@ -7,7 +7,7 @@ from acitoolkit import Interface
 
 import json
 import logging
-
+import re
 class BaseACIPhysObject(BaseACIObject) :
     """ Base class for physical objects
     """
@@ -97,6 +97,8 @@ class BaseACIPhysObject(BaseACIObject) :
         """Gets name
         """
         return self.name
+    def get_serial(self) :
+        return None
     
 class BaseACIPhysModule(BaseACIPhysObject):
     """ BaseACIPhysModule: base class for modules  """
@@ -218,7 +220,10 @@ class BaseACIPhysModule(BaseACIPhysObject):
         firmware = str(node_data[0]['firmwareCardRunning']['attributes']['version'])
         bios = str(node_data[0]['firmwareCardRunning']['attributes']['biosVer'])
         return (firmware, bios)
-        
+    def get_serial(self) :
+        """returns the serial number"""
+        return self.serial
+    
 class Systemcontroller(BaseACIPhysModule):
     """ class of the motherboard of the APIC controller node   """
 
@@ -486,6 +491,7 @@ class Pod(BaseACIPhysObject):
             pod._populate_from_attributes(apic_pod['fabricPod']['attributes'])
             pod.session = session
             pods.append(pod)
+            
         return pods
     def populate_children(self, deep=False) :
         """ This will cause all of children of the pod to be gotten from the APIC and
@@ -537,13 +543,24 @@ class Node(BaseACIPhysObject):
         self.name = name
         self.role = role
         self.type = 'node'
+        
         self.session = None
+        self.fabricSt = None
+        self.ipAddress = None
+        self.macAddress = None
+        self.state = None
+        self.mode = None
+        self.operSt = None
+        self.operStQual = None
+        self.descr = None
+        
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+self.pod+'/node-'+self.node)
         self._common_init(parent)
     def get_role(self) :
         """ retrieves the node role
         """
         return self.role
+
     @staticmethod
     def _parse_dn(dn):
         """Parses the pod and node from a
@@ -578,19 +595,21 @@ class Node(BaseACIPhysObject):
                 raise TypeError('An instance of Pod class is required')
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
-        interface_query_url = ('/api/node/class/eqptCh.json?'
+        node_query_url = ('/api/node/class/fabricNode.json?'
                                'query-target=self')
         nodes = []
-        ret = session.get(interface_query_url)
+        ret = session.get(node_query_url)
         node_data = ret.json()['imdata']
         for apic_node in node_data:
-            dist_name = str(apic_node['eqptCh']['attributes']['dn'])
-            node_name = Node._get_name(session, dist_name)
+            dist_name = str(apic_node['fabricNode']['attributes']['dn'])
+            node_name = str(apic_node['fabricNode']['attributes']['name'])
+            node_id = str(apic_node['fabricNode']['attributes']['id'])
             (pod, node_id) = Node._parse_dn(dist_name)
-            node_role = str(apic_node['eqptCh']['attributes']['role'])
+            node_role = str(apic_node['fabricNode']['attributes']['role'])
             node = Node(pod, node_id, node_name, node_role, parent)
             node.session = session
-            node._populate_from_attributes(apic_node['eqptCh']['attributes'])
+            node._populate_from_attributes(apic_node['fabricNode']['attributes'])
+            node._get_topSytem_info()
             if parent :
                 if node.pod == node._parent.pod :
                     if node._parent.has_child(node):
@@ -600,6 +619,40 @@ class Node(BaseACIPhysObject):
             else :
                 nodes.append(node)
         return nodes
+#    @staticmethod
+#    def get(session, parent=None):
+#        """Gets all of the Nodes from the APIC.  If the parent pod is specified,
+#        only nodes of that pod will be retrieved.
+#        """
+#        # need to add pod as parent
+#        if parent :
+#            if not isinstance(parent, Pod) :
+#                raise TypeError('An instance of Pod class is required')
+#        if not isinstance(session, Session):
+#            raise TypeError('An instance of Session class is required')
+#        node_query_url = ('/api/node/class/eqptCh.json?'
+#                               'query-target=self')
+#        nodes = []
+#        ret = session.get(node_query_url)
+#        node_data = ret.json()['imdata']
+#        for apic_node in node_data:
+#            print apic_node['eqptCh']
+#            dist_name = str(apic_node['eqptCh']['attributes']['dn'])
+#            node_name = Node._get_name(session, dist_name)
+#            (pod, node_id) = Node._parse_dn(dist_name)
+#            node_role = str(apic_node['eqptCh']['attributes']['role'])
+#            node = Node(pod, node_id, node_name, node_role, parent)
+#            node.session = session
+#            node._populate_from_attributes(apic_node['eqptCh']['attributes'])
+#            if parent :
+#                if node.pod == node._parent.pod :
+#                    if node._parent.has_child(node):
+#                        node._parent.remove_child(node)
+#                    node._parent.add_child(node)
+#                    nodes.append(node)
+#            else :
+#                nodes.append(node)
+#        return nodes
 
     def __eq__(self, other):
         if type(self) is not type(other):
@@ -609,10 +662,58 @@ class Node(BaseACIPhysObject):
     def _populate_from_attributes(self, attributes):
         """Fills in an object with the desired attributes.
         """
-        self.serial = attributes['ser']
+        self.serial = attributes['serial']
         self.model = attributes['model']
         self.dn = attributes['dn']
-        self.descr = attributes['descr']
+        self.vendor = attributes['vendor']
+        self.fabricSt = attributes['fabricSt']
+        #self.descr = attributes['descr']
+    def _get_topSytem_info(self) :
+        """ will read in topSystem object to get more information about Node"""
+        
+        mo_query_url = '/api/mo/'+self.dn+'/sys.json?query-target=self'
+        ret = self.session.get(mo_query_url)
+        node_data = ret.json()['imdata']
+        
+        if len(node_data) > 0 :
+            self.ipAddress = str(node_data[0]['topSystem']['attributes']['address'])     
+            self.macAddress = str(node_data[0]['topSystem']['attributes']['fabricMAC'])
+            self.state = str(node_data[0]['topSystem']['attributes']['state'])
+            self.mode = str(node_data[0]['topSystem']['attributes']['mode']) #standalone, cluster, or unspecified
+            
+            # now get eqptCh for even more info
+            mo_query_url = '/api/mo/'+self.dn+'/sys/ch.json?query-target=self'
+            ret = self.session.get(mo_query_url)
+            node_data = ret.json()['imdata']
+    
+            if len(node_data) > 0 :
+                self.operSt = str(node_data[0]['eqptCh']['attributes']['operSt'])
+                self.operStQual = str(node_data[0]['eqptCh']['attributes']['operStQual'])
+                self.descr = str(node_data[0]['eqptCh']['attributes']['descr'])
+    def info(self) :
+        """this will return a formatted string that has a summary of all the info gathered about the node.
+
+        INPUT: None
+
+        RETURNS: str
+        """
+
+        text = ''
+        textf = '{0:>15}: {1}\n'
+        text += textf.format('name',self.name)
+        text += textf.format('role',self.role)
+        text += textf.format('descr',self.descr)
+        text += textf.format('serial',self.serial)
+        text += textf.format('model',self.model)
+        text += textf.format('vendor',self.vendor)
+        text += textf.format('ipAddress',self.ipAddress)
+        text += textf.format('macAddress',self.macAddress)
+        text += textf.format('fabricSt',self.fabricSt)
+        text += textf.format('state',self.state)
+        text += textf.format('operSt',self.operSt)
+        text += textf.format('operStQual',self.operStQual)
+        return text
+    
         
     def populate_children(self, deep=False) :
         """ will populate all of the children modules such as linecards, fantrays and powersupplies, of the node.
@@ -644,6 +745,32 @@ class Node(BaseACIPhysObject):
             for child in self._children :
                 child.populate_children(deep=True)
 
+    def get_model(self) :
+        """Returns the model string of the node'
+
+        INPUT:None
+
+        RETURNS: str
+        """
+        
+        return self.model
+    
+    def get_chassisType(self) :
+        """returns the chassis type of this node.  The chassis type is derived from the model number.
+        This is a chassis type that is compatible with Cisco's Cable Plan XML.
+
+        INPUT: None
+
+        RETURNS: str
+        """
+        fields = re.split('-',self.get_model())
+        if len(fields) > 0 :
+            chassisType = fields[0].lower()
+        else :
+            chassisType = None
+        return chassisType
+    
+        
 class Link(BaseACIPhysObject) :
     """Link class, equivalent to the fabricLink object in APIC"""
     def __init__(self, pod, link, node1, slot1, port1, node2, slot2, port2, parent=None) :
@@ -656,6 +783,7 @@ class Link(BaseACIPhysObject) :
         self.linkstate = None
         self.pod = pod
         self.link = link
+        self.descr = None
         # check that parent is not a string
         if isinstance(parent, str):
             raise TypeError("Parent object can't be a string")
