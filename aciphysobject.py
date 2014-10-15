@@ -16,7 +16,7 @@ class BaseACIPhysObject(BaseACIObject) :
         self._parent = parent
         self._children = []
         self._relations = []
-        self.session = None
+        self._session = None
         if self._parent is not None:
             self._parent.add_child(self)
 
@@ -99,7 +99,7 @@ class BaseACIPhysObject(BaseACIObject) :
         return self.name
     def get_serial(self) :
         return None
-    
+        
 class BaseACIPhysModule(BaseACIPhysObject):
     """ BaseACIPhysModule: base class for modules  """
 
@@ -169,7 +169,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
             dist_name = str(apic_obj[apic_class]['attributes']['dn'])
             (pod, node_id, slot) = cls._parse_dn(dist_name)
             card = cls(pod, node_id, slot)
-            card.session = session
+            card._session = session
             card._apic_class = apic_class
             card._populate_from_attributes(apic_obj[apic_class]['attributes'])
             card._additional_populate_from_attributes(apic_obj[apic_class]['attributes'])
@@ -214,7 +214,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """
         
         mo_query_url = '/api/mo/'+dist_name+'/running.json?query-target=self'
-        ret = self.session.get(mo_query_url)
+        ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
         
         firmware = str(node_data[0]['firmwareCardRunning']['attributes']['version'])
@@ -279,7 +279,7 @@ class Systemcontroller(BaseACIPhysModule):
         new_dist_name = '/'.join(name[0:4])
         
         mo_query_url = '/api/mo/'+new_dist_name+'/ctrlrfwstatuscont/ctrlrrunning.json?query-target=self'
-        ret = self.session.get(mo_query_url)
+        ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
         
         firmware = str(node_data[0]['firmwareCtrlrRunning']['attributes']['version'])
@@ -299,7 +299,7 @@ class Systemcontroller(BaseACIPhysModule):
 
 class Linecard(BaseACIPhysModule):
     """ class for a linecard of a switch   """
-    def __init__(self, arg0, arg1, slot=None, parent=None):
+    def __init__(self, arg0=None, arg1=None, slot=None, parent=None):
         """ Initialize the basic object.  It will create the name of the linecard and set the type
         before calling the base class __init__ method.  If arg1 is an instance of a Node, then pod,
         and node are derived from the Node and the slot_id is from arg0.  If arg1 is not a Node, then arg0
@@ -319,7 +319,7 @@ class Linecard(BaseACIPhysModule):
             pod = arg0
             node = arg1
             
-        self.name = 'Lc-'+'/'.join([pod, node, slot_id])
+        self.name = 'Lc-'+'/'.join([str(pod), str(node), str(slot_id)])
         self.type = 'linecard'
         super(Linecard,self).__init__(pod, node, slot_id, parent)
 
@@ -344,8 +344,11 @@ class Linecard(BaseACIPhysModule):
 
         RETURNS: None
         """
-        interfaces = Interface.get(self.session, self)
-        
+
+        interfaces = Interface.get(self._session, self)
+        for interface in interfaces :
+            self.add_child(interface)
+
         if deep :
             for child in self._children :
                 child.populate_children(deep=True)
@@ -489,7 +492,7 @@ class Pod(BaseACIPhysObject):
             pod_id = str(apic_pod['fabricPod']['attributes']['id'])
             pod = Pod(pod_id)
             pod._populate_from_attributes(apic_pod['fabricPod']['attributes'])
-            pod.session = session
+            pod._session = session
             pods.append(pod)
             
         return pods
@@ -502,10 +505,10 @@ class Pod(BaseACIPhysObject):
         This method returns nothing.
         """
         
-        nodes = Node.get(self.session, self)
+        nodes = Node.get(self._session, self)
         for node in nodes :
             self.add_child(node)
-        links = Link.get(self.session, self)
+        links = Link.get(self._session, self)
         for link in links :
             self.add_child(link)
         if deep :
@@ -521,20 +524,21 @@ class Pod(BaseACIPhysObject):
     
 class Node(BaseACIPhysObject):
     """ Node :  roughly equivalent to eqptNode """
-    def __init__(self, pod, node, name, role='switch', parent=None):
+    def __init__(self, pod=None, node=None, name=None, role=None, parent=None):
         """ Initialize the basic object.  
         """
 
         # check that name is a string
-        if name is None or not isinstance(name, str):
-            raise TypeError("Name must be a string")
+        if name :
+            if not isinstance(name, str):
+                raise TypeError("Name must be a string")
 
         # check that parent is not a string
         if isinstance(parent, str):
             raise TypeError("Parent object can't be a string")
 
         # check that role is valid
-        valid_roles = ['spine','leaf','controller']
+        valid_roles = [None, 'spine','leaf','controller']
         if role not in valid_roles :
             raise ValueError("role must be one of "+ str(valid_roles))
         
@@ -544,7 +548,7 @@ class Node(BaseACIPhysObject):
         self.role = role
         self.type = 'node'
         
-        self.session = None
+        self._session = None
         self.fabricSt = None
         self.ipAddress = None
         self.macAddress = None
@@ -554,7 +558,7 @@ class Node(BaseACIPhysObject):
         self.operStQual = None
         self.descr = None
         
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+self.pod+'/node-'+self.node)
+        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+str(self.pod)+'/node-'+str(self.node))
         self._common_init(parent)
     def get_role(self) :
         """ retrieves the node role
@@ -606,53 +610,22 @@ class Node(BaseACIPhysObject):
             node_id = str(apic_node['fabricNode']['attributes']['id'])
             (pod, node_id) = Node._parse_dn(dist_name)
             node_role = str(apic_node['fabricNode']['attributes']['role'])
-            node = Node(pod, node_id, node_name, node_role, parent)
-            node.session = session
+            node = Node(pod, node_id, node_name, node_role)
+            node._session = session
             node._populate_from_attributes(apic_node['fabricNode']['attributes'])
             node._get_topSytem_info()
             if parent :
-                if node.pod == node._parent.pod :
-                    if node._parent.has_child(node):
-                        node._parent.remove_child(node)
-                    node._parent.add_child(node)
+                
+                if node.pod == parent.pod :
+                    node._parent = parent
+                    if parent.has_child(node):
+                        parent.remove_child(node)
+                    parent.add_child(node)
                     nodes.append(node)
             else :
                 nodes.append(node)
         return nodes
-#    @staticmethod
-#    def get(session, parent=None):
-#        """Gets all of the Nodes from the APIC.  If the parent pod is specified,
-#        only nodes of that pod will be retrieved.
-#        """
-#        # need to add pod as parent
-#        if parent :
-#            if not isinstance(parent, Pod) :
-#                raise TypeError('An instance of Pod class is required')
-#        if not isinstance(session, Session):
-#            raise TypeError('An instance of Session class is required')
-#        node_query_url = ('/api/node/class/eqptCh.json?'
-#                               'query-target=self')
-#        nodes = []
-#        ret = session.get(node_query_url)
-#        node_data = ret.json()['imdata']
-#        for apic_node in node_data:
-#            print apic_node['eqptCh']
-#            dist_name = str(apic_node['eqptCh']['attributes']['dn'])
-#            node_name = Node._get_name(session, dist_name)
-#            (pod, node_id) = Node._parse_dn(dist_name)
-#            node_role = str(apic_node['eqptCh']['attributes']['role'])
-#            node = Node(pod, node_id, node_name, node_role, parent)
-#            node.session = session
-#            node._populate_from_attributes(apic_node['eqptCh']['attributes'])
-#            if parent :
-#                if node.pod == node._parent.pod :
-#                    if node._parent.has_child(node):
-#                        node._parent.remove_child(node)
-#                    node._parent.add_child(node)
-#                    nodes.append(node)
-#            else :
-#                nodes.append(node)
-#        return nodes
+
 
     def __eq__(self, other):
         if type(self) is not type(other):
@@ -672,7 +645,7 @@ class Node(BaseACIPhysObject):
         """ will read in topSystem object to get more information about Node"""
         
         mo_query_url = '/api/mo/'+self.dn+'/sys.json?query-target=self'
-        ret = self.session.get(mo_query_url)
+        ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
         
         if len(node_data) > 0 :
@@ -683,43 +656,19 @@ class Node(BaseACIPhysObject):
             
             # now get eqptCh for even more info
             mo_query_url = '/api/mo/'+self.dn+'/sys/ch.json?query-target=self'
-            ret = self.session.get(mo_query_url)
+            ret = self._session.get(mo_query_url)
             node_data = ret.json()['imdata']
     
             if len(node_data) > 0 :
                 self.operSt = str(node_data[0]['eqptCh']['attributes']['operSt'])
                 self.operStQual = str(node_data[0]['eqptCh']['attributes']['operStQual'])
                 self.descr = str(node_data[0]['eqptCh']['attributes']['descr'])
-    def info(self) :
-        """this will return a formatted string that has a summary of all the info gathered about the node.
-
-        INPUT: None
-
-        RETURNS: str
-        """
-
-        text = ''
-        textf = '{0:>15}: {1}\n'
-        text += textf.format('name',self.name)
-        text += textf.format('role',self.role)
-        text += textf.format('descr',self.descr)
-        text += textf.format('serial',self.serial)
-        text += textf.format('model',self.model)
-        text += textf.format('vendor',self.vendor)
-        text += textf.format('ipAddress',self.ipAddress)
-        text += textf.format('macAddress',self.macAddress)
-        text += textf.format('fabricSt',self.fabricSt)
-        text += textf.format('state',self.state)
-        text += textf.format('operSt',self.operSt)
-        text += textf.format('operStQual',self.operStQual)
-        return text
-    
         
     def populate_children(self, deep=False) :
         """ will populate all of the children modules such as linecards, fantrays and powersupplies, of the node.
         """
         
-        session = self.session
+        session = self._session
             
         if self.role == 'controller' :
             systemcontrollers = Systemcontroller.get(session, self)
@@ -789,7 +738,7 @@ class Link(BaseACIPhysObject) :
             raise TypeError("Parent object can't be a string")
 
         self.type = 'link'
-        self.session = None
+        self._session = None
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-%s link-%s' % (self.pod, self.link))
         self._common_init(parent)
 
@@ -818,14 +767,15 @@ class Link(BaseACIPhysObject) :
             link_s2 = str(apic_link['fabricLink']['attributes']['s2'])
             link_p2 = str(apic_link['fabricLink']['attributes']['p2'])
             (pod, link) = Link._parse_dn(dist_name)
-            link = Link(pod, link, link_n1, link_s1, link_p1, link_n2, link_s2, link_p2, parent)
-            link.session = session
+            link = Link(pod, link, link_n1, link_s1, link_p1, link_n2, link_s2, link_p2)
+            link._session = session
             link._populate_from_attributes(apic_link['fabricLink']['attributes'])
             if parent :
-                if link.pod == link._parent.pod :
-                    if link._parent.has_child(link):
-                        link._parent.remove_child(link)
-                    link._parent.add_child(link)
+                if link.pod == parent.pod :
+                    link._parent = parent
+                    if parent.has_child(link):
+                        parent.remove_child(link)
+                    parent.add_child(link)
                     links.append(link)
             else :
                 links.append(link)
