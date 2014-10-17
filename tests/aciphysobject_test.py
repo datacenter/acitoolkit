@@ -4,7 +4,7 @@ from acitoolkit import *
 from aciphysobject import *
 import sys
 import unittest
-LIVE_TEST = True
+LIVE_TEST = False
 
 class TestPod(unittest.TestCase) :
     def test_pod_id(self) :
@@ -198,7 +198,7 @@ class TestModule() :
         self.assertEqual(mod.get_type(), modType)
         self.assertEqual(mod.get_name(), name)
         self.assertEqual(str(mod), name)
-        self.assertEqual(mod.session, None)
+        self.assertEqual(mod._session, None)
 
     @staticmethod
     def test_mod_parent(self,mod_class) :
@@ -320,7 +320,7 @@ class TestLivePod(TestLiveAPIC):
         session = self.login_to_apic()
         nodes = Node.get(session)
         for node in nodes :
-            if node.get_role() == 'controller' :
+            if node.get_role() == 'controller' and node.fabricSt!='inactive' :
                 return node, session
 
     def test_get_all_nodes(self) :
@@ -427,7 +427,12 @@ class TestLivePod(TestLiveAPIC):
             self.assertIsInstance(ps.status, str)
             self.assertIsInstance(ps.fan_status, str)
             self.assertIsInstance(ps.voltage_source, str)
-    
+            info_string = ps.info()
+            self.assertIn('node',info_string)
+            self.assertIn('pod', info_string)
+            self.assertIn('slot', info_string)
+            self.assertIn('serial', info_string)
+            
     
     def test_fantray(self) :
         session = self.login_to_apic()
@@ -465,7 +470,7 @@ class TestLivePod(TestLiveAPIC):
             node_roles.add(node.get_role())
             if node.get_role() == 'spine' :
                 spine = node
-            if node.get_role() == 'controller' :
+            if node.get_role() == 'controller' and node.fabricSt != 'inactive' :
                 controller = node
 
         self.assertEqual(len(node_roles ^ set(['controller','spine','leaf'])),0)
@@ -482,7 +487,10 @@ class TestLivePod(TestLiveAPIC):
         interfaces = linecard.get_children()
         for interface in interfaces :
             self.assertIsInstance(interface, Interface)
-                
+        if linecard.model == 'N9K-X9736PQ' :
+            self.assertEqual(len(interfaces), 36)
+            
+        
         modules = controller.get_children()
         module_types = set()
         for module in modules :
@@ -500,6 +508,47 @@ class TestLivePod(TestLiveAPIC):
             self.assertIsInstance(link.port2, str)
             self.assertIsInstance(link.link, str)
 
+
+class TestFind(unittest.TestCase):
+    def test_find(self) :
+        pod_id = '1'
+        node1_id ='2'
+        node2_id = '3'
+        slot1_id = '4'
+        slot2_id = '5'
+        port1_id = '6'
+        port2_id = '7'
+        link_id = '101'
+        
+        pod = Pod(pod_id)
+        node1 = Node(pod_id, node1_id, 'Spine','spine', pod)
+        node2 = Node(pod_id, node2_id, 'Leaf','leaf', pod)
+        linecard1 = Linecard(slot1_id, node1)
+        linecard2 = Linecard(slot2_id, node2)
+        linecard1.serial = 'SerialNumber1'
+        linecard2.serial = 'SerialNumber2'
+        interface1 = Interface(interface_type='eth', pod=pod_id, node=node1_id, module=slot1_id, port=port1_id, parent=linecard1)
+        inf = linecard1.get_children()
+        interface2 = Interface(interface_type='eth', pod=pod_id, node=node2_id, module=slot2_id, port=port2_id, parent=linecard2)
+        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id, node2_id, slot2_id, port2_id, pod)
+
+        so = Search()
+        so.node = node2_id
+        results = pod.find(so)
+        self.assertIn(node2, results)
+        self.assertIn(linecard2, results)
+        self.assertIn(interface2, results)
+        self.assertEqual(len(results), 3)
+        for result in results :
+            self.assertEqual(result.node, node2_id)
+
+        so = Search()
+        so.serial = 'SerialNumber1'
+        results = pod.find(so)
+        self.assertIn(linecard1, results)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].serial,'SerialNumber1')
+        
             
         
             

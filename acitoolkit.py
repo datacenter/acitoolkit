@@ -1055,6 +1055,7 @@ class Interface(BaseInterface):
 
         RETURNS: list of Interface
         """
+
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
@@ -1070,7 +1071,7 @@ class Interface(BaseInterface):
             mtu = str(interface['l1PhysIf']['attributes']['mtu'])
             (interface_type, pod, node,
              module, port) = Interface.parse_dn(dist_name)
-            interface_obj = Interface(interface_type, pod, node, module, port, parent)
+            interface_obj = Interface(interface_type, pod, node, module, port)
             interface_obj.porttype = porttype
             interface_obj.adminstatus = adminstatus
             interface_obj.speed = speed
@@ -1353,3 +1354,14 @@ class VMM(BaseACIObject):
                                  'children': [vmmDomP]}}
 
         return vmmProvP
+
+class Search(BaseACIObject) :
+    """This is an empty class used to create a search object for use with the "find" method.
+
+    Attaching attributes to this class and then invoking find will return all objects with matching attributes
+    in the object hierarchy at and below where the find is invoked.
+    """
+    def __init__(self) :
+        pass
+    
+    
