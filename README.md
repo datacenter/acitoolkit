@@ -22,7 +22,7 @@ Option A:
 
 If you have git installed, clone the repository
 
-    git clone https://github.com/datacenter/Simple-ACI-Toolkit.git
+    git clone https://github.com/datacenter/ACI-Toolkit.git
 
 Option B:
 
