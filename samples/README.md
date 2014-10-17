@@ -1,4 +1,4 @@
-# Simple ACI Toolkit Samples #
+# ACI Toolkit Samples #
 
 This directory contains sample scripts that use the python library.
 
