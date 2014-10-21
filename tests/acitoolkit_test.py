@@ -20,7 +20,6 @@ import unittest
 import string
 import random
 from credentials import *
-import xml.dom.minidom
 import sys
 
 LIVE_TEST = False
@@ -113,16 +112,6 @@ class TestBaseACIObject(unittest.TestCase):
         name = 'valid'
         invalid_parent = 'parent'
         self.assertRaises(TypeError, MockACIObject, name, invalid_parent)
-
-    def test_get_xml(self):
-        obj = MockACIObject('mock')
-        # parseString will actually print to stdout
-        # so we temporarily override it for this test
-        temp = sys.stdout
-        sys.stdout = obj
-        xml.dom.minidom.parseString(obj.get_xml())
-        xml.dom.minidom.parseString(obj.get_xml(True))
-        sys.stdout = temp
 
     def test_string_transform(self):
         obj = MockACIObject('mock')

@@ -17,8 +17,6 @@
 This module implements the Base Class for creating all of the ACI Objects
 """
 import logging
-import jsontoxml
-from xml.dom.minidom import parseString
 
 
 class BaseRelation(object):
@@ -58,6 +56,7 @@ class BaseRelation(object):
                 self.status == other.status and
                 self.relation_type == other.relation_type)
 
+
 class BaseACIObject(object):
     """This class defines functionality common to all ACI objects.
        Functions may be overwritten by inheriting classes.
@@ -83,7 +82,7 @@ class BaseACIObject(object):
             self._parent.add_child(self)
 
     def mark_as_deleted(self):
-        """Mark the object as deleted.  This will cause the JSON/XML status
+        """Mark the object as deleted.  This will cause the JSON status
            to be set to deleted
         """
         self._deleted = True
@@ -136,12 +135,13 @@ class BaseACIObject(object):
         """ Remove a child from the children list """
         self._children.remove(obj)
 
-    def populate_children(self, deep=False) :
-        """ Populates all of the children and then calls populate_children of those children if deep is True.
-        This method should be overridden by any object that does have children"""
-        
+    def populate_children(self, deep=False):
+        """ Populates all of the children and then calls populate_children
+            of those children if deep is True.  This method should be
+            overridden by any object that does have children
+        """
         return None
-    
+
     def get_parent(self):
         """ Returns the parent of this object """
         return self._parent
@@ -263,19 +263,6 @@ class BaseACIObject(object):
                             'children': children_json}}
         return resp
 
-    def get_xml(self, pretty_xml=False):
-        """Return the XML form to send to the APIC"""
-        return self.get_xml_from_json(self.get_json(), pretty_xml)
-
-    @staticmethod
-    def get_xml_from_json(json_file, pretty_xml=False):
-        """Convert the JSON output into XML format"""
-        xml_file = jsontoxml.dicttoxml(json_file, root=False, attr_type=False)
-        if pretty_xml is True:
-            return parseString(xml_file).toprettyxml()
-        else:
-            return xml_file
-
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
@@ -327,55 +314,58 @@ class BaseACIObject(object):
             resp.append(obj)
         return resp
 
-    def find(self,search_object) :
-        """ This will check to see if self is a match with search_object and then call find on all of the children of search.
-        If there is a match, a list containing self and any matches found by the children will be returned as a list.
+    def find(self, search_object):
+        """ This will check to see if self is a match with search_object
+            and then call find on all of the children of search.
+            If there is a match, a list containing self and any matches found
+            by the children will be returned as a list.
 
-        The criteria for a match is that all attributes of self are compared to all attributes of search_object.  If search_object.<attr>
-        exists and is the same as self.<attr> or search_object.<attr> is 'None', then that attribute matches.  If all such attributes match,
-        then there is a match and self will be returned in the result.
+            The criteria for a match is that all attributes of self are
+            compared to all attributes of search_object.
+            If search_object.<attr> exists and is the same as self.<attr> or
+            search_object.<attr> is 'None', then that attribute matches.
+            If all such attributes match, then there is a match and self will
+            be returned in the result.
 
-        If there is an attribute of search_object that does not exist in self, it will be considered a mismatch.
-
-        If there is an attribute of self that does not exist in search_object, it will be ignored.
+            If there is an attribute of search_object that does not exist in
+            self, it will be considered a mismatch.
+            If there is an attribute of self that does not exist in
+            search_object, it will be ignored.
 
         INPUT: search_object = aci object
 
         RETURNS: list of objects
         """
-        
         result = []
         match = True
-        for attrib in search_object.__dict__ :
+        for attrib in search_object.__dict__:
             value1 = getattr(search_object, attrib)
-            if value1 :
-                if hasattr(self, attrib) :
+            if value1:
+                if hasattr(self, attrib):
                     value2 = getattr(self, attrib)
-                    if value1 != value2 :
+                    if value1 != value2:
                         match = False
                         break
-                else :
+                else:
                     match = False
                     break
-        if match :
+        if match:
             result.append(self)
-        for child in self._children :
+        for child in self._children:
             result.extend(child.find(search_object))
         return result
-    
-    def info(self) :
-        """this will return a formatted string that has a summary of all the info gathered about the node.
+
+    def info(self):
+        """this will return a formatted string that has a summary of all
+           the info gathered about the node.
 
         INPUT: None
 
         RETURNS: str
         """
-
         text = ''
         textf = '{0:>15}: {1}\n'
-        for attrib in self.__dict__ :
-            if attrib[0] != '_' :
-                text += textf.format(attrib,getattr(self, attrib))
+        for attrib in self.__dict__:
+            if attrib[0] != '_':
+                text += textf.format(attrib, getattr(self, attrib))
         return text
-            
-            
