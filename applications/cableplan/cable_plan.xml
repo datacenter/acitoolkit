@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?created by cable.py?>
+<CISCO_NETWORK_TYPES version="None" xmlns="http://www.cisco.com/cableplan/Schema2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="nxos-cable-plan-schema.xsd">
+   <DATA_CENTER networkLocation="None" idFormat="hostname">
+      <CHASSIS_INFO sourceChassis="fab3-spine1" type="n9k">
+         <LINK_INFO sourcePort="eth2/35" destChassis="fab3-leaf1" destPort="eth1/50"/>
+         <LINK_INFO sourcePort="eth2/3" destChassis="fab3-leaf3" destPort="eth1/50"/>
+         <LINK_INFO sourcePort="eth2/2" destChassis="fab3-leaf2" destPort="eth1/50"/>
+      </CHASSIS_INFO>
+      <CHASSIS_INFO sourceChassis="fab3-spine2" type="n9k">
+         <LINK_INFO sourcePort="eth2/1" destChassis="fab3-leaf1" destPort="eth1/49"/>
+         <LINK_INFO sourcePort="eth2/3" destChassis="fab3-leaf3" destPort="eth1/49"/>
+         <LINK_INFO sourcePort="eth2/2" destChassis="fab3-leaf2" destPort="eth1/49"/>
+      </CHASSIS_INFO>
+   </DATA_CENTER>
+</CISCO_NETWORK_TYPES>
