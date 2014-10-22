@@ -1,4 +1,4 @@
-# ACI-Toolkit
+# acitoolkit
 
 # Description
 
@@ -22,11 +22,11 @@ Option A:
 
 If you have git installed, clone the repository
 
-    git clone https://github.com/datacenter/ACI-Toolkit.git
+    git clone https://github.com/datacenter/acitoolkit.git
 
 Option B:
 
-If you don't have git, [download a zip copy of the repository](https://github.com/datacenter/Simple-ACI-Toolkit/archive/master.zip) and extract.
+If you don't have git, [download a zip copy of the repository](https://github.com/datacenter/acitoolkit/archive/master.zip) and extract.
 
 
 ## Installing
