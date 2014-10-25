@@ -31,10 +31,15 @@ If you don't have git, [download a zip copy of the repository](https://github.co
 
 ## Installing
 
-manually::
+After downloading, install using setuptools.
 
     cd acitoolkit
-	python setup.py install
+    python setup.py install
+
+If you plan on modifying the actual toolkit files, you should install the developer environment that will link the package installation to your development directory.
+
+    cd acitoolkit
+    python setup.py develop
 
 # Usage
 
