@@ -225,7 +225,7 @@ class CommonEPG(BaseACIObject):
     def consume(self, contract):
         """ Make this EPG consume a Contract
 
-        INPUT: Contract
+        :param contract: Contract class instance to be consumed by this EPG.
         RETURNS: True
         """
 
