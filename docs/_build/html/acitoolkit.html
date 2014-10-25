@@ -1,0 +1,1100 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>acitoolkit module &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="acitoolkit" href="modules.html"/>
+        <link rel="prev" title="acisession module" href="acisession.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">acitoolkit</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="acibaseobject.html">acibaseobject module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aciphysobject.html">aciphysobject module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acisession.html">acisession module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">acitoolkit module</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="modules.html">acitoolkit</a> &raquo;</li>
+      
+    <li>acitoolkit module</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/acitoolkit.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="module-acitoolkit">
+<span id="acitoolkit-module"></span><h1>acitoolkit module<a class="headerlink" href="#module-acitoolkit" title="Permalink to this headline">¶</a></h1>
+<p>Main ACI Toolkit module
+This is the main module that comprises the ACI Toolkit.</p>
+<dl class="class">
+<dt id="acitoolkit.AppProfile">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">AppProfile</tt><big>(</big><em>name</em>, <em>parent</em><big>)</big><a class="headerlink" href="#acitoolkit.AppProfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>The AppProfile class is used to represent the Application Profiles within
+the acitoolkit object model.  In the APIC model, this class is roughly
+equivalent to the fvAp class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the Application Profile name</li>
+<li><strong>parent</strong> &#8211; An instance of Tenant class representing the Tenant        which contains this Application Profile.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="acitoolkit.AppProfile.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.AppProfile.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Application Profiles from the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<li><strong>tenant</strong> &#8211; the instance of Tenant used to limit the Application        Profiles retreived from the APIC</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of AppProfile objects</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.AppProfile.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.AppProfile.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the AppProfile object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of fvAp</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.BaseContract">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">BaseContract</tt><big>(</big><em>contract_name</em>, <em>contract_type='vzBrCP'</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.BaseContract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>BaseContract :  Base class for Contracts and Taboos</p>
+<dl class="method">
+<dt id="acitoolkit.BaseContract.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BaseContract.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the contract</p>
+<p>INPUT:
+RETURNS: json dictionary of the contract</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BaseContract.get_scope">
+<tt class="descname">get_scope</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BaseContract.get_scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the scope of this contract.
+Valid values are &#8216;context&#8217;, &#8216;global&#8217;, &#8216;tenant&#8217;, and
+&#8216;application-profile&#8217;</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BaseContract.set_scope">
+<tt class="descname">set_scope</tt><big>(</big><em>scope</em><big>)</big><a class="headerlink" href="#acitoolkit.BaseContract.set_scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the scope of this contract.
+Valid values are &#8216;context&#8217;, &#8216;global&#8217;, &#8216;tenant&#8217;, and
+&#8216;application-profile&#8217;</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.BaseInterface">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">BaseInterface</tt><big>(</big><em>name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.BaseInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Abstract class used to provide base functionality to other Interface
+classes.</p>
+<p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the name of the object                     instance</li>
+<li><strong>parent</strong> &#8211; Parent object within the acitoolkit object model.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="acitoolkit.BaseInterface.get_port_channel_selector_json">
+<tt class="descname">get_port_channel_selector_json</tt><big>(</big><em>port_name</em><big>)</big><a class="headerlink" href="#acitoolkit.BaseInterface.get_port_channel_selector_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BaseInterface.get_port_selector_json">
+<tt class="descname">get_port_selector_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BaseInterface.get_port_selector_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.BridgeDomain">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">BridgeDomain</tt><big>(</big><em>bd_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>BridgeDomain :  roughly equivalent to fvBD</p>
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.add_context">
+<tt class="descname">add_context</tt><big>(</big><em>context</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.add_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the Context for this BD</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.add_subnet">
+<tt class="descname">add_subnet</tt><big>(</big><em>subnet</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.add_subnet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a subnet to this BD</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.BridgeDomain.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Bridge Domains from the APIC.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.get_context">
+<tt class="descname">get_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the Context for this BD</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the bridge domain</p>
+<p>INPUT:
+RETURNS: json dictionary of bridge domain</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.get_subnets">
+<tt class="descname">get_subnets</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get_subnets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all of the subnets on this BD</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.has_context">
+<tt class="descname">has_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.has_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the Context has been set for this BD</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.has_subnet">
+<tt class="descname">has_subnet</tt><big>(</big><em>subnet</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.has_subnet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the BD has this particular subnet</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.remove_context">
+<tt class="descname">remove_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.remove_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the Context for this BD</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.BridgeDomain.remove_subnet">
+<tt class="descname">remove_subnet</tt><big>(</big><em>subnet</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.remove_subnet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a subnet from this BD</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.CommonEPG">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">CommonEPG</tt><big>(</big><em>epg_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Base class for EPG and OutsideEPG.
+Not meant to be instantiated directly</p>
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.consume">
+<tt class="descname">consume</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.consume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make this EPG consume a Contract</p>
+<p>INPUT: Contract
+RETURNS: True</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.does_consume">
+<tt class="descname">does_consume</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.does_consume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this EPG consumes a specific Contract</p>
+<p>INPUT: Contract
+RETURNS: boolean</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.does_provide">
+<tt class="descname">does_provide</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.does_provide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this EPG provides a specific Contract.
+True if the EPG does provide the Contract</p>
+<p>INPUT: Contract
+RETURNS: boolean</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.dont_consume">
+<tt class="descname">dont_consume</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.dont_consume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make this EPG not consume a Contract.  It does not check to see
+if the Contract was already consumed</p>
+<p>INPUT: Contract
+RETURNS: True</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.dont_provide">
+<tt class="descname">dont_provide</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.dont_provide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make this EPG not provide a Contract</p>
+<p>INPUT: Contract
+RETURNS: True</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.CommonEPG.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the EPGs from the APIC.</p>
+<p>INPUT: session, parent, Tenant
+RETURNS: List of CommonEPG</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.get_all_consumed">
+<tt class="descname">get_all_consumed</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get_all_consumed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all of the Contracts consumed by this EPG</p>
+<p>INPUT:
+RETURNS: List of Contract objects</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.get_all_provided">
+<tt class="descname">get_all_provided</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get_all_provided" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all of the Contracts provided by this EPG</p>
+<p>INPUT:
+RETURNS: List of Contract objects</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.get_interfaces">
+<tt class="descname">get_interfaces</tt><big>(</big><em>status='attached'</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get_interfaces" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all of the interfaces that this EPG is attached
+The default is to get list of &#8216;attached&#8217; interfaces.
+If &#8216;status&#8217; is set to &#8216;detached&#8217; it will return the list of
+detached Interface objects</p>
+<p>INPUT: [status] defaults to &#8216;attached&#8217;
+RETURNS: List of Interface objects</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.CommonEPG.provide">
+<tt class="descname">provide</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.provide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make this EPG provide a Contract</p>
+<p>INPUT: Contract
+RETURNS: True</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Context">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Context</tt><big>(</big><em>context_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Context :  roughly equivalent to fvCtx</p>
+<dl class="classmethod">
+<dt id="acitoolkit.Context.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.Context.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Contexts from the APIC.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Context.get_allow_all">
+<tt class="descname">get_allow_all</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Context.get_allow_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the allow_all value.
+When set, contracts will not be enforced in this context.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Context.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Context.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of fvCtx object</p>
+<p>INPUT:
+RETURNS: json dictionary of fvCtx object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Context.set_allow_all">
+<tt class="descname">set_allow_all</tt><big>(</big><em>value=True</em><big>)</big><a class="headerlink" href="#acitoolkit.Context.set_allow_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the allow_all value.
+When set, contracts will not be enforced in this context.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Contract">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Contract</tt><big>(</big><em>contract_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Contract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.BaseContract" title="acitoolkit.BaseContract"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.BaseContract</span></tt></a></p>
+<p>Contract :  Class for Contracts</p>
+<dl class="classmethod">
+<dt id="acitoolkit.Contract.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.Contract.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Contracts from the APIC for a particular tenant.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.EPG">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">EPG</tt><big>(</big><em>epg_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.EPG" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.CommonEPG" title="acitoolkit.CommonEPG"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.CommonEPG</span></tt></a></p>
+<p>EPG :  roughly equivalent to fvAEPg</p>
+<dl class="docutils">
+<dt>Initializes the EPG with a name and, optionally,</dt>
+<dd>an AppProfile parent.
+If the parent is specified and is not an AppProfile,
+an error will occur.</dd>
+</dl>
+<p>INPUT: string, [AppProfile]
+RETURNS:</p>
+<dl class="method">
+<dt id="acitoolkit.EPG.add_bd">
+<tt class="descname">add_bd</tt><big>(</big><em>bridgedomain</em><big>)</big><a class="headerlink" href="#acitoolkit.EPG.add_bd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add BridgeDomain to the EPG, roughly equivalent to fvRsBd</p>
+<p>INPUT: BridgeDomain
+RETURNS:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.EPG.get_bd">
+<tt class="descname">get_bd</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.get_bd" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Return the assigned BridgeDomain.</dt>
+<dd>There should only be one item in the returned list.</dd>
+</dl>
+<p>INPUT:
+RETURNS: List of BridgeDomain objects</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.EPG.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the EPG</p>
+<p>INPUT:
+RETURNS: json dictionary of the EPG</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.EPG.has_bd">
+<tt class="descname">has_bd</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.has_bd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if a BridgeDomain has been assigned to the EPG</p>
+<p>INPUT:
+RETURNS: boolean</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.EPG.remove_bd">
+<tt class="descname">remove_bd</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.remove_bd" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Remove BridgeDomain from the EPG.</dt>
+<dd>Note that there should only be one BridgeDomain attached
+to the EPG.</dd>
+</dl>
+<p>INPUT:
+RETURNS:</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Endpoint">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Endpoint</tt><big>(</big><em>name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the name of the object                     instance</li>
+<li><strong>parent</strong> &#8211; Parent object within the acitoolkit object model.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="staticmethod">
+<dt id="acitoolkit.Endpoint.get">
+<em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.Endpoint.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the endpoints connected to the fabric from the APIC</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.FilterEntry">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">FilterEntry</tt><big>(</big><em>name</em>, <em>applyToFrag</em>, <em>arpOpc</em>, <em>dFromPort</em>, <em>dToPort</em>, <em>etherT</em>, <em>prot</em>, <em>sFromPort</em>, <em>sToPort</em>, <em>tcpRules</em>, <em>parent</em><big>)</big><a class="headerlink" href="#acitoolkit.FilterEntry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>FilterEntry :  roughly equivalent to vzEntry</p>
+<dl class="method">
+<dt id="acitoolkit.FilterEntry.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.FilterEntry.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the FilterEntry</p>
+<p>INPUT:
+RETURNS: json dictionary of the FilterEntry</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Interface">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Interface</tt><big>(</big><em>interface_type</em>, <em>pod</em>, <em>node</em>, <em>module</em>, <em>port</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.BaseInterface" title="acitoolkit.BaseInterface"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.BaseInterface</span></tt></a></p>
+<p>This class defines a physical interface.</p>
+<dl class="staticmethod">
+<dt id="acitoolkit.Interface.get">
+<em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Interface.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the physical interfaces from the APIC if no parent is specified.
+If a parent, of type Linecard is specified, then only those interfaces on
+that linecard are returned and they are also added as children to that linecard.</p>
+<p>INPUT: session=Session, [parent=Linecard]</p>
+<p>RETURNS: list of Interface</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Interface.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Interface.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the json for an interface.  Returns a tuple since the json is
+required to be sent in 2 posts.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Interface.get_name_for_json">
+<tt class="descname">get_name_for_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Interface.get_name_for_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Interface.get_serial">
+<tt class="descname">get_serial</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Interface.get_serial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Interface.get_type">
+<tt class="descname">get_type</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Interface.get_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Interface.get_url">
+<tt class="descname">get_url</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Interface.get_url" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Interface.is_interface">
+<tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Interface.is_interface" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="acitoolkit.Interface.parse_dn">
+<em class="property">static </em><tt class="descname">parse_dn</tt><big>(</big><em>dist_name</em><big>)</big><a class="headerlink" href="#acitoolkit.Interface.parse_dn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses the pod, node, module, port from a
+distinguished name of the interface.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="acitoolkit.Interface.parse_name">
+<em class="property">static </em><tt class="descname">parse_name</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.Interface.parse_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a name that is of the form:
+&lt;type&gt; &lt;pod&gt;/&lt;mod&gt;/&lt;port&gt;</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.L2Interface">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">L2Interface</tt><big>(</big><em>name</em>, <em>encap_type</em>, <em>encap_id</em><big>)</big><a class="headerlink" href="#acitoolkit.L2Interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>The L2Interface class creates an logical L2 interface that can be        attached to a physical interface. This interface defines the L2        encapsulation i.e. VLAN, VXLAN, or NVGRE</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the L2Interface instance name</li>
+<li><strong>encap_type</strong> &#8211; String containing the encapsulation type.        Valid values are &#8216;VLAN&#8217;, &#8216;VXLAN&#8217;, or &#8216;NVGRE&#8217;.</li>
+<li><strong>encap_id</strong> &#8211; String containing the encapsulation specific        identifier representing the virtual L2 network (i.e. for VXLAN,        this is the numeric value of the VNID).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="acitoolkit.L2Interface.get_encap_id">
+<tt class="descname">get_encap_id</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L2Interface.get_encap_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the encap_id of the L2 interface.
+The value is returned as a string and depends on the encap_type
+(i.e. VLAN VID, VXLAN VNID, or NVGRE VSID)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">String containing encapsulation identifier value.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L2Interface.get_encap_type">
+<tt class="descname">get_encap_type</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L2Interface.get_encap_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the encap_type of the L2 interface.
+Valid values are &#8216;vlan&#8217;, &#8216;vxlan&#8217;, and &#8216;nvgre&#8217;</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">String containing encap_type value.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L2Interface.is_interface">
+<tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L2Interface.is_interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether this instance is considered an interface.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.L3Interface">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">L3Interface</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Creates a L3 interface that can be attached to a L2 interface.
+This interface defines the L3 address i.e. IPv4</p>
+<dl class="method">
+<dt id="acitoolkit.L3Interface.add_context">
+<tt class="descname">add_context</tt><big>(</big><em>context</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.add_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add context to the EPG</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.get_addr">
+<tt class="descname">get_addr</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_addr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the L3 address assigned to this interface.
+The address is set via the L3Interface.set_addr() method</p>
+<p>INPUT:
+RETURNS: Address</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.get_context">
+<tt class="descname">get_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the assigned context</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of L3Interface</p>
+<p>INPUT:
+RETURNS: json dictionary of L3Interface</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.get_l3if_type">
+<tt class="descname">get_l3if_type</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_l3if_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the l3if_type of this L3 interface.
+Valid values are &#8216;sub-interface&#8217;, &#8216;l3-port&#8217;, and &#8216;ext-svi&#8217;</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.has_context">
+<tt class="descname">has_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.has_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the context has been assigned</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.is_interface">
+<tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.is_interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this is an interface object.</p>
+<p>INPUTS:
+RETURNS: True</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.remove_context">
+<tt class="descname">remove_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.remove_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove context from the EPG</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.set_addr">
+<tt class="descname">set_addr</tt><big>(</big><em>addr</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.set_addr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the L3 address assigned to this interface</p>
+<p>INPUT: L3 address
+RETURNS:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.L3Interface.set_l3if_type">
+<tt class="descname">set_l3if_type</tt><big>(</big><em>l3if_type</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.set_l3if_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the l3if_type of this L3 interface.
+Valid values are &#8216;sub-interface&#8217;, &#8216;l3-port&#8217;, and &#8216;ext-svi&#8217;</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.NetworkPool">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">NetworkPool</tt><big>(</big><em>name</em>, <em>encap_type</em>, <em>start_id</em>, <em>end_id</em>, <em>mode</em><big>)</big><a class="headerlink" href="#acitoolkit.NetworkPool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>This class defines a pool of network ids</p>
+<dl class="method">
+<dt id="acitoolkit.NetworkPool.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.NetworkPool.get_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.OSPFInterface">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">OSPFInterface</tt><big>(</big><em>name</em>, <em>area_id=None</em><big>)</big><a class="headerlink" href="#acitoolkit.OSPFInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Creates an OSPF router interface that can be attached to a L3 interface.
+This interface defines the OSPF area, authentication, etc.</p>
+<dl class="method">
+<dt id="acitoolkit.OSPFInterface.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OSPFInterface.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of OSPFInterface</p>
+<p>INPUT:
+RETURNS: json dictionary of OSPFInterface</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.OSPFInterface.is_interface">
+<tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OSPFInterface.is_interface" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="acitoolkit.OSPFInterface.is_ospf">
+<em class="property">static </em><tt class="descname">is_ospf</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OSPFInterface.is_ospf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if this interface is an OSPF interface</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.OSPFRouter">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">OSPFRouter</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.OSPFRouter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Represents the global settings of the OSPF Router</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.OutsideEPG">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">OutsideEPG</tt><big>(</big><em>epg_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.OutsideEPG" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.CommonEPG" title="acitoolkit.CommonEPG"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.CommonEPG</span></tt></a></p>
+<p>Represents the EPG for external connectivity</p>
+<dl class="method">
+<dt id="acitoolkit.OutsideEPG.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OutsideEPG.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of OutsideEPG</p>
+<p>INPUT:
+RETURNS: json dictionary of OutsideEPG</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.PortChannel">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">PortChannel</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.BaseInterface" title="acitoolkit.BaseInterface"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.BaseInterface</span></tt></a></p>
+<p>This class defines a port channel interface.</p>
+<dl class="method">
+<dt id="acitoolkit.PortChannel.attach">
+<tt class="descname">attach</tt><big>(</big><em>interface</em><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel.attach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attach an interface to this PortChannel</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.PortChannel.detach">
+<tt class="descname">detach</tt><big>(</big><em>interface</em><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel.detach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detach an interface from this PortChannel</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="acitoolkit.PortChannel.get">
+<em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the port channel interfaces from the APIC</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.PortChannel.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the PortChannel</p>
+<p>INPUT:
+RETURNS: json dictionary of the PortChannel</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.PortChannel.is_interface">
+<tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel.is_interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True since a PortChannel is an interface</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.PortChannel.is_vpc">
+<tt class="descname">is_vpc</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel.is_vpc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the PortChannel is a VPC</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Search">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Search</tt><a class="headerlink" href="#acitoolkit.Search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>This is an empty class used to create a search object for use with the &#8220;find&#8221; method.</p>
+<p>Attaching attributes to this class and then invoking find will return all objects with matching attributes
+in the object hierarchy at and below where the find is invoked.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Subnet">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Subnet</tt><big>(</big><em>subnet_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Subnet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Subnet :  roughly equivalent to fvSubnet</p>
+<dl class="classmethod">
+<dt id="acitoolkit.Subnet.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>bridgedomain</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Subnets from the APIC for a particular tenant and
+bridgedomain</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Subnet.get_addr">
+<tt class="descname">get_addr</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.get_addr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the subnet address</p>
+<p>INPUT:
+RETURNS: The subnet address as a string in the form</p>
+<blockquote>
+<div>of &lt;ipaddr&gt;/&lt;mask&gt;</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Subnet.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the subnet</p>
+<p>INPUT:
+RETURNS: json dictionary of subnet</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Subnet.set_addr">
+<tt class="descname">set_addr</tt><big>(</big><em>addr</em><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.set_addr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the subnet address</p>
+<dl class="docutils">
+<dt>INPUT: addr: The subnet address as a string in the form</dt>
+<dd>of &lt;ipaddr&gt;/&lt;mask&gt;</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Taboo">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Taboo</tt><big>(</big><em>contract_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Taboo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.BaseContract" title="acitoolkit.BaseContract"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.BaseContract</span></tt></a></p>
+<p>Taboo :  Class for Taboos</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.Tenant">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Tenant</tt><big>(</big><em>name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Tenant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>The Tenant class is used to represent the tenants within the acitoolkit
+object model.  In the APIC model, this class is roughly equivalent to
+the fvTenant class.</p>
+<p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the name of the object                     instance</li>
+<li><strong>parent</strong> &#8211; Parent object within the acitoolkit object model.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="acitoolkit.Tenant.exists">
+<em class="property">classmethod </em><tt class="descname">exists</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.Tenant.exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if a tenant exists on the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<li><strong>tenant</strong> &#8211; the instance of Tenant to check if exists on the APIC</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">True or False</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.Tenant.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.Tenant.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the tenants from the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; the instance of Session used for APIC communication</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a list of Tenant objects</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.Tenant.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Tenant.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the fvTenant object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A json dictionary of fvTenant</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="acitoolkit.Tenant.get_url">
+<em class="property">static </em><tt class="descname">get_url</tt><big>(</big><em>fmt='json'</em><big>)</big><a class="headerlink" href="#acitoolkit.Tenant.get_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the URL used to push the configuration to the APIC
+if no format parameter is specified, the format will be &#8216;json&#8217;
+otherwise it will return &#8216;/api/mo/uni.&#8217; with the format string
+appended.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fmt</strong> &#8211; optional format string, default is &#8216;json&#8217;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">URL string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.VMM">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">VMM</tt><big>(</big><em>name</em>, <em>ipaddr</em>, <em>credentials</em>, <em>vswitch_info</em>, <em>network_pool</em><big>)</big><a class="headerlink" href="#acitoolkit.VMM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>This class defines an instance of connectivity to a
+Virtual Machine Manager (such as VMware vCenter)</p>
+<dl class="method">
+<dt id="acitoolkit.VMM.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.VMM.get_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.VMMCredentials">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">VMMCredentials</tt><big>(</big><em>name</em>, <em>uid</em>, <em>pwd</em><big>)</big><a class="headerlink" href="#acitoolkit.VMMCredentials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<p>This class defines the credentials used to login to a Virtual
+Machine Manager</p>
+<dl class="method">
+<dt id="acitoolkit.VMMCredentials.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.VMMCredentials.get_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.VMMvSwitchInfo">
+<em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">VMMvSwitchInfo</tt><big>(</big><em>vendor</em>, <em>container_name</em>, <em>vswitch_name</em><big>)</big><a class="headerlink" href="#acitoolkit.VMMvSwitchInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>This class contains the information necessary for creating the
+vSwitch on the Virtual Machine Manager</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="acisession.html" class="btn btn-neutral" title="acisession module"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

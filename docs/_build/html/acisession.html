@@ -1,0 +1,244 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>acisession module &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="acitoolkit" href="modules.html"/>
+        <link rel="next" title="acitoolkit module" href="acitoolkit.html"/>
+        <link rel="prev" title="aciphysobject module" href="aciphysobject.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">acitoolkit</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="acibaseobject.html">acibaseobject module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aciphysobject.html">aciphysobject module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">acisession module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit module</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="modules.html">acitoolkit</a> &raquo;</li>
+      
+    <li>acisession module</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/acisession.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="module-acisession">
+<span id="acisession-module"></span><h1>acisession module<a class="headerlink" href="#module-acisession" title="Permalink to this headline">¶</a></h1>
+<p>This module contains the Session class that controls communication
+with the APIC.</p>
+<dl class="class">
+<dt id="acisession.Session">
+<em class="property">class </em><tt class="descclassname">acisession.</tt><tt class="descname">Session</tt><big>(</big><em>ipaddr</em>, <em>uid</em>, <em>pwd</em>, <em>verify_ssl=False</em><big>)</big><a class="headerlink" href="#acisession.Session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Session class
+This class is responsible for all communication with the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ipaddr</strong> &#8211; String containing the APIC IP address in dotted        decimal notation.</li>
+<li><strong>uid</strong> &#8211; String containing the username that will be used as        part of the  the APIC login credentials.</li>
+<li><strong>pwd</strong> &#8211; String containing the password that will be used as        part of the  the APIC login credentials.</li>
+<li><strong>verify_ssl</strong> &#8211; Used only for SSL connections with the APIC.        Indicates whether SSL certificates must be verified.  Possible        values are True and False with the default being False.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="acisession.Session.get">
+<tt class="descname">get</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acisession.Session.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a REST GET call to the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>url</strong> &#8211; String containing the URL that will be used to        send the object data to the APIC.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Response class instance from the requests library.        response.ok is True if request is sent successfully.        response.json() will return the JSON data sent back by the APIC.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acisession.Session.login">
+<tt class="descname">login</tt><big>(</big><big>)</big><a class="headerlink" href="#acisession.Session.login" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initiate login to the APIC.  Opens a communication session with the        APIC using the python requests library.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Response class instance from the requests library.        response.ok is True if login is successful.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acisession.Session.push_to_apic">
+<tt class="descname">push_to_apic</tt><big>(</big><em>url</em>, <em>data</em><big>)</big><a class="headerlink" href="#acisession.Session.push_to_apic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Push the object data to the APIC</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>url</strong> &#8211; String containing the URL that will be used to        send the object data to the APIC.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Response class instance from the requests library.        response.ok is True if request is sent successfully.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="acitoolkit.html" class="btn btn-neutral float-right" title="acitoolkit module"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="aciphysobject.html" class="btn btn-neutral" title="aciphysobject module"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
