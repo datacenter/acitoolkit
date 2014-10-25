@@ -31,6 +31,11 @@ If you don't have git, [download a zip copy of the repository](https://github.co
 
 ## Installing
 
+manually::
+
+    cd acitoolkit
+	python setup.py install
+
 # Usage
 
 # License
