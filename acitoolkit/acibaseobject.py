@@ -14,21 +14,27 @@
 #    under the License.
 #
 """
-This module implements the Base Class for creating all of the ACI Objects
+This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
 
 
 class BaseRelation(object):
-    """Class for all basic relations.
-       A relation consists of the following elements:
-       item:    The object to which the relationship applies
-       status:  The status of the relationship
-                Valid values are 'attached' and 'detached'
-       relation_type:   Additional information to distinguish the relationship.
-                        Used in cases where more than 1 type of relation exists
-       """
+    """
+    Class for all basic relations.
+    """
     def __init__(self, item, status, relation_type=None):
+        """
+        A relation consists of the following elements:
+
+        :param item:    The object to which the relationship applies
+        :param status:  The status of the relationship.\
+                        Valid values are 'attached' and 'detached'
+        :param relation_type:   Optional additional information to distinguish\
+                                the relationship.\
+                                Used in cases where more than 1 type of\
+                                relation exists.
+        """
         if status not in ('attached', 'detached'):
             raise ValueError
         self.item = item
@@ -36,19 +42,25 @@ class BaseRelation(object):
         self.relation_type = relation_type
 
     def is_attached(self):
-        """Returns whether the relation is attached.
-           If a relation is detached, it is to be deleted from the APIC
+        """
+        :returns: True or False indicating whether the relation is attached.\
+        If a relation is detached, it will be deleted from the APIC when the\
+        configuration is pushed.
         """
         return self.status == 'attached'
 
     def is_detached(self):
-        """Returns whether the relation is detached.
-           If a relation is detached, it is to be deleted from the APIC
+        """
+        :returns: True or False indicating whether the relation is detached.\
+        If a relation is detached, it will be deleted from the APIC when the\
+        configuration is pushed.
         """
         return not self.is_attached()
 
     def set_as_detached(self):
-        """Set the relation as detached"""
+        """
+        Sets the relation status to 'detached'
+        """
         self.status = 'detached'
 
     def __eq__(self, other):
@@ -58,12 +70,18 @@ class BaseRelation(object):
 
 
 class BaseACIObject(object):
-    """This class defines functionality common to all ACI objects.
-       Functions may be overwritten by inheriting classes.
+    """
+    This class defines functionality common to all ACI objects.
+    Functions may be overwritten by inheriting classes.
     """
     def __init__(self, name, parent=None):
-        """ Initialize the basic object.  This should be called by the
-            init routines of inheriting subclasses.
+        """
+        Constructor initializes the basic object and should be called by\
+        the init routines of inheriting subclasses.
+
+        :param name: String containing the name of the object\
+                     instance
+        :param parent: Parent object within the acitoolkit object model.
         """
         if name is None or not isinstance(name, str):
             raise TypeError
@@ -82,68 +100,107 @@ class BaseACIObject(object):
             self._parent.add_child(self)
 
     def mark_as_deleted(self):
-        """Mark the object as deleted.  This will cause the JSON status
-           to be set to deleted
+        """
+        Mark the object as deleted.  This will cause the JSON status
+        to be set to deleted.
         """
         self._deleted = True
 
     @staticmethod
     def is_interface():
-        """Return whether this object is considered an Interface
+        """
+        Indicates whether this object is considered an Interface.\
+        The default is False.
 
-        RETURN: False
+        :returns: False
         """
         return False
 
     def is_deleted(self):
-        """ Check if the object has been deleted. """
+        """
+        Check if the object has been deleted.
+        :returns: True or False, True indicates the object has been deleted.
+        """
         return self._deleted
 
     def attach(self, item):
-        """Attach the object to the other object"""
+        """
+        Attach the object to the other object.
+
+        :param item:  Object to be attached.
+        """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
         self._relations.append(BaseRelation(item, 'attached'))
 
     def is_attached(self, item):
-        """Returns True if the item is attached to this object"""
+        """
+        Indicates whether the item is attached to this object/
+        :returns: True or False, True indicates the item is attached.
+        """
         check = BaseRelation(item, 'attached')
         return check in self._relations
 
     def detach(self, item):
-        """Detach the object from the other object"""
+        """
+        Detach the object from the other object.
+
+        :param item:  Object to be detached.
+        """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
             self._relations.append(BaseRelation(item, 'detached'))
 
     def get_children(self):
-        """ Returns the list of children """
+        """
+        :returns: List of children objects.
+        """
         return self._children
 
     def add_child(self, obj):
-        """ Add a child to the children list """
+        """
+        Add a child to the children list.
+
+        :param obj: Child object to add to the children list of the\
+                    called object.
+        """
         self._children.append(obj)
 
     def has_child(self, obj):
-        """ Check for existence of a child in the children list """
+        """
+        Check for existence of a child in the children list
+
+        :param obj:  Child object that is the subject of the check.
+        :returns:  True or False, True indicates that it does indeed\
+                   have the `obj` object as a child.
+        """
         for child in self._children:
             if child == obj:
                 return True
         return False
 
     def remove_child(self, obj):
-        """ Remove a child from the children list """
+        """
+        Remove a child from the children list
+
+        :param obj:  Child object that is to be removed.
+        """
         self._children.remove(obj)
 
     def populate_children(self, deep=False):
-        """ Populates all of the children and then calls populate_children
-            of those children if deep is True.  This method should be
-            overridden by any object that does have children
+        """
+        Populates all of the children and then calls populate_children\
+        of those children if deep is True.  This method should be\
+        overridden by any object that does have children
+
+        :param deep: True or False.  Default is False.
         """
         return None
 
     def get_parent(self):
-        """ Returns the parent of this object """
+        """
+        :returns: Parent of this object.
+        """
         return self._parent
 
     def _has_any_relation(self, other_class):
@@ -210,7 +267,16 @@ class BaseACIObject(object):
         return resp
 
     def get_interfaces(self, status='attached'):
-        """Get all of the interface relations"""
+        """
+        Get all of the interface relations.  Note that multiple classes
+        are considered "interfaces" such as Interface, L2Interface,
+        L3Interface, etc.
+
+        :param status: Valid values are 'attached' and 'detached'.\
+                       Default is 'attached'.
+        :returns:  List of interfaces that this object has relations\
+                   and the status matches.
+        """
         resp = []
         for relation in self._relations:
             if relation.item.is_interface() and relation.status == status:
@@ -218,8 +284,13 @@ class BaseACIObject(object):
         return resp
 
     def get_all_attached(self, attached_class, status='attached'):
-        """Get all of the relations of objects beloging to the
-           specified class
+        """
+        Get all of the relations of objects belonging to the
+        specified class with the specified status.
+
+        :param attached_class:  The class that is the subject of the search.
+        :param status:  Valid values are 'attached' and 'detached'.\
+                        Default is 'attached'.
         """
         resp = []
         for relation in self._relations:
@@ -238,8 +309,17 @@ class BaseACIObject(object):
 
     def get_json(self, obj_class, attributes=None,
                  children=None, get_children=True):
-        """ Get the JSON representation of this class in the actual APIC
-            Object Model
+        """
+        Get the JSON representation of this class in the actual APIC
+        Object Model.
+
+        :param obj_class:  Object Class Name within the APIC model.
+        :param attributes:  Additional attributes that should be set\
+                            in the JSON.
+        :param children:  Children objects to traverse as well.
+        :param get_children:  Indicates whether the children objects\
+                              should be included.
+        :returns: JSON dictionary to be pushed to the APIC.
         """
         if children is None:
             children = []
@@ -289,7 +369,15 @@ class BaseACIObject(object):
 
     @classmethod
     def get(cls, session, toolkit_class, apic_class, parent=None, tenant=None):
-        """Gets all of a particular class.
+        """
+        Generic classmethod to get all of a particular APIC class.
+
+        :param session:  the instance of Session used for APIC communication
+        :param toolkit_class: acitoolkit class to return
+        :param apic_class:  String containing class name from the APIC object\
+                            model.
+        :param parent:  Object to assign as the parent to the created objects.
+        :param tenant:  Tenant object to assign the created objects.
         """
         if isinstance(tenant, str):
             raise TypeError
@@ -315,26 +403,26 @@ class BaseACIObject(object):
         return resp
 
     def find(self, search_object):
-        """ This will check to see if self is a match with search_object
-            and then call find on all of the children of search.
-            If there is a match, a list containing self and any matches found
-            by the children will be returned as a list.
+        """
+        This will check to see if self is a match with ``search_object``
+        and then call find on all of the children of search.
+        If there is a match, a list containing self and any matches found
+        by the children will be returned as a list.
 
-            The criteria for a match is that all attributes of self are
-            compared to all attributes of search_object.
-            If search_object.<attr> exists and is the same as self.<attr> or
-            search_object.<attr> is 'None', then that attribute matches.
-            If all such attributes match, then there is a match and self will
-            be returned in the result.
+        The criteria for a match is that all attributes of ``self`` are
+        compared to all attributes of `search_object`.
+        If ``search_object.<attr>`` exists and is the same as ``self.<attr>`` or
+        ``search_object.<attr>`` is 'None', then that attribute matches.
+        If all such attributes match, then there is a match and self will
+        be returned in the result.
 
-            If there is an attribute of search_object that does not exist in
-            self, it will be considered a mismatch.
-            If there is an attribute of self that does not exist in
-            search_object, it will be ignored.
+        If there is an attribute of ``search_object`` that does not exist in
+        ``self``, it will be considered a mismatch.
+        If there is an attribute of ``self`` that does not exist in
+        ``search_object``, it will be ignored.
 
-        INPUT: search_object = aci object
-
-        RETURNS: list of objects
+        :param search_object: ACI object to search
+        :returns:  List of objects
         """
         result = []
         match = True
@@ -356,12 +444,11 @@ class BaseACIObject(object):
         return result
 
     def info(self):
-        """this will return a formatted string that has a summary of all
-           the info gathered about the node.
+        """
+        Node information summary.
 
-        INPUT: None
-
-        RETURNS: str
+        :returns: Formatted string that has a summary of all of the info\
+                  gathered about the node.
         """
         text = ''
         textf = '{0:>15}: {1}\n'
