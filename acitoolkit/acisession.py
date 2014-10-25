@@ -22,11 +22,22 @@ import requests
 
 
 class Session(object):
-    """Session class
-       This class contains the connectivity information for talking to the
-       APIC.
+    """
+       Session class
+       This class is responsible for all communication with the APIC.
     """
     def __init__(self, ipaddr, uid, pwd, verify_ssl=False):
+        """
+        :param ipaddr:  String containing the APIC IP address in dotted\
+        decimal notation.
+        :param uid: String containing the username that will be used as\
+        part of the  the APIC login credentials.
+        :param pwd: String containing the password that will be used as\
+        part of the  the APIC login credentials.
+        :param verify_ssl:  Used only for SSL connections with the APIC.\
+        Indicates whether SSL certificates must be verified.  Possible\
+        values are True and False with the default being False.
+        """
         self.ipaddr = ipaddr
         self.uid = uid
         self.pwd = pwd
@@ -36,7 +47,13 @@ class Session(object):
         self.verify_ssl = verify_ssl
 
     def login(self):
-        """Login to the APIC"""
+        """
+        Initiate login to the APIC.  Opens a communication session with the\
+        APIC using the python requests library.
+
+        :returns: Response class instance from the requests library.\
+        response.ok is True if login is successful.
+        """
         logging.info('Initializing connection to the APIC')
         login_url = self.api + '/api/aaaLogin.json'
         name_pwd = {'aaaUser': {'attributes': {'name': self.uid,
@@ -47,7 +64,14 @@ class Session(object):
         return ret
 
     def push_to_apic(self, url, data):
-        """Push the object to the APIC"""
+        """
+        Push the object data to the APIC
+
+        :param url: String containing the URL that will be used to\
+        send the object data to the APIC.
+        :returns: Response class instance from the requests library.\
+        response.ok is True if request is sent successfully.
+        """
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)
         resp = self.session.post(post_url, data=json.dumps(data))
@@ -55,7 +79,15 @@ class Session(object):
         return resp
 
     def get(self, url):
-        """Perform a REST GET call to the APIC."""
+        """
+        Perform a REST GET call to the APIC.
+
+        :param url: String containing the URL that will be used to\
+        send the object data to the APIC.
+        :returns: Response class instance from the requests library.\
+        response.ok is True if request is sent successfully.\
+        response.json() will return the JSON data sent back by the APIC.
+        """
         get_url = self.api + url
         logging.debug(get_url)
         resp = self.session.get(get_url)
