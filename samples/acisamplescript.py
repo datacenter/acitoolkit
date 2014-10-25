@@ -17,12 +17,17 @@
 ###  Start of the test code  ###
 ################################
 
-from acitoolkit import *
+from acitoolkit.acitoolkit import *
+import sys
 
 LOGIN = 'admin'
-PASSWORD = 'ins3965!'
-URL = 'http://172.23.102.91:80/'
+PASSWORD = 'password'
+URL = 'http://1.2.3.4:80/'
 DRYRUN = False
+
+if URL == 'http://1.2.3.4:80/':
+    print 'Please edit the login details within this example file before running.'
+    sys.exit(0)
 
 session = Session(URL, LOGIN, PASSWORD, DRYRUN)
 session.login()

@@ -25,7 +25,7 @@ interface using the VLAN encapsulation specified.
 Before running, please make sure that the credentials.py
 file has the URL, LOGIN, and PASSWORD set for your APIC environment.
 """
-import acitoolkit as ACI
+import acitoolkit.acitoolkit as ACI
 import credentials
 
 # Define static values to pass (edit these if you wish to set differently)

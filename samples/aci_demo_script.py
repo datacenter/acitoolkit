@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from acitoolkit import *
+from acitoolkit.acitoolkit import *
 from credentials import *
 
 def send_to_apic(tenant):

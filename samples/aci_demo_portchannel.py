@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from acitoolkit import *
+from acitoolkit.acitoolkit import *
 
 # Create the physical interface objects
 intf1 = Interface('eth','1','101','1','38')

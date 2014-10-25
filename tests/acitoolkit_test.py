@@ -15,7 +15,7 @@
 #
 """ACI Toolkit Test module
 """
-from acitoolkit import *
+from acitoolkit.acitoolkit import *
 import unittest
 import string
 import random
@@ -388,11 +388,11 @@ class TestL2Interface(unittest.TestCase):
 
     def test_path(self):
         l2if = L2Interface('vlan5_on_eth1/1/1/1', 'vlan', '5')
-        self.assertTrue(l2if.get_path() is None)
+        self.assertTrue(l2if._get_path() is None)
 
         physif = Interface('eth', '1', '1', '1', '1')
         l2if.attach(physif)
-        self.assertTrue(l2if.get_path() is not None)
+        self.assertTrue(l2if._get_path() is not None)
 
 
 class TestL3Interface(unittest.TestCase):
@@ -910,7 +910,7 @@ class TestPortChannel(unittest.TestCase):
         # Remove the 3rd interface
         pc.detach(if3)
         self.assertFalse(pc.is_vpc())
-        path = pc.get_path()
+        path = pc._get_path()
         self.assertTrue(isinstance(path, str))
         fabric, infra = pc.get_json()
         self.assertTrue(fabric is None)
@@ -1042,7 +1042,7 @@ class TestLiveInterface(TestLiveAPIC):
             self.assertTrue(isinstance(interface, Interface))
             interface_as_a_string = str(interface)
             self.assertTrue(isinstance(interface_as_a_string, str))
-            path = interface.get_path()
+            path = interface._get_path()
             self.assertTrue(isinstance(path, str))
 
 

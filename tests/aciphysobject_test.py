@@ -13,10 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from acisession import Session
+from acitoolkit.acisession import Session
 from credentials import *
-from acitoolkit import *
-from aciphysobject import *
+from acitoolkit.acitoolkit import *
+from acitoolkit.aciphysobject import *
 import sys
 import unittest
 LIVE_TEST = False

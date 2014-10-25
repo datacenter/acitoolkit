@@ -14,7 +14,7 @@
 #    under the License.
 #
 """  Main ACI Toolkit module
-     This is the main module that comprises the ACI Toolkit
+     This is the main module that comprises the ACI Toolkit.
 """
 from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
@@ -24,31 +24,38 @@ import logging
 
 
 class Tenant(BaseACIObject):
-    """ Tenant :  roughly equivalent to fvTenant """
+    """
+    The Tenant class is used to represent the tenants within the acitoolkit
+    object model.  In the APIC model, this class is roughly equivalent to
+    the fvTenant class.
+    """
     def get_json(self):
-        """ Returns json representation of the fvTenant object
+        """
+        Returns json representation of the fvTenant object
 
-        INPUT:
-        RETURNS: json dictionary of fvTenant
+        :returns: A json dictionary of fvTenant
         """
         attr = self._generate_attributes()
         return super(Tenant, self).get_json('fvTenant', attributes=attr)
 
     @classmethod
     def get(cls, session):
-        """Gets all of the tenants from the APIC.
+        """
+        Gets all of the tenants from the APIC.
 
-        INPUT: session
-        RETURNS: List of Tenant objects
+        :param session: the instance of Session used for APIC communication
+        :returns: a list of Tenant objects
         """
         return BaseACIObject.get(session, cls, 'fvTenant')
 
     @classmethod
     def exists(cls, session, tenant):
-        """Check if a tenant exists on the APIC.
+        """
+        Check if a tenant exists on the APIC.
 
-        INPUT: session, tenant
-        RETURNS: boolean
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant to check if exists on the APIC
+        :returns: True or False
         """
         apic_tenants = cls.get(session)
         for apic_tenant in apic_tenants:
@@ -58,28 +65,39 @@ class Tenant(BaseACIObject):
 
     @staticmethod
     def get_url(fmt='json'):
-        """Get the URL used to push the configuration to the APIC
-        if no fmt parameter is specified, the format will be 'json'
-        otherwise it will return '/api/mo/uni.' with the fmt string appended.
+        """
+        Get the URL used to push the configuration to the APIC
+        if no format parameter is specified, the format will be 'json'
+        otherwise it will return '/api/mo/uni.' with the format string
+        appended.
 
-        INPUT: optional fmt string
-        RETURNS: URL string
+        :param fmt: optional format string, default is 'json'
+        :returns: URL string
         """
         return '/api/mo/uni.' + fmt
 
 
 class AppProfile(BaseACIObject):
-    """ AppProfile :  roughly equivalent to fvAp """
+    """
+    The AppProfile class is used to represent the Application Profiles within
+    the acitoolkit object model.  In the APIC model, this class is roughly
+    equivalent to the fvAp class.
+    """
     def __init__(self, name, parent):
+        """
+        :param name: String containing the Application Profile name
+        :param parent: An instance of Tenant class representing the Tenant\
+        which contains this Application Profile.
+        """
         if not isinstance(parent, Tenant):
             raise TypeError('Parent must be of Tenant class')
         super(AppProfile, self).__init__(name, parent)
 
     def get_json(self):
-        """ Returns json representation of the fvAp object
+        """
+        Returns json representation of the AppProfile object.
 
-        INPUT:
-        RETURNS: json dictionary of fvAp
+        :returns: json dictionary of fvAp
         """
         attr = self._generate_attributes()
         return super(AppProfile, self).get_json('fvAp', attributes=attr)
@@ -88,8 +106,10 @@ class AppProfile(BaseACIObject):
     def get(cls, session, tenant):
         """Gets all of the Application Profiles from the APIC.
 
-        INPUT: session, tenant
-        RETURNS: List of AppProfile objects
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the Application\
+        Profiles retreived from the APIC
+        :returns: List of AppProfile objects
         """
         return BaseACIObject.get(session, cls, 'fvAp', parent=tenant,
                                  tenant=tenant)
@@ -99,10 +119,19 @@ class AppProfile(BaseACIObject):
 
 
 class L2Interface(BaseACIObject):
-    """ Creates a L2 interface that can be attached to a physical interface.
-        This interface defines the L2 encapsulation i.e. VLAN, VXLAN, or NVGRE
+    """ The L2Interface class creates an logical L2 interface that can be\
+        attached to a physical interface. This interface defines the L2\
+        encapsulation i.e. VLAN, VXLAN, or NVGRE
     """
     def __init__(self, name, encap_type, encap_id):
+        """
+        :param name: String containing the L2Interface instance name
+        :param encap_type: String containing the encapsulation type.\
+        Valid values are 'VLAN', 'VXLAN', or 'NVGRE'.
+        :param encap_id: String containing the encapsulation specific\
+        identifier representing the virtual L2 network (i.e. for VXLAN,\
+        this is the numeric value of the VNID).
+        """
         super(L2Interface, self).__init__(name)
         if encap_type not in ('vlan', 'vxlan', 'nvgre'):
             raise ValueError("Encap type must be one of 'vlan',"
@@ -111,28 +140,42 @@ class L2Interface(BaseACIObject):
         self.encap_id = encap_id
 
     def is_interface(self):
+        """
+        Returns whether this instance is considered an interface.
+
+        :returns: True
+        """
         return True
 
     def get_encap_type(self):
-        """Get the encap_type of the L2 interface.
-           Valid values are 'vlan', 'vxlan', and 'nvgre'
+        """
+        Get the encap_type of the L2 interface.
+        Valid values are 'vlan', 'vxlan', and 'nvgre'
+
+        :returns: String containing encap_type value.
         """
         return self.encap_type
 
     def get_encap_id(self):
-        """Get the encap_id of the L2 interface.
-           The value is returned as a string and depends on the encap_type
-           (i.e. VLAN VID, VXLAN VNID, or NVGRE VSID)
+        """
+        Get the encap_id of the L2 interface.
+        The value is returned as a string and depends on the encap_type
+        (i.e. VLAN VID, VXLAN VNID, or NVGRE VSID)
+
+        :returns: String containing encapsulation identifier value.
         """
         return self.encap_id
 
-    def get_path(self):
-        """Get the path of this interface used when communicating with
-           the APIC object model.
+    def _get_path(self):
+        """
+        Get the path of this interface used when communicating with\
+        the APIC object model.
+
+        :returns: String containing the path
         """
         for relation in self._relations:
             if relation.item.is_interface():
-                return relation.item.get_path()
+                return relation.item._get_path()
 
 
 class CommonEPG(BaseACIObject):
@@ -328,7 +371,7 @@ class EPG(CommonEPG):
             text = {'fvRsPathAtt': {'attributes':
                                     {'encap': '%s-%s' % (interface.encap_type,
                                                          interface.encap_id),
-                                     'tDn': interface.get_path()}}}
+                                     'tDn': interface._get_path()}}}
             children.append(text)
         if is_interfaces:
             text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
@@ -338,7 +381,7 @@ class EPG(CommonEPG):
         for vmm in self.get_all_attached(VMM):
             is_vmms = True
             text = {'fvRsDomAtt': {'attributes':
-                                   {'tDn': vmm.get_path(),
+                                   {'tDn': vmm._get_path(),
                                     'resImedcy': 'immediate'}}}
             children.append(text)
 
@@ -347,7 +390,7 @@ class EPG(CommonEPG):
                                     {'encap': '%s-%s' % (interface.encap_type,
                                                          interface.encap_id),
                                      'status': 'deleted',
-                                     'tDn': interface.get_path()}}}
+                                     'tDn': interface._get_path()}}}
             children.append(text)
         attr = self._generate_attributes()
         return super(EPG, self).get_json('fvAEPg',
@@ -476,7 +519,7 @@ class L3Interface(BaseACIObject):
                                       self.get_interfaces()[0].encap_id),
                   'ifInstT': self.get_l3if_type(),
                   'addr': self.get_addr(),
-                  'tDn': self.get_interfaces()[0].get_path()},
+                  'tDn': self.get_interfaces()[0]._get_path()},
                  'children': []}}
         return text
 
@@ -1003,10 +1046,10 @@ class Interface(BaseInterface):
 
         if self.adminstatus != '':
             adminstatus_attributes = {}
-            adminstatus_attributes['tDn'] = self.get_path()
+            adminstatus_attributes['tDn'] = self._get_path()
             if self.adminstatus == 'up':
                 admin_dn = 'uni/fabric/outofsvc/rsoosPath-['
-                admin_dn = admin_dn + self.get_path() + ']'
+                admin_dn = admin_dn + self._get_path() + ']'
                 adminstatus_attributes['dn'] = admin_dn
                 adminstatus_attributes['status'] = 'deleted'
             else:
@@ -1027,7 +1070,7 @@ class Interface(BaseInterface):
 
         return phys_domain, fabric, infra
 
-    def get_path(self):
+    def _get_path(self):
         """Get the path of this interface used when communicating with
            the APIC object model.
         """
@@ -1152,7 +1195,7 @@ class PortChannel(BaseInterface):
         """
         return self._nodes
 
-    def get_path(self):
+    def _get_path(self):
         """Get the path of this interface used when communicating with
            the APIC object model.
         """
@@ -1338,7 +1381,7 @@ class VMM(BaseACIObject):
         self.vswitch_info = vswitch_info
         self.network_pool = network_pool
 
-    def get_path(self):
+    def _get_path(self):
         return 'uni/vmmp-%s/dom-%s' % (self.vswitch_info.vendor,
                                        self.vswitch_info.vswitch_name)
 

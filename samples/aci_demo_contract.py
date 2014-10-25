@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from acitoolkit import *
+from acitoolkit.acitoolkit import *
 from credentials import *
 """ Create 2 EPGs within the same Context and have
     1 EPG provide a contract to the other EPG.
