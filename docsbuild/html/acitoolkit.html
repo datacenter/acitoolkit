@@ -112,6 +112,7 @@ This is the main module that comprises the ACI Toolkit.</p>
 <p>The AppProfile class is used to represent the Application Profiles within
 the acitoolkit object model.  In the APIC model, this class is roughly
 equivalent to the fvAp class.</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -124,6 +125,8 @@ equivalent to the fvAp class.</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="acitoolkit.AppProfile.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.AppProfile.get" title="Permalink to this definition">¶</a></dt>
@@ -134,7 +137,11 @@ equivalent to the fvAp class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<<<<<<< HEAD
 <li><strong>tenant</strong> &#8211; the instance of Tenant used to limit the Application                       Profiles retreived from the APIC</li>
+=======
+<li><strong>tenant</strong> &#8211; the instance of Tenant used to limit the Application        Profiles retreived from the APIC</li>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </ul>
 </td>
 </tr>
@@ -198,6 +205,7 @@ Valid values are &#8216;context&#8217;, &#8216;global&#8217;, &#8216;tenant&#821
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Abstract class used to provide base functionality to other Interface
 classes.</p>
+<<<<<<< HEAD
 <p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -211,6 +219,8 @@ classes.</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="method">
 <dt id="acitoolkit.BaseInterface.get_port_channel_selector_json">
 <tt class="descname">get_port_channel_selector_json</tt><big>(</big><em>port_name</em><big>)</big><a class="headerlink" href="#acitoolkit.BaseInterface.get_port_channel_selector_json" title="Permalink to this definition">¶</a></dt>
@@ -298,6 +308,7 @@ RETURNS: json dictionary of bridge domain</p>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Base class for EPG and OutsideEPG.
 Not meant to be instantiated directly</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -310,6 +321,8 @@ Not meant to be instantiated directly</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.consume">
 <tt class="descname">consume</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.consume" title="Permalink to this definition">¶</a></dt>
@@ -320,16 +333,23 @@ Not meant to be instantiated directly</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>contract</strong> &#8211; Contract class instance to be consumed by this EPG.</td>
 </tr>
+<<<<<<< HEAD
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True</td>
 </tr>
 </tbody>
 </table>
+=======
+</tbody>
+</table>
+<p>RETURNS: True</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.does_consume">
 <tt class="descname">does_consume</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.does_consume" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if this EPG consumes a specific Contract</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -340,11 +360,16 @@ Not meant to be instantiated directly</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT: Contract
+RETURNS: boolean</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.does_provide">
 <tt class="descname">does_provide</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.does_provide" title="Permalink to this definition">¶</a></dt>
+<<<<<<< HEAD
 <dd><p>Check if this EPG provides a specific Contract.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -356,6 +381,12 @@ Not meant to be instantiated directly</p>
 </tr>
 </tbody>
 </table>
+=======
+<dd><p>Check if this EPG provides a specific Contract.
+True if the EPG does provide the Contract</p>
+<p>INPUT: Contract
+RETURNS: boolean</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
@@ -363,6 +394,7 @@ Not meant to be instantiated directly</p>
 <tt class="descname">dont_consume</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.dont_consume" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make this EPG not consume a Contract.  It does not check to see
 if the Contract was already consumed</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -373,12 +405,17 @@ if the Contract was already consumed</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT: Contract
+RETURNS: True</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.dont_provide">
 <tt class="descname">dont_provide</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.dont_provide" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make this EPG not provide a Contract</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -389,12 +426,17 @@ if the Contract was already consumed</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT: Contract
+RETURNS: True</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="classmethod">
 <dt id="acitoolkit.CommonEPG.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets all of the EPGs from the APIC.</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -411,12 +453,17 @@ if the Contract was already consumed</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT: session, parent, Tenant
+RETURNS: List of CommonEPG</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.get_all_consumed">
 <tt class="descname">get_all_consumed</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get_all_consumed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get all of the Contracts consumed by this EPG</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -425,12 +472,17 @@ if the Contract was already consumed</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT:
+RETURNS: List of Contract objects</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.get_all_provided">
 <tt class="descname">get_all_provided</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get_all_provided" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get all of the Contracts provided by this EPG</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -439,11 +491,16 @@ if the Contract was already consumed</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT:
+RETURNS: List of Contract objects</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.get_interfaces">
 <tt class="descname">get_interfaces</tt><big>(</big><em>status='attached'</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.get_interfaces" title="Permalink to this definition">¶</a></dt>
+<<<<<<< HEAD
 <dd><p>Get all of the interfaces that this EPG is attached.
 The default is to get list of &#8216;attached&#8217; interfaces.
 If &#8216;status&#8217; is set to &#8216;detached&#8217; it will return the list of
@@ -460,12 +517,21 @@ pushed to the APIC.)</p>
 </tr>
 </tbody>
 </table>
+=======
+<dd><p>Get all of the interfaces that this EPG is attached
+The default is to get list of &#8216;attached&#8217; interfaces.
+If &#8216;status&#8217; is set to &#8216;detached&#8217; it will return the list of
+detached Interface objects</p>
+<p>INPUT: [status] defaults to &#8216;attached&#8217;
+RETURNS: List of Interface objects</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.CommonEPG.provide">
 <tt class="descname">provide</tt><big>(</big><em>contract</em><big>)</big><a class="headerlink" href="#acitoolkit.CommonEPG.provide" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make this EPG provide a Contract</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -476,6 +542,10 @@ pushed to the APIC.)</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT: Contract
+RETURNS: True</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 </dd></dl>
@@ -533,6 +603,7 @@ When set, contracts will not be enforced in this context.</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">EPG</tt><big>(</big><em>epg_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.EPG" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#acitoolkit.CommonEPG" title="acitoolkit.CommonEPG"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.CommonEPG</span></tt></a></p>
 <p>EPG :  roughly equivalent to fvAEPg</p>
+<<<<<<< HEAD
 <p>Initializes the EPG with a name and, optionally,
 an AppProfile parent.
 If the parent is specified and is not an AppProfile,
@@ -549,10 +620,13 @@ an error will occur.</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="method">
 <dt id="acitoolkit.EPG.add_bd">
 <tt class="descname">add_bd</tt><big>(</big><em>bridgedomain</em><big>)</big><a class="headerlink" href="#acitoolkit.EPG.add_bd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add BridgeDomain to the EPG, roughly equivalent to fvRsBd</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -561,11 +635,16 @@ an error will occur.</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT: BridgeDomain
+RETURNS:</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.EPG.get_bd">
 <tt class="descname">get_bd</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.get_bd" title="Permalink to this definition">¶</a></dt>
+<<<<<<< HEAD
 <dd><p>Return the assigned BridgeDomain.
 There should only be one item in the returned list.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -576,12 +655,21 @@ There should only be one item in the returned list.</p>
 </tr>
 </tbody>
 </table>
+=======
+<dd><dl class="docutils">
+<dt>Return the assigned BridgeDomain.</dt>
+<dd>There should only be one item in the returned list.</dd>
+</dl>
+<p>INPUT:
+RETURNS: List of BridgeDomain objects</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.EPG.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of the EPG</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -590,12 +678,17 @@ There should only be one item in the returned list.</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT:
+RETURNS: json dictionary of the EPG</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.EPG.has_bd">
 <tt class="descname">has_bd</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.has_bd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if a BridgeDomain has been assigned to the EPG</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -604,13 +697,27 @@ There should only be one item in the returned list.</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT:
+RETURNS: boolean</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.EPG.remove_bd">
 <tt class="descname">remove_bd</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.EPG.remove_bd" title="Permalink to this definition">¶</a></dt>
+<<<<<<< HEAD
 <dd><p>Remove BridgeDomain from the EPG.
 Note that there should only be one BridgeDomain attached to the EPG.</p>
+=======
+<dd><dl class="docutils">
+<dt>Remove BridgeDomain from the EPG.</dt>
+<dd>Note that there should only be one BridgeDomain attached
+to the EPG.</dd>
+</dl>
+<p>INPUT:
+RETURNS:</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 </dd></dl>
@@ -619,6 +726,7 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 <dt id="acitoolkit.Endpoint">
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Endpoint</tt><big>(</big><em>name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Endpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<<<<<<< HEAD
 <p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -632,6 +740,8 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="staticmethod">
 <dt id="acitoolkit.Endpoint.get">
 <em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.Endpoint.get" title="Permalink to this definition">¶</a></dt>
@@ -723,6 +833,7 @@ distinguished name of the interface.</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">L2Interface</tt><big>(</big><em>name</em>, <em>encap_type</em>, <em>encap_id</em><big>)</big><a class="headerlink" href="#acitoolkit.L2Interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>The L2Interface class creates an logical L2 interface that can be        attached to a physical interface. This interface defines the L2        encapsulation i.e. VLAN, VXLAN, or NVGRE</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -736,6 +847,8 @@ distinguished name of the interface.</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="method">
 <dt id="acitoolkit.L2Interface.get_encap_id">
 <tt class="descname">get_encap_id</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L2Interface.get_encap_id" title="Permalink to this definition">¶</a></dt>
@@ -787,6 +900,7 @@ Valid values are &#8216;vlan&#8217;, &#8216;vxlan&#8217;, and &#8216;nvgre&#8217
 <dt id="acitoolkit.L3Interface">
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">L3Interface</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
+<<<<<<< HEAD
 <p>Creates an L3 interface that can be attached to an L2 interface.
 This interface defines the L3 address i.e. IPv4</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -797,10 +911,15 @@ This interface defines the L3 address i.e. IPv4</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>Creates a L3 interface that can be attached to a L2 interface.
+This interface defines the L3 address i.e. IPv4</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="method">
 <dt id="acitoolkit.L3Interface.add_context">
 <tt class="descname">add_context</tt><big>(</big><em>context</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.add_context" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add context to the EPG</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -809,6 +928,8 @@ This interface defines the L3 address i.e. IPv4</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
@@ -816,6 +937,7 @@ This interface defines the L3 address i.e. IPv4</p>
 <tt class="descname">get_addr</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_addr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the L3 address assigned to this interface.
 The address is set via the L3Interface.set_addr() method</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -824,12 +946,17 @@ The address is set via the L3Interface.set_addr() method</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT:
+RETURNS: Address</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.L3Interface.get_context">
 <tt class="descname">get_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_context" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the assigned context</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -838,6 +965,8 @@ The address is set via the L3Interface.set_addr() method</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
@@ -851,6 +980,7 @@ RETURNS: json dictionary of L3Interface</p>
 <dl class="method">
 <dt id="acitoolkit.L3Interface.get_l3if_type">
 <tt class="descname">get_l3if_type</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_l3if_type" title="Permalink to this definition">¶</a></dt>
+<<<<<<< HEAD
 <dd><p>Get the l3if_type of this L3 interface.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -860,12 +990,17 @@ RETURNS: json dictionary of L3Interface</p>
 </tr>
 </tbody>
 </table>
+=======
+<dd><p>Get the l3if_type of this L3 interface.
+Valid values are &#8216;sub-interface&#8217;, &#8216;l3-port&#8217;, and &#8216;ext-svi&#8217;</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.L3Interface.has_context">
 <tt class="descname">has_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.has_context" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if the context has been assigned</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -874,12 +1009,15 @@ RETURNS: json dictionary of L3Interface</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.L3Interface.is_interface">
 <tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.is_interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if this is an interface object.</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -888,6 +1026,10 @@ RETURNS: json dictionary of L3Interface</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUTS:
+RETURNS: True</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
@@ -900,6 +1042,7 @@ RETURNS: json dictionary of L3Interface</p>
 <dt id="acitoolkit.L3Interface.set_addr">
 <tt class="descname">set_addr</tt><big>(</big><em>addr</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.set_addr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the L3 address assigned to this interface</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -908,11 +1051,16 @@ RETURNS: json dictionary of L3Interface</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT: L3 address
+RETURNS:</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.L3Interface.set_l3if_type">
 <tt class="descname">set_l3if_type</tt><big>(</big><em>l3if_type</em><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.set_l3if_type" title="Permalink to this definition">¶</a></dt>
+<<<<<<< HEAD
 <dd><p>Set the l3if_type of this L3 interface.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -922,6 +1070,10 @@ RETURNS: json dictionary of L3Interface</p>
 </tr>
 </tbody>
 </table>
+=======
+<dd><p>Set the l3if_type of this L3 interface.
+Valid values are &#8216;sub-interface&#8217;, &#8216;l3-port&#8217;, and &#8216;ext-svi&#8217;</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 </dd></dl>
@@ -977,6 +1129,7 @@ RETURNS: json dictionary of OSPFInterface</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">OutsideEPG</tt><big>(</big><em>epg_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.OutsideEPG" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#acitoolkit.CommonEPG" title="acitoolkit.CommonEPG"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.CommonEPG</span></tt></a></p>
 <p>Represents the EPG for external connectivity</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -989,10 +1142,13 @@ RETURNS: json dictionary of OSPFInterface</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="method">
 <dt id="acitoolkit.OutsideEPG.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OutsideEPG.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of OutsideEPG</p>
+<<<<<<< HEAD
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1001,6 +1157,10 @@ RETURNS: json dictionary of OSPFInterface</p>
 </tr>
 </tbody>
 </table>
+=======
+<p>INPUT:
+RETURNS: json dictionary of OutsideEPG</p>
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 </dd></dl>
 
 </dd></dl>
@@ -1115,6 +1275,7 @@ RETURNS: json dictionary of subnet</p>
 <p>The Tenant class is used to represent the tenants within the acitoolkit
 object model.  In the APIC model, this class is roughly equivalent to
 the fvTenant class.</p>
+<<<<<<< HEAD
 <p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1128,6 +1289,8 @@ the fvTenant class.</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="acitoolkit.Tenant.exists">
 <em class="property">classmethod </em><tt class="descname">exists</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.Tenant.exists" title="Permalink to this definition">¶</a></dt>

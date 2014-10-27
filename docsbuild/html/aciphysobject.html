@@ -110,8 +110,11 @@
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">BaseACIPhysModule</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.BaseACIPhysModule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysObject" title="aciphysobject.BaseACIPhysObject"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysObject</span></tt></a></p>
 <p>BaseACIPhysModule: base class for modules</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.  This should be called by the
 init routines of inheriting subclasses.</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="aciphysobject.BaseACIPhysModule.get_obj">
 <em class="property">classmethod </em><tt class="descname">get_obj</tt><big>(</big><em>session</em>, <em>apic_class</em>, <em>parent</em><big>)</big><a class="headerlink" href="#aciphysobject.BaseACIPhysModule.get_obj" title="Permalink to this definition">¶</a></dt>
@@ -141,6 +144,7 @@ OUTPUT: list of module objects derived from the specified apic_class</p>
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">BaseACIPhysObject</tt><big>(</big><em>name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.BaseACIPhysObject" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Base class for physical objects</p>
+<<<<<<< HEAD
 <p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -154,6 +158,8 @@ OUTPUT: list of module objects derived from the specified apic_class</p>
 </tr>
 </tbody>
 </table>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="method">
 <dt id="aciphysobject.BaseACIPhysObject.add_child">
 <tt class="descname">add_child</tt><big>(</big><em>child_obj</em><big>)</big><a class="headerlink" href="#aciphysobject.BaseACIPhysObject.add_child" title="Permalink to this definition">¶</a></dt>
@@ -235,8 +241,11 @@ RETURNS: Nothing - physical objects are not modifiable</p>
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">Fantray</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Fantray" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysModule" title="aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysModule</span></tt></a></p>
 <p>class for the fan tray of a node</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.  It will create the name of the fan tray and set the type
 before calling the base class __init__ method</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="aciphysobject.Fantray.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Fantray.get" title="Permalink to this definition">¶</a></dt>
@@ -259,12 +268,15 @@ children of the the parent.  The fantrays will also be added as children to the 
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">Linecard</tt><big>(</big><em>arg0=None</em>, <em>arg1=None</em>, <em>slot=None</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Linecard" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysModule" title="aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysModule</span></tt></a></p>
 <p>class for a linecard of a switch</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.  It will create the name of the linecard and set the type
 before calling the base class __init__ method.  If arg1 is an instance of a Node, then pod,
 and node are derived from the Node and the slot_id is from arg0.  If arg1 is not a Node, then arg0
 is the pod, arg1 is the node id, and slot is the slot_id</p>
 <p>INPUT: arg0=str, arg0=[str,Node], [slot=str], [parent=Node]</p>
 <p>RETURNS: None</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="aciphysobject.Linecard.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Linecard.get" title="Permalink to this definition">¶</a></dt>
@@ -370,7 +382,10 @@ most easily be done by populating the entire physical heirarchy from the Pod dow
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">Node</tt><big>(</big><em>pod=None</em>, <em>node=None</em>, <em>name=None</em>, <em>role=None</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Node" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysObject" title="aciphysobject.BaseACIPhysObject"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysObject</span></tt></a></p>
 <p>Node :  roughly equivalent to eqptNode</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="staticmethod">
 <dt id="aciphysobject.Node.get">
 <em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Node.get" title="Permalink to this definition">¶</a></dt>
@@ -414,8 +429,11 @@ This is a chassis type that is compatible with Cisco&#8217;s Cable Plan XML.</p>
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">Pod</tt><big>(</big><em>pod_id</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Pod" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysObject" title="aciphysobject.BaseACIPhysObject"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysObject</span></tt></a></p>
 <p>Pod :  roughly equivalent to fabricPod</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.  It will create the name of the pod and set the type
 before calling the base class __init__ method.  Typically the pod_id will be 1.</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="staticmethod">
 <dt id="aciphysobject.Pod.get">
 <em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#aciphysobject.Pod.get" title="Permalink to this definition">¶</a></dt>
@@ -438,8 +456,11 @@ populated as children of the pod.</p>
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">Powersupply</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Powersupply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysModule" title="aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysModule</span></tt></a></p>
 <p>class for a power supply in a node</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.  It will create the name of the powersupply and set the type
 before calling the base class __init__ method</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="aciphysobject.Powersupply.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Powersupply.get" title="Permalink to this definition">¶</a></dt>
@@ -462,8 +483,11 @@ children of the the parent.  The power supplies will also be added as children t
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">Supervisorcard</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Supervisorcard" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysModule" title="aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysModule</span></tt></a></p>
 <p>class representing the supervisor card of a switch</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.  This should be called by the
 init routines of inheriting subclasses.</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="aciphysobject.Supervisorcard.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Supervisorcard.get" title="Permalink to this definition">¶</a></dt>
@@ -481,8 +505,11 @@ a child of the the parent Node.  The supervisor will also be added as a child to
 <em class="property">class </em><tt class="descclassname">aciphysobject.</tt><tt class="descname">Systemcontroller</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Systemcontroller" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#aciphysobject.BaseACIPhysModule" title="aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">aciphysobject.BaseACIPhysModule</span></tt></a></p>
 <p>class of the motherboard of the APIC controller node</p>
+<<<<<<< HEAD
 <p>Initialize the basic object.  It will create the name of the Systemcontroller and set the type
 before calling the base class __init__ method.</p>
+=======
+>>>>>>> a1a5b0eef2e5f70879a03709f661754305ab0a68
 <dl class="classmethod">
 <dt id="aciphysobject.Systemcontroller.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#aciphysobject.Systemcontroller.get" title="Permalink to this definition">¶</a></dt>
