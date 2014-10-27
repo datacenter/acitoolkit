@@ -68,9 +68,11 @@ class Session(object):
         Push the object data to the APIC
 
         :param url: String containing the URL that will be used to\
-        send the object data to the APIC.
+                    send the object data to the APIC.
+        :param data: Dictionary containing the JSON objects to be sent\
+                     to the APIC.
         :returns: Response class instance from the requests library.\
-        response.ok is True if request is sent successfully.
+                  response.ok is True if request is sent successfully.
         """
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)

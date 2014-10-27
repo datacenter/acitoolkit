@@ -87,7 +87,7 @@ class AppProfile(BaseACIObject):
         """
         :param name: String containing the Application Profile name
         :param parent: An instance of Tenant class representing the Tenant\
-        which contains this Application Profile.
+                       which contains this Application Profile.
         """
         if not isinstance(parent, Tenant):
             raise TypeError('Parent must be of Tenant class')
@@ -108,7 +108,7 @@ class AppProfile(BaseACIObject):
 
         :param session: the instance of Session used for APIC communication
         :param tenant: the instance of Tenant used to limit the Application\
-        Profiles retreived from the APIC
+                       Profiles retreived from the APIC
         :returns: List of AppProfile objects
         """
         return BaseACIObject.get(session, cls, 'fvAp', parent=tenant,
@@ -179,18 +179,25 @@ class L2Interface(BaseACIObject):
 
 
 class CommonEPG(BaseACIObject):
-    """ Base class for EPG and OutsideEPG.
-        Not meant to be instantiated directly
+    """
+    Base class for EPG and OutsideEPG.
+    Not meant to be instantiated directly
     """
     def __init__(self, epg_name, parent=None):
+        """
+        :param epg_name: String containing the name of this EPG
+        :param parent: Instance of the AppProfile class representing\
+                       the Application Profile where this EPG is contained.
+        """
         super(CommonEPG, self).__init__(epg_name, parent)
 
     # Contract references
     def provide(self, contract):
-        """ Make this EPG provide a Contract
+        """
+        Make this EPG provide a Contract
 
-        INPUT: Contract
-        RETURNS: True
+        :param contract: Instance of Contract class to be provided by this EPG.
+        :returns: True
         """
         if self.does_provide(contract):
             return True
@@ -198,35 +205,39 @@ class CommonEPG(BaseACIObject):
         return True
 
     def does_provide(self, contract):
-        """ Check if this EPG provides a specific Contract.
-        True if the EPG does provide the Contract
+        """
+        Check if this EPG provides a specific Contract.
 
-        INPUT: Contract
-        RETURNS: boolean
+        :param contract: Instance of Contract class to check if it is\
+                         provided by this EPG.
+        :returns: True or False.  True if the EPG does provide the Contract.
         """
         return self._has_relation(contract, 'provided')
 
     def dont_provide(self, contract):
-        """ Make this EPG not provide a Contract
+        """
+        Make this EPG not provide a Contract
 
-        INPUT: Contract
-        RETURNS: True
+        :param contract: Instance of Contract class to be no longer provided\
+                         by this EPG.
+        :returns: True
         """
         self._remove_relation(contract, 'provided')
 
     def get_all_provided(self):
-        """Get all of the Contracts provided by this EPG
+        """
+        Get all of the Contracts provided by this EPG
 
-        INPUT:
-        RETURNS: List of Contract objects
+        :returns: List of Contract objects that are provided by the EPG.
         """
         return self._get_all_relation(Contract, 'provided')
 
     def consume(self, contract):
-        """ Make this EPG consume a Contract
+        """
+        Make this EPG consume a Contract
 
         :param contract: Contract class instance to be consumed by this EPG.
-        RETURNS: True
+        :returns: True
         """
 
         if self.does_consume(contract):
@@ -235,39 +246,46 @@ class CommonEPG(BaseACIObject):
         return True
 
     def does_consume(self, contract):
-        """ Check if this EPG consumes a specific Contract
+        """
+        Check if this EPG consumes a specific Contract
 
-        INPUT: Contract
-        RETURNS: boolean
+        :param contract: Instance of Contract class to check if it is\
+                         consumed by this EPG.
+        :returns: True or False.  True if the EPG does consume the Contract.
         """
         return self._has_relation(contract, 'consumed')
 
     def dont_consume(self, contract):
-        """ Make this EPG not consume a Contract.  It does not check to see
+        """
+        Make this EPG not consume a Contract.  It does not check to see
         if the Contract was already consumed
 
-        INPUT: Contract
-        RETURNS: True
+        :param contract: Instance of Contract class to be no longer consumed\
+                         by this EPG.
+        :returns: True
         """
         self._remove_relation(contract, 'consumed')
         return True
 
     def get_all_consumed(self):
-        """Get all of the Contracts consumed by this EPG
+        """
+        Get all of the Contracts consumed by this EPG
 
-        INPUT:
-        RETURNS: List of Contract objects
+        :returns: List of Contract objects that are consumed by the EPG.        
         """
         return self._get_all_relation(Contract, 'consumed')
 
     def get_interfaces(self, status='attached'):
-        """Get all of the interfaces that this EPG is attached
+        """
+        Get all of the interfaces that this EPG is attached.
         The default is to get list of 'attached' interfaces.
         If 'status' is set to 'detached' it will return the list of
-        detached Interface objects
+        detached Interface objects (Those EPGs which are no longer
+        attached to an Interface, but the configuration is not yet
+        pushed to the APIC.)
 
-        INPUT: [status] defaults to 'attached'
-        RETURNS: List of Interface objects
+        :param status: 'attached' or 'detached'.  Defaults to 'attached'.
+        :returns: List of Interface objects
         """
 
         resp = []
@@ -293,8 +311,13 @@ class CommonEPG(BaseACIObject):
     def get(cls, session, parent, tenant):
         """Gets all of the EPGs from the APIC.
 
-        INPUT: session, parent, Tenant
-        RETURNS: List of CommonEPG
+        :param session: the instance of Session used for APIC communication
+        :param parent: Instance of the AppProfile class used to limit the EPGs\
+                       retreived from the APIC.
+        :param tenant: Instance of Tenant class used to limit the EPGs\
+                       retreived from the APIC.
+        :returns: List of CommonEPG instances (or EPG instances if called\
+                  from EPG class)
         """
         return BaseACIObject.get(session, cls, 'fvAEPg', parent, tenant)
 
@@ -302,13 +325,15 @@ class CommonEPG(BaseACIObject):
 class EPG(CommonEPG):
     """ EPG :  roughly equivalent to fvAEPg """
     def __init__(self, epg_name, parent=None):
-        """Initializes the EPG with a name and, optionally,
-           an AppProfile parent.
-           If the parent is specified and is not an AppProfile,
-           an error will occur.
+        """
+        Initializes the EPG with a name and, optionally,
+        an AppProfile parent.
+        If the parent is specified and is not an AppProfile,
+        an error will occur.
 
-        INPUT: string, [AppProfile]
-        RETURNS:
+        :param epg_name: String containing the name of the EPG.
+        :param parent: Instance of the AppProfile class representing\
+                       the Application Profile where this EPG is contained.
         """
         if not isinstance(parent, AppProfile):
             raise TypeError('Parent must be instance of AppProfile')
@@ -316,10 +341,13 @@ class EPG(CommonEPG):
 
     # Bridge Domain references
     def add_bd(self, bridgedomain):
-        """ Add BridgeDomain to the EPG, roughly equivalent to fvRsBd
+        """
+        Add BridgeDomain to the EPG, roughly equivalent to fvRsBd
 
-        INPUT: BridgeDomain
-        RETURNS:
+        :param bridgedomain: Instance of BridgeDomain class.  Represents\
+                             the BridgeDomain that this EPG will be assigned.\
+                             An EPG can only be assigned to a single\
+                             BridgeDomain.
         """
         if not isinstance(bridgedomain, BridgeDomain):
             raise TypeError('add_bd not called with BridgeDomain')
@@ -327,38 +355,36 @@ class EPG(CommonEPG):
         self._add_relation(bridgedomain)
 
     def remove_bd(self):
-        """ Remove BridgeDomain from the EPG.
-            Note that there should only be one BridgeDomain attached
-            to the EPG.
-        INPUT:
-        RETURNS:
+        """
+        Remove BridgeDomain from the EPG.
+        Note that there should only be one BridgeDomain attached to the EPG.
         """
         self._remove_all_relation(BridgeDomain)
 
     def get_bd(self):
-        """ Return the assigned BridgeDomain.
-            There should only be one item in the returned list.
-
-        INPUT:
-        RETURNS: List of BridgeDomain objects
         """
+        Return the assigned BridgeDomain.
+        There should only be one item in the returned list.
 
+        :returns: List of BridgeDomain objects
+        """
         return self._get_any_relation(BridgeDomain)
 
     def has_bd(self):
-        """ Check if a BridgeDomain has been assigned to the EPG
+        """
+        Check if a BridgeDomain has been assigned to the EPG
 
-        INPUT:
-        RETURNS: boolean
+        :returns: True or False.  True if the EPG has been assigned\
+                  a BridgeDomain.
         """
         return self._has_any_relation(BridgeDomain)
 
     # Output
     def get_json(self):
-        """ Returns json representation of the EPG
+        """
+        Returns json representation of the EPG
 
-        INPUT:
-        RETURNS: json dictionary of the EPG
+        :returns: json dictionary of the EPG
         """
         children = super(EPG, self)._get_common_json()
         if self.has_bd():
@@ -402,15 +428,20 @@ class OutsideEPG(CommonEPG):
     """Represents the EPG for external connectivity
     """
     def __init__(self, epg_name, parent=None):
+        """
+        :param epg_name: String containing the name of this OutsideEPG
+        :param parent: Instance of the Tenant class representing\
+                       the tenant owning this OutsideEPG.
+        """
         if not isinstance(parent, Tenant):
             raise TypeError('Parent is not set to Tenant')
         super(OutsideEPG, self).__init__(epg_name, parent)
 
     def get_json(self):
-        """ Returns json representation of OutsideEPG
+        """
+        Returns json representation of OutsideEPG
 
-        INPUT:
-        RETURNS: json dictionary of OutsideEPG
+        :returns: json dictionary of OutsideEPG
         """
         children = []
         for interface in self.get_interfaces():
@@ -439,49 +470,60 @@ class OutsideEPG(CommonEPG):
 
 
 class L3Interface(BaseACIObject):
-    """ Creates a L3 interface that can be attached to a L2 interface.
-        This interface defines the L3 address i.e. IPv4
+    """
+    Creates an L3 interface that can be attached to an L2 interface.
+    This interface defines the L3 address i.e. IPv4
     """
     def __init__(self, name):
+        """
+        :param name:  String containing the name of this L3Interface object.
+        """
         super(L3Interface, self).__init__(name)
         self._addr = None
         self._l3if_type = None
 
     def is_interface(self):
-        """ Check if this is an interface object.
+        """
+        Check if this is an interface object.
 
-        INPUTS:
-        RETURNS: True
+        :returns: True
         """
 
         return True
 
     def get_addr(self):
-        """Get the L3 address assigned to this interface.
+        """
+        Get the L3 address assigned to this interface.
         The address is set via the L3Interface.set_addr() method
 
-        INPUT:
-        RETURNS: Address
+        :returns: String containing the L3 address in dotted decimal notation.
         """
         return self._addr
 
     def set_addr(self, addr):
-        """Set the L3 address assigned to this interface
+        """
+        Set the L3 address assigned to this interface
 
-        INPUT: L3 address
-        RETURNS:
+        :param addr: String containing the L3 address in dotted decimal\
+                     notation.
         """
         self._addr = addr
 
     def get_l3if_type(self):
-        """Get the l3if_type of this L3 interface.
-           Valid values are 'sub-interface', 'l3-port', and 'ext-svi'
+        """
+        Get the l3if_type of this L3 interface.
+
+        :returns: L3 interface type. Valid values are 'sub-interface',\
+                  'l3-port', and 'ext-svi'
         """
         return self._l3if_type
 
     def set_l3if_type(self, l3if_type):
-        """Set the l3if_type of this L3 interface.
-           Valid values are 'sub-interface', 'l3-port', and 'ext-svi'
+        """
+        Set the l3if_type of this L3 interface.
+
+        :param l3if_type: L3 interface type. Valid values are 'sub-interface',\
+                          'l3-port', and 'ext-svi'
         """
         if l3if_type not in ('sub-interface', 'l3-port', 'ext-svi'):
             raise ValueError("l3if_type is not one of 'sub-interface', "
@@ -490,21 +532,37 @@ class L3Interface(BaseACIObject):
 
     # Context references
     def add_context(self, context):
-        """ Add context to the EPG """
+        """
+        Add context to the EPG
+
+        :param context: Instance of Context class to assign to this L3Interface.
+        """
         if self.has_context():
             self.remove_context()
         self._add_relation(context)
 
     def remove_context(self):
-        """ Remove context from the EPG """
+        """
+        Remove context from the EPG
+        """
         self._remove_all_relation(Context)
 
     def get_context(self):
-        """ Return the assigned context """
+        """
+        Return the assigned context
+
+        :returns: Instance of Context class that this L3Interface is assigned.\
+                  If no Context is assigned, None is returned.
+        """
         return self._get_any_relation(Context)
 
     def has_context(self):
-        """ Check if the context has been assigned"""
+        """
+        Check if the context has been assigned
+
+        :returns: True or False. True if a Context has been assigned to this\
+                  L3Interface.
+        """
         return self._has_any_relation(Context)
 
     def get_json(self):
