@@ -1,7 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 setup(
     name = "acitoolkit",
     version = "0.1",
-    packages = find_packages(),
+    packages = ["acitoolkit"],
+    author = "Cisco Systems, Inc.",
+    url = "http://github.com/datacenter/acitoolkit/",
+    license = "http://www.apache.org/licenses/LICENSE-2.0",
     install_requires = ["requests"],
+    description = "This library allows basic Cisco ACI APIC configuration.",
 )
