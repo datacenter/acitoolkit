@@ -6,7 +6,7 @@ import sys
 import getopt
 import logging
 from cmd import Cmd
-from acitoolkit import *
+from acitoolkit.acitoolkit import *
 import requests
 import pprint
 READLINE = True
