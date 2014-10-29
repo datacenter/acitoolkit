@@ -566,10 +566,10 @@ class L3Interface(BaseACIObject):
         return self._has_any_relation(Context)
 
     def get_json(self):
-        """ Returns json representation of L3Interface
+        """
+        Returns json representation of L3Interface
 
-        INPUT:
-        RETURNS: json dictionary of L3Interface
+        :returns: json dictionary of L3Interface
         """
         text = {'l3extRsPathL3OutAtt':
                 {'attributes':
@@ -583,10 +583,16 @@ class L3Interface(BaseACIObject):
 
 
 class OSPFInterface(BaseACIObject):
-    """ Creates an OSPF router interface that can be attached to a L3 interface.
-        This interface defines the OSPF area, authentication, etc.
+    """
+    Creates an OSPF router interface that can be attached to a L3 interface.
+    This interface defines the OSPF area, authentication, etc.
     """
     def __init__(self, name, area_id=None):
+        """
+        :param name:  String containing the name of this OSPFInterface object.
+        :param area_id: String containing the OSPF area id of this interface.\
+                        Default is None.
+        """
         super(OSPFInterface, self).__init__(name)
         self.area_id = area_id
         self.auth_key = None
@@ -595,18 +601,26 @@ class OSPFInterface(BaseACIObject):
         self.networks = []
 
     def is_interface(self):
+        """
+        Returns whether this instance is considered an interface.
+
+        :returns: True
+        """
         return True
 
     @staticmethod
     def is_ospf():
-        """Returns True if this interface is an OSPF interface"""
+        """
+        :returns: True if this interface is an OSPF interface.  In the case\
+                  of OSPFInterface instances, this is always True.
+        """
         return True
 
     def get_json(self):
-        """ Returns json representation of OSPFInterface
+        """
+        Returns json representation of OSPFInterface
 
-        INPUT:
-        RETURNS: json dictionary of OSPFInterface
+        :returns: json dictionary of OSPFInterface
         """
         text = {'ospfIfP': {'attributes': {'authKey': self.auth_key,
                                            'authKeyId': self.auth_keyid,
@@ -622,28 +636,38 @@ class OSPFInterface(BaseACIObject):
 
 
 class OSPFRouter(BaseACIObject):
-    """Represents the global settings of the OSPF Router
+    """
+    Represents the global settings of the OSPF Router
     """
     def __init__(self, name):
+        """
+        :param name:  String containing the name of this OSPFRouter object.
+        """
         super(OSPFRouter, self).__init__(name)
         self._router_id = None
         self._node = None
 
 
 class BridgeDomain(BaseACIObject):
-    """ BridgeDomain :  roughly equivalent to fvBD """
+    """
+    BridgeDomain :  roughly equivalent to fvBD
+    """
     def __init__(self, bd_name, parent=None):
+        """
+        :param bd_name:  String containing the name of this BridgeDomain object.
+        :param parent: An instance of Tenant class representing the Tenant\
+                       which contains this BridgeDomain.
+        """
         if parent is None or not isinstance(parent, Tenant):
             raise TypeError
         super(BridgeDomain, self).__init__(bd_name, parent)
 
     def get_json(self):
-        """ Returns json representation of the bridge domain
-
-        INPUT:
-        RETURNS: json dictionary of bridge domain
         """
+        Returns json representation of the bridge domain
 
+        :returns: json dictionary of bridge domain
+        """
         children = []
         if self.has_context():
             text = {'fvRsCtx': {'attributes':
@@ -656,24 +680,43 @@ class BridgeDomain(BaseACIObject):
 
     # Context references
     def add_context(self, context):
-        """Set the Context for this BD """
+        """
+        Set the Context for this BD
+
+        :param context: Context to assign this BridgeDomain
+        """
         self._add_relation(context)
 
     def remove_context(self):
-        """Remove the Context for this BD """
+        """
+        Remove the assigned Context from this BD
+        """
         self._remove_all_relation(Context)
 
     def get_context(self):
-        """Get the Context for this BD """
+        """
+        Get the Context for this BD
+
+        :returns: Instance of Context class that this BridgeDomain is assigned.
+        """
         return self._get_any_relation(Context)
 
     def has_context(self):
-        """Check if the Context has been set for this BD """
+        """
+        Check if the Context has been set for this BD
+
+        :returns: True or False. True if this BridgeDomain is assigned to a\
+                  Context.
+        """
         return self._has_any_relation(Context)
 
     # Subnet
     def add_subnet(self, subnet):
-        """Add a subnet to this BD"""
+        """
+        Add a subnet to this BD.
+
+        :param subnet: Instance of Subnet class to add to this BridgeDomain.
+        """
         if not isinstance(subnet, Subnet):
             raise TypeError('add_subnet requires a Subnet instance')
         if subnet.get_addr() is None:
@@ -683,13 +726,22 @@ class BridgeDomain(BaseACIObject):
         self.add_child(subnet)
 
     def remove_subnet(self, subnet):
-        """Remove a subnet from this BD"""
+        """
+        Remove a subnet from this BD
+
+        :param subnet: Instance of Subnet class to remove from this\
+                       BridgeDomain.
+        """
         if not isinstance(subnet, Subnet):
             raise TypeError('remove_subnet requires a Subnet instance')
         self.remove_child(subnet)
 
     def get_subnets(self):
-        """Get all of the subnets on this BD"""
+        """
+        Get all of the subnets on this BD.
+
+        :returns: List of Subnet instances assigned to this BridgeDomain.
+        """
         resp = []
         children = self.get_children()
         for child in children:
@@ -698,7 +750,12 @@ class BridgeDomain(BaseACIObject):
         return resp
 
     def has_subnet(self, subnet):
-        """Check if the BD has this particular subnet"""
+        """
+        Check if the BD has this particular subnet.
+
+        :returns: True or False.  True if this BridgeDomain has this\
+                  particular Subnet.
+        """
         if not isinstance(subnet, Subnet):
             raise TypeError('has_subnet requires a Subnet instance')
         if subnet.get_addr() is None:
@@ -707,7 +764,13 @@ class BridgeDomain(BaseACIObject):
 
     @classmethod
     def get(cls, session, tenant):
-        """Gets all of the Bridge Domains from the APIC.
+        """
+        Gets all of the Bridge Domains from the APIC.
+
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the BridgeDomain\
+                       instances retreived from the APIC
+        :returns: List of BridgeDomain objects
         """
         return BaseACIObject.get(session, cls, 'fvBD', tenant, tenant)
 
@@ -718,35 +781,40 @@ class BridgeDomain(BaseACIObject):
 class Subnet(BaseACIObject):
     """ Subnet :  roughly equivalent to fvSubnet """
     def __init__(self, subnet_name, parent=None):
+        """
+        :param subnet_name: String containing the name of this Subnet instance.
+        :param parent: An instance of BridgeDomain class representing the\
+                       BridgeDomain which contains this Subnet.
+        """
         if not isinstance(parent, BridgeDomain):
             raise TypeError('Parent of Subnet class must be BridgeDomain')
         super(Subnet, self).__init__(subnet_name, parent)
         self._addr = None
 
     def get_addr(self):
-        """Get the subnet address
+        """
+        Get the subnet address
 
-        INPUT:
-        RETURNS: The subnet address as a string in the form
-                 of <ipaddr>/<mask>
+        :returns: The subnet address as a string in the form of <ipaddr>/<mask>
         """
         return self._addr
 
     def set_addr(self, addr):
-        """Set the subnet address
+        """
+        Set the subnet address
 
-           INPUT: addr: The subnet address as a string in the form
-                        of <ipaddr>/<mask>
+        :param addr: The subnet address as a string in the form\
+                     of <ipaddr>/<mask>
         """
         if addr is None:
             raise TypeError('Address can not be set to None')
         self._addr = addr
 
     def get_json(self):
-        """ Returns json representation of the subnet
+        """
+        Returns json representation of the subnet
 
-        INPUT:
-        RETURNS: json dictionary of subnet
+        :returns: json dictionary of subnet
         """
         attributes = self._generate_attributes()
         if self.get_addr() is None:
@@ -755,15 +823,25 @@ class Subnet(BaseACIObject):
         return super(Subnet, self).get_json('fvSubnet', attributes=attributes)
 
     def _populate_from_attributes(self, attributes):
-        """Sets the attributes when creating objects from the APIC.
-           Called from the base object when calling the classmethod get()
+        """
+        Sets the attributes when creating objects from the APIC.
+        Called from the base object when calling the classmethod get()
         """
         self.set_addr(attributes['ip'])
 
     @classmethod
     def get(cls, session, bridgedomain, tenant):
-        """Gets all of the Subnets from the APIC for a particular tenant and
-           bridgedomain
+        """
+        Gets all of the Subnets from the APIC for a particular tenant and
+        bridgedomain.
+
+        :param session: the instance of Session used for APIC communication
+        :param bridgedomain: the instance of BridgeDomain used to limit the\
+                             Subnet instances retreived from the APIC
+        :param tenant: the instance of Tenant used to limit the Subnet\
+                       instances retreived from the APIC
+        :returns: List of Subnet objects
+
         """
         return BaseACIObject.get(session, cls, 'fvSubnet',
                                  parent=bridgedomain, tenant=tenant)
@@ -1038,6 +1116,11 @@ class Interface(BaseInterface):
             self._parent.add_child(self)
         
     def is_interface(self):
+        """
+        Returns whether this instance is considered an interface.
+
+        :returns: True
+        """
         return True
     def get_type(self) :
         return self.type
