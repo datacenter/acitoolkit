@@ -18,7 +18,7 @@
 """
 from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
-#from aciphysobject import Linecard
+# from aciphysobject import Linecard
 import json
 import logging
 
@@ -271,7 +271,7 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the Contracts consumed by this EPG
 
-        :returns: List of Contract objects that are consumed by the EPG.        
+        :returns: List of Contract objects that are consumed by the EPG.
         """
         return self._get_all_relation(Contract, 'consumed')
 
@@ -535,7 +535,8 @@ class L3Interface(BaseACIObject):
         """
         Add context to the EPG
 
-        :param context: Instance of Context class to assign to this L3Interface.
+        :param context: Instance of Context class to assign to this\
+                        L3Interface.
         """
         if self.has_context():
             self.remove_context()
@@ -654,7 +655,8 @@ class BridgeDomain(BaseACIObject):
     """
     def __init__(self, bd_name, parent=None):
         """
-        :param bd_name:  String containing the name of this BridgeDomain object.
+        :param bd_name:  String containing the name of this BridgeDomain\
+                         object.
         :param parent: An instance of Tenant class representing the Tenant\
                        which contains this BridgeDomain.
         """
@@ -850,26 +852,38 @@ class Subnet(BaseACIObject):
 class Context(BaseACIObject):
     """ Context :  roughly equivalent to fvCtx """
     def __init__(self, context_name, parent=None):
+        """
+        :param context_name: String containing the Context name
+        :param parent: An instance of Tenant class representing the Tenant\
+                       which contains this Context.
+
+        """
         super(Context, self).__init__(context_name, parent)
         self._allow_all = False
 
     def set_allow_all(self, value=True):
-        """Set the allow_all value.
-           When set, contracts will not be enforced in this context.
+        """
+        Set the allow_all value. When set, contracts will not be enforced\
+        in this context.
+
+        :param value: True or False.  Default is True.
         """
         self._allow_all = value
 
     def get_allow_all(self):
-        """Get the allow_all value.
-           When set, contracts will not be enforced in this context.
+        """
+        Returns the allow_all value from this Context. When set, contracts\
+        will not be enforced in this context.
+
+        :returns:  True or False.
         """
         return self._allow_all
 
     def get_json(self):
-        """ Returns json representation of fvCtx object
+        """
+        Returns json representation of fvCtx object
 
-        INPUT:
-        RETURNS: json dictionary of fvCtx object
+        :returns: json dictionary of fvCtx object
         """
         attributes = self._generate_attributes()
         if self.get_allow_all():
@@ -880,7 +894,13 @@ class Context(BaseACIObject):
 
     @classmethod
     def get(cls, session, tenant):
-        """Gets all of the Contexts from the APIC.
+        """
+        Gets all of the Contexts from the APIC.
+
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the Contexts\
+                       retreived from the APIC
+        :returns: List of Context objects
         """
         return BaseACIObject.get(session, cls, 'fvCtx', tenant, tenant)
 
@@ -1097,7 +1117,6 @@ class Interface(BaseInterface):
 #        if parent :
 #            if not isinstance(parent, Linecard):
 #                raise TypeError('An instance of Linecard class is required as the parent')
-        
         self.interface_type = interface_type
         self.pod = pod
         self.node = node
@@ -1112,9 +1131,9 @@ class Interface(BaseInterface):
         self.mtu = ''
         self.type = 'interface'
         self._parent = parent
-        if parent :
+        if parent:
             self._parent.add_child(self)
-        
+
     def is_interface(self):
         """
         Returns whether this instance is considered an interface.
@@ -1122,11 +1141,13 @@ class Interface(BaseInterface):
         :returns: True
         """
         return True
-    def get_type(self) :
+
+    def get_type(self):
         return self.type
-    def get_serial(self) :
+
+    def get_serial(self):
         return None
-    
+
     def get_url(self):
         phys_domain_url = '/api/mo/uni.json'
         fabric_url = '/api/mo/uni/fabric.json'
@@ -1275,16 +1296,12 @@ class Interface(BaseInterface):
             interface_obj.adminstatus = adminstatus
             interface_obj.speed = speed
             interface_obj.mtu = mtu
-            
-            if parent :
-                
+
+            if parent:
                 if interface_obj.pod == parent.pod and interface_obj.node == parent.node and interface_obj.module == parent.slot:
                     resp.append(interface_obj)
-                
-            else :
+            else:
                 resp.append(interface_obj)
-
-                
         return resp
 
     def __str__(self):
@@ -1554,13 +1571,12 @@ class VMM(BaseACIObject):
 
         return vmmProvP
 
-class Search(BaseACIObject) :
+
+class Search(BaseACIObject):
     """This is an empty class used to create a search object for use with the "find" method.
 
     Attaching attributes to this class and then invoking find will return all objects with matching attributes
     in the object hierarchy at and below where the find is invoked.
     """
-    def __init__(self) :
+    def __init__(self):
         pass
-    
-    
