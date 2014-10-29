@@ -940,10 +940,10 @@ class BaseContract(BaseACIObject):
         return self._scope
 
     def get_json(self):
-        """ Returns json representation of the contract
+        """
+        Returns json representation of the contract
 
-        INPUT:
-        RETURNS: json dictionary of the contract
+        :returns: json dictionary of the contract
         """
         resp_json = []
         subj_code = self._get_subject_code()
@@ -1026,6 +1026,27 @@ class FilterEntry(BaseACIObject):
     """ FilterEntry :  roughly equivalent to vzEntry """
     def __init__(self, name, applyToFrag, arpOpc, dFromPort, dToPort,
                  etherT, prot, sFromPort, sToPort, tcpRules, parent):
+        """
+        :param name: String containing the name of this FilterEntry instance.
+        :param applyToFrag: True or False.  True indicates that this\
+                            FilterEntry should be applied to IP fragments.
+        :param arpOpc: 'req' or 'reply'.  Indicates that this FilterEntry\
+                       should be applied to ARP Requests or ARP replies.
+        :param dFromPort: String containing the lower L4 destination port\
+                          number of the L4 destination port number range.
+        :param dToPort: String containing the upper L4 destination port\
+                        number of the L4 destination port number range.
+        :param etherT: String containing the EtherType of the frame to be\
+                       matched by this FilterEntry.
+        :param prot: String containing the L4 protocol number to be\
+                     matched by this FilterEntry.
+        :param sFromPort: String containing the lower L4 source port\
+                          number of the L4 source port number range.
+        :param sToPort: String containing the upper L4 source port\
+                        number of the L4 source port number range.
+        :param tcpRules: Bit mask consisting of the TCP flags to be matched\
+                         by this FilterEntry.
+        """
         self.applyToFrag = applyToFrag
         self.arpOpc = arpOpc
         self.dFromPort = dFromPort
@@ -1051,10 +1072,10 @@ class FilterEntry(BaseACIObject):
         return attributes
 
     def get_json(self):
-        """ Returns json representation of the FilterEntry
+        """
+        Returns json representation of the FilterEntry
 
-        INPUT:
-        RETURNS: json dictionary of the FilterEntry
+        :returns: json dictionary of the FilterEntry
         """
         attr = self._generate_attributes()
         text = super(FilterEntry, self).get_json('vzEntry',
@@ -1313,7 +1334,8 @@ class Interface(BaseInterface):
 
 
 class PortChannel(BaseInterface):
-    """This class defines a port channel interface.
+    """
+    This class defines a port channel interface.
     """
     def __init__(self, name):
         super(PortChannel, self).__init__(name)
@@ -1374,10 +1396,10 @@ class PortChannel(BaseInterface):
         return path
 
     def get_json(self):
-        """ Returns json representation of the PortChannel
+        """
+        Returns json representation of the PortChannel
 
-        INPUT:
-        RETURNS: json dictionary of the PortChannel
+        :returns: json dictionary of the PortChannel
         """
         vpc = self.is_vpc()
         pc_mode = 'link'
