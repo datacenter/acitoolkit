@@ -257,8 +257,10 @@ class SubMode(Cmd):
             index = line.index(arg)
             return line[index+1:index+3]
     
-    def filter_args(self, line, array):
-        return list(set(array) - set(line.split()) & set(array))
+    def filter_args(self, black_list, array):
+        if type(black_list) == str:
+            black_list = black_list.split()
+        return list(set(array) - set(black_list) & set(array))
 
 
 class BridgeDomainConfigSubMode(SubMode):
@@ -966,8 +968,9 @@ class ContractConfigSubMode(SubMode):
     def complete_permit(self, text, line, begidx, endidx):
         signs = ['+', '-']
         protocol_args = ['from-port', 'to-port']
+        flag_name_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
 
-        args, num, cmd = self.get_args_num_last(text, line)
+        args, num, first_cmd, nth_cmd, cmd = self.get_args_num_nth(text, line)
         if cmd == 'permit':
             return self.get_completions(text, self.permit_args+['arp', 'ethertype'])
         elif cmd == 'ethertype':
@@ -980,10 +983,9 @@ class ContractConfigSubMode(SubMode):
                 return self.get_completions(text, arp_args)
         elif cmd in self.permit_args and cmd not in ['tcp', 'udp']:
             return ['fragment']
-        elif cmd in ['tcp', 'udp'] or cmd.isdigit():
-            return self.get_completions(text, self.filter_args(line, protocol_args + signs if args[2] == 'tcp' else protocol_args))
+        elif cmd in ['tcp', 'udp'] or cmd.isdigit() or cmd in flag_name_array:
+            return self.get_completions(text, self.filter_args(line, protocol_args + signs if args[1] == 'tcp' else protocol_args))
         elif cmd in ['+', '-'] and num > 2 and args[1] == 'tcp':
-            flag_name_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
             return self.get_completions(text, flag_name_array)
         elif cmd in protocol_args and num > 2:
             return self.get_completions(text, self.operators)
@@ -993,7 +995,7 @@ class ContractConfigSubMode(SubMode):
         # TODO: Bon we need a get method to obtain the array.
         def get_seq_nums():
             # return ['123', '456', '789', '100']
-            pass
+            return []
 
         do_array = self.completenames(text) if with_do_args else []
         pos_args = self.get_completions(text, get_seq_nums()+do_array)
@@ -1037,14 +1039,14 @@ class ContractConfigSubMode(SubMode):
         args, num, last = self.get_args_num_last(text, line)
         if num == 1:
             pos_args = self.complete_sequence_number(text, line, begidx, endidx, with_do_args=False)
-            return [a for a in pos_args if a.startswith(text)]
+            return self.get_completions(text, pos_args+['scope'])
         elif num == 2:
             if args[1] == 'scope':
-                return self.complete_scope(text, line.partition(' ')[2], begidx, endidx)
+                return self.complete_scope(text, line.partition(' ')[2].partition(' ')[2], begidx, endidx)
             elif 'permit'.startswith(text):
                 return ['permit']
         elif num >= 3 and args[2] == 'permit':
-            return self.complete_permit(text, line.partition(' ')[2], begidx, endidx)
+            return self.complete_permit(text, line.partition(' ')[2].partition(' ')[2], begidx, endidx)
 
     def set_prompt(self):
         """
