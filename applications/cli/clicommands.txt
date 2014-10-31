@@ -39,7 +39,7 @@ fabric-tenant(config-app)# [no] epg <epg-name>
 fabric-tenant(config-epg)# [no] bridgedomain <bd-name>
 
 Assign an EPG to an interface and optionally specify the encapsulation and segmentation id used
-fabric-tenant(config)# interface <pod>/<node>/<module>/<port>
+fabric-tenant(config)# interface <type> <pod>/<node>/<module>/<port>
 fabric-tenant(config-if)# [no] epg <epg-name> [vlan <vlan-id> | vxlan <vnid> <mcast-addr> | nvgre <vsid>]
 
 Configure a Contract (has an implicit deny any and default scope is context)
@@ -64,16 +64,16 @@ fabric(config)# [no] epg <epg-name>
 fabric(config-epg)# [no] consume <contract-name>
 
 Configure a taboo (has an implicit permit any and default scope is context )
-fabric(config)# [no] taboo <taboo-name>
-fabric(config-taboo)# [no] scope { app-profile | tenant | context | global } 
+fabric-tenant(config)# [no] taboo <taboo-name>
+fabric-tenant(config-taboo)# [no] scope { app-profile | tenant | context | global }
 
-fabric(config-taboo)# [no] <sequence-number> deny <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
+fabric-tenant(config-taboo)# [no] <sequence-number> deny <protocol> [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}] [fragments]
 
-fabric(config-taboo)# [no] <sequence-number> deny tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
+fabric-tenant(config-taboo)# [no] <sequence-number> deny tcp [from-port <operator> {port | protocol-port}] [to-port <operator> {port | protocol-port}][fragments][{+ | - } <flag-name>]
 
-fabric(config-taboo)# [no] <sequence-number> deny ethertype <ethertype-number>
+fabric-tenant(config-taboo)# [no] <sequence-number> deny ethertype <ethertype-number>
 
-fabric(config-taboo)# [no] <sequence-number> deny arp [request | response]
+fabric-tenant(config-taboo)# [no] <sequence-number> deny arp [request | response]
 
 Apply a Taboo to an EPG
 fabric(config)# [no] epg <epg-name>
@@ -85,10 +85,11 @@ fabric(config-rtr)# [no] router-id <ipaddress> <node>
 fabric(config-rtr)# [no] network <ipaddress> <mask> area <area-id>
 
 Configure OSPF Routing on a Interface
-fabric(config-if)# [no] ip address <ipaddress>/<mask>
-fabric(config-if)# [no] ip router ospf <context-name> area <area-id>
-fabric(config-if)# [no] ip ospf authentication message-digest
-fabric(config-if)# [no] ip ospf message-digest-key <key-id> md5 <auth-key>
+fabric-tenant(config-if)# [no] ip address <ipaddress>/<mask>
+fabric-tenant(config-if)# [no] ip router ospf <context-name> area <area-id>
+fabric-tenant(config-if)# [no] ip ospf authentication message-digest
+fabric-tenant(config-if)# [no] ip ospf message-digest-key <key-id> md5 <auth-key>
+fabric-tenant(config-if)# [no] epg <epg-name> [vlan <vlan-id> | vxlan <vnid> <mcast-addr> | nvgre <vsid>]
 
 
 
