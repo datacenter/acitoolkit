@@ -877,7 +877,6 @@ class ContractConfigSubMode(SubMode):
         self.entry_name = None
         self.sequence_number = None
         self.aa = 0
-        self.seq_num_array = ['123', '456', '789', '100']  # TODO: Bon we need a get method to obtain the array.
         self.operators = ['lt', 'gt', 'eq', 'neq', 'range']
         self.permit_args = [ 'eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp']
         self.scope_args = ['context', 'global', 'tenant', 'application-profile']
@@ -990,8 +989,14 @@ class ContractConfigSubMode(SubMode):
             return self.get_completions(text, self.operators)
 
     def complete_sequence_number(self, text, line, begidx, endidx, with_do_args=True):
+
+        # TODO: Bon we need a get method to obtain the array.
+        def get_seq_nums():
+            # return ['123', '456', '789', '100']
+            pass
+
         do_array = self.completenames(text) if with_do_args else []
-        pos_args = self.get_completions(text, self.seq_num_array+do_array)
+        pos_args = self.get_completions(text, get_seq_nums()+do_array)
         if 'permit' in pos_args:
             pos_args.remove('permit')
         return pos_args
