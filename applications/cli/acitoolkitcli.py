@@ -304,18 +304,39 @@ class BridgeDomainConfigSubMode(SubMode):
                 error_message(resp)
 
     def complete_ip(self, text, line, begidx, endidx):
-        line = re.sub('\s+', ' ', line)
-        ip_args = ['address']
-        num_args = line.count(' ')
-        if num_args == 1:
-            completions = ip_args
-        elif num_args == 2:
-            completions = [a for a in [a.get_addr() for a in self.bridgedomain.get_subnets()] if a.startswith(line[11:])]
-        elif num_args == 3:
-            completions = ['name']
-        else:
-            completions = ''
-        return completions
+
+        # TODO: need to replace the "get_ip_mask" function
+        def get_ip_mask():
+            # return ['ip_mask_1', 'ip_mask_2']
+            pass
+
+        args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 1)
+
+        if first_cmd == 'ip':
+            if num == 1:
+                return self.get_completions(text, ['address'])
+            elif nth_cmd == 'address':
+                if num == 2:
+                    return self.get_completions(text, get_ip_mask())
+                elif num == 3:
+                    return self.get_completions(text, ['name'])
+
+    def do_context(self, args):
+        pass
+
+    def complete_context(self, text, line, begidx, endidx):
+
+        # TODO: need to replace the "get_context" function
+        def get_context():
+            # return ['context_1', 'context_2']
+            pass
+
+        args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 1)
+
+        if first_cmd == 'context' and num == 1:
+            return self.get_completions(text, get_context())
+
+
 
 class ContextConfigSubMode(SubMode):
     """
@@ -404,15 +425,20 @@ class InterfaceConfigSubMode(SubMode):
 
          # TODO: need to replace the five "get" functions
         def get_epg_name():
-            return ['epg_1', 'epg_2']
+            # return ['epg_1', 'epg_2']
+            pass
         def get_vlan_id():
-            return ['vlan_id_1', 'vlan_id_2']
+            # return ['vlan_id_1', 'vlan_id_2']
+            pass
         def get_vnid():
-            return ['vnid_1', 'vnid_2']
+            # return ['vnid_1', 'vnid_2']
+            pass
         def get_mcast_addr():
-            return ['mcast_addr_1', 'mcast_addr_2']
+            # return ['mcast_addr_1', 'mcast_addr_2']
+            pass
         def get_vsid():
-            return ['vsid_1', 'vsid_2']
+            # return ['vsid_1', 'vsid_2']
+            pass
 
         args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 2)
 
