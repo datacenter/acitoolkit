@@ -257,8 +257,10 @@ class SubMode(Cmd):
             index = line.index(arg)
             return line[index+1:index+3]
     
-    def filter_args(self, line, array):
-        return list(set(array) - set(line.split()) & set(array))
+    def filter_args(self, black_list, array):
+        if type(black_list) == str:
+            black_list = black_list.split()
+        return list(set(array) - set(black_list) & set(array))
 
 
 class BridgeDomainConfigSubMode(SubMode):
@@ -304,18 +306,39 @@ class BridgeDomainConfigSubMode(SubMode):
                 error_message(resp)
 
     def complete_ip(self, text, line, begidx, endidx):
-        line = re.sub('\s+', ' ', line)
-        ip_args = ['address']
-        num_args = line.count(' ')
-        if num_args == 1:
-            completions = ip_args
-        elif num_args == 2:
-            completions = [a for a in [a.get_addr() for a in self.bridgedomain.get_subnets()] if a.startswith(line[11:])]
-        elif num_args == 3:
-            completions = ['name']
-        else:
-            completions = ''
-        return completions
+
+        # TODO: need to replace the "get_ip_mask" function
+        def get_ip_mask():
+            # return ['ip_mask_1', 'ip_mask_2']
+            pass
+
+        args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 1)
+
+        if first_cmd == 'ip':
+            if num == 1:
+                return self.get_completions(text, ['address'])
+            elif nth_cmd == 'address':
+                if num == 2:
+                    return self.get_completions(text, get_ip_mask())
+                elif num == 3:
+                    return self.get_completions(text, ['name'])
+
+    def do_context(self, args):
+        pass
+
+    def complete_context(self, text, line, begidx, endidx):
+
+        # TODO: need to replace the "get_context" function
+        def get_context():
+            # return ['context_1', 'context_2']
+            pass
+
+        args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 1)
+
+        if first_cmd == 'context' and num == 1:
+            return self.get_completions(text, get_context())
+
+
 
 class ContextConfigSubMode(SubMode):
     """
@@ -404,15 +427,20 @@ class InterfaceConfigSubMode(SubMode):
 
          # TODO: need to replace the five "get" functions
         def get_epg_name():
-            return ['epg_1', 'epg_2']
+            # return ['epg_1', 'epg_2']
+            pass
         def get_vlan_id():
-            return ['vlan_id_1', 'vlan_id_2']
+            # return ['vlan_id_1', 'vlan_id_2']
+            pass
         def get_vnid():
-            return ['vnid_1', 'vnid_2']
+            # return ['vnid_1', 'vnid_2']
+            pass
         def get_mcast_addr():
-            return ['mcast_addr_1', 'mcast_addr_2']
+            # return ['mcast_addr_1', 'mcast_addr_2']
+            pass
         def get_vsid():
-            return ['vsid_1', 'vsid_2']
+            # return ['vsid_1', 'vsid_2']
+            pass
 
         args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 2)
 
@@ -851,7 +879,6 @@ class ContractConfigSubMode(SubMode):
         self.entry_name = None
         self.sequence_number = None
         self.aa = 0
-        self.seq_num_array = ['123', '456', '789', '100']  # TODO: Bon we need a get method to obtain the array.
         self.operators = ['lt', 'gt', 'eq', 'neq', 'range']
         self.permit_args = [ 'eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp']
         self.scope_args = ['context', 'global', 'tenant', 'application-profile']
@@ -941,8 +968,9 @@ class ContractConfigSubMode(SubMode):
     def complete_permit(self, text, line, begidx, endidx):
         signs = ['+', '-']
         protocol_args = ['from-port', 'to-port']
+        flag_name_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
 
-        args, num, cmd = self.get_args_num_last(text, line)
+        args, num, first_cmd, nth_cmd, cmd = self.get_args_num_nth(text, line)
         if cmd == 'permit':
             return self.get_completions(text, self.permit_args+['arp', 'ethertype'])
         elif cmd == 'ethertype':
@@ -955,17 +983,22 @@ class ContractConfigSubMode(SubMode):
                 return self.get_completions(text, arp_args)
         elif cmd in self.permit_args and cmd not in ['tcp', 'udp']:
             return ['fragment']
-        elif cmd in ['tcp', 'udp'] or cmd.isdigit():
-            return self.get_completions(text, self.filter_args(line, protocol_args + signs if args[2] == 'tcp' else protocol_args))
+        elif cmd in ['tcp', 'udp'] or cmd.isdigit() or cmd in flag_name_array:
+            return self.get_completions(text, self.filter_args(line, protocol_args + signs if args[1] == 'tcp' else protocol_args))
         elif cmd in ['+', '-'] and num > 2 and args[1] == 'tcp':
-            flag_name_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
             return self.get_completions(text, flag_name_array)
         elif cmd in protocol_args and num > 2:
             return self.get_completions(text, self.operators)
 
     def complete_sequence_number(self, text, line, begidx, endidx, with_do_args=True):
+
+        # TODO: Bon we need a get method to obtain the array.
+        def get_seq_nums():
+            # return ['123', '456', '789', '100']
+            return []
+
         do_array = self.completenames(text) if with_do_args else []
-        pos_args = self.get_completions(text, self.seq_num_array+do_array)
+        pos_args = self.get_completions(text, get_seq_nums()+do_array)
         if 'permit' in pos_args:
             pos_args.remove('permit')
         return pos_args
@@ -1006,14 +1039,14 @@ class ContractConfigSubMode(SubMode):
         args, num, last = self.get_args_num_last(text, line)
         if num == 1:
             pos_args = self.complete_sequence_number(text, line, begidx, endidx, with_do_args=False)
-            return [a for a in pos_args if a.startswith(text)]
+            return self.get_completions(text, pos_args+['scope'])
         elif num == 2:
             if args[1] == 'scope':
-                return self.complete_scope(text, line.partition(' ')[2], begidx, endidx)
+                return self.complete_scope(text, line.partition(' ')[2].partition(' ')[2], begidx, endidx)
             elif 'permit'.startswith(text):
                 return ['permit']
         elif num >= 3 and args[2] == 'permit':
-            return self.complete_permit(text, line.partition(' ')[2], begidx, endidx)
+            return self.complete_permit(text, line.partition(' ')[2].partition(' ')[2], begidx, endidx)
 
     def set_prompt(self):
         """
