@@ -230,12 +230,13 @@ class SubMode(Cmd):
         # the number of completed argument
         num_completed_arg = len(args) - 1 if text == args[len(args)-1] else len(args)
         # the last completed argument
+        first_cmd = args[0]
         last_cmd = args[num_completed_arg-1]
         try:
             nth_cmd = args[nth]
         except (TypeError, IndexError):
             nth_cmd = args[num_completed_arg-1]
-        return args, num_completed_arg, nth_cmd, last_cmd
+        return args, num_completed_arg, first_cmd, nth_cmd, last_cmd
 
     def get_args_num_last(self, text, line):
         args = line.split()
@@ -399,6 +400,41 @@ class InterfaceConfigSubMode(SubMode):
             if not resp.ok:
                 error_message(resp)
 
+    def complete_epg(self, text, line, begidx, endidx):
+
+         # TODO: need to replace the five "get" functions
+        def get_epg_name():
+            return ['epg_1', 'epg_2']
+        def get_vlan_id():
+            return ['vlan_id_1', 'vlan_id_2']
+        def get_vnid():
+            return ['vnid_1', 'vnid_2']
+        def get_mcast_addr():
+            return ['mcast_addr_1', 'mcast_addr_2']
+        def get_vsid():
+            return ['vsid_1', 'vsid_2']
+
+        args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 2)
+
+        if nth_cmd == 'vlan':
+            if num == 3:
+                return self.get_completions(text, get_vlan_id())
+        elif nth_cmd == 'vxlan':
+            if num == 3:
+                return self.get_completions(text, get_vnid())
+            if num == 4:
+                return self.get_completions(text, get_mcast_addr())
+        elif nth_cmd == 'nvgre':
+            if num == 3:
+                return self.get_completions(text, get_vsid())
+        elif last_cmd == 'epg':
+            if num == 1:
+                return self.get_completions(text, get_epg_name())
+        elif first_cmd == 'epg':
+            if num == 2:
+                return self.get_completions(text, ['vlan', 'vxlan', 'nvgre'])
+
+
     def do_shutdown(self, args):
         num_args = len(args.split())
         if num_args:
@@ -457,21 +493,43 @@ class InterfaceConfigSubMode(SubMode):
         pass
 
     def complete_ip(self, text, line, begidx, endidx):
-        args, num, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 1)
+
+        # TODO: need to replace the five "get" functions
+        def get_ip_mask():
+            # return ['ip_mask_1', 'ip_mask_2']
+            pass
+
+        def get_context():
+            # return ['context_1', 'context_2']
+            pass
+
+        def get_area_id():
+            # return ['area_id_1', 'area_id_2']
+            pass
+
+        def get_key_id():
+            # return ['key_id_1', 'key_id_2']
+            pass
+
+        def get_auth_key():
+            # return ['auth_key_1', 'auth_key_2']
+            pass
+
+        args, num, first_cmd, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 1)
         if last_cmd == 'ip':
             return self.get_completions(text, ['address', 'router', 'ospf'])
         elif nth_cmd == 'address':
             if num == 2:
-                return self.get_completions(text, self.get_ip_mask())
+                return self.get_completions(text, get_ip_mask())
         elif nth_cmd == 'router':
             if num == 2:
                 return self.get_completions(text, ['ospf'])
             if num == 3:
-                return self.get_completions(text, self.get_context())
+                return self.get_completions(text, get_context())
             if num == 4:
                 return self.get_completions(text, ['area'])
             if num == 5:
-                return self.get_completions(text, self.get_area_id())
+                return self.get_completions(text, get_area_id())
         elif nth_cmd == 'ospf':
             if num == 2:
                 return self.get_completions(text, ['authentication', 'message-digest-key'])
@@ -479,32 +537,11 @@ class InterfaceConfigSubMode(SubMode):
                 if last_cmd == 'authentication':
                     return self.get_completions(text, ['message-digest-key'])
                 if last_cmd == 'message-digest-key':
-                    return self.get_completions(text, self.get_key_id())
+                    return self.get_completions(text, get_key_id())
             if num == 4:
                 return self.get_completions(text, ['mad5'])
             if num == 5:
-                return self.get_completions(text, self.get_auth_key())
-
-    # TODO: need to replace the three "get" functions
-    def get_ip_mask(self):
-        # return ['ip_mask_1', 'ip_mask_2']
-        pass
-
-    def get_context(self):
-        # return ['context_1', 'context_2']
-        pass
-
-    def get_area_id(self):
-        # return ['area_id_1', 'area_id_2']
-        pass
-
-    def get_key_id(self):
-        # return ['key_id_1', 'key_id_2']
-        pass
-
-    def get_auth_key(self):
-        # return ['auth_key_1', 'auth_key_2']
-        pass
+                return self.get_completions(text, get_auth_key())
 
     def set_prompt(self):
         """
