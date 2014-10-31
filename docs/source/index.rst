@@ -12,6 +12,9 @@ Contents:
 .. toctree::
    :maxdepth: 4
 
+   introduction
+   objectmodel
+   tutorial
    modules
 
 

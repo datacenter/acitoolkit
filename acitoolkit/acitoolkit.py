@@ -1138,11 +1138,11 @@ class Interface(BaseInterface):
 #        if parent :
 #            if not isinstance(parent, Linecard):
 #                raise TypeError('An instance of Linecard class is required as the parent')
-        self.interface_type = interface_type
-        self.pod = pod
-        self.node = node
-        self.module = module
-        self.port = port
+        self.interface_type = str(interface_type)
+        self.pod = str(pod)
+        self.node = str(node)
+        self.module = str(module)
+        self.port = str(port)
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.module + '/' + self.port
         super(Interface, self).__init__(self.if_name, None)
@@ -1273,11 +1273,12 @@ class Interface(BaseInterface):
         return interface_type, pod, node, module, port
 
     @staticmethod
-    def parse_dn(dist_name):
-        """Parses the pod, node, module, port from a
-           distinguished name of the interface.
+    def _parse_physical_dn(dn):
         """
-        name = dist_name.split('/')
+        Handles DNs that look like the following:
+        topology/pod-1/node-103/sys/phys-[eth1/12]
+        """
+        name = dn.split('/')
         pod = name[1].split('-')[1]
         node = name[2].split('-')[1]
         module = name[4].split('[')[1]
@@ -1285,6 +1286,35 @@ class Interface(BaseInterface):
         module = module[3:]
         port = name[5].split(']')[0]
         return interface_type, pod, node, module, port
+
+    @staticmethod
+    def _parse_path_dn(dn):
+        """
+        Handles DNs that look like the following:
+        topology/pod-1/paths-102/pathep-[eth1/12]
+        """
+        name = dn.split('/')
+        pod = name[1].split('-')[1]
+        node = name[2].split('-')[1]
+        module = name[3].split('[')[1]
+        interface_type = module[:3]
+        module = module[3:]
+        port = name[4].split(']')[0]
+        return interface_type, pod, node, module, port
+
+    @classmethod
+    def parse_dn(cls, dn):
+        """
+        Parses the pod, node, module, port from a distinguished name
+        of the interface.
+
+        :param dn: String containing the interface distinguished name
+        :returns: interface_type, pod, node, module, port
+        """
+        if 'sys' in dn.split('/'):
+            return cls._parse_physical_dn(dn)
+        else:
+            return cls._parse_path_dn(dn)
 
     @staticmethod
     def get(session, parent=None):
@@ -1462,7 +1492,6 @@ class PortChannel(BaseInterface):
             portchannels.append(portchannel)
         return portchannels
 
-
 class Endpoint(BaseACIObject):
     @staticmethod
     def get(session):
@@ -1471,17 +1500,16 @@ class Endpoint(BaseACIObject):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
         endpoint_query_url = ('/api/node/class/fvCEp.json?'
-                              'query-target=subtree&rsp-subtree=full')
+                              'query-target=self&rsp-subtree=no')
         endpoints = []
         ret = session.get(endpoint_query_url)
         ep_data = ret.json()['imdata']
         for ep in ep_data:
-            if 'fvCEp' in ep:
-                for child in ep['fvCEp']['children']:
-                    if 'fvIp' in child:
-                        print 'mac:', ep['fvCEp']['attributes']['mac'], 'ip:', child['fvIp']['attributes']['addr']
-                    if 'fvRsCEpToPathEp' in child:
-                        print 'path:', child['fvRsCEpToPathEp']['attributes']['tDn']
+            ep = ep['fvCEp']['attributes']
+            endpoint = Endpoint(str(ep['name']))
+            endpoint.mac = str(ep['mac'])
+            endpoint.ip = str(ep['ip'])
+            endpoints.append(endpoint)
         return endpoints
 
 
