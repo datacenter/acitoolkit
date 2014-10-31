@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to acitoolkit’s documentation! &mdash; acitoolkit 0.1 documentation</title>
+  <title>Introduction &mdash; acitoolkit 0.1 documentation</title>
   
 
   
@@ -28,8 +28,9 @@
   
 
   
-    <link rel="top" title="acitoolkit 0.1 documentation" href="#"/>
-        <link rel="next" title="Introduction" href="introduction.html"/> 
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="next" title="Object Model" href="objectmodel.html"/>
+        <link rel="prev" title="Welcome to acitoolkit’s documentation!" href="index.html"/> 
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -43,7 +44,7 @@
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-nav-search">
-        <a href="#" class="fa fa-home"> acitoolkit</a>
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
         <div role="search">
   <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -56,8 +57,8 @@
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
         
-            <ul>
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+            <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
@@ -88,7 +89,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="#">acitoolkit</a>
+        <a href="index.html">acitoolkit</a>
       </nav>
 
 
@@ -97,12 +98,12 @@
         <div class="rst-content">
           <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="#">Docs</a> &raquo;</li>
+    <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Welcome to acitoolkit&#8217;s documentation!</li>
+    <li>Introduction</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="_sources/index.txt" rel="nofollow"> View page source</a>
+          <a href="_sources/introduction.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -110,45 +111,15 @@
 </div>
           <div role="main">
             
-  <div class="section" id="welcome-to-acitoolkit-s-documentation">
-<h1>Welcome to acitoolkit&#8217;s documentation!<a class="headerlink" href="#welcome-to-acitoolkit-s-documentation" title="Permalink to this headline">¶</a></h1>
-<img alt="_images/aci.png" src="_images/aci.png" />
-<p>Contents:</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
-<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#download">Download</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#install">Install</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="acibaseobject.html">acibaseobject module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="aciphysobject.html">aciphysobject module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acisession.html">acisession module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit module</a></li>
-</ul>
-</li>
-</ul>
-</div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
-<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
-<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
-</ul>
+  <div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>The Cisco ACI Fabric is configured using an abstract policy model on the
+Cisco Application Policy Infrastructure Controller (APIC).  The APIC
+has a very rich and complete object model that is accessible through a
+programmatic REST API.  The acitoolkit exposes a small subset of that
+model in a way that is meant to provide an introduction to the
+ACI concepts and allow users to get the most common workflows up and
+running as quickly as possible.</p>
 </div>
 
 
@@ -157,8 +128,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="introduction.html" class="btn btn-neutral float-right" title="Introduction"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="objectmodel.html" class="btn btn-neutral float-right" title="Object Model"/>Next <span class="fa fa-arrow-circle-right"></span></a>
       
+      
+        <a href="index.html" class="btn btn-neutral" title="Welcome to acitoolkit’s documentation!"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

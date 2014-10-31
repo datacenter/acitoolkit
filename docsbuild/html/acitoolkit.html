@@ -29,7 +29,7 @@
 
   
     <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
-        <link rel="up" title="acitoolkit" href="modules.html"/>
+        <link rel="up" title="API Reference" href="modules.html"/>
         <link rel="prev" title="acisession module" href="acisession.html"/> 
 
   
@@ -58,7 +58,19 @@
         
         
             <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">acitoolkit</a><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">API Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="acibaseobject.html">acibaseobject module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="aciphysobject.html">aciphysobject module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="acisession.html">acisession module</a></li>
@@ -88,7 +100,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-          <li><a href="modules.html">acitoolkit</a> &raquo;</li>
+          <li><a href="modules.html">API Reference</a> &raquo;</li>
       
     <li>acitoolkit module</li>
       <li class="wy-breadcrumbs-aside">
@@ -170,8 +182,14 @@ equivalent to the fvAp class.</p>
 <dt id="acitoolkit.BaseContract.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BaseContract.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of the contract</p>
-<p>INPUT:
-RETURNS: json dictionary of the contract</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of the contract</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -228,66 +246,155 @@ classes.</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">BridgeDomain</tt><big>(</big><em>bd_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>BridgeDomain :  roughly equivalent to fvBD</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>bd_name</strong> &#8211; String containing the name of this BridgeDomain                         object.</li>
+<li><strong>parent</strong> &#8211; An instance of Tenant class representing the Tenant                       which contains this BridgeDomain.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.add_context">
 <tt class="descname">add_context</tt><big>(</big><em>context</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.add_context" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the Context for this BD</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>context</strong> &#8211; Context to assign this BridgeDomain</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.add_subnet">
 <tt class="descname">add_subnet</tt><big>(</big><em>subnet</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.add_subnet" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a subnet to this BD</p>
+<dd><p>Add a subnet to this BD.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>subnet</strong> &#8211; Instance of Subnet class to add to this BridgeDomain.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="classmethod">
 <dt id="acitoolkit.BridgeDomain.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets all of the Bridge Domains from the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<li><strong>tenant</strong> &#8211; the instance of Tenant used to limit the BridgeDomain                       instances retreived from the APIC</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of BridgeDomain objects</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.get_context">
 <tt class="descname">get_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get_context" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the Context for this BD</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Instance of Context class that this BridgeDomain is assigned.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of the bridge domain</p>
-<p>INPUT:
-RETURNS: json dictionary of bridge domain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of bridge domain</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.get_subnets">
 <tt class="descname">get_subnets</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.get_subnets" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get all of the subnets on this BD</p>
+<dd><p>Get all of the subnets on this BD.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">List of Subnet instances assigned to this BridgeDomain.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.has_context">
 <tt class="descname">has_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.has_context" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if the Context has been set for this BD</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False. True if this BridgeDomain is assigned to a                  Context.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.has_subnet">
 <tt class="descname">has_subnet</tt><big>(</big><em>subnet</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.has_subnet" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check if the BD has this particular subnet</p>
+<dd><p>Check if the BD has this particular subnet.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True if this BridgeDomain has this                  particular Subnet.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.remove_context">
 <tt class="descname">remove_context</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.remove_context" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove the Context for this BD</p>
+<dd><p>Remove the assigned Context from this BD</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.BridgeDomain.remove_subnet">
 <tt class="descname">remove_subnet</tt><big>(</big><em>subnet</em><big>)</big><a class="headerlink" href="#acitoolkit.BridgeDomain.remove_subnet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove a subnet from this BD</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>subnet</strong> &#8211; Instance of Subnet class to remove from this                       BridgeDomain.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -485,32 +592,79 @@ pushed to the APIC.)</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Context</tt><big>(</big><em>context_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Context" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Context :  roughly equivalent to fvCtx</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context_name</strong> &#8211; String containing the Context name</li>
+<li><strong>parent</strong> &#8211; An instance of Tenant class representing the Tenant                       which contains this Context.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="classmethod">
 <dt id="acitoolkit.Context.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.Context.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets all of the Contexts from the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<li><strong>tenant</strong> &#8211; the instance of Tenant used to limit the Contexts                       retreived from the APIC</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of Context objects</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.Context.get_allow_all">
 <tt class="descname">get_allow_all</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Context.get_allow_all" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get the allow_all value.
-When set, contracts will not be enforced in this context.</p>
+<dd><p>Returns the allow_all value from this Context. When set, contracts        will not be enforced in this context.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.Context.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Context.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of fvCtx object</p>
-<p>INPUT:
-RETURNS: json dictionary of fvCtx object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of fvCtx object</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.Context.set_allow_all">
 <tt class="descname">set_allow_all</tt><big>(</big><em>value=True</em><big>)</big><a class="headerlink" href="#acitoolkit.Context.set_allow_all" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the allow_all value.
-When set, contracts will not be enforced in this context.</p>
+<dd><p>Set the allow_all value. When set, contracts will not be enforced        in this context.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> &#8211; True or False.  Default is True.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -645,12 +799,38 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">FilterEntry</tt><big>(</big><em>name</em>, <em>applyToFrag</em>, <em>arpOpc</em>, <em>dFromPort</em>, <em>dToPort</em>, <em>etherT</em>, <em>prot</em>, <em>sFromPort</em>, <em>sToPort</em>, <em>tcpRules</em>, <em>parent</em><big>)</big><a class="headerlink" href="#acitoolkit.FilterEntry" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>FilterEntry :  roughly equivalent to vzEntry</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the name of this FilterEntry instance.</li>
+<li><strong>applyToFrag</strong> &#8211; True or False.  True indicates that this                            FilterEntry should be applied to IP fragments.</li>
+<li><strong>arpOpc</strong> &#8211; &#8216;req&#8217; or &#8216;reply&#8217;.  Indicates that this FilterEntry                       should be applied to ARP Requests or ARP replies.</li>
+<li><strong>dFromPort</strong> &#8211; String containing the lower L4 destination port                          number of the L4 destination port number range.</li>
+<li><strong>dToPort</strong> &#8211; String containing the upper L4 destination port                        number of the L4 destination port number range.</li>
+<li><strong>etherT</strong> &#8211; String containing the EtherType of the frame to be                       matched by this FilterEntry.</li>
+<li><strong>prot</strong> &#8211; String containing the L4 protocol number to be                     matched by this FilterEntry.</li>
+<li><strong>sFromPort</strong> &#8211; String containing the lower L4 source port                          number of the L4 source port number range.</li>
+<li><strong>sToPort</strong> &#8211; String containing the upper L4 source port                        number of the L4 source port number range.</li>
+<li><strong>tcpRules</strong> &#8211; Bit mask consisting of the TCP flags to be matched                         by this FilterEntry.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="acitoolkit.FilterEntry.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.FilterEntry.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of the FilterEntry</p>
-<p>INPUT:
-RETURNS: json dictionary of the FilterEntry</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of the FilterEntry</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -700,13 +880,32 @@ required to be sent in 2 posts.</p>
 <dl class="method">
 <dt id="acitoolkit.Interface.is_interface">
 <tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Interface.is_interface" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns whether this instance is considered an interface.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
-<dl class="staticmethod">
+<dl class="classmethod">
 <dt id="acitoolkit.Interface.parse_dn">
-<em class="property">static </em><tt class="descname">parse_dn</tt><big>(</big><em>dist_name</em><big>)</big><a class="headerlink" href="#acitoolkit.Interface.parse_dn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parses the pod, node, module, port from a
-distinguished name of the interface.</p>
+<em class="property">classmethod </em><tt class="descname">parse_dn</tt><big>(</big><em>dn</em><big>)</big><a class="headerlink" href="#acitoolkit.Interface.parse_dn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses the pod, node, module, port from a distinguished name
+of the interface.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dn</strong> &#8211; String containing the interface distinguished name</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">interface_type, pod, node, module, port</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="staticmethod">
@@ -805,7 +1004,7 @@ This interface defines the L3 address i.e. IPv4</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>context</strong> &#8211; Instance of Context class to assign to this L3Interface.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>context</strong> &#8211; Instance of Context class to assign to this                        L3Interface.</td>
 </tr>
 </tbody>
 </table>
@@ -844,8 +1043,14 @@ The address is set via the L3Interface.set_addr() method</p>
 <dt id="acitoolkit.L3Interface.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.L3Interface.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of L3Interface</p>
-<p>INPUT:
-RETURNS: json dictionary of L3Interface</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of L3Interface</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -944,23 +1149,57 @@ RETURNS: json dictionary of L3Interface</p>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Creates an OSPF router interface that can be attached to a L3 interface.
 This interface defines the OSPF area, authentication, etc.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the name of this OSPFInterface object.</li>
+<li><strong>area_id</strong> &#8211; String containing the OSPF area id of this interface.                        Default is None.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="acitoolkit.OSPFInterface.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OSPFInterface.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of OSPFInterface</p>
-<p>INPUT:
-RETURNS: json dictionary of OSPFInterface</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of OSPFInterface</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.OSPFInterface.is_interface">
 <tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OSPFInterface.is_interface" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns whether this instance is considered an interface.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="staticmethod">
 <dt id="acitoolkit.OSPFInterface.is_ospf">
 <em class="property">static </em><tt class="descname">is_ospf</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.OSPFInterface.is_ospf" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns True if this interface is an OSPF interface</p>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if this interface is an OSPF interface.  In the case                  of OSPFInterface instances, this is always True.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -970,6 +1209,14 @@ RETURNS: json dictionary of OSPFInterface</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">OSPFRouter</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.OSPFRouter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Represents the global settings of the OSPF Router</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; String containing the name of this OSPFRouter object.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">
@@ -1032,8 +1279,14 @@ RETURNS: json dictionary of OSPFInterface</p>
 <dt id="acitoolkit.PortChannel.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.PortChannel.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of the PortChannel</p>
-<p>INPUT:
-RETURNS: json dictionary of the PortChannel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of the PortChannel</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -1064,39 +1317,81 @@ in the object hierarchy at and below where the find is invoked.</p>
 <em class="property">class </em><tt class="descclassname">acitoolkit.</tt><tt class="descname">Subnet</tt><big>(</big><em>subnet_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.Subnet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acibaseobject.html#acibaseobject.BaseACIObject" title="acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Subnet :  roughly equivalent to fvSubnet</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>subnet_name</strong> &#8211; String containing the name of this Subnet instance.</li>
+<li><strong>parent</strong> &#8211; An instance of BridgeDomain class representing the                       BridgeDomain which contains this Subnet.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="classmethod">
 <dt id="acitoolkit.Subnet.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>bridgedomain</em>, <em>tenant</em><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets all of the Subnets from the APIC for a particular tenant and
-bridgedomain</p>
+bridgedomain.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<li><strong>bridgedomain</strong> &#8211; the instance of BridgeDomain used to limit the                             Subnet instances retreived from the APIC</li>
+<li><strong>tenant</strong> &#8211; the instance of Tenant used to limit the Subnet                       instances retreived from the APIC</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of Subnet objects</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.Subnet.get_addr">
 <tt class="descname">get_addr</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.get_addr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the subnet address</p>
-<p>INPUT:
-RETURNS: The subnet address as a string in the form</p>
-<blockquote>
-<div>of &lt;ipaddr&gt;/&lt;mask&gt;</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The subnet address as a string in the form of &lt;ipaddr&gt;/&lt;mask&gt;</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.Subnet.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.get_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns json representation of the subnet</p>
-<p>INPUT:
-RETURNS: json dictionary of subnet</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of subnet</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.Subnet.set_addr">
 <tt class="descname">set_addr</tt><big>(</big><em>addr</em><big>)</big><a class="headerlink" href="#acitoolkit.Subnet.set_addr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the subnet address</p>
-<dl class="docutils">
-<dt>INPUT: addr: The subnet address as a string in the form</dt>
-<dd>of &lt;ipaddr&gt;/&lt;mask&gt;</dd>
-</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>addr</strong> &#8211; The subnet address as a string in the form                     of &lt;ipaddr&gt;/&lt;mask&gt;</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

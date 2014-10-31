@@ -1,0 +1,270 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Object Model &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="next" title="Tutorial" href="tutorial.html"/>
+        <link rel="prev" title="Introduction" href="introduction.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="acibaseobject.html">acibaseobject module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aciphysobject.html">aciphysobject module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acisession.html">acisession module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit module</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Object Model</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/objectmodel.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="object-model">
+<h1>Object Model<a class="headerlink" href="#object-model" title="Permalink to this headline">¶</a></h1>
+<p>The acitoolkit object model is divided into 3 sub-areas</p>
+<ul class="simple">
+<li>Application Topology Object Model</li>
+<li>Interface Object Model</li>
+<li>Physical Topology Object Model</li>
+</ul>
+<div class="section" id="application-topology">
+<h2>Application Topology<a class="headerlink" href="#application-topology" title="Permalink to this headline">¶</a></h2>
+<p>The acitoolkit defines the fabric configuration using a set of
+policies that describes the application logical topology.  This
+logical topology is defined using a set of objects that are contained
+according to the below class diagram.</p>
+<img alt="_images/apptopo.png" src="_images/apptopo.png" />
+<p><strong>Tenant</strong> is the root class within the acitoolkit object model
+hierarchy.  All of the application topology configuration occurs
+within a Tenant.</p>
+<p><strong>AppProfile</strong> is the Application Profile class.  It contains the
+configuration for a given application.</p>
+<p><strong>EPG</strong> is the Endpoint Group class.  This is the object for
+defining configuration that is applied when endpoints connect to the
+fabric.</p>
+<p><strong>Context</strong> is the class representing an L3 namespace (roughly, a
+traditional VRF in Cisco terminology).</p>
+<p><strong>BridgeDomain</strong> is the class representing an L2 forwarding domain
+(roughly, a traditional VLAN).  It is associated with a single
+Context.</p>
+<p><strong>Subnet</strong> is the class representing an L3 subnet.  It is associated
+with a single BridgeDomain.</p>
+<p><strong>OutsideEPG</strong> is the class representing an EPG that connects to the
+world outside the fabric.  This is where routing protocols such as
+OSPF are enabled.</p>
+<p><strong>Contracts</strong> define the application network services being provided
+and consumed by EPGs.  EPGs may provide and consume many contracts.</p>
+<p><strong>Taboos</strong> define the application network services that can never be
+provided or consumed by EPGs.</p>
+<p><strong>FilterEntry</strong> contained within either a Contract or a Taboo.
+Defines the traffic profile that the Contract or Taboo applies.</p>
+</div>
+<div class="section" id="interface-object-model">
+<h2>Interface Object Model<a class="headerlink" href="#interface-object-model" title="Permalink to this headline">¶</a></h2>
+<p>Interfaces provide the linkage between the application logical
+topology and the underlying physical network topology.  The Interface
+set of classes are connected through a series of attachment
+relationships as shown in the class diagram below.</p>
+<img alt="_images/interfacemodel.png" src="_images/interfacemodel.png" />
+<p><strong>Interface</strong> class represents the <strong>Physical Interfaces</strong>.  These are the
+objects that link the logical topology with the physical world.  These
+objects represent the access ports on the leaf switches.  These are
+the interfaces that the endpoints will physically attach.</p>
+<div class="sidebar">
+<p class="first sidebar-title">Link aggregation</p>
+<p class="last">A <cite>link aggregation</cite> is a logical link layer interface composed of
+one or more physical interfaces. Commonly referred to as
+Etherchannel or PortChannel.</p>
+</div>
+<p><strong>PortChannel</strong> class represents the logical aggregated ethernet port
+formed by Link Aggregation.  This is done by creating a PortChannel
+instance and attaching one or more Interface instances to it.  When
+interfaces belonging to 2 separate switches are assigned to the same
+PortChannel, this is referred to as a VPC or Virtual Port Channel. In
+the acitoolkit, VPCs are also represented by the PortChannel class.</p>
+<p><strong>L2Interface</strong> class represents the logical L2 network attachment on
+an Ethernet interface.  In this case, the Ethernet interface could be
+an Interface class instance or PortChannel class instance as both are
+considered representations of link layer Ethernet interfaces.</p>
+<p>Multiple logical L2 network attachments can occur on the same Ethernet
+interface.  When this occurs, the L2Interface instances must use
+different encapsulation identifiers and/or different encapsulation
+types.  The valid encapsulation types are:</p>
+<ul class="simple">
+<li>VLAN</li>
+<li>VXLAN</li>
+<li>NVGRE</li>
+</ul>
+<p><strong>L3Interface</strong> class represents the logical L3 network attachment on
+an L2Interface.  The L3Interface instance is where the IP address
+resides.</p>
+<p><strong>OSPFInterface</strong> class represents the logical router interface that
+routes from the L3Interface instance.  It contains the OSPF-specific
+interface configuration.</p>
+</div>
+<div class="section" id="physical-topology">
+<h2>Physical Topology<a class="headerlink" href="#physical-topology" title="Permalink to this headline">¶</a></h2>
+<p><cite>Need a diagram of the physical classes</cite></p>
+<p><cite>For those who have read this far, still working on this page.  An
+update should be coming soon.</cite></p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="introduction.html" class="btn btn-neutral" title="Introduction"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
