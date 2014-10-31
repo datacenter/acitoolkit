@@ -224,7 +224,19 @@ class SubMode(Cmd):
                 sys.stdout.write('\n')
             return ''
         return line
-        
+
+    def get_args_num_nth(self, text, line, nth='last'):
+        args = line.split()
+        # the number of completed argument
+        num_completed_arg = len(args) - 1 if text == args[len(args)-1] else len(args)
+        # the last completed argument
+        last_cmd = args[num_completed_arg-1]
+        try:
+            nth_cmd = args[nth]
+        except (TypeError, IndexError):
+            nth_cmd = args[num_completed_arg-1]
+        return args, num_completed_arg, nth_cmd, last_cmd
+
     def get_args_num_last(self, text, line):
         args = line.split()
         # the number of completed argument
@@ -440,6 +452,59 @@ class InterfaceConfigSubMode(SubMode):
         resp = self.apic.push_to_apic(infra_url, infra)
         if not resp.ok:
             error_message(resp)
+
+    def do_ip(self):
+        pass
+
+    def complete_ip(self, text, line, begidx, endidx):
+        args, num, nth_cmd, last_cmd = self.get_args_num_nth(text, line, 1)
+        if last_cmd == 'ip':
+            return self.get_completions(text, ['address', 'router', 'ospf'])
+        elif nth_cmd == 'address':
+            if num == 2:
+                return self.get_completions(text, self.get_ip_mask())
+        elif nth_cmd == 'router':
+            if num == 2:
+                return self.get_completions(text, ['ospf'])
+            if num == 3:
+                return self.get_completions(text, self.get_context())
+            if num == 4:
+                return self.get_completions(text, ['area'])
+            if num == 5:
+                return self.get_completions(text, self.get_area_id())
+        elif nth_cmd == 'ospf':
+            if num == 2:
+                return self.get_completions(text, ['authentication', 'message-digest-key'])
+            if num == 3:
+                if last_cmd == 'authentication':
+                    return self.get_completions(text, ['message-digest-key'])
+                if last_cmd == 'message-digest-key':
+                    return self.get_completions(text, self.get_key_id())
+            if num == 4:
+                return self.get_completions(text, ['mad5'])
+            if num == 5:
+                return self.get_completions(text, self.get_auth_key())
+
+    # TODO: need to replace the three "get" functions
+    def get_ip_mask(self):
+        # return ['ip_mask_1', 'ip_mask_2']
+        pass
+
+    def get_context(self):
+        # return ['context_1', 'context_2']
+        pass
+
+    def get_area_id(self):
+        # return ['area_id_1', 'area_id_2']
+        pass
+
+    def get_key_id(self):
+        # return ['key_id_1', 'key_id_2']
+        pass
+
+    def get_auth_key(self):
+        # return ['auth_key_1', 'auth_key_2']
+        pass
 
     def set_prompt(self):
         """
