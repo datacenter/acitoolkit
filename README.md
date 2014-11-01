@@ -45,6 +45,10 @@ If you plan on modifying the actual toolkit files, you should install the develo
 
 # Usage
 
+A tutorial and overview of the acitoolkit object model can be found in
+the Documentation section found at
+[http://datacenter.github.io/acitoolkit/](http://datacenter.github.io/acitoolkit/)
+
 # License
 
 Copyright 2014 Cisco Systems, Inc.
