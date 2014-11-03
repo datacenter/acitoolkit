@@ -4,10 +4,10 @@ import re
 import base64
 import datetime as datetime_
 
-from acisession import Session
+from acitoolkit.acisession import Session
 from credentials import *
-from acitoolkit import *
-from aciphysobject import *
+from acitoolkit.acitoolkit import *
+from acitoolkit.aciphysobject import *
 
 etree_ = None
 Verbose_import_ = False
@@ -412,23 +412,23 @@ class CABLEPLAN :
         """
         nodes = pod.get_children(Node)
         for node in nodes :
-
-            if node.get_role() == 'spine' :
-                self.add_switch(CP_SWITCH(node.get_name(), node.get_chassisType(), spine=True))
-            if node.get_role() == 'leaf' :
-                self.add_switch(CP_SWITCH(node.get_name(), node.get_chassisType()))
+            if node.getFabricSt() == 'active' :
+                if node.get_role() == 'spine' :
+                    self.add_switch(CP_SWITCH(node.get_name(), node.get_chassisType(), spine=True))
+                if node.get_role() == 'leaf' :
+                    self.add_switch(CP_SWITCH(node.get_name(), node.get_chassisType()))
         links = pod.get_children(Link)
         for link in links :
-
-            if link.get_node1().get_role() != 'controller' and link.get_node2().get_role() != 'controller' :
-                sourceChassis = self._get_switch_from_apic_link(link,1)
-                destChassis = self._get_switch_from_apic_link(link,2)
-                sourceInterface = link.get_port1()
-                destInterface = link.get_port2()
-                sourcePort = '%s%s/%s' % (sourceInterface.interface_type, sourceInterface.module, sourceInterface.port)
-                destPort = '%s%s/%s' % (destInterface.interface_type, destInterface.module, destInterface.port)
-            
-                self.add_link(CP_LINK(sourceChassis=sourceChassis, sourcePort=sourcePort,destChassis=destChassis,destPort=destPort))            
+            if link.get_node1().getFabricSt()=='active' and link.get_node2().getFabricSt()=='active' :
+                if link.get_node1().get_role() != 'controller' and link.get_node2().get_role() != 'controller' :
+                    sourceChassis = self._get_switch_from_apic_link(link,1)
+                    destChassis = self._get_switch_from_apic_link(link,2)
+                    sourceInterface = link.get_port1()
+                    destInterface = link.get_port2()
+                    sourcePort = '%s%s/%s' % (sourceInterface.interface_type, sourceInterface.module, sourceInterface.port)
+                    destPort = '%s%s/%s' % (destInterface.interface_type, destInterface.module, destInterface.port)
+                
+                    self.add_link(CP_LINK(sourceChassis=sourceChassis, sourcePort=sourcePort,destChassis=destChassis,destPort=destPort))            
 
     def _buildXML(self, node) :
 
