@@ -580,6 +580,11 @@ class Node(BaseACIPhysObject):
         """
         return self.role
 
+    def getFabricSt(self) :
+        """ retrieves the fabric state.
+        """
+        return self.fabricSt
+    
     @staticmethod
     def _parse_dn(dn):
         """Parses the pod and node from a
