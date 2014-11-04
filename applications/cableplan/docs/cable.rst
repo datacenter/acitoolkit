@@ -101,7 +101,7 @@ method of the CP_LINK object.::
      needs',link.remainingNeed(),'links to satisfy its mimimum
      requirement'
 
-There is a similare method, ``remainingAvail()`` that returns the
+There is a similar method, ``remainingAvail()`` that returns the
 number of physical links the link object could match.
 
 The ``remainingNeed()`` and ``remainingAvail()`` values are reset when
@@ -175,8 +175,8 @@ multiple are defined.::
   destChassis="leaf2", destPort="eth1/1 - eth1/8", minPorts=3,
   maxPorts=5>
 
-If minPorts is ommitted, the default will be 1. If maxPorts is
-ommitted, the default will be unlimited.
+If minPorts is omitted, the default will be 1. If maxPorts is
+omitted, the default will be unlimited.
 
 When comparing two cable plans using the ``difference_link()`` method,
 if the minimum number of links in the first cable plan can be met with
