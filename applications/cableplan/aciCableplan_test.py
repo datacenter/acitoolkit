@@ -677,8 +677,6 @@ class Test_export(unittest.TestCase) :
         self.assertEqual(len(diff_switches),0)
         
         diff_links = cp1.difference_link(cp2)
-        for link in diff_links :
-            print link
             
         self.assertEqual(len(diff_links),0)
         diff_links = cp2.difference_link(cp1)
