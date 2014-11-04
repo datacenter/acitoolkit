@@ -134,6 +134,7 @@ modified cable plan::
 Cable Plan XML Syntax 
 ========================
 The cable plan XML looks like the following ::
+
     <?xml version="1.0" encoding="UTF-8"?>
     <?created by cable.py?>
     <CISCO_NETWORK_TYPES version="None" xmlns="http://www.cisco.com/cableplan/Schema2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="nxos-cable-plan-schema.xsd">
