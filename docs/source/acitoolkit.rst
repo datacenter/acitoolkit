@@ -1,7 +1,13 @@
-acitoolkit module
-=================
+acitoolkit package
+==================
 
-.. automodule:: acitoolkit
-    :members:
-    :undoc-members:
-    :show-inheritance:
+Submodules
+----------
+
+.. toctree::
+
+   acitoolkit.acibaseobject
+   acitoolkit.aciphysobject
+   acitoolkit.acisession
+   acitoolkit.acitoolkit
+
