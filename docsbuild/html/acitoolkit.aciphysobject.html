@@ -1,0 +1,1032 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>acitoolkit.aciphysobject module &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="acitoolkit package" href="acitoolkit.html"/>
+        <link rel="next" title="acitoolkit.acisession module" href="acitoolkit.acisession.html"/>
+        <link rel="prev" title="acitoolkit.acibaseobject module" href="acitoolkit.acibaseobject.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#deploying-to-the-apic">Deploying to the APIC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">acitoolkit</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="modules.html">acitoolkit</a> &raquo;</li>
+      
+          <li><a href="acitoolkit.html">acitoolkit package</a> &raquo;</li>
+      
+    <li>acitoolkit.aciphysobject module</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/acitoolkit.aciphysobject.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="module-acitoolkit.aciphysobject">
+<span id="acitoolkit-aciphysobject-module"></span><h1>acitoolkit.aciphysobject module<a class="headerlink" href="#module-acitoolkit.aciphysobject" title="Permalink to this headline">¶</a></h1>
+<p>ACI Toolkit module for physical objects</p>
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysModule">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">BaseACIPhysModule</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysObject" title="acitoolkit.aciphysobject.BaseACIPhysObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysObject</span></tt></a></p>
+<p>BaseACIPhysModule: base class for modules</p>
+<p>Initialize the basic object.  This should be called by the
+init routines of inheriting subclasses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pod</strong> &#8211; pod id of module</li>
+<li><strong>node</strong> &#8211; node id of module</li>
+<li><strong>slot</strong> &#8211; slot id of module</li>
+<li><strong>parent</strong> &#8211; optional parent object</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysModule.get_obj">
+<em class="property">classmethod </em><tt class="descname">get_obj</tt><big>(</big><em>session</em>, <em>apic_class</em>, <em>parent</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysModule.get_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Nodes from the APIC.  This is called by the
+module specific get() methods.  The parameters passed include the
+APIC object class, apic_class, so that this will work for different kinds of modules.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session to use when retrieving the nodes</li>
+<li><strong>apic_class</strong> &#8211; The object class in APIC to retrieve</li>
+<li><strong>parent</strong> &#8211; The parent object of this object</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of module objects derived from the specified apic_class</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysModule.get_serial">
+<tt class="descname">get_serial</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysModule.get_serial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the serial number.
+:returns: serial number string</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysModule.get_slot">
+<tt class="descname">get_slot</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysModule.get_slot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets slot id</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">slot id</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">BaseACIPhysObject</tt><big>(</big><em>name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
+<p>Base class for physical objects</p>
+<p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; String containing the name of the object                     instance</li>
+<li><strong>parent</strong> &#8211; Parent object within the acitoolkit object model.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.add_child">
+<tt class="descname">add_child</tt><big>(</big><em>child_obj</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.add_child" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a child to the children list. All children must be unique so it will
+first delete the child if it already exists.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>child_obj</strong> &#8211; a child object to be added as a child to this object.  This will be put into the _children list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.exists">
+<em class="property">classmethod </em><tt class="descname">exists</tt><big>(</big><em>session</em>, <em>phys_obj</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an apic phys_obj exists on the APIC.
+Returns True if the phys_obj does exist.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session to use when accessing the APIC controller.</li>
+<li><strong>phys_obj</strong> &#8211; The object that you are checking for.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">True if the phys_obj exists, False if it does not.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_children">
+<tt class="descname">get_children</tt><big>(</big><em>childType=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the list of children.  If childType is provided, then
+it will return all of the children of the matching type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>childType</strong> &#8211; This optional parameter will cause this method to return only those children                        that match the type of childType.  If this parameter is ommitted, then all of the children will be returned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of children</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns json representation of the object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Nothing - physical objects are not modifiable</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_name">
+<tt class="descname">get_name</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Name string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_node">
+<tt class="descname">get_node</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets node id</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">id of node</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_pod">
+<tt class="descname">get_pod</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_pod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets pod_id
+:returns: id of pod</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_serial">
+<tt class="descname">get_serial</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_serial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets serial number.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">serial number string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_type">
+<tt class="descname">get_type</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets physical object type</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">type string of the object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.BaseACIPhysObject.get_url">
+<tt class="descname">get_url</tt><big>(</big><em>fmt='json'</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.get_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the URL used to push the configuration to the APIC
+if no fmt parameter is specified, the format will be &#8216;json&#8217;
+otherwise it will return &#8216;/api/mo/uni.&#8217; with the fmt string appended.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fmt</strong> &#8211; optional fmt string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nothing - physical objects are not modifiable</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Fantray">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Fantray</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Fantray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysModule" title="acitoolkit.aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysModule</span></tt></a></p>
+<p>Class for the fan tray of a node</p>
+<p>Initialize the basic object.  It will create the name of the fan tray and set the type
+before calling the base class __init__ method
+:param pod: pod id
+:param node: node id
+:param slot: slot id
+:param parent: optional parent object</p>
+<dl class="classmethod">
+<dt id="acitoolkit.aciphysobject.Fantray.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Fantray.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the fantrays from the APIC.  If parent is specified, it will only get fantrays that are
+children of the the parent.  The fantrays will also be added as children to the parent Node.</p>
+<p>The fantray object is derived mostly from the APIC &#8216;eqptFt&#8217; class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; optional parent switch of class Node</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of fantrays</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Fantray.populate_children">
+<tt class="descname">populate_children</tt><big>(</big><em>deep=False</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Fantray.populate_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates all of the children of the fantray.  Since the fantray has no children,
+this will return none.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> &#8211; boolean that when true will cause the entire sub-tree to be populated            when false, only the immediate children are populated</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Linecard">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Linecard</tt><big>(</big><em>arg0=None</em>, <em>arg1=None</em>, <em>slot=None</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Linecard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysModule" title="acitoolkit.aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysModule</span></tt></a></p>
+<p>class for a linecard of a switch</p>
+<p>Initialize the basic object.  It will create the name of the linecard and set the type
+before calling the base class __init__ method.  If arg1 is an instance of a Node, then pod,
+and node are derived from the Node and the slot_id is from arg0.  If arg1 is not a Node, then arg0
+is the pod, arg1 is the node id, and slot is the slot_id</p>
+<p>In other words, this Linecard object can either be initialized by</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">lc</span> <span class="o">=</span> <span class="n">Linecard</span><span class="p">(</span><span class="n">slot_id</span><span class="p">,</span> <span class="n">parent_switch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">lc</span> <span class="o">=</span> <span class="n">Linecard</span><span class="p">(</span><span class="n">pod_id</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">slot_id</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">lc</span> <span class="o">=</span> <span class="n">Linecard</span><span class="p">(</span><span class="n">pod_id</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">slot_id</span><span class="p">,</span> <span class="n">parent_switch</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>arg0</strong> &#8211; pod_id if arg1 is a node_id, slot_id if arg1 is of type Node</li>
+<li><strong>arg1</strong> &#8211; node_id string or parent Node of type Node</li>
+<li><strong>slot</strong> &#8211; slot_id if arg1 is node_id  Not required if arg1 is a Node</li>
+<li><strong>parent</strong> &#8211; parent switch of type Node.  Not required if arg1 is used instead.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="acitoolkit.aciphysobject.Linecard.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Linecard.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the linecards from the APIC.  If parent is specified, it will only get linecards that are
+children of the the parent.  The linecards will also be added as children to the parent Node.</p>
+<p>The lincard object is derived mostly from the APIC &#8216;eqptLC&#8217; class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; optional parent of class Node</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of linecards</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Linecard.populate_children">
+<tt class="descname">populate_children</tt><big>(</big><em>deep=False</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Linecard.populate_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates all of the children of the linecard.  Children are the interfaces.
+If deep is set to true, it will also try to populate the children of the children.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> &#8211; boolean that when true will cause the entire sub-tree to be populated            when false, only the immediate children are populated</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Link">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Link</tt><big>(</big><em>pod</em>, <em>link</em>, <em>node1</em>, <em>slot1</em>, <em>port1</em>, <em>node2</em>, <em>slot2</em>, <em>port2</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysObject" title="acitoolkit.aciphysobject.BaseACIPhysObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysObject</span></tt></a></p>
+<p>Link class, equivalent to the fabricLink object in APIC</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pod</strong> &#8211; pod id</li>
+<li><strong>link</strong> &#8211; link id</li>
+<li><strong>node1</strong> &#8211; id of node of port at first end of link</li>
+<li><strong>slot1</strong> &#8211; id of slot (linecard) of port at first end of link</li>
+<li><strong>port1</strong> &#8211; id of port at first end of link</li>
+<li><strong>node2</strong> &#8211; id of node of port at second end of link</li>
+<li><strong>slot2</strong> &#8211; id of slot (linecard) of port at second end of link</li>
+<li><strong>port2</strong> &#8211; id of port at second end of link</li>
+<li><strong>parent</strong> &#8211; optional parent object</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="staticmethod">
+<dt id="acitoolkit.aciphysobject.Link.get">
+<em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Links from the APIC.  If the parent pod is specified,
+only links of that pod will be retrieved.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; Optional parent Pod object</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of links</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Link.get_linkstatus">
+<tt class="descname">get_linkstatus</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_linkstatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the link status</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">link status string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Link.get_node1">
+<tt class="descname">get_node1</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_node1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Node object that corresponds to the first node of the link.  The Node must be a child of
+the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+most easily be done by populating the entire physical heirarchy from the Pod down.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Node object at first end of link</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Link.get_node2">
+<tt class="descname">get_node2</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_node2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Node object that corresponds to the second node of the link.  The Node must be a child of
+the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+most easily be done by populating the entire physical heirarchy from the Pod down.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Node object at second end of link</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Link.get_port1">
+<tt class="descname">get_port1</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_port1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Linecard object that corresponds to the first port of the link.  The port must be a child of
+the Linecard in the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+most easily be done by populating the entire physical heirarchy from the Pod down.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Interface object at first end of link</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Link.get_port2">
+<tt class="descname">get_port2</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_port2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Linecard object that corresponds to the second port of the link.  The port must be a child of
+the Linecard in the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+most easily be done by populating the entire physical heirarchy from the Pod down.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Interface object at second end of link</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Link.get_slot1">
+<tt class="descname">get_slot1</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_slot1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Linecard object that corresponds to the first slot of the link.  The Linecard must be a child of
+the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+most easily be done by populating the entire physical heirarchy from the Pod down.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Linecard object at first end of link</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Link.get_slot2">
+<tt class="descname">get_slot2</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_slot2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Linecard object that corresponds to the second slot of the link.  The Linecard must be a child of
+the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
+most easily be done by populating the entire physical heirarchy from the Pod down.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Linecard object at second end of link</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Node">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Node</tt><big>(</big><em>pod=None</em>, <em>node=None</em>, <em>name=None</em>, <em>role=None</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysObject" title="acitoolkit.aciphysobject.BaseACIPhysObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysObject</span></tt></a></p>
+<p>Node :  roughly equivalent to eqptNode</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pod</strong> &#8211; String representation of the pod number</li>
+<li><strong>node</strong> &#8211; String representation of the node number</li>
+<li><strong>name</strong> &#8211; Name of the node</li>
+<li><strong>role</strong> &#8211; Role of the node.  Valid roles are None, &#8216;spine&#8217;, &#8216;leaf&#8217;, &#8216;controller&#8217;</li>
+<li><strong>parent</strong> &#8211; Parent pod object of the node.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="staticmethod">
+<dt id="acitoolkit.aciphysobject.Node.get">
+<em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Node.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Nodes from the APIC.  If the parent pod is specified,
+only nodes of that pod will be retrieved.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; optional parent object</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of Nodes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Node.getFabricSt">
+<tt class="descname">getFabricSt</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Node.getFabricSt" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieves the fabric state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">fabric state</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Node.get_chassisType">
+<tt class="descname">get_chassisType</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Node.get_chassisType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the chassis type of this node.  The chassis type is derived from the model number.
+This is a chassis type that is compatible with Cisco&#8217;s Cable Plan XML.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">chassis type of node of type str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Node.get_model">
+<tt class="descname">get_model</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Node.get_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the model string of the node&#8217;</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">model of node of type str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Node.get_role">
+<tt class="descname">get_role</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Node.get_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieves the node role
+:returns: role</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Node.populate_children">
+<tt class="descname">populate_children</tt><big>(</big><em>deep=False</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Node.populate_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will populate all of the children modules such as linecards, fantrays and powersupplies, of the node.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> &#8211; boolean that when true will cause the entire sub-tree to be populated            when false, only the immediate children are populated</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Pod">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Pod</tt><big>(</big><em>pod_id</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Pod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysObject" title="acitoolkit.aciphysobject.BaseACIPhysObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysObject</span></tt></a></p>
+<p>Pod :  roughly equivalent to fabricPod</p>
+<p>Initialize the basic object.  It will create the name of the pod and set the type
+before calling the base class __init__ method.  Typically the pod_id will be 1.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pod_id</strong> &#8211; pod id string</li>
+<li><strong>parent</strong> &#8211; optional parent object</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="staticmethod">
+<dt id="acitoolkit.aciphysobject.Pod.get">
+<em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Pod.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the Pods from the APIC.  Generally there will be only one.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; APIC session</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of Pods.  Note that this will be a list even though there typically will only be one item in the list.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Pod.populate_children">
+<tt class="descname">populate_children</tt><big>(</big><em>deep=False</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Pod.populate_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>This will cause all of children of the pod to be gotten from the APIC and
+populated as children of the pod.</p>
+<p>If deep is set to True, it will populate the entire tree.</p>
+<p>This method returns nothing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> &#8211; boolean that when true will cause the entire sub-tree to be populated            when false, only the immediate children are populated</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Powersupply">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Powersupply</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Powersupply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysModule" title="acitoolkit.aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysModule</span></tt></a></p>
+<p>class for a power supply in a node</p>
+<p>Initialize the basic object.  It will create the name of the powersupply and set the type
+before calling the base class __init__ method
+:param pod: pod id
+:param node: node id
+:param slot: slot id
+:param parent: optional parent object</p>
+<dl class="classmethod">
+<dt id="acitoolkit.aciphysobject.Powersupply.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Powersupply.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the power supplies from the APIC.  If parent is specified, it will only get power supplies that are
+children of the the parent.  The power supplies will also be added as children to the parent Node.</p>
+<p>The Powersupply object is derived mostly from the APIC &#8216;eqptPsu&#8217; class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; optional parent switch of class Node</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of powersupplies</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.Powersupply.populate_children">
+<tt class="descname">populate_children</tt><big>(</big><em>deep=False</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Powersupply.populate_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates all of the children of the power supply.  Since the power supply has no children,
+this will return none.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> &#8211; boolean that when true will cause the entire sub-tree to be populated            when false, only the immediate children are populated</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Supervisorcard">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Supervisorcard</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Supervisorcard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysModule" title="acitoolkit.aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysModule</span></tt></a></p>
+<p>Class representing the supervisor card of a switch</p>
+<p>Initialize the basic object.  This should be called by the
+init routines of inheriting subclasses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pod</strong> &#8211; pod id</li>
+<li><strong>node</strong> &#8211; node id</li>
+<li><strong>slot</strong> &#8211; slot id</li>
+<li><strong>parent</strong> &#8211; optional parent object</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="acitoolkit.aciphysobject.Supervisorcard.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Supervisorcard.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the supervisor cards from the APIC.  If parent is specified, it will only get the supervisor card that is
+a child of the the parent Node.  The supervisor will also be added as a child to the parent Node.</p>
+<p>The Supervisorcard object is derived mostly from the APIC &#8216;eqptSupC&#8217; class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; optional parent switch of class Node</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of linecards</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.aciphysobject.Systemcontroller">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Systemcontroller</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Systemcontroller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysModule" title="acitoolkit.aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysModule</span></tt></a></p>
+<p>class of the motherboard of the APIC controller node</p>
+<p>Initialize the basic object.  It will create the name of the Systemcontroller and set the type
+before calling the base class __init__ method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pod</strong> &#8211; pod id</li>
+<li><strong>node</strong> &#8211; node id</li>
+<li><strong>slot</strong> &#8211; slot id</li>
+<li><strong>parent</strong> &#8211; optional parent object</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="acitoolkit.aciphysobject.Systemcontroller.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Systemcontroller.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the System controllers from the APIC. This information comes from
+the APIC &#8216;eqptBoard&#8217; class.</p>
+<p>If parent is specified, it will only get system controllers that are
+children of the the parent.  The system controlles will also be added as children to the parent Node.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; parent Node</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of Systemcontrollers</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="acitoolkit.acisession.html" class="btn btn-neutral float-right" title="acitoolkit.acisession module"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="acitoolkit.acibaseobject.html" class="btn btn-neutral" title="acitoolkit.acibaseobject module"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

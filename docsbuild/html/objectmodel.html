@@ -68,13 +68,14 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#deploying-to-the-apic">Deploying to the APIC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="acibaseobject.html">acibaseobject module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="aciphysobject.html">aciphysobject module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acisession.html">acisession module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
 </ul>
 </li>
 </ul>
@@ -196,9 +197,50 @@ interface configuration.</p>
 </div>
 <div class="section" id="physical-topology">
 <h2>Physical Topology<a class="headerlink" href="#physical-topology" title="Permalink to this headline">¶</a></h2>
-<p><cite>Need a diagram of the physical classes</cite></p>
-<p><cite>For those who have read this far, still working on this page.  An
-update should be coming soon.</cite></p>
+<p>The acitoolkit defines the network topology using a set of
+objects that represent each of the components of the topology.</p>
+<p>These objects are connected in a hierarchy according to the following diagrams.</p>
+<img alt="_images/objectModelTop.png" class="align-center" src="_images/objectModelTop.png" />
+<p>The Node object is used to represent both switches and controllers.
+Which kind of Node can be determined by looking at the &#8216;role&#8217;
+attribute.  Switches are Nodes with the &#8216;role&#8217; of &#8216;leaf&#8217; or &#8216;spine&#8217;
+and controllers are Nodes with the &#8216;role&#8217; of &#8216;controller&#8217;.  Switches
+are composed slightly different from controllers as shown in the
+following diagram.</p>
+<img alt="_images/objectModelSwitch.png" class="align-center" src="_images/objectModelSwitch.png" />
+<img alt="_images/objectModelController.png" class="align-center" src="_images/objectModelController.png" />
+<p><strong>Pod</strong> is the class for a physical Pod.  A Pod consists of all the
+switches, links, and controllers that connected in the simple leaf-spine
+fat tree topology of the ACI fabric.  It does not include the
+end-points or other devices that are attached to the ACI fabric.</p>
+<p><strong>Node</strong> is the class used to represent switches and controllers.
+What role the Node plays in the fabric can be determined by looking at
+the role attribute.</p>
+<p><strong>Link</strong> is the class representing links in the fabric.  It includes
+links between leaf and spine switches as well as links from leaf
+switches to controllers.  Each link has two ends, the first and second
+end, in no particular order.  This class has methods for retrieving
+the Switch, Linecard and Interface for each of the ends of the link.</p>
+<p><strong>Supervisorcard</strong> is the class representing the supervisor card in a
+switch.  It would only be a child of a Node that has the role of
+&#8216;leaf&#8217; or &#8216;spine&#8217;.  Each switch will have a supervisor including fixed
+configuration switches that may not have a obviously physically
+separate module that is a supervisor.  The supervisor is where the
+primary software of the switch runs.</p>
+<p><strong>Linecard</strong> is the class representing a linecard in a switch.  The
+linecard is where all of the physical interfaces or ports are
+attached.  In modular switches, the linecard is physically obvious,
+but even fixed configuration switches have a linecard where all the interfaces,
+ports, reside.  A specific linecard in a switch is identified by its
+slot_id attribute.  The slot_id of a linecard in a fixed configuration
+switch is always &#8216;1&#8217;.</p>
+<p><strong>Powersupply</strong> is the class representing a power supply in a node.</p>
+<p><strong>Fantray</strong> is the class representing a fan tray in a node</p>
+<p><strong>Systemcontroller</strong> is the class representing a system contoller of
+an APIC controller.  This is the motherboard of the controller and is
+a good place to understand the version of software that is running in
+the controller.</p>
+<p><strong>Interface</strong> described above.</p>
 </div>
 </div>
 

@@ -11,3 +11,10 @@ Submodules
    acitoolkit.acisession
    acitoolkit.acitoolkit
 
+Module contents
+---------------
+
+.. automodule:: acitoolkit
+    :members:
+    :undoc-members:
+    :show-inheritance:
