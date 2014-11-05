@@ -39,11 +39,11 @@ if not resp.ok:
 data = []
 endpoints = ACI.Endpoint.get(session)
 for ep in endpoints:
-    data.append((ep.mac, ep.ip))
+    data.append((ep.mac, ep.ip, ep.if_name))
 
 # Display the data downloaded
-template = "{0:19} {1:16}"
-print template.format("MACADDRESS",        "IPADDRESS")
-print template.format("-----------------", "----------------")
+template = "{0:19} {1:17} {2:30}"
+print template.format("MACADDRESS",        "IPADDRESS",        "INTERFACE")
+print template.format("-----------------", "---------------", "--------------")
 for rec in data:
     print template.format(*rec)

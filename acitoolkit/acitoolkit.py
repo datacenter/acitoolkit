@@ -1499,16 +1499,38 @@ class Endpoint(BaseACIObject):
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
+
+        # Get all of the interfaces
+        interface_query_url = ('/api/node/class/fabricPathEp.json?'
+                               'query-target=self')
+        ret = session.get(interface_query_url)
+        interfaces = ret.json()['imdata']
+
+        # Get all of the Endpoints
         endpoint_query_url = ('/api/node/class/fvCEp.json?'
-                              'query-target=self&rsp-subtree=no')
+                              'query-target=self&rsp-subtree=full')
         endpoints = []
         ret = session.get(endpoint_query_url)
         ep_data = ret.json()['imdata']
         for ep in ep_data:
+            children = ep['fvCEp']['children']
             ep = ep['fvCEp']['attributes']
             endpoint = Endpoint(str(ep['name']))
             endpoint.mac = str(ep['mac'])
             endpoint.ip = str(ep['ip'])
+            for child in children:
+                if 'fvRsCEpToPathEp' in child:
+                    endpoint.if_name = str(child['fvRsCEpToPathEp']['attributes']['tDn'])
+                    for interface in interfaces:
+                        interface = interface['fabricPathEp']['attributes']
+                        interface_dn = str(interface['dn'])
+                        if endpoint.if_name == interface_dn:
+                            if str(interface['lagT']) == 'not-aggregated':
+                                endpoint.if_name = Interface(*Interface.parse_dn(interface_dn)).if_name
+                            else:
+                                endpoint.if_name = interface['name']
+                    endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
+                    ret = session.get(endpoint_query_url)
             endpoints.append(endpoint)
         return endpoints
 
