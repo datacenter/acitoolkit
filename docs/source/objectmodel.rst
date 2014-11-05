@@ -102,13 +102,64 @@ interface configuration.
 
 Physical Topology
 -----------------
+The acitoolkit defines the network topology using a set of
+objects that represent each of the components of the topology. 
 
-`Need a diagram of the physical classes`
+These objects are connected in a heirarchy according to the following diagrams.
 
-`For those who have read this far, still working on this page.  An
-update should be coming soon.`
+.. image:: objectModelTop.png
 
+The Node object is used to represent both switches and controllers.
+Which kind of Node can be determined by looking at the 'role'
+attribute.  Switches are Nodes with the 'role' of 'leaf' or 'spine'
+and controllers are Nodes with the 'role' of 'controller.  Switches
+are composed slightly different from controllers as shown in the
+following diagram.
 
+.. image:: objectModelSwitch.png
 
+.. image:: objectModelController.png
+
+	   
+**Pod** is the class for a physical Pod.  A Pod consists of all the
+switches, links, and controllers that connected in the simple leaf-spine
+fat tree topology of the ACI fabric.  It does not include the
+end-points or other devices that are attached to the ACI fabric.
+
+**Node** is the class used to represent switches and controllers.
+What role the Node plays in the fabric can be determined by looking at
+the role attribute.
+
+**Link** is the class representing links in the fabric.  It includes
+links between leaf and spine switches as well as links from leaf
+switches to controllers.  Each link has two ends, the first and second
+end, in no particular order.  This class has methods for retrieving
+the Switch, Linecard and Interface for each of the ends of the link.
+
+**Supervisorcard** is the class representing the supervisor card in a
+switch.  It would only be a child of a Node that has the role of
+'leaf' or 'spine'.  Each switch will have a supervisor including fixed
+configuration switches that may not have a obviously physically
+separate module that is a supervisor.  The supervisor is where the
+primary software of the switch runs.
+
+**Linecard** is the class representing a linecard in a switch.  The
+linecard is where all of the physical interfaces or ports are
+attached.  In modular switches, the linecard is physically obvious,
+but even fixed configuration switches have a linecard where all the interfaces,
+ports, reside.  A specific linecard in a switch is identified by its
+slot_id attribute.  The slot_id of a linecard in a fixed configuration
+switch is always '1'.
+
+**Powersupply** is the class representing a power supply in a node.
+
+**Fantray** is the class representing a fan tray in a node
+
+**Systemcontroller** is the class representing a system contoller of
+an APIC controller.  This is the motherboard of the controller and is
+a good place to understand the version of software that is running in
+the controller.
+
+**Inteface** described above.
 
 
