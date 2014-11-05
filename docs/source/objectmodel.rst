@@ -105,14 +105,14 @@ Physical Topology
 The acitoolkit defines the network topology using a set of
 objects that represent each of the components of the topology. 
 
-These objects are connected in a heirarchy according to the following diagrams.
+These objects are connected in a hierarchy according to the following diagrams.
 
 .. image:: objectModelTop.png
 
 The Node object is used to represent both switches and controllers.
 Which kind of Node can be determined by looking at the 'role'
 attribute.  Switches are Nodes with the 'role' of 'leaf' or 'spine'
-and controllers are Nodes with the 'role' of 'controller.  Switches
+and controllers are Nodes with the 'role' of 'controller'.  Switches
 are composed slightly different from controllers as shown in the
 following diagram.
 
@@ -160,6 +160,6 @@ an APIC controller.  This is the motherboard of the controller and is
 a good place to understand the version of software that is running in
 the controller.
 
-**Inteface** described above.
+**Interface** described above.
 
 
