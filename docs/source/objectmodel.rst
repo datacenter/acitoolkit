@@ -108,6 +108,7 @@ objects that represent each of the components of the topology.
 These objects are connected in a hierarchy according to the following diagrams.
 
 .. image:: objectModelTop.png
+   :align: center
 
 The Node object is used to represent both switches and controllers.
 Which kind of Node can be determined by looking at the 'role'
@@ -117,8 +118,10 @@ are composed slightly different from controllers as shown in the
 following diagram.
 
 .. image:: objectModelSwitch.png
+   :align: center
 
 .. image:: objectModelController.png
+   :align: center
 
 	   
 **Pod** is the class for a physical Pod.  A Pod consists of all the
