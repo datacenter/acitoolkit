@@ -1,9 +1,9 @@
 .. toctree::
    :maxdepth: 3 
 
-==================== 
+===========================
 Cableplan Application
-==================== 
+===========================
 
 The Cable Plan module allows the programmer to easily import existing
 cable plans from XML files, import the currently running cable plan
@@ -17,7 +17,7 @@ file, query a cable plan, and modify a cable plan.
 .. _tut-using:
 
 ****************************
-Using the Cable Plan module
+Using the Cable Plan
 ****************************
 
 
@@ -26,7 +26,10 @@ Using the Cable Plan module
 Invoking 
 ========================
 
-The Cable Plan module is imported from :file:`cableplan.py`::
+The Cable Plan module is imported from :file:`cableplan.py` which can
+be found in the ``acitoolkit/applications/cableplan`` directory.
+
+::
 
   >>>from cableplan import CABLEPLAN
 
@@ -45,7 +48,7 @@ You can export that cable plan by opening a file and calling the
   >>>cp.export(cpFile)
   >>>cpFile.close()
 
-The cable plan will be written to the :file:`cableplan1.xml`.
+The cable plan will be written to the :file:`cableplan1.xml` file.
 
 Reading an existing cable plan xml file is equally easy.::
 
@@ -62,7 +65,7 @@ module will return those items that exist in the first cable plan, but
 not in the second.
 
 For example, assume that in the above example, the second cable plan
-read from the :file:`cableplan2.xml` does not have switch "Spine3"
+read from the :file:`cableplan2.xml` file does not have switch "Spine3"
 and the first cable plan does have it.  The following example will
 print all of the switches in the first cable plan and not in the
 second.::
@@ -190,7 +193,7 @@ requirements of the first cable plan are met without exceeding the
 maximum capacity of the second cable plan.
 
 
-.. automodule:: cableplan
+.. automodule:: applications.cableplan.cableplan
     :members:
     :undoc-members:
     :show-inheritance:
