@@ -17,7 +17,7 @@ Create a tenant
 fabric(config)# [no] tenant <tenant-name>
 
 Switch to a tenant configuration mode (ala VDC)
-fabric# switchto tenant <tenant-name>
+fabric# switchto <tenant-name>
 fabric-tenant# switchback
 
 Create a Context and don't enforce contracts on it
