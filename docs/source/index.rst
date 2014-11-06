@@ -16,6 +16,7 @@ Contents:
    objectmodel
    tutorial
    modules
+   applications
 
 
 Indices and tables
