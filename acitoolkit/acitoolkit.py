@@ -1518,6 +1518,10 @@ class Endpoint(BaseACIObject):
             endpoint = Endpoint(str(ep['name']))
             endpoint.mac = str(ep['mac'])
             endpoint.ip = str(ep['ip'])
+            endpoint.encap = str(ep['encap'])
+            endpoint.epg = str(ep['dn']).split('/')[3][4:]
+            endpoint.tenant = str(ep['dn']).split('/')[1][3:]
+            endpoint.app_profile = str(ep['dn']).split('/')[2][3:]
             for child in children:
                 if 'fvRsCEpToPathEp' in child:
                     endpoint.if_name = str(child['fvRsCEpToPathEp']['attributes']['tDn'])
