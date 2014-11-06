@@ -193,7 +193,7 @@ requirements of the first cable plan are met without exceeding the
 maximum capacity of the second cable plan.
 
 
-.. automodule:: applications.cableplan.cableplan
+.. automodule:: cableplan
     :members:
     :undoc-members:
     :show-inheritance:
