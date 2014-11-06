@@ -110,8 +110,8 @@ These objects are connected in a hierarchy according to the following diagrams.
 .. image:: objectModelTop.png
    :align: center
 
-The :py:class:`aciphysobject.Node` object is used to represent both switches and controllers.
-Which kind of :py:class:`aciphysobject.Node` can be determined by
+The :py:class:`acitoolkit.aciphysobject.Node` object is used to represent both switches and controllers.
+Which kind of :py:class:`acitoolkit.aciphysobject.Node` can be determined by
 looking at the role, ``Node.role``,
 attribute.  Switches are Nodes with the ``role`` of 'leaf' or 'spine'
 and controllers are Nodes with the ``role`` of 'controller'.  Switches
@@ -125,41 +125,41 @@ following diagram.
    :align: center
 
 	   
-**Pod** is the class for a physical Pod.  :py:class:`aciphysobject.Pod` conatins of all the
+**Pod** is the class for a physical Pod.  :py:class:`acitoolkit.aciphysobject.Pod` conatins of all the
 switches, links, and controllers that connected in the simple leaf-spine
 fat tree topology of the ACI fabric.  It does not include the
 end-points or other devices that are attached to the ACI fabric.
 
 **Node** is the class used to represent switches and controllers.
-What role the :py:class:`aciphysobject.Node` plays in the fabric can be determined by looking at
+What role the :py:class:`acitoolkit.aciphysobject.Node` plays in the fabric can be determined by looking at
 the ``role`` attribute.
 
-**Link** is the class representing links in the fabric.  :py:class:`aciphysobject.Link` includes
+**Link** is the class representing links in the fabric.  :py:class:`acitoolkit.aciphysobject.Link` includes
 links between leaf and spine switches as well as links from leaf
 switches to controllers.  Each link has two ends, the first and second
 end, in no particular order.  This class has methods for retrieving
 the Switch, Linecard and Interface for each of the ends of the link.
 
 **Supervisorcard** is the class representing the supervisor card in a
-switch.  :py:class:`aciphysobject.Supervisorcard` would only be a child of a Node that has the role of
+switch.  :py:class:`acitoolkit.aciphysobject.Supervisorcard` would only be a child of a Node that has the role of
 'leaf' or 'spine'.  Each switch will have a supervisor including fixed
 configuration switches that may not have a obviously physically
 separate module that is a supervisor.  The supervisor is where the
 primary software of the switch runs.
 
 **Linecard** is the class representing a linecard in a switch.  The
-:py:class:`aciphysobject.Linecard` is where all of the physical interfaces or ports are
+:py:class:`acitoolkit.aciphysobject.Linecard` is where all of the physical interfaces or ports are
 attached.  In modular switches, the linecard is physically obvious,
 but even fixed configuration switches have a linecard where all the interfaces,
 ports, reside.  A specific linecard in a switch is identified by its
 ``slot_id`` attribute.  The ``slot_id`` of a linecard in a fixed configuration
 switch is always '1'.
 
-**Powersupply** :py:class:`aciphysobject.Powersupply` is the class representing a power supply in a node.
+**Powersupply** :py:class:`acitoolkit.aciphysobject.Powersupply` is the class representing a power supply in a node.
 
-**Fantray** :py:class:`aciphysobject.Fantray` is the class representing a fan tray in a node
+**Fantray** :py:class:`acitoolkit.aciphysobject.Fantray` is the class representing a fan tray in a node
 
-**Systemcontroller** :py:class:`aciphysobject.Systemcontroller` is the class representing a system contoller of
+**Systemcontroller** :py:class:`acitoolkit.aciphysobject.Systemcontroller` is the class representing a system contoller of
 an APIC controller.  This is the motherboard of the controller and is
 a good place to understand the version of software that is running in
 the controller.
