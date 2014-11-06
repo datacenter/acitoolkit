@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """This module implements a CLI similar to Cisco IOS and NXOS
    for use with the ACI Toolkit.
 """
@@ -32,9 +34,11 @@ def error_message(resp):
 
 
 class SubMode(Cmd):
+
     """
     Implements the basic commands for all modes
     """
+
     def __init__(self):
         Cmd.__init__(self)
         self.tenant = None
@@ -46,13 +50,13 @@ class SubMode(Cmd):
         self.apic = None
 
     def do_show(self, args, to_return=False):
-        """Show running system information"""
+        """ Show running system information"""
         detail = False
         words = args.strip().split(' ')
         if len(words) > 1:
             if words[1] == 'detail':
                 detail = True
-        temp = self.complete_show('', 'show '+args, 0, 0)
+        temp = self.complete_show('', 'show ' + args, 0, 0)
         if len(temp) == 1:
             words[0] = temp[0]
 
@@ -228,35 +232,35 @@ class SubMode(Cmd):
     def get_args_num_nth(self, text, line, nth='last'):
         args = line.split()
         # the number of completed argument
-        num_completed_arg = len(args) - 1 if text == args[len(args)-1] else len(args)
+        num_completed_arg = len(args) - 1 if text == args[len(args) - 1] else len(args)
         # the last completed argument
         first_cmd = args[0]
-        last_cmd = args[num_completed_arg-1]
+        last_cmd = args[num_completed_arg - 1]
         try:
             nth_cmd = args[nth]
         except (TypeError, IndexError):
-            nth_cmd = args[num_completed_arg-1]
+            nth_cmd = args[num_completed_arg - 1]
         return args, num_completed_arg, first_cmd, nth_cmd, last_cmd
 
     def get_args_num_last(self, text, line):
         args = line.split()
         # the number of completed argument
-        num_completed_arg = len(args) - 1 if text == args[len(args)-1] else len(args)
+        num_completed_arg = len(args) - 1 if text == args[len(args) - 1] else len(args)
         # the last completed argument
-        last_completed_arg = args[num_completed_arg-1]
+        last_completed_arg = args[num_completed_arg - 1]
         return args, num_completed_arg, last_completed_arg
-    
+
     def get_completions(self, text, array):
         if args == '':
             return array
         return [a for a in array if a.startswith(text)]
-    
+
     def get_operator_port(self, line, arg):
         line = line.split(' ')
         if arg in line:
             index = line.index(arg)
-            return line[index+1:index+3]
-    
+            return line[index + 1:index + 3]
+
     def filter_args(self, black_list, array):
         if type(black_list) == str:
             black_list = black_list.split()
@@ -264,9 +268,11 @@ class SubMode(Cmd):
 
 
 class BridgeDomainConfigSubMode(SubMode):
+
     """
     Bridge domain configuration sub mode
     """
+
     def set_prompt(self):
         """
         Set the prompt to something like:
@@ -339,11 +345,12 @@ class BridgeDomainConfigSubMode(SubMode):
             return self.get_completions(text, get_context())
 
 
-
 class ContextConfigSubMode(SubMode):
+
     """
     Context domain configuration sub mode
     """
+
     def set_prompt(self):
         """
         Set the prompt to something like:
@@ -371,6 +378,7 @@ class ContextConfigSubMode(SubMode):
 
 
 class InterfaceConfigSubMode(SubMode):
+
     def __init__(self):
         SubMode.__init__(self)
         self.tenant = None
@@ -425,19 +433,23 @@ class InterfaceConfigSubMode(SubMode):
 
     def complete_epg(self, text, line, begidx, endidx):
 
-         # TODO: need to replace the five "get" functions
+        # TODO: need to replace the five "get" functions
         def get_epg_name():
             # return ['epg_1', 'epg_2']
             pass
+
         def get_vlan_id():
             # return ['vlan_id_1', 'vlan_id_2']
             pass
+
         def get_vnid():
             # return ['vnid_1', 'vnid_2']
             pass
+
         def get_mcast_addr():
             # return ['mcast_addr_1', 'mcast_addr_2']
             pass
+
         def get_vsid():
             # return ['vsid_1', 'vsid_2']
             pass
@@ -461,7 +473,6 @@ class InterfaceConfigSubMode(SubMode):
         elif first_cmd == 'epg':
             if num == 2:
                 return self.get_completions(text, ['vlan', 'vxlan', 'nvgre'])
-
 
     def do_shutdown(self, args):
         num_args = len(args.split())
@@ -583,6 +594,7 @@ class InterfaceConfigSubMode(SubMode):
 
 
 class ConfigSubMode(SubMode):
+
     def __init__(self):
         SubMode.__init__(self)
         self.tenant = None
@@ -784,9 +796,11 @@ class ConfigSubMode(SubMode):
 
 
 class EPGConfigSubMode(SubMode):
+
     """
     Endpoint Group configuration sub mode
     """
+
     def __init__(self):
         SubMode.__init__(self)
 
@@ -819,9 +833,11 @@ class EPGConfigSubMode(SubMode):
 
 
 class AppProfileConfigSubMode(SubMode):
+
     """
     Application Profile configuration sub mode
     """
+
     def __init__(self):
         SubMode.__init__(self)
         self.epg_submode = EPGConfigSubMode()
@@ -870,6 +886,7 @@ class AppProfileConfigSubMode(SubMode):
 
 
 class ContractConfigSubMode(SubMode):
+
     """
     Contract configuration sub mode
     """
@@ -880,7 +897,7 @@ class ContractConfigSubMode(SubMode):
         self.sequence_number = None
         self.aa = 0
         self.operators = ['lt', 'gt', 'eq', 'neq', 'range']
-        self.permit_args = [ 'eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp']
+        self.permit_args = ['eigrp', 'gre', 'icmp', 'igmp', 'igrp', 'ip', 'ipinip', 'nos', 'ospf', 'pim', 'tcp', 'udp']
         self.scope_args = ['context', 'global', 'tenant', 'application-profile']
 
     def do_scope(self, args):
@@ -903,11 +920,11 @@ class ContractConfigSubMode(SubMode):
             if cmd in args:
                 idx = args.index(cmd)
                 try:
-                    oprt = args[idx+1]
+                    oprt = args[idx + 1]
                     if oprt not in self.operators:
                         print 'Error, invalid Operator.'
                         return
-                    port = args[idx+2: idx+4 if oprt == 'range' else idx+3]
+                    port = args[idx + 2: idx + 4 if oprt == 'range' else idx + 3]
                 except IndexError:
                     print 'too few arguemnts.'
                     return
@@ -921,7 +938,7 @@ class ContractConfigSubMode(SubMode):
             def check_name(args, sign):
                 idx = args.index(sign)
                 try:
-                    return [sign, args[idx+1]]
+                    return [sign, args[idx + 1]]
                 except IndexError:
                     print 'Error, flag name is not defined.'
             if ('+') in args:
@@ -951,7 +968,7 @@ class ContractConfigSubMode(SubMode):
                 print [self.negative] + [self.sequence_number] + args
         elif args[0] in self.permit_args + ['unspecified'] and args[0] not in ['tcp', 'udp']:
             apply_fra = False
-            if args[len(args)-1] == 'fragment':
+            if args[len(args) - 1] == 'fragment':
                 apply_fra = True
             print [self.negative, self.sequence_number, args[0], apply_fra]
         elif args[0] in ['tcp', 'udp']:
@@ -964,7 +981,6 @@ class ContractConfigSubMode(SubMode):
                 return
             print out_put, from_arg, to_arg
 
-
     def complete_permit(self, text, line, begidx, endidx):
         signs = ['+', '-']
         protocol_args = ['from-port', 'to-port']
@@ -972,7 +988,7 @@ class ContractConfigSubMode(SubMode):
 
         args, num, first_cmd, nth_cmd, cmd = self.get_args_num_nth(text, line)
         if cmd == 'permit':
-            return self.get_completions(text, self.permit_args+['arp', 'ethertype'])
+            return self.get_completions(text, self.permit_args + ['arp', 'ethertype'])
         elif cmd == 'ethertype':
             if num == 2:
                 ethertype_args = ['unspecified', 'trill', 'arp', 'mpls_ucast', 'mac_security', 'fcoe', 'ip', 'DEFAULT']
@@ -998,7 +1014,7 @@ class ContractConfigSubMode(SubMode):
             return []
 
         do_array = self.completenames(text) if with_do_args else []
-        pos_args = self.get_completions(text, get_seq_nums()+do_array)
+        pos_args = self.get_completions(text, get_seq_nums() + do_array)
         if 'permit' in pos_args:
             pos_args.remove('permit')
         return pos_args
@@ -1018,7 +1034,7 @@ class ContractConfigSubMode(SubMode):
             stripped = len(origline) - len(line)
             begidx = readline.get_begidx() - stripped
             endidx = readline.get_endidx() - stripped
-            if begidx>0:
+            if begidx > 0:
                 cmd, args, foo = self.parseline(line)
                 if cmd == '':
                     compfunc = self.completedefault
@@ -1039,7 +1055,7 @@ class ContractConfigSubMode(SubMode):
         args, num, last = self.get_args_num_last(text, line)
         if num == 1:
             pos_args = self.complete_sequence_number(text, line, begidx, endidx, with_do_args=False)
-            return self.get_completions(text, pos_args+['scope'])
+            return self.get_completions(text, pos_args + ['scope'])
         elif num == 2:
             if args[1] == 'scope':
                 return self.complete_scope(text, line.partition(' ')[2].partition(' ')[2], begidx, endidx)
@@ -1089,9 +1105,11 @@ class ContractConfigSubMode(SubMode):
 
 
 class CmdLine(SubMode):
+
     """
     Help is available through '?'
     """
+
     def __init__(self):
         Cmd.__init__(self)
         self.apic = apic
@@ -1118,7 +1136,7 @@ class CmdLine(SubMode):
         cmds = self.completenames(cmd)
         num_cmds = len(cmds)
         if num_cmds == 1:
-            getattr(self, 'do_'+cmds[0])(arg)
+            getattr(self, 'do_' + cmds[0])(arg)
         elif num_cmds > 1:
             sys.stdout.write('%% Ambiguous command:\t"%s"\n' % cmd)
         else:
@@ -1127,7 +1145,7 @@ class CmdLine(SubMode):
     def do_help(self, arg):
         doc_strings = [(i[3:], getattr(self, i).__doc__)
                        for i in dir(self) if i.startswith('do_')]
-        doc_strings = ['  %s\t%s\n' % (i, j)
+        doc_strings = ['  {!s:12}\t{!s}\n'.format(i, j)
                        for i, j in doc_strings if j is not None]
         sys.stdout.write('Commands:\n%s\n' % ''.join(doc_strings))
 
@@ -1181,6 +1199,7 @@ class CmdLine(SubMode):
 
 
 class MockStdin:
+
     def __init__(self, filename, original_stdin):
         self.original_stdin = original_stdin
         f = open(filename)
