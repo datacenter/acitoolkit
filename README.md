@@ -17,6 +17,7 @@ Required
 
 * Python 2.7+
 * [requests library](http://docs.python-requests.org/en/latest/user/install/#install)
+* [setuptools package](https://pypi.python.org/pypi/setuptools)
 
 ## Downloading
 
