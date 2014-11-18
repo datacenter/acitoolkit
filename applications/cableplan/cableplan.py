@@ -133,9 +133,9 @@ class CABLEPLAN :
         it will get the cable plan from XML in a file whose name is source.  If it is
         a Session, it will read the corresponding APIC to get the cable plan.
 
-        INPUT: source = [str,Session]
+        :param source: filename of type string or Session of type Session
 
-        RETURNS: CABLEPLAN
+        :returns: CABLEPLAN
         """
         if isinstance(source, str) :
             rootObj = cls._parse(source)
@@ -174,9 +174,7 @@ class CABLEPLAN :
     def get_spines(self) :
         """Will return list of switches that are spines
 
-        INPUT: None
-
-        RETURNS: list of CP_SWITCH
+        :returns: list of CP_SWITCH
         """
 
         switchList = []
@@ -193,9 +191,9 @@ class CABLEPLAN :
         return the final switch, i.e. new_switch if no merge occurred or the
         newly merged switch if a merge did occur.
 
-        INPUT: new_switch = CP_SWITCH
+        :param new_switch: switch to be added of type CP_SWITCH
 
-        RETURNS: CP_SWITCH
+        :returns: CP_SWITCH
         """
         if not isinstance(new_switch, CP_SWITCH) :
             raise TypeError('add_switch expects object of type CP_SWITCH')
@@ -219,9 +217,9 @@ class CABLEPLAN :
     def add_link(self, new_link) :
         """Will add a link to the CABLEPLAN.  Duplicates will not be allow, but overlapping will be.
 
-        INPUT: new_link = CP_LINK
+        :param new_link: Link to be added of type CP_LINK
 
-        RETURNS: None
+        :returns: None
         """
         
         if new_link not in self.links :
@@ -239,9 +237,10 @@ class CABLEPLAN :
         it will return all of the links that are connected to switch.  If both switch1 and swithc2 are specified,
         it will return all links that are connected between the two switches.
 
-        INPUT: [switch=CP_SWITCH]
+        :param switch1: optional first switch of type CP_SWITCH
+        :param switch2: optional second switch of type CP_SWITCH
 
-        RETURNS :  list of CP_LINK
+        :returns:  list of links of type CP_LINK
         """
         
         if switch1 :
@@ -257,9 +256,9 @@ class CABLEPLAN :
     def difference_switch(self, cp) :
         """Will return a list of switches that are in self, but not in cp.
 
-        INPUT: cp = CABLEPLAN
+        :param cp: cable plan 
 
-        RETURNS: list of CP_SWITCH
+        :returns: list of CP_SWITCH
         """
         result = []
         myswitches = self.get_switch()
@@ -298,9 +297,11 @@ class CABLEPLAN :
     def _switch_link_diff(self, cp, switch1, switch2) :
         """ returns a list links that go between switch1 and switch2 that are in self, but not in cp
 
-        INPUT: cp=CABLEPLAN, switch1 = CP_SWITCH, switch2=CP_SWITCH
+        :param cp: cable plan of type CP_CABLEPLAN
+        :param switch1: first switch of type CP_SWITCH
+        :param switch2: second switch of type CP_SWITCH
 
-        RETURNS: list of CP_LINK
+        :returns: list of CP_LINK
         """
         result = []
         myLinks = self._sorted_links(switch1, switch2)
@@ -322,9 +323,9 @@ class CABLEPLAN :
     def difference_link(self, cp) :
         """returns a list of links that are in self, but not in cp.
 
-        INPUT: cp=CABLEPLAN
+        :param cp : cable plan of type CABLEPLAN
 
-        RETURNS: list of CP_LINK
+        :returns: list of CP_LINK
         """
         result = []
         self._resetAccounting()
@@ -369,9 +370,9 @@ class CABLEPLAN :
         """Will generate the XML of the CABLEPLAN with DATA_CENTER as the root.  This will then be
         returned a string. 'level' specifies the indentation level to start with.
 
-        INPUT: [level=int]
+        :param level: optional indention level, integer
 
-        RETURNS: str
+        :returns: string that is the DATA_CENTER xml
         """
         tag = 'DATA_CENTER'
         text = indent(level)
@@ -421,9 +422,9 @@ class CABLEPLAN :
     def _buildAPIC(self, pod) :
         """This will build the cable plan using the configuration of the pod.
 
-        INPUT: pod = Pod
+        :param pod: Pod
 
-        RETURNS: None
+        :returns: None
         """
         nodes = pod.get_children(Node)
         for node in nodes :
@@ -502,18 +503,14 @@ class CP_SWITCH :
     def get_name(self) :
         """Gets the name of the chassis.
 
-        INPUT: None
-
-        RETURNS: str
+        :returns: str
         """
         return self.name
     def set_name(self, name) :
         """Sets the switch name.  This will over-ride any preexisting name.  Note that this new
         name will now become part of the link name for all the links attached to this switch.
 
-        INPUT: name=str
-
-        RETURNS: None
+        :param name: name string to set in the switch
         """
 
         self.name = name
@@ -533,9 +530,7 @@ class CP_SWITCH :
         """Sets the parent of the switch.  Parent must be of type CABLEPLAN.  If a parent
         CABLEPLAN was already set and it is differnt from parent, then an error is raised.
 
-        INPUT: parent=CABLEPLAN
-
-        RETURNS: None
+        :param parent: parent object of type CABLEPLAN
         """
 
         if not isinstance(parent, CABLEPLAN) :
@@ -550,9 +545,7 @@ class CP_SWITCH :
     def isSpine(self) :
         """Checks if the 'spine' flag is set.
 
-        INPUT: None
-
-        RETURNS: Boolean
+        :returns: True if the ``spine`` flag is set, otherwise False
         """
         
         return self.spine
@@ -560,9 +553,7 @@ class CP_SWITCH :
         """ Merges the content of new_switch with self.  If self has variables set, then they will
         not be changed.  If they have not been set, then they will be assigned the value from new_switch.
 
-        INPUT: new_switch=CP_SWITCH
-        
-        RETURNS: None
+        :param new_switch: switch object to merge with self
         """
         if new_switch.spine : self.spine = new_switch.spine
         if new_switch.chassis_type : self.chassis_type = new_switch.chassis_type
@@ -572,9 +563,7 @@ class CP_SWITCH :
     def get_links(self) :
         """returns a list of CP_LINKS from the parent CABLEPLAN that are connected to self.
 
-        INPUT: None
-
-        RETURNS: list of CP_LINKS
+        :returns: list of CP_LINKS
         """
         return self.parent.get_links(self)
         
@@ -610,9 +599,9 @@ class CP_PORT :
         The format for a port is a string that ends in a forward slash followed by a number.  The number is what is incremented
         for a range.  A dash, '-' is not legal in the port name.
 
-        INPUT: portSet = str
+        :param portSet: string
 
-        RETURNS: list of str
+        :returns: list of str
         """
 
         if portSet == None :
@@ -804,10 +793,6 @@ class CP_LINK :
             
     def resetAccounting(self) :
         """Resets account on the source and dest ports as well as reference count
-
-        INPUT: None
-
-        RETURNS: None
         """
         self.destPort.resetAccounting()
         self.sourcePort.resetAccounting()
@@ -818,9 +803,7 @@ class CP_LINK :
         The parameters used to calculate this value are reset by the resetAccounting() method which is typically
         invoked when invoking a difference_link() method on the CABLEPLAN parent object.
 
-        INPUT: None
-
-        RETURNS: int
+        :returns: int
         """
         return max(0,self.minRef-self.refCount)
     
@@ -829,9 +812,7 @@ class CP_LINK :
         The parameters used to calculate this value are reset by the resetAccounting() method which is typically
         invoked when invoking a difference_link() method on the CABLEPLAN parent object.
 
-        INPUT: None
-
-        RETURNS: int
+        :returns: int
         """
         
         return max(0,self.maxRef-self.refCount)
@@ -840,9 +821,7 @@ class CP_LINK :
         """Calculates the order of the link defined by the maximum number of physical links this link
         can represent
 
-        INPUT: None
-
-        RETURNS: int
+        :returns: int
         """
         if self.sourcePort.ports and self.destPort.ports :
             result = min(len(self.sourcePort.ports), len(self.destPort.ports))
@@ -872,9 +851,10 @@ class CP_LINK :
         otherwise is will return True if both switch1 and switch2 are switch endpoints of the link.  If
         switch1 is the same as switch2, it will return False.
 
-        INPUT: switch1 = CP_SWITCH, [switch2=CP_SWITCH]
+        :param switch1: first switch to check if it an end-point of the link
+        :param switch2: optional second switch to check if it an end-point of the link
 
-        RETURNS: Boolean
+        :returns: True if switch1 (and optional switch2) is an end-point of the link
         """
         s1 = (switch1 == self.sourceChassis) or (switch1 == self.destChassis)
         if switch2 :
@@ -898,9 +878,9 @@ class CP_LINK :
         """Returns True if link has any ports that match self.  It will compare
         all ports included expanded lists of port sets.
 
-        INPUT: link=CP_LINK
+        :param link: link to check to see if matches, or overlaps, with self
         
-        RETURNS: Boolean
+        :returns: Boolean
         """
         
         if link.sourceChassis == self.sourceChassis :
@@ -945,9 +925,10 @@ class CP_LINK :
         which is the source chassis so that it will be omitted from the XML and the other chassis will
         become the destination.  'level' is the indentation level.
 
-        INPUT: chassis=CP_SWITCH, level=int
+        :param chassis: Chassis that is the parent of the LINK_INFO xml
+        :param level:  Indentation level
         
-        RETURNS: str
+        :returns: str
         """
         
         tag = 'LINK_INFO'
@@ -976,9 +957,10 @@ class CP_LINK :
         of the matches that happen.  It will do this until the minimum number of links has been reached for
         link1.  It will return the number of matches that occurred.
 
-        INPUT: link1=CP_LINK, link2=CP_LINK
+        :param link1: first link of type CP_LINK that is part of the matching
+        :param link2: second link of type CP_LINK that is part of the matching
 
-        RETURNS: int
+        :returns: number of matches that occured.
         """
 
         result = 0
