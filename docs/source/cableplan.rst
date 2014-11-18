@@ -192,6 +192,9 @@ Basically, the difference is calculated such that the minimum
 requirements of the first cable plan are met without exceeding the
 maximum capacity of the second cable plan.
 
+***************************
+Cable Plan API Reference
+***************************
 
 .. automodule:: cableplan
     :members:
