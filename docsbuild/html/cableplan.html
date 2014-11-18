@@ -1,0 +1,826 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Cableplan Application &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="Applications" href="applications.html"/>
+        <link rel="prev" title="Applications" href="applications.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#deploying-to-the-apic">Deploying to the APIC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="applications.html">Applications</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="">Cableplan Application</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="applications.html">Applications</a> &raquo;</li>
+      
+    <li>Cableplan Application</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/cableplan.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<div class="section" id="cableplan-application">
+<h1>Cableplan Application<a class="headerlink" href="#cableplan-application" title="Permalink to this headline">¶</a></h1>
+<p>The Cable Plan module allows the programmer to easily import existing
+cable plans from XML files, import the currently running cable plan
+from an APIC controller, export previously imported cable plans to a
+file, and compare cable plans.</p>
+<p>More advanced users can use the Cable Plan to easily build a cable plan XML
+file, query a cable plan, and modify a cable plan.</p>
+<div class="section" id="using-the-cable-plan">
+<span id="tut-using"></span><h2>Using the Cable Plan<a class="headerlink" href="#using-the-cable-plan" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="invoking">
+<span id="tut-invoking"></span><h3>Invoking<a class="headerlink" href="#invoking" title="Permalink to this headline">¶</a></h3>
+<p>The Cable Plan module is imported from <tt class="file docutils literal"><span class="pre">cableplan.py</span></tt> which can
+be found in the <tt class="docutils literal"><span class="pre">acitoolkit/applications/cableplan</span></tt> directory.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;from cableplan import CABLEPLAN</span>
+</pre></div>
+</div>
+<p>When you want to create a cable plan from the current running topology
+of an ACI fabric, simply do the following:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;cp = CABLEPLAN.get(session)</span>
+</pre></div>
+</div>
+<p>Where <tt class="docutils literal"><span class="pre">session</span></tt> is an ACI session object generated using the
+<tt class="docutils literal"><span class="pre">acitoolkit</span></tt>.  <tt class="docutils literal"><span class="pre">cp</span></tt> will be the cable plan object.</p>
+<p>You can export that cable plan by opening a file and calling the
+<tt class="docutils literal"><span class="pre">export()</span></tt> method as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;cpFile = open(&#39;cableplan1.xml&#39;,&#39;w&#39;)</span>
+<span class="go">&gt;&gt;&gt;cp.export(cpFile)</span>
+<span class="go">&gt;&gt;&gt;cpFile.close()</span>
+</pre></div>
+</div>
+<p>The cable plan will be written to the <tt class="file docutils literal"><span class="pre">cableplan1.xml</span></tt> file.</p>
+<p>Reading an existing cable plan xml file is equally easy.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;fileName = &#39;cableplan2.xml&#39;</span>
+<span class="go">&gt;&gt;&gt;cp2 = CABLEPLAN.get(fileName)</span>
+</pre></div>
+</div>
+<p>Note that you don&#8217;t have to explicitly open or close the file.  The
+<tt class="docutils literal"><span class="pre">get(fileName)</span></tt> method will take care of that for you.</p>
+<p>Comparing cable plans is one of the more interesting cabablilities of
+the Cable Plan module and is very easy to do using the &#8220;difference&#8221;
+methods.  When generating the difference between two cable plans, the
+module will return those items that exist in the first cable plan, but
+not in the second.</p>
+<p>For example, assume that in the above example, the second cable plan
+read from the <tt class="file docutils literal"><span class="pre">cableplan2.xml</span></tt> file does not have switch &#8220;Spine3&#8221;
+and the first cable plan does have it.  The following example will
+print all of the switches in the first cable plan and not in the
+second.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;missing_switches = cp1.difference_switch(cp2)</span>
+<span class="go">&gt;&gt;&gt;for switch in missing_switches :</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="k">print</span> <span class="n">switch</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span>
+<span class="go">Spine3</span>
+</pre></div>
+</div>
+<p>Similiarly, the following example will print all of the missing
+links:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;missing_links = cp1.difference_link(cp2)</span>
+<span class="go">&gt;&gt;&gt;for link in missing_links :</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="k">print</span> <span class="n">link</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>To understand all of the differences between two cable plans it is
+necessary to compare them in both directions</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;missing_links = cp1.difference_link(cp2)</span>
+<span class="go">&gt;&gt;&gt;extra_links = cp2.difference_link(cp1)</span>
+<span class="go">&gt;&gt;&gt;print &#39;The following links are missing from the second cable plan&#39;</span>
+<span class="go">&gt;&gt;&gt;for link in missing_links :</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="k">print</span> <span class="n">link</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span>
+<span class="go">&gt;&gt;&gt;print &#39;The following links are extra links in the second cable plan&#39;</span>
+<span class="go">&gt;&gt;&gt;for link in extra_links:</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="k">print</span> <span class="n">link</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If multiple ports are specified in the link object with minPorts and
+maxPorts attributes (see Cable Plan XML Syntax below), it is possible
+that a link object in the first cable plan is only partially met by
+the link objects in the second cable plan.  The <tt class="docutils literal"><span class="pre">remainingNeed()</span></tt>
+method of the CP_LINK object.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;missing_links = cp1.difference_link(cp2)</span>
+<span class="go">&gt;&gt;&gt;for link in missing_links :</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="k">print</span> <span class="s">&#39;Link&#39;</span><span class="p">,</span><span class="n">link</span><span class="o">.</span><span class="n">get_name</span><span class="p">(),</span> <span class="s">&#39;still needs&#39;</span><span class="p">,</span><span class="n">link</span><span class="o">.</span><span class="n">remainingNeed</span><span class="p">(),</span><span class="s">&#39;links to satisfy its mimimum requirement&#39;</span>
+</pre></div>
+</div>
+<p>There is a similar method, <tt class="docutils literal"><span class="pre">remainingAvail()</span></tt> that returns the
+number of physical links the link object could match.</p>
+<p>The <tt class="docutils literal"><span class="pre">remainingNeed()</span></tt> and <tt class="docutils literal"><span class="pre">remainingAvail()</span></tt> values are reset when
+the <tt class="docutils literal"><span class="pre">difference_link()</span></tt> method is invoked.</p>
+<p>It might be necessary to compare cable plans when the names of the
+switches are different, but the topologies are the same.  This can
+easily done by simply changing the names of the switches that are
+different and then doing the comparisons.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;switch = cp1.get_switch(&#39;Spine1&#39;)</span>
+<span class="go">&gt;&gt;&gt;switch.set_name(&#39;Spine1_new_name&#39;)</span>
+</pre></div>
+</div>
+<p>This will automatically also fix-up all of the link names that are
+connected to the switch whose name is being changed.  Note that this
+is also an easy way to change the name of a switch in a cable plan
+file.  Simply read it in, change the switch name, and export it out.
+The following example will read in <tt class="file docutils literal"><span class="pre">cable_plan2.xml</span></tt>, change the
+name of &#8216;Leaf1&#8217; to &#8216;Leaf35&#8217;, and then export to the same file the
+modified cable plan:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;fileName = &#39;cable_plan2.xml&#39;</span>
+<span class="go">&gt;&gt;&gt;cp2 = CABLEPLAN.get(fileName)</span>
+<span class="go">&gt;&gt;&gt;switch = cp2.get_switch(&#39;Leaf1&#39;)</span>
+<span class="go">&gt;&gt;&gt;switch.set_name(&#39;Leaf35&#39;)</span>
+<span class="go">&gt;&gt;&gt;f = open(fileName,&#39;w&#39;)</span>
+<span class="go">&gt;&gt;&gt;cp2.export(f)</span>
+<span class="go">&gt;&gt;&gt;f.close()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="cable-plan-xml-syntax">
+<h2>Cable Plan XML Syntax<a class="headerlink" href="#cable-plan-xml-syntax" title="Permalink to this headline">¶</a></h2>
+<p>The cable plan XML looks like the following</p>
+<div class="highlight-python"><div class="highlight"><pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;?created by cable.py?&gt;
+&lt;CISCO_NETWORK_TYPES version=&quot;None&quot; xmlns=&quot;http://www.cisco.com/cableplan/Schema2&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;nxos-cable-plan-schema.xsd&quot;&gt;
+   &lt;DATA_CENTER networkLocation=&quot;None&quot; idFormat=&quot;hostname&quot;&gt;
+      &lt;CHASSIS_INFO sourceChassis=&quot;spine1&quot; type=&quot;n9k&quot;&gt;
+         &lt;LINK_INFO sourcePort=&quot;eth2/35&quot; destChassis=&quot;leaf1&quot; destPort=&quot;eth1/50&quot;/&gt;
+         &lt;LINK_INFO sourcePort=&quot;eth2/3&quot; destChassis=&quot;leaf3&quot; destPort=&quot;eth1/50&quot;/&gt;
+         &lt;LINK_INFO sourcePort=&quot;eth2/2&quot; destChassis=&quot;leaf2&quot; destPort=&quot;eth1/50&quot;/&gt;
+      &lt;/CHASSIS_INFO&gt;
+      &lt;CHASSIS_INFO sourceChassis=&quot;spine2&quot; type=&quot;n9k&quot;&gt;
+         &lt;LINK_INFO sourcePort=&quot;eth2/1&quot; destChassis=&quot;leaf1&quot; destPort=&quot;eth1/49&quot;/&gt;
+         &lt;LINK_INFO sourcePort=&quot;eth2/3&quot; destChassis=&quot;leaf3&quot; destPort=&quot;eth1/49&quot;/&gt;
+         &lt;LINK_INFO sourcePort=&quot;eth2/2&quot; destChassis=&quot;leaf2&quot; destPort=&quot;eth1/49&quot;/&gt;
+      &lt;/CHASSIS_INFO&gt;
+   &lt;/DATA_CENTER&gt;
+&lt;/CISCO_NETWORK_TYPES&gt;
+</pre></div>
+</div>
+<p>The CHASSIS_INFO tag normally identifies the spine switches and the
+leaf switches are contained in the LINK_INFO.  When the XML is read
+in, both leaf and spine switch objects will be created and the
+<tt class="docutils literal"><span class="pre">get_switch()</span></tt> and <tt class="docutils literal"><span class="pre">get_link()</span></tt> methods can be used to access
+them.</p>
+<p>The LINK_INFO syntax also allows more flexible and loose
+specifications of the links.  If the <tt class="docutils literal"><span class="pre">sourcePort</span></tt> or <tt class="docutils literal"><span class="pre">destPort</span></tt>
+attributes are left out, then any port on that corresponding switch
+can be used.  The <tt class="docutils literal"><span class="pre">sourcePort</span></tt> and <tt class="docutils literal"><span class="pre">destPort</span></tt> attributes can also
+take port ranges, and lists as shown here:</p>
+<div class="highlight-python"><div class="highlight"><pre>&lt;LINK_INFO sourcePort=&quot;eth1/1-eth1/15, eth1/20&quot; destChassis =
+&quot;leaf3&quot;/&gt;
+</pre></div>
+</div>
+<p>In addition, you can add <tt class="docutils literal"><span class="pre">minPorts</span></tt> and <tt class="docutils literal"><span class="pre">maxPorts</span></tt> attributes to
+specify the minimum number of ports or maximum number of ports when
+multiple are defined.:</p>
+<div class="highlight-python"><div class="highlight"><pre>&lt;LINK_INFO sourcePort=&quot;eth2/3, eth3/4 - eth3/10&quot;,
+destChassis=&quot;leaf2&quot;, destPort=&quot;eth1/1 - eth1/8&quot;, minPorts=3,
+maxPorts=5&gt;
+</pre></div>
+</div>
+<p>If minPorts is omitted, the default will be 1. If maxPorts is
+omitted, the default will be unlimited.</p>
+<p>When comparing two cable plans using the <tt class="docutils literal"><span class="pre">difference_link()</span></tt> method,
+if the minimum number of links in the first cable plan can be met with
+second cable plan, then the difference will show no difference.  Note
+that it is possible that requirements of several links specified in
+one cable plan may be met by one or more links in the other.
+Basically, the difference is calculated such that the minimum
+requirements of the first cable plan are met without exceeding the
+maximum capacity of the second cable plan.</p>
+</div>
+<div class="section" id="module-cableplan">
+<span id="cable-plan-api-reference"></span><h2>Cable Plan API Reference<a class="headerlink" href="#module-cableplan" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="cableplan.CP_PORT">
+<em class="property">class </em><tt class="descclassname">cableplan.</tt><tt class="descname">CP_PORT</tt><big>(</big><em>portSet</em><big>)</big><a class="headerlink" href="#cableplan.CP_PORT" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class holds the information for a link&#8217;s port.  Since the port can be a single port, a list
+or a range, putting it in a class allows more flexible operations on it.</p>
+<dl class="method">
+<dt id="cableplan.CP_PORT.list">
+<tt class="descname">list</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_PORT.list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_PORT.name">
+<tt class="descname">name</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_PORT.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_PORT.remove_available_port">
+<tt class="descname">remove_available_port</tt><big>(</big><em>port</em><big>)</big><a class="headerlink" href="#cableplan.CP_PORT.remove_available_port" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_PORT.resetAccounting">
+<tt class="descname">resetAccounting</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_PORT.resetAccounting" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cableplan.CP_LINK">
+<em class="property">class </em><tt class="descclassname">cableplan.</tt><tt class="descname">CP_LINK</tt><big>(</big><em>sourceChassis</em>, <em>destChassis</em>, <em>sourcePort=None</em>, <em>destPort=None</em>, <em>minPorts=None</em>, <em>maxPorts=None</em><big>)</big><a class="headerlink" href="#cableplan.CP_LINK" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="cableplan.CP_LINK.export">
+<tt class="descname">export</tt><big>(</big><em>chassis</em>, <em>level</em><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return string of XML describing the LINK_INFO.  It will use &#8216;chassis&#8217; to determine
+which is the source chassis so that it will be omitted from the XML and the other chassis will
+become the destination.  &#8216;level&#8217; is the indentation level.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>chassis</strong> &#8211; Chassis that is the parent of the LINK_INFO xml</li>
+<li><strong>level</strong> &#8211; Indentation level</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">str</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_LINK.get_name">
+<tt class="descname">get_name</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.get_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_LINK.hasPortInCommon">
+<tt class="descname">hasPortInCommon</tt><big>(</big><em>link</em><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.hasPortInCommon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if link has any ports that match self.  It will compare
+all ports included expanded lists of port sets.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>link</strong> &#8211; link to check to see if matches, or overlaps, with self</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Boolean</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_LINK.isConnected">
+<tt class="descname">isConnected</tt><big>(</big><em>switch1</em>, <em>switch2=None</em><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.isConnected" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if switch1 is one of the switch endpoints of the link and switch2 is unspecified
+otherwise is will return True if both switch1 and switch2 are switch endpoints of the link.  If
+switch1 is the same as switch2, it will return False.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>switch1</strong> &#8211; first switch to check if it an end-point of the link</li>
+<li><strong>switch2</strong> &#8211; optional second switch to check if it an end-point of the link</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">True if switch1 (and optional switch2) is an end-point of the link</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="cableplan.CP_LINK.match_links">
+<em class="property">static </em><tt class="descname">match_links</tt><big>(</big><em>link1</em>, <em>link2</em><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.match_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>This will match-up link1 and link2 and increment the reference count in each link for each
+of the matches that happen.  It will do this until the minimum number of links has been reached for
+link1.  It will return the number of matches that occurred.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>link1</strong> &#8211; first link of type CP_LINK that is part of the matching</li>
+<li><strong>link2</strong> &#8211; second link of type CP_LINK that is part of the matching</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">number of matches that occured.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_LINK.order">
+<tt class="descname">order</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the order of the link defined by the maximum number of physical links this link
+can represent</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_LINK.remainingAvail">
+<tt class="descname">remainingAvail</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.remainingAvail" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the remaining number of physical links available to match against
+The parameters used to calculate this value are reset by the resetAccounting() method which is typically
+invoked when invoking a difference_link() method on the CABLEPLAN parent object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_LINK.remainingNeed">
+<tt class="descname">remainingNeed</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.remainingNeed" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the remaining number of physical links needed to match against self to satisfy requirements.
+The parameters used to calculate this value are reset by the resetAccounting() method which is typically
+invoked when invoking a difference_link() method on the CABLEPLAN parent object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_LINK.resetAccounting">
+<tt class="descname">resetAccounting</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_LINK.resetAccounting" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets account on the source and dest ports as well as reference count</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cableplan.CP_SWITCH">
+<em class="property">class </em><tt class="descclassname">cableplan.</tt><tt class="descname">CP_SWITCH</tt><big>(</big><em>name</em>, <em>chassis_type=None</em>, <em>spine=False</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH" title="Permalink to this definition">¶</a></dt>
+<dd><p>class holding a switch</p>
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.export">
+<tt class="descname">export</tt><big>(</big><em>level</em><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.export" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.get_links">
+<tt class="descname">get_links</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.get_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a list of CP_LINKS from the parent CABLEPLAN that are connected to self.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of CP_LINKS</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.get_name">
+<tt class="descname">get_name</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.get_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the name of the chassis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.get_type">
+<tt class="descname">get_type</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.get_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the chassis type. Examples of chassis types are &#8216;n7k&#8217; or &#8216;n9k&#8217;</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.isSpine">
+<tt class="descname">isSpine</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.isSpine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the &#8216;spine&#8217; flag is set.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if the <tt class="docutils literal"><span class="pre">spine</span></tt> flag is set, otherwise False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.merge">
+<tt class="descname">merge</tt><big>(</big><em>new_switch</em><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges the content of new_switch with self.  If self has variables set, then they will
+not be changed.  If they have not been set, then they will be assigned the value from new_switch.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>new_switch</strong> &#8211; switch object to merge with self</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.set_name">
+<tt class="descname">set_name</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.set_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the switch name.  This will over-ride any preexisting name.  Note that this new
+name will now become part of the link name for all the links attached to this switch.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; name string to set in the switch</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CP_SWITCH.set_parent">
+<tt class="descname">set_parent</tt><big>(</big><em>parent</em><big>)</big><a class="headerlink" href="#cableplan.CP_SWITCH.set_parent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the parent of the switch.  Parent must be of type CABLEPLAN.  If a parent
+CABLEPLAN was already set and it is differnt from parent, then an error is raised.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>parent</strong> &#8211; parent object of type CABLEPLAN</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cableplan.CABLEPLAN">
+<em class="property">class </em><tt class="descclassname">cableplan.</tt><tt class="descname">CABLEPLAN</tt><big>(</big><em>version=None</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="cableplan.CABLEPLAN.add_link">
+<tt class="descname">add_link</tt><big>(</big><em>new_link</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.add_link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will add a link to the CABLEPLAN.  Duplicates will not be allow, but overlapping will be.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>new_link</strong> &#8211; Link to be added of type CP_LINK</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.add_switch">
+<tt class="descname">add_switch</tt><big>(</big><em>new_switch</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.add_switch" title="Permalink to this definition">¶</a></dt>
+<dd><p>This will new_switch to the CABLEPLAN.  If the switch already
+exists, it will merge the new_switch with the existing one.
+It will also set the parent of the switch to be the CABLEPLAN.  It will
+return the final switch, i.e. new_switch if no merge occurred or the
+newly merged switch if a merge did occur.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>new_switch</strong> &#8211; switch to be added of type CP_SWITCH</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">CP_SWITCH</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.delete_link">
+<tt class="descname">delete_link</tt><big>(</big><em>link</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.delete_link" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.delete_switch">
+<tt class="descname">delete_switch</tt><big>(</big><em>old_switch</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.delete_switch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.difference_link">
+<tt class="descname">difference_link</tt><big>(</big><em>cp</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.difference_link" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns a list of links that are in self, but not in cp.</p>
+<p>:param cp : cable plan of type CABLEPLAN</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of CP_LINK</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.difference_switch">
+<tt class="descname">difference_switch</tt><big>(</big><em>cp</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.difference_switch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return a list of switches that are in self, but not in cp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cp</strong> &#8211; cable plan</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of CP_SWITCH</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.exists_link">
+<tt class="descname">exists_link</tt><big>(</big><em>link</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.exists_link" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.exists_switch">
+<tt class="descname">exists_switch</tt><big>(</big><em>switch</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.exists_switch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.export">
+<tt class="descname">export</tt><big>(</big><em>outFile=None</em>, <em>level=0</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will generate XML text of the entire CABLEPLAN and return it as a string.  If
+outFile is specified, it will write the XML to that file.  outFile should be opened for
+writing before calling this method.  &#8216;level&#8217; specifies the amount of indentation to start with.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.export_data_center">
+<tt class="descname">export_data_center</tt><big>(</big><em>level=0</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.export_data_center" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will generate the XML of the CABLEPLAN with DATA_CENTER as the root.  This will then be
+returned a string. &#8216;level&#8217; specifies the indentation level to start with.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>level</strong> &#8211; optional indention level, integer</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">string that is the DATA_CENTER xml</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="cableplan.CABLEPLAN.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>source</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>This will get input a cable plan from &#8216;source&#8217;.  If source is a string,
+it will get the cable plan from XML in a file whose name is source.  If it is
+a Session, it will read the corresponding APIC to get the cable plan.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> &#8211; filename of type string or Session of type Session</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">CABLEPLAN</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.get_links">
+<tt class="descname">get_links</tt><big>(</big><em>switch1=None</em>, <em>switch2=None</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.get_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of links.  If switch is unspecified, it will return all links.  If switch is specified,
+it will return all of the links that are connected to switch.  If both switch1 and swithc2 are specified,
+it will return all links that are connected between the two switches.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>switch1</strong> &#8211; optional first switch of type CP_SWITCH</li>
+<li><strong>switch2</strong> &#8211; optional second switch of type CP_SWITCH</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of links of type CP_LINK</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.get_spines">
+<tt class="descname">get_spines</tt><big>(</big><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.get_spines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return list of switches that are spines</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of CP_SWITCH</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cableplan.CABLEPLAN.get_switch">
+<tt class="descname">get_switch</tt><big>(</big><em>switch_name=None</em><big>)</big><a class="headerlink" href="#cableplan.CABLEPLAN.get_switch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="applications.html" class="btn btn-neutral" title="Applications"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

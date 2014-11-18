@@ -78,6 +78,10 @@
 <li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+</ul>
+</li>
 </ul>
 
         
@@ -201,46 +205,47 @@ interface configuration.</p>
 objects that represent each of the components of the topology.</p>
 <p>These objects are connected in a hierarchy according to the following diagrams.</p>
 <img alt="_images/objectModelTop.png" class="align-center" src="_images/objectModelTop.png" />
-<p>The Node object is used to represent both switches and controllers.
-Which kind of Node can be determined by looking at the &#8216;role&#8217;
-attribute.  Switches are Nodes with the &#8216;role&#8217; of &#8216;leaf&#8217; or &#8216;spine&#8217;
-and controllers are Nodes with the &#8216;role&#8217; of &#8216;controller&#8217;.  Switches
+<p>The <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Node" title="acitoolkit.aciphysobject.Node"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Node</span></tt></a> object is used to represent both switches and controllers.
+Which kind of <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Node" title="acitoolkit.aciphysobject.Node"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Node</span></tt></a> can be determined by
+looking at the role, <tt class="docutils literal"><span class="pre">Node.role</span></tt>,
+attribute.  Switches are Nodes with the <tt class="docutils literal"><span class="pre">role</span></tt> of &#8216;leaf&#8217; or &#8216;spine&#8217;
+and controllers are Nodes with the <tt class="docutils literal"><span class="pre">role</span></tt> of &#8216;controller&#8217;.  Switches
 are composed slightly different from controllers as shown in the
 following diagram.</p>
 <img alt="_images/objectModelSwitch.png" class="align-center" src="_images/objectModelSwitch.png" />
 <img alt="_images/objectModelController.png" class="align-center" src="_images/objectModelController.png" />
-<p><strong>Pod</strong> is the class for a physical Pod.  A Pod consists of all the
+<p><strong>Pod</strong> is the class for a physical Pod.  <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Pod" title="acitoolkit.aciphysobject.Pod"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Pod</span></tt></a> conatins of all the
 switches, links, and controllers that connected in the simple leaf-spine
 fat tree topology of the ACI fabric.  It does not include the
 end-points or other devices that are attached to the ACI fabric.</p>
 <p><strong>Node</strong> is the class used to represent switches and controllers.
-What role the Node plays in the fabric can be determined by looking at
-the role attribute.</p>
-<p><strong>Link</strong> is the class representing links in the fabric.  It includes
+What role the <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Node" title="acitoolkit.aciphysobject.Node"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Node</span></tt></a> plays in the fabric can be determined by looking at
+the <tt class="docutils literal"><span class="pre">role</span></tt> attribute.</p>
+<p><strong>Link</strong> is the class representing links in the fabric.  <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Link" title="acitoolkit.aciphysobject.Link"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Link</span></tt></a> includes
 links between leaf and spine switches as well as links from leaf
 switches to controllers.  Each link has two ends, the first and second
 end, in no particular order.  This class has methods for retrieving
 the Switch, Linecard and Interface for each of the ends of the link.</p>
 <p><strong>Supervisorcard</strong> is the class representing the supervisor card in a
-switch.  It would only be a child of a Node that has the role of
+switch.  <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Supervisorcard" title="acitoolkit.aciphysobject.Supervisorcard"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Supervisorcard</span></tt></a> would only be a child of a Node that has the role of
 &#8216;leaf&#8217; or &#8216;spine&#8217;.  Each switch will have a supervisor including fixed
 configuration switches that may not have a obviously physically
 separate module that is a supervisor.  The supervisor is where the
 primary software of the switch runs.</p>
 <p><strong>Linecard</strong> is the class representing a linecard in a switch.  The
-linecard is where all of the physical interfaces or ports are
+<a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Linecard" title="acitoolkit.aciphysobject.Linecard"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Linecard</span></tt></a> is where all of the physical interfaces or ports are
 attached.  In modular switches, the linecard is physically obvious,
 but even fixed configuration switches have a linecard where all the interfaces,
 ports, reside.  A specific linecard in a switch is identified by its
-slot_id attribute.  The slot_id of a linecard in a fixed configuration
+<tt class="docutils literal"><span class="pre">slot_id</span></tt> attribute.  The <tt class="docutils literal"><span class="pre">slot_id</span></tt> of a linecard in a fixed configuration
 switch is always &#8216;1&#8217;.</p>
-<p><strong>Powersupply</strong> is the class representing a power supply in a node.</p>
-<p><strong>Fantray</strong> is the class representing a fan tray in a node</p>
-<p><strong>Systemcontroller</strong> is the class representing a system contoller of
+<p><strong>Powersupply</strong> <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Powersupply" title="acitoolkit.aciphysobject.Powersupply"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Powersupply</span></tt></a> is the class representing a power supply in a node.</p>
+<p><strong>Fantray</strong> <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Fantray" title="acitoolkit.aciphysobject.Fantray"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Fantray</span></tt></a> is the class representing a fan tray in a node</p>
+<p><strong>Systemcontroller</strong> <a class="reference internal" href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Systemcontroller" title="acitoolkit.aciphysobject.Systemcontroller"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Systemcontroller</span></tt></a> is the class representing a system contoller of
 an APIC controller.  This is the motherboard of the controller and is
 a good place to understand the version of software that is running in
 the controller.</p>
-<p><strong>Interface</strong> described above.</p>
+<p><strong>Interface</strong> <a class="reference internal" href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Interface" title="acitoolkit.acitoolkit.Interface"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.Interface</span></tt></a> described above.</p>
 </div>
 </div>
 

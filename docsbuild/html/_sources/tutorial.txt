@@ -55,7 +55,11 @@ Building a Simple Tenant Configuration
 The following section will walk you through the implementation of the
 ``tutorial.py`` file found in the ``/samples/`` directory.  This code
 will create a minimal configuration that will configure 2 interfaces
-on the fabric to be on the same network so that they can communicate.
+on the fabric to be on the same network so that they can
+communicate. This code can be executed with the following command from
+within the ``/samples/`` directory::
+
+   python tutorial.py
 
 `Imports`
 ~~~~~~~~~

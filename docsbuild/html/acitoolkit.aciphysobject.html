@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>acitoolkit.aciphysobject module &mdash; acitoolkit 0.1 documentation</title>
+  <title>aciphysobject module &mdash; acitoolkit 0.1 documentation</title>
   
 
   
@@ -75,8 +75,12 @@
 <li class="toctree-l2"><a class="reference internal" href="tutorial.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">acitoolkit</a><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">API Reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
 </ul>
 </li>
 </ul>
@@ -102,11 +106,11 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-          <li><a href="modules.html">acitoolkit</a> &raquo;</li>
+          <li><a href="modules.html">API Reference</a> &raquo;</li>
       
           <li><a href="acitoolkit.html">acitoolkit package</a> &raquo;</li>
       
-    <li>acitoolkit.aciphysobject module</li>
+    <li>aciphysobject module</li>
       <li class="wy-breadcrumbs-aside">
         
           <a href="_sources/acitoolkit.aciphysobject.txt" rel="nofollow"> View page source</a>
@@ -117,8 +121,10 @@
 </div>
           <div role="main">
             
-  <div class="section" id="module-acitoolkit.aciphysobject">
-<span id="acitoolkit-aciphysobject-module"></span><h1>acitoolkit.aciphysobject module<a class="headerlink" href="#module-acitoolkit.aciphysobject" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="aciphysobject-module">
+<h1>aciphysobject module<a class="headerlink" href="#aciphysobject-module" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-acitoolkit.aciphysobject">
+<span id="api-reference"></span><h2>API Reference<a class="headerlink" href="#module-acitoolkit.aciphysobject" title="Permalink to this headline">¶</a></h2>
 <p>ACI Toolkit module for physical objects</p>
 <dl class="class">
 <dt id="acitoolkit.aciphysobject.BaseACIPhysModule">
@@ -962,6 +968,33 @@ children of the the parent.  The system controlles will also be added as childre
 
 </dd></dl>
 
+</div>
+<div class="section" id="future-work">
+<h2>Future Work<a class="headerlink" href="#future-work" title="Permalink to this headline">¶</a></h2>
+<p>Future work items to be added to aciphysobject include:</p>
+<ul>
+<li><p class="first">Add a stats sub-object.  This object would provide access to all the
+relevant statistics gathered by the system.  An example syntax of
+its use would be something like:</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">counter</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s">&#39;foobar&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p class="first">Add an events sub-oject.  This would work similarly to the stats
+object.</p>
+</li>
+<li><p class="first">Add a top level object called Topology that would have Pod as its
+child.  This object would also contain devices attached to the
+fabric, so called loose nodes, external links, and discovered
+end-points.</p>
+</li>
+</ul>
+</div>
 </div>
 
 
