@@ -411,8 +411,8 @@ class BaseACIObject(object):
 
         The criteria for a match is that all attributes of ``self`` are
         compared to all attributes of `search_object`.
-        If ``search_object.<attr>`` exists and is the same as ``self.<attr>`` or
-        ``search_object.<attr>`` is 'None', then that attribute matches.
+        If ``search_object.<attr>`` exists and is the same as ``self.<attr>``
+        or ``search_object.<attr>`` is 'None', then that attribute matches.
         If all such attributes match, then there is a match and self will
         be returned in the result.
 

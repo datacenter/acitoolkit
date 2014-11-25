@@ -635,6 +635,51 @@ class TestBaseContract(unittest.TestCase):
         self.assertRaises(NotImplementedError,
                           contract._get_subject_relation_code)
 
+    def test_set_scope(self):
+        contract = BaseContract('contract')
+        valid_scopes = ['context', 'global', 'tenant', 'application-profile']
+        for scope in valid_scopes:
+            contract.set_scope(scope)
+        bad_scope = 'bad-scope'
+        self.assertRaises(ValueError, contract.set_scope, bad_scope)
+
+
+class TestContract(unittest.TestCase):
+    def test_create(self):
+        contract = Contract('contract')
+
+    def test_internal_get_contract_code(self):
+        self.assertEqual(Contract._get_contract_code(), 'vzBrCP')
+
+    def test_internal_get_subject_code(self):
+        self.assertEqual(Contract._get_subject_code(), 'vzSubj')
+
+    def test_internal_get_subject_relation_code(self):
+        self.assertEqual(Contract._get_subject_relation_code(),
+                         'vzRsSubjFiltAtt')
+
+    def test_internal_generate_attributes(self):
+        contract = Contract('contract')
+        contract.set_scope('tenant')
+        attributes = contract._generate_attributes()
+        self.assertTrue('scope' in attributes)
+        self.assertEqual(attributes['scope'], 'tenant')
+
+
+class TestTaboo(unittest.TestCase):
+    def test_create(self):
+        taboo = Taboo('taboo')
+
+    def test_internal_get_contract_code(self):
+        self.assertEqual(Taboo._get_contract_code(), 'vzTaboo')
+
+    def test_internal_get_subject_code(self):
+        self.assertEqual(Taboo._get_subject_code(), 'vzTSubj')
+
+    def test_internal_get_subject_relation_code(self):
+        self.assertEqual(Taboo._get_subject_relation_code(),
+                         'vzRsDenyRule')
+
 
 class TestEPG(unittest.TestCase):
     def create_epg(self):
@@ -710,6 +755,18 @@ class TestEPG(unittest.TestCase):
         app = AppProfile('app', tenant)
         epg = EPG('epg1', app)
         contract1 = Contract('contract-1', tenant)
+        entry1 = FilterEntry('entry1',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='80',
+                             dToPort='80',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='1',
+                             sToPort='65535',
+                             tcpRules='unspecified',
+                             parent=contract1)
+
         epg.provide(contract1)
         output = tenant.get_json()
         self.assertTrue('fvRsProv' in str(output))
@@ -790,6 +847,7 @@ class TestEPG(unittest.TestCase):
         epg.detach(vlan_intf)
         output = str(tenant.get_json())
         self.assertTrue(all(x in output for x in ('fvRsPathAtt', 'deleted')))
+
 
 class TestOutsideEPG(unittest.TestCase):
     def test_create(self):
@@ -898,11 +956,15 @@ class TestPortChannel(unittest.TestCase):
 
     def test_create_3rd_interface_as_vpc(self):
         pc = self.create_pc()
+        path = pc._get_path()
+        self.assertTrue(isinstance(path, str))
 
         # Add a 3rd interface to make it a VPC
         if3 = Interface('eth', '1', '102', '1', '9')
         pc.attach(if3)
         self.assertTrue(pc.is_vpc())
+        path = pc._get_path()
+        self.assertTrue(isinstance(path, str))
         fabric, infra = pc.get_json()
         # VPC, so fabric should have some configuration
         self.assertIsNotNone(fabric)
@@ -914,6 +976,29 @@ class TestPortChannel(unittest.TestCase):
         self.assertTrue(isinstance(path, str))
         fabric, infra = pc.get_json()
         self.assertTrue(fabric is None)
+
+    def test_internal_get_nodes(self):
+        pc = self.create_pc()
+        nodes = pc._get_nodes()
+
+
+class TestContext(unittest.TestCase):
+    def test_get_json(self):
+        tenant = Tenant('cisco')
+        context = Context('ctx-cisco', tenant)
+        context_json = context.get_json()
+        self.assertTrue('fvCtx' in context_json)
+
+    def test_set_allow_all(self):
+        tenant = Tenant('cisco')
+        context = Context('ctx-cisco', tenant)
+        context_json = context.get_json()
+        self.assertEqual(context_json['fvCtx']['attributes']['pcEnfPref'],
+                         'enforced')
+        context.set_allow_all()
+        context_json = context.get_json()
+        self.assertEqual(context_json['fvCtx']['attributes']['pcEnfPref'],
+                         'unenforced')
 
 
 class TestOspf(unittest.TestCase):
@@ -940,7 +1025,7 @@ class TestOspf(unittest.TestCase):
         contract2 = Contract('contract-2')
         outside.consume(contract2)
         outside.attach(ospfif)
-        # print outside.get_json()
+        ospf_json = outside.get_json()
 
     def test_ospf_router(self):
         rtr = OSPFRouter('rtr-1')

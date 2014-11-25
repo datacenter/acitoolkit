@@ -520,9 +520,7 @@ class CP_SWITCH :
     def get_type(self) :
         """Gets the chassis type. Examples of chassis types are 'n7k' or 'n9k'
 
-        INPUT : None
-        
-        RETURNS : str 
+        :returns: str 
         """
         return self.chassis_type
     
