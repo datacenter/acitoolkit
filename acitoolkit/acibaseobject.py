@@ -456,3 +456,17 @@ class BaseACIObject(object):
             if attrib[0] != '_':
                 text += textf.format(attrib, getattr(self, attrib))
         return text
+
+    def infoList(self) :
+        """
+        Node information.  Returns a list of (attr, value) tuples.
+
+        :returns: list of [(attr, value),]
+        """
+        result = []
+        for attrib in self.__dict__:
+            if attrib[0] != '_':
+                result.append((attrib, getattr(self, attrib)))
+        return result
+    
+                
