@@ -2,14 +2,14 @@ from IPython import embed
 from github3 import login
 import sys
 
-DEFAULT_ACCT = 'yellowbang'
-DEFAULT_PASSWORD = '87421github'
-DEFAULT_REPO_OWNER = 'yellowbang'
-DEFAULT_REPO = 'PyGithubTest'
-DEFAULT_FILE = 'textFile.txt'
-DEFAULT_MESSAGE = 'all the commits are here2222'
-DEFAULT_CONTENT = 'HIHIIHIH WORLD222'
-DEFAULT_BRANCH = 'master'
+DEFAULT_ACCT = ''
+DEFAULT_PASSWORD = ''
+DEFAULT_REPO_OWNER = ''
+DEFAULT_REPO = ''
+DEFAULT_FILE = ''
+DEFAULT_MESSAGE = ''
+DEFAULT_CONTENT = ''
+DEFAULT_BRANCH = ''
 
 
 # login to github

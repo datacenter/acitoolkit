@@ -1,18 +1,8 @@
 import ast
 import push_or_pull_github
 from acitoolkit.acisession import Session
+from credentials import *
 from IPython import embed
-git_account = 'yellowbang'
-git_pw = '87421github'
-git_repo = 'PyGithubTest'
-git_file = 'textFile.txt'
-
-old_tenant = 'bonA'
-new_tenant = 'bonB'
-
-URL = 'http://172.31.216.100:80/'
-LOGIN = 'admin'
-PASSWORD = 'ins3965!'
 
 session = Session(URL, LOGIN, PASSWORD)
 resp = session.login()
