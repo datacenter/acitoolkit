@@ -21,3 +21,15 @@ PASSWORD = 'password'
 # Fill in with the APIC IP address
 IPADDR = '1.2.3.4'
 URL = 'http://' + IPADDR + ':80/'
+
+# The github account your json file stored to.
+git_account = 'github_account'
+git_pw = 'password'
+# File location in your git account
+git_repo = 'repo_name'
+git_file = 'file_name'
+
+# Tenant that to be copied
+old_tenant = 'tenantA'
+# The new tenant
+new_tenant = 'tenantB'
