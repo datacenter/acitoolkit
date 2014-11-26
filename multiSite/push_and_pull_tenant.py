@@ -7,6 +7,9 @@ git_pw = '87421github'
 git_repo = 'PyGithubTest'
 git_file = 'textFile.txt'
 
+old_tenant = 'bonA'
+new_tenant = 'bonB'
+
 URL = 'http://172.31.216.100:80/'
 LOGIN = 'admin'
 PASSWORD = 'ins3965!'
@@ -28,18 +31,16 @@ def push_to_github(content):
 
 def get_json_file_from_apic():
     def get_contract_json():
-        class_query_url = '/api/node/class/vzBrCP.json'
+        class_query_url = '/api/node/class/fvTenant.json'
         ret = session.get(class_query_url)
         data = ret.json()['imdata']
         for ap in data:
-            dn = ap['vzBrCP']['attributes']['dn']
+            dn = ap['fvTenant']['attributes']['dn']
             tenant_name = dn.split('/')[1][3:]
-            contract_name = dn.split('/')[2][4:]
             #class_query_url = '/api/mo/uni/tn-aci-toolkit-demo.json?query-target=subtree&rsp-subtree=full&rsp-subtree-include=audit-logs,no-scoped'
-            ap_query_url = '/api/mo/uni/tn-%s/brc-%s.json?rsp-subtree=full&rsp-prop-include=config-only' % (tenant_name, contract_name)
+            ap_query_url = '/api/mo/uni/tn-%s.json?rsp-subtree=full&rsp-prop-include=config-only' % (tenant_name)
             ret = session.get(ap_query_url)
-            data = ret.json()['imdata']
-            if tenant_name == 'bonA':
+            if tenant_name == old_tenant:
                 return ret
 
     json_file = get_contract_json()
@@ -67,9 +68,10 @@ pull_content = ast.literal_eval(pull_content)
 pull_content = pull_content['imdata'][0]
 # take out some parameters:
 for key in ['dn']:
-    del pull_content['vzBrCP']['attributes'][key]
+    del pull_content['fvTenant']['attributes'][key]
+# change tenant name
+pull_content['fvTenant']['attributes']['name'] = new_tenant
 
-
-content = {'fvTenant': {'attributes': {'name': 'bonB'}, 'children': [pull_content]}}
+content = pull_content
 res = push_to_apic(content)
 print res.text
