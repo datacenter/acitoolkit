@@ -1,7 +1,7 @@
 import ast
 import push_or_pull_github
 from acitoolkit.acisession import Session
-
+from IPython import embed
 git_account = 'yellowbang'
 git_pw = '87421github'
 git_repo = 'PyGithubTest'
@@ -36,7 +36,7 @@ def get_json_file_from_apic():
             tenant_name = dn.split('/')[1][3:]
             contract_name = dn.split('/')[2][4:]
             #class_query_url = '/api/mo/uni/tn-aci-toolkit-demo.json?query-target=subtree&rsp-subtree=full&rsp-subtree-include=audit-logs,no-scoped'
-            ap_query_url = '/api/mo/uni/tn-%s/brc-%s.json?rsp-subtree=full' % (tenant_name, contract_name)
+            ap_query_url = '/api/mo/uni/tn-%s/brc-%s.json?rsp-subtree=full&rsp-prop-include=config-only' % (tenant_name, contract_name)
             ret = session.get(ap_query_url)
             data = ret.json()['imdata']
             if tenant_name == 'bonA':
@@ -66,8 +66,7 @@ pull_content = pull_from_github()
 pull_content = ast.literal_eval(pull_content)
 pull_content = pull_content['imdata'][0]
 # take out some parameters:
-# pull_content['vzBrCP']['attributes'] = { key: pull_content['vzBrCP']['attributes'][key] for key in ['scope', 'name']}
-for key in ['modTs', 'configIssues', 'dn', 'lcOwn', 'monPolDn', 'uid']:
+for key in ['dn']:
     del pull_content['vzBrCP']['attributes'][key]
 
 
