@@ -93,11 +93,31 @@ class BaseACIObject(object):
         self._relations = []
         self._parent = parent
         self.descr = None
+        self.subscribe = self._instance_subscribe
+        self.unsubscribe = self._instance_unsubscribe
         logging.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
                 self._parent.remove_child(self)
             self._parent.add_child(self)
+
+    @classmethod
+    def subscribe(cls, session):
+        url = '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
+        session.subscribe(url)
+
+    def _instance_subscribe(self):
+        # instance subscription
+        pass
+
+    @classmethod
+    def unsubscribe(cls, session):
+        url = '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
+        session.unsubscribe(url)
+
+    def _instance_unsubscribe(self):
+        # instance unsubscribe
+        pass
 
     def mark_as_deleted(self):
         """

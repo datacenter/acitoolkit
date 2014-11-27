@@ -29,6 +29,10 @@ class Tenant(BaseACIObject):
     object model.  In the APIC model, this class is roughly equivalent to
     the fvTenant class.
     """
+    @staticmethod
+    def _get_apic_class():
+        return 'fvTenant'
+
     def get_json(self):
         """
         Returns json representation of the fvTenant object
@@ -36,7 +40,8 @@ class Tenant(BaseACIObject):
         :returns: A json dictionary of fvTenant
         """
         attr = self._generate_attributes()
-        return super(Tenant, self).get_json('fvTenant', attributes=attr)
+        return super(Tenant, self).get_json(self._get_apic_class(),
+                                            attributes=attr)
 
     @classmethod
     def get(cls, session):
@@ -46,7 +51,7 @@ class Tenant(BaseACIObject):
         :param session: the instance of Session used for APIC communication
         :returns: a list of Tenant objects
         """
-        return BaseACIObject.get(session, cls, 'fvTenant')
+        return BaseACIObject.get(session, cls, self._get_apic_class())
 
     @classmethod
     def exists(cls, session, tenant):
