@@ -29,6 +29,7 @@ import ssl
 # Time before login timer expiration to send refresh
 TIMEOUT_GRACE_SECONDS = 10
 
+
 class Login(threading.Thread):
     def __init__(self, apic):
         threading.Thread.__init__(self)
@@ -42,6 +43,7 @@ class Login(threading.Thread):
             resp = self._apic._send_login()
             self._apic.subscription_thread._resubscribe()
 
+
 class EventHandler(threading.Thread):
     def __init__(self, subscriber):
         threading.Thread.__init__(self)
@@ -50,17 +52,17 @@ class EventHandler(threading.Thread):
 
     def exit(self):
         self._exit = True
-        
+
     def run(self):
         while not self._exit:
             try:
-                event =  self.subscriber._ws.recv()
+                event = self.subscriber._ws.recv()
             except:
                 break
             print 'Putting event into Q...'
             print 'Event:', event
             self.subscriber._event_q.put(event)
-                
+
 
 class Subscriber(threading.Thread):
     def __init__(self, apic):
@@ -71,6 +73,7 @@ class Subscriber(threading.Thread):
         self._ws_url = None
         self._refresh_time = 15
         self._event_q = Queue()
+        self._events = {}
 
     def _send_subscription(self, url):
         print 'Sending subscription:', url
@@ -107,13 +110,36 @@ class Subscriber(threading.Thread):
         self.event_handler_thread.start()
 
     def _resubscribe(self):
+        print 'Resubscribing...'
+        self._process_event_q()
         urls = []
         for url in self._subscriptions:
             urls.append(url)
         self._subscriptions = {}
         for url in urls:
             self.subscribe(url)
-            
+
+    def _process_event_q(self):
+        print 'processing event q'
+        while not self._event_q.empty():
+            event = json.loads(self._event_q.get())
+            # Find the URL for this event
+            url = None
+            for k in self._subscriptions:
+                for id in event['subscriptionId']:
+                    if self._subscriptions[k] == str(id):
+                        url = k
+                        break
+            if url not in self._events:
+                self._events[url] = []
+            self._events[url].append(event)
+
+        # Dump the events
+        for k in self._events:
+            print 'EVENT URL:', k
+            for i in self._events[k]:
+                print 'EVENT:', i
+
     def subscribe(self, url):
         # Check if already subscribed.  If so, skip
         if url in self._subscriptions:
@@ -213,7 +239,7 @@ class Session(object):
 
     def has_event(self, url):
         pass
-        
+
     def push_to_apic(self, url, data):
         """
         Push the object data to the APIC
@@ -247,4 +273,3 @@ class Session(object):
         logging.debug(resp)
         logging.debug(resp.text)
         return resp
-
