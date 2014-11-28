@@ -102,9 +102,37 @@ class BaseACIObject(object):
             self._parent.add_child(self)
 
     @classmethod
+    def _get_subscription_url(cls):
+        return '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        raise NotImplementedError
+
+    @classmethod
     def subscribe(cls, session):
-        url = '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
+        url = cls._get_subscription_url()
         session.subscribe(url)
+
+    @classmethod
+    def get_event(cls, session):
+        url = cls._get_subscription_url()
+        event = session.get_event(url)
+        attributes = event['imdata'][0][cls._get_apic_class()]['attributes']
+        status = str(attributes['status'])
+        if status == 'created':
+            name = str(attributes['name'])
+        else:
+            name = cls._get_name_from_dn(str(attributes['dn']))
+        obj = cls(name)
+        if 'status' == 'deleted':
+            obj.mark_as_deleted()
+        return obj
+
+    @classmethod
+    def has_events(cls, session):
+        url = cls._get_subscription_url()
+        return session.has_events(url)
 
     def _instance_subscribe(self):
         # instance subscription

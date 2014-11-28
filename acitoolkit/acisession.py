@@ -21,7 +21,7 @@ import json
 import requests
 import threading
 import time
-from websocket import create_connection, WebSocketConnectionClosedException
+from websocket import create_connection
 import websocket
 from Queue import Queue
 import ssl
@@ -39,7 +39,6 @@ class Login(threading.Thread):
     def run(self):
         while True:
             time.sleep(self._login_timeout)
-            print 'Login timer expired.  Sending new login'
             resp = self._apic._send_login()
             self._apic.subscription_thread._resubscribe()
 
@@ -59,8 +58,6 @@ class EventHandler(threading.Thread):
                 event = self.subscriber._ws.recv()
             except:
                 break
-            print 'Putting event into Q...'
-            print 'Event:', event
             self.subscriber._event_q.put(event)
 
 
@@ -76,21 +73,16 @@ class Subscriber(threading.Thread):
         self._events = {}
 
     def _send_subscription(self, url):
-        print 'Sending subscription:', url
         resp = self._apic.get(url)
         subscription_id = json.loads(resp.text)['subscriptionId']
-        print 'Subscription id returned :', subscription_id
         self._subscriptions[url] = subscription_id
         return resp
 
     def refresh_subscriptions(self):
-        print 'refresh_subscriptions called'
         for subscription in self._subscriptions:
             subscription_id = self._subscriptions[subscription]
             refresh_url = '/api/subscriptionRefresh.json?id=' + subscription_id
             resp = self._apic.get(refresh_url)
-            print 'Refresh being sent...'
-            print resp, resp.text
 
     def _open_web_socket(self):
         sslopt = {}
@@ -100,17 +92,14 @@ class Subscriber(threading.Thread):
         kwargs = {}
         if self._ws is not None:
             if self._ws.connected:
-                print 'Closing old websocket...'
                 self._ws.close()
                 self.event_handler_thread.exit()
-        print 'Opening websocket....'
         self._ws = create_connection(self._ws_url, sslopt=sslopt, **kwargs)
         self.event_handler_thread = EventHandler(self)
         self.event_handler_thread.daemon = True
         self.event_handler_thread.start()
 
     def _resubscribe(self):
-        print 'Resubscribing...'
         self._process_event_q()
         urls = []
         for url in self._subscriptions:
@@ -120,7 +109,9 @@ class Subscriber(threading.Thread):
             self.subscribe(url)
 
     def _process_event_q(self):
-        print 'processing event q'
+        if self._event_q.empty():
+            return
+
         while not self._event_q.empty():
             event = json.loads(self._event_q.get())
             # Find the URL for this event
@@ -134,12 +125,6 @@ class Subscriber(threading.Thread):
                 self._events[url] = []
             self._events[url].append(event)
 
-        # Dump the events
-        for k in self._events:
-            print 'EVENT URL:', k
-            for i in self._events[k]:
-                print 'EVENT:', i
-
     def subscribe(self, url):
         # Check if already subscribed.  If so, skip
         if url in self._subscriptions:
@@ -150,6 +135,19 @@ class Subscriber(threading.Thread):
                 self._open_web_socket()
 
         return self._send_subscription(url)
+
+    def has_events(self, url):
+        self._process_event_q()
+        if url not in self._events:
+            return False
+        result = len(self._events[url]) != 0
+        return result
+
+    def get_event(self, url):
+        if url not in self._events:
+            raise ValueError
+        event = self._events[url].pop(0)
+        return event
 
     def unsubscribe(self, url):
         if url not in self._subscriptions:
@@ -162,7 +160,6 @@ class Subscriber(threading.Thread):
         while True:
             # Sleep for some interval (60sec) and send subscription list
             time.sleep(self._refresh_time)
-            print 'Timer expired.  Sending subscriptions'
             self.refresh_subscriptions()
 
 
@@ -199,7 +196,6 @@ class Session(object):
         self.subscription_thread.start()
 
     def _send_login(self):
-        print 'Sending login'
         login_url = self.api + '/api/aaaLogin.json'
         name_pwd = {'aaaUser': {'attributes': {'name': self.uid,
                                                'pwd': self.pwd}}}
@@ -234,11 +230,14 @@ class Session(object):
     def subscribe(self, url):
         self.subscription_thread.subscribe(url)
 
+    def has_events(self, url):
+        return self.subscription_thread.has_events(url)
+
+    def get_event(self, url):
+        return self.subscription_thread.get_event(url)
+
     def unsubscribe(self, url):
         self.subscription_thread.unsubscribe(url)
-
-    def has_event(self, url):
-        pass
 
     def push_to_apic(self, url, data):
         """

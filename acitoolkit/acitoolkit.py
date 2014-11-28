@@ -33,6 +33,11 @@ class Tenant(BaseACIObject):
     def _get_apic_class():
         return 'fvTenant'
 
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('uni/tn-')[1]
+        return name
+
     def get_json(self):
         """
         Returns json representation of the fvTenant object
