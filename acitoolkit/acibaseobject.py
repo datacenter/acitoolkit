@@ -106,6 +106,29 @@ class BaseACIObject(object):
         return '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
 
     @staticmethod
+    def _get_apic_class():
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_parent_class():
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        raise NotImplementedError
+
+    @classmethod
+    def _get_parent_from_dn(cls, dn):
+        parent_class = cls._get_parent_class()
+        if parent_class is None:
+            return None
+        parent_name = parent_class._get_name_from_dn(dn)
+        parent_dn = cls._get_parent_dn(dn)
+        parent_obj = parent_class(parent_name,
+                                  parent_class._get_parent_from_dn(parent_dn))
+        return parent_obj
+
+    @staticmethod
     def _get_name_from_dn(dn):
         raise NotImplementedError
 
@@ -120,11 +143,13 @@ class BaseACIObject(object):
         event = session.get_event(url)
         attributes = event['imdata'][0][cls._get_apic_class()]['attributes']
         status = str(attributes['status'])
+        dn = str(attributes['dn'])
+        parent = cls._get_parent_from_dn(dn)
         if status == 'created':
             name = str(attributes['name'])
         else:
-            name = cls._get_name_from_dn(str(attributes['dn']))
-        obj = cls(name)
+            name = cls._get_name_from_dn(dn)
+        obj = cls(name, parent=cls._get_parent_from_dn(dn))
         if 'status' == 'deleted':
             obj.mark_as_deleted()
         return obj

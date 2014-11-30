@@ -34,6 +34,10 @@ class Tenant(BaseACIObject):
         return 'fvTenant'
 
     @staticmethod
+    def _get_parent_class():
+        return None
+
+    @staticmethod
     def _get_name_from_dn(dn):
         name = dn.split('uni/tn-')[1]
         return name
@@ -102,6 +106,23 @@ class AppProfile(BaseACIObject):
         if not isinstance(parent, Tenant):
             raise TypeError('Parent must be of Tenant class')
         super(AppProfile, self).__init__(name, parent)
+
+    @staticmethod
+    def _get_apic_class():
+        return 'fvAp'
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/ap-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('/ap-')[1]
+        return name
 
     def get_json(self):
         """
@@ -348,6 +369,14 @@ class EPG(CommonEPG):
         if not isinstance(parent, AppProfile):
             raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
+
+    @staticmethod
+    def _get_apic_class():
+        return 'fvAEPg'
+
+    @staticmethod
+    def _get_parent_class():
+        return AppProfile
 
     # Bridge Domain references
     def add_bd(self, bridgedomain):
@@ -1501,6 +1530,7 @@ class PortChannel(BaseInterface):
             portchannel = PortChannel(portchannel_name)
             portchannels.append(portchannel)
         return portchannels
+
 
 class Endpoint(BaseACIObject):
     @staticmethod

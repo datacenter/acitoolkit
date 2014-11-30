@@ -58,6 +58,8 @@ class EventHandler(threading.Thread):
                 event = self.subscriber._ws.recv()
             except:
                 break
+            if not len(event):
+                continue
             self.subscriber._event_q.put(event)
 
 
@@ -113,7 +115,8 @@ class Subscriber(threading.Thread):
             return
 
         while not self._event_q.empty():
-            event = json.loads(self._event_q.get())
+            event = self._event_q.get()
+            event = json.loads(event)
             # Find the URL for this event
             url = None
             for k in self._subscriptions:
