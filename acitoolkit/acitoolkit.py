@@ -378,6 +378,14 @@ class EPG(CommonEPG):
     def _get_parent_class():
         return AppProfile
 
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/epg-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/epg-')[1]
+
     # Bridge Domain references
     def add_bd(self, bridgedomain):
         """
