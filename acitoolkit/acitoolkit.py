@@ -712,6 +712,22 @@ class BridgeDomain(BaseACIObject):
             raise TypeError
         super(BridgeDomain, self).__init__(bd_name, parent)
 
+    @staticmethod
+    def _get_apic_class():
+        return 'fvBD'
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/BD-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/BD-')[1]
+
     def get_json(self):
         """
         Returns json representation of the bridge domain
@@ -724,7 +740,7 @@ class BridgeDomain(BaseACIObject):
                                 {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
-        return super(BridgeDomain, self).get_json('fvBD',
+        return super(BridgeDomain, self).get_json(self._get_apic_class(),
                                                   attributes=attr,
                                                   children=children)
 
@@ -822,7 +838,7 @@ class BridgeDomain(BaseACIObject):
                        instances retreived from the APIC
         :returns: List of BridgeDomain objects
         """
-        return BaseACIObject.get(session, cls, 'fvBD', tenant, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), tenant, tenant)
 
     def _get_url_extension(self):
         return '/BD-%s' % self.name
@@ -909,6 +925,22 @@ class Context(BaseACIObject):
         super(Context, self).__init__(context_name, parent)
         self._allow_all = False
 
+    @staticmethod
+    def _get_apic_class():
+        return 'fvCtx'
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/ctx-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/ctx-')[1]
+
     def set_allow_all(self, value=True):
         """
         Set the allow_all value. When set, contracts will not be enforced\
@@ -938,7 +970,8 @@ class Context(BaseACIObject):
             attributes['pcEnfPref'] = 'unenforced'
         else:
             attributes['pcEnfPref'] = 'enforced'
-        return super(Context, self).get_json('fvCtx', attributes=attributes)
+        return super(Context, self).get_json(self._get_apic_class(),
+                                             attributes=attributes)
 
     @classmethod
     def get(cls, session, tenant):
@@ -950,7 +983,7 @@ class Context(BaseACIObject):
                        retreived from the APIC
         :returns: List of Context objects
         """
-        return BaseACIObject.get(session, cls, 'fvCtx', tenant, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), tenant, tenant)
 
 
 class BaseContract(BaseACIObject):

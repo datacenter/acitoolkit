@@ -252,6 +252,17 @@ class TestBridgeDomain(unittest.TestCase):
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, BridgeDomain, tenant, tenant)
 
+    def test_get_parent_class(self):
+        self.assertEquals(BridgeDomain._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/BD-test'
+        self.assertEquals(BridgeDomain._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/BD-test'
+        self.assertEquals(BridgeDomain._get_name_from_dn(dn), 'test')
+
     def test_valid_delete(self):
         tenant, bd = self.create_bd()
         self.assertFalse(bd.is_deleted())
@@ -1017,6 +1028,17 @@ class TestContext(unittest.TestCase):
         context = Context('ctx-cisco', tenant)
         context_json = context.get_json()
         self.assertTrue('fvCtx' in context_json)
+
+    def test_get_parent_class(self):
+        self.assertEquals(Context._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/ctx-test'
+        self.assertEquals(Context._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/ctx-test'
+        self.assertEquals(Context._get_name_from_dn(dn), 'test')
 
     def test_set_allow_all(self):
         tenant = Tenant('cisco')
