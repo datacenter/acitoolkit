@@ -152,6 +152,13 @@ class TestTenant(unittest.TestCase):
         tenant = Tenant('tenant')
         self.assertTrue(type(tenant.get_json()) == dict)
 
+    def test_get_parent_class(self):
+        self.assertEquals(Tenant._get_parent_class(), None)
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-test'
+        self.assertEquals(Tenant._get_name_from_dn(dn), 'test')
+
 
 class TestAppProfile(unittest.TestCase):
     def test_create(self):
@@ -171,6 +178,17 @@ class TestAppProfile(unittest.TestCase):
     def test_invalid_create_not_string_name(self):
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, AppProfile, tenant, tenant)
+
+    def test_get_parent_class(self):
+        self.assertEquals(AppProfile._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/ap-test'
+        self.assertEquals(AppProfile._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/ap-test'
+        self.assertEquals(AppProfile._get_name_from_dn(dn), 'test')
 
     def test_delete(self):
         tenant = Tenant('tenant')
@@ -706,6 +724,17 @@ class TestEPG(unittest.TestCase):
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, EPG, 'epg', tenant)
 
+    def test_get_parent_class(self):
+        self.assertEquals(EPG._get_parent_class(), AppProfile)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/ap-app/epg-test'
+        self.assertEquals(EPG._get_parent_dn(dn), 'uni/tn-tenant/ap-app')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/ap-app/epg-test'
+        self.assertEquals(EPG._get_name_from_dn(dn), 'test')
+
     def test_valid_add_bd(self):
         tenant, app, epg, bd = self.create_epg_with_bd()
         self.assertTrue(epg.has_bd())
@@ -1164,6 +1193,21 @@ class TestLiveEPG(TestLiveAPIC):
                 epgs = EPG.get(session, app, tenant)
                 for epg in epgs:
                     self.assertTrue(isinstance(epg, EPG))
+
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
+class TestEndpoint(unittest.TestCase):
+    def test_get_bad_session(self):
+        bad_session = 'BAD SESSION'
+        self.assertRaises(TypeError, Endpoint.get, bad_session)
+
+    def test_get(self):
+        # Login to APIC
+        session = Session(URL, LOGIN, PASSWORD)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+
+        endpoints = Endpoint.get(session)
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')

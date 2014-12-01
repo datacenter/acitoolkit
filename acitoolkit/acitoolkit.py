@@ -60,7 +60,7 @@ class Tenant(BaseACIObject):
         :param session: the instance of Session used for APIC communication
         :returns: a list of Tenant objects
         """
-        return BaseACIObject.get(session, cls, self._get_apic_class())
+        return BaseACIObject.get(session, cls, cls._get_apic_class())
 
     @classmethod
     def exists(cls, session, tenant):
@@ -131,7 +131,8 @@ class AppProfile(BaseACIObject):
         :returns: json dictionary of fvAp
         """
         attr = self._generate_attributes()
-        return super(AppProfile, self).get_json('fvAp', attributes=attr)
+        return super(AppProfile, self).get_json(self._get_apic_class(),
+                                                attributes=attr)
 
     @classmethod
     def get(cls, session, tenant):
@@ -142,7 +143,7 @@ class AppProfile(BaseACIObject):
                        Profiles retreived from the APIC
         :returns: List of AppProfile objects
         """
-        return BaseACIObject.get(session, cls, 'fvAp', parent=tenant,
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), parent=tenant,
                                  tenant=tenant)
 
     def _get_url_extension(self):
@@ -350,7 +351,7 @@ class CommonEPG(BaseACIObject):
         :returns: List of CommonEPG instances (or EPG instances if called\
                   from EPG class)
         """
-        return BaseACIObject.get(session, cls, 'fvAEPg', parent, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), parent, tenant)
 
 
 class EPG(CommonEPG):
@@ -466,7 +467,7 @@ class EPG(CommonEPG):
                                      'tDn': interface._get_path()}}}
             children.append(text)
         attr = self._generate_attributes()
-        return super(EPG, self).get_json('fvAEPg',
+        return super(EPG, self).get_json(self._get_apic_class(),
                                          attributes=attr,
                                          children=children)
 
