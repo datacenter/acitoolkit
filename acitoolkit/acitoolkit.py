@@ -16,12 +16,12 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
-from acibaseobject import BaseACIObject, BaseRelation
+from acibaseobject import BaseACIObject, BaseRelation, Stats
 from acisession import Session
 # from aciphysobject import Linecard
 import json
 import logging
-
+import re
 
 class Tenant(BaseACIObject):
     """
@@ -1134,10 +1134,11 @@ class BaseInterface(BaseACIObject):
 class Interface(BaseInterface):
     """This class defines a physical interface.
     """
-    def __init__(self, interface_type, pod, node, module, port, parent=None):
+    def __init__(self, interface_type, pod, node, module, port, parent=None, session=None):
 #        if parent :
 #            if not isinstance(parent, Linecard):
 #                raise TypeError('An instance of Linecard class is required as the parent')
+        self._session = session
         self.interface_type = str(interface_type)
         self.pod = str(pod)
         self.node = str(node)
@@ -1151,10 +1152,11 @@ class Interface(BaseInterface):
         self.speed = '10G'       # 100M, 1G, 10G or 40G
         self.mtu = ''
         self.type = 'interface'
+        self.id = interface_type+module+'/'+port
         self._parent = parent
         if parent:
             self._parent.add_child(self)
-
+        self.stats = Stats(self._session,counters=self._initStats())
     def is_interface(self):
         """
         Returns whether this instance is considered an interface.
@@ -1285,6 +1287,7 @@ class Interface(BaseInterface):
         interface_type = module[:3]
         module = module[3:]
         port = name[5].split(']')[0]
+        #id = re.search('\[(.+)\]',dn).group(1)
         return interface_type, pod, node, module, port
 
     @staticmethod
@@ -1300,6 +1303,7 @@ class Interface(BaseInterface):
         interface_type = module[:3]
         module = module[3:]
         port = name[4].split(']')[0]
+        #id = re.search('\[(.+)\]',dn).group(1)
         return interface_type, pod, node, module, port
 
     @classmethod
@@ -1340,9 +1344,10 @@ class Interface(BaseInterface):
             adminstatus = str(interface['l1PhysIf']['attributes']['adminSt'])
             speed = str(interface['l1PhysIf']['attributes']['speed'])
             mtu = str(interface['l1PhysIf']['attributes']['mtu'])
+            id = str(interface['l1PhysIf']['attributes']['id'])
             (interface_type, pod, node,
              module, port) = Interface.parse_dn(dist_name)
-            interface_obj = Interface(interface_type, pod, node, module, port)
+            interface_obj = Interface(interface_type, pod, node, module, port, parent=None, session=session)
             interface_obj.porttype = porttype
             interface_obj.adminstatus = adminstatus
             interface_obj.speed = speed
@@ -1362,7 +1367,27 @@ class Interface(BaseInterface):
         ret = ''.join(items)
         return ret
 
+    def _initStats(self) :
+        """This method will create the data structure for the statistics.
+        The format is [(dn,[attribute,name]),...] where 'dn' is the dn of
+        the managed object that contains the counter.  'attribute' is the
+        name of the attribute that is the counter. 'name' is the name used
+        by the toolkit to access the counter value.
+        
+        :returns: list of counters
+        """
 
+        result = []
+        counters = [('dropEvents','drops'),
+                    ('multicastPkts','multicastPkts'),
+                    ('octets','octets'),
+                    ('rXNoErrors','rxPackets'),
+                    ('tXNoErrors','txPackets'),
+                    ]
+        dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/dbgEtherStats'
+        result.append((dn,counters))
+        return result
+    
 class PortChannel(BaseInterface):
     """
     This class defines a port channel interface.
