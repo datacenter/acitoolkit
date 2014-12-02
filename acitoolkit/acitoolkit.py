@@ -23,6 +23,7 @@ import json
 import logging
 import re
 
+
 class Tenant(BaseACIObject):
     """
     The Tenant class is used to represent the tenants within the acitoolkit
@@ -1156,7 +1157,8 @@ class Interface(BaseInterface):
         self._parent = parent
         if parent:
             self._parent.add_child(self)
-        self.stats = Stats(self._session,counters=self._initStats())
+        self.stats = Stats(self._session, counters=self._initStats())
+
     def is_interface(self):
         """
         Returns whether this instance is considered an interface.
@@ -1367,27 +1369,28 @@ class Interface(BaseInterface):
         ret = ''.join(items)
         return ret
 
-    def _initStats(self) :
+    def _initStats(self):
         """This method will create the data structure for the statistics.
         The format is [(dn,[attribute,name]),...] where 'dn' is the dn of
         the managed object that contains the counter.  'attribute' is the
         name of the attribute that is the counter. 'name' is the name used
         by the toolkit to access the counter value.
-        
+
         :returns: list of counters
         """
 
         result = []
-        counters = [('dropEvents','drops'),
-                    ('multicastPkts','multicastPkts'),
-                    ('octets','octets'),
-                    ('rXNoErrors','rxPackets'),
-                    ('tXNoErrors','txPackets'),
+        counters = [('dropEvents', 'drops'),
+                    ('multicastPkts', 'multicastPkts'),
+                    ('octets', 'octets'),
+                    ('rXNoErrors', 'rxPackets'),
+                    ('tXNoErrors', 'txPackets'),
                     ]
         dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/dbgEtherStats'
-        result.append((dn,counters))
+        result.append((dn, counters))
         return result
-    
+
+
 class PortChannel(BaseInterface):
     """
     This class defines a port channel interface.
@@ -1516,6 +1519,7 @@ class PortChannel(BaseInterface):
             portchannel = PortChannel(portchannel_name)
             portchannels.append(portchannel)
         return portchannels
+
 
 class Endpoint(BaseACIObject):
     @staticmethod
