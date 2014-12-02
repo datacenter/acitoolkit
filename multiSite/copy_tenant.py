@@ -2,7 +2,6 @@ import ast
 import push_or_pull_github
 from acitoolkit.acisession import Session
 from credentials import *
-from IPython import embed
 
 session = Session(URL, LOGIN, PASSWORD)
 resp = session.login()

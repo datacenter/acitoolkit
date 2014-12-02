@@ -1,4 +1,3 @@
-from IPython import embed
 from github3 import login
 import sys
 
@@ -9,7 +8,7 @@ DEFAULT_REPO = ''
 DEFAULT_FILE = ''
 DEFAULT_MESSAGE = ''
 DEFAULT_CONTENT = ''
-DEFAULT_BRANCH = ''
+DEFAULT_BRANCH = 'master'
 
 
 # login to github
@@ -43,7 +42,6 @@ def push_to_github(user_acct=DEFAULT_ACCT,
                    branch=DEFAULT_BRANCH):
 
     g = github_login(user_acct, user_password)
-    embed()
     r = get_repo(g, repo_owner, repo_name)
     if not r:
         create_repo(g, repo_name)
