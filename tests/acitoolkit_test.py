@@ -687,6 +687,17 @@ class TestContract(unittest.TestCase):
         self.assertEqual(Contract._get_subject_relation_code(),
                          'vzRsSubjFiltAtt')
 
+    def test_get_parent_class(self):
+        self.assertEquals(Contract._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/brc-test'
+        self.assertEquals(Contract._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/brc-test'
+        self.assertEquals(Contract._get_name_from_dn(dn), 'test')
+
     def test_internal_generate_attributes(self):
         contract = Contract('contract')
         contract.set_scope('tenant')
@@ -708,6 +719,17 @@ class TestTaboo(unittest.TestCase):
     def test_internal_get_subject_relation_code(self):
         self.assertEqual(Taboo._get_subject_relation_code(),
                          'vzRsDenyRule')
+
+    def test_get_parent_class(self):
+        self.assertEquals(Taboo._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/taboo-test'
+        self.assertEquals(Taboo._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/taboo-test'
+        self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
 
 
 class TestEPG(unittest.TestCase):

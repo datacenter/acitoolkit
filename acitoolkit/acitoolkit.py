@@ -29,8 +29,8 @@ class Tenant(BaseACIObject):
     object model.  In the APIC model, this class is roughly equivalent to
     the fvTenant class.
     """
-    @staticmethod
-    def _get_apic_class():
+    @classmethod
+    def _get_apic_class(cls):
         return 'fvTenant'
 
     @staticmethod
@@ -107,8 +107,8 @@ class AppProfile(BaseACIObject):
             raise TypeError('Parent must be of Tenant class')
         super(AppProfile, self).__init__(name, parent)
 
-    @staticmethod
-    def _get_apic_class():
+    @classmethod
+    def _get_apic_class(cls):
         return 'fvAp'
 
     @staticmethod
@@ -371,8 +371,8 @@ class EPG(CommonEPG):
             raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
 
-    @staticmethod
-    def _get_apic_class():
+    @classmethod
+    def _get_apic_class(cls):
         return 'fvAEPg'
 
     @staticmethod
@@ -712,8 +712,8 @@ class BridgeDomain(BaseACIObject):
             raise TypeError
         super(BridgeDomain, self).__init__(bd_name, parent)
 
-    @staticmethod
-    def _get_apic_class():
+    @classmethod
+    def _get_apic_class(cls):
         return 'fvBD'
 
     @staticmethod
@@ -925,8 +925,8 @@ class Context(BaseACIObject):
         super(Context, self).__init__(context_name, parent)
         self._allow_all = False
 
-    @staticmethod
-    def _get_apic_class():
+    @classmethod
+    def _get_apic_class(cls):
         return 'fvCtx'
 
     @staticmethod
@@ -1004,6 +1004,14 @@ class BaseContract(BaseACIObject):
     def _get_subject_relation_code():
         raise NotImplementedError
 
+    @classmethod
+    def _get_apic_class(cls):
+        return cls._get_contract_code()
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
+
     def set_scope(self, scope):
         """Set the scope of this contract.
            Valid values are 'context', 'global', 'tenant', and
@@ -1071,6 +1079,15 @@ class Contract(BaseContract):
     def _get_subject_relation_code():
         return 'vzRsSubjFiltAtt'
 
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/brc-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('/brc-')[1]
+        return name
+
     def _generate_attributes(self):
         attributes = super(Contract, self)._generate_attributes()
         attributes['scope'] = self.get_scope()
@@ -1101,6 +1118,15 @@ class Taboo(BaseContract):
     @staticmethod
     def _get_subject_relation_code():
         return 'vzRsDenyRule'
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/taboo-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('/taboo-')[1]
+        return name
 
 
 class FilterEntry(BaseACIObject):

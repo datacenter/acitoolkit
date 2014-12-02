@@ -105,8 +105,8 @@ class BaseACIObject(object):
     def _get_subscription_url(cls):
         return '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
 
-    @staticmethod
-    def _get_apic_class():
+    @classmethod
+    def _get_apic_class(cls):
         raise NotImplementedError
 
     @staticmethod
@@ -115,6 +115,10 @@ class BaseACIObject(object):
 
     @staticmethod
     def _get_parent_dn(dn):
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_name_from_dn(dn):
         raise NotImplementedError
 
     @classmethod
@@ -127,10 +131,6 @@ class BaseACIObject(object):
         parent_obj = parent_class(parent_name,
                                   parent_class._get_parent_from_dn(parent_dn))
         return parent_obj
-
-    @staticmethod
-    def _get_name_from_dn(dn):
-        raise NotImplementedError
 
     @classmethod
     def subscribe(cls, session):
