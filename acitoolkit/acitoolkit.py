@@ -1094,7 +1094,7 @@ class BaseInterface(BaseACIObject):
     def _get_port_selector_json(self, port_type, port_name):
         """Returns the json used for selecting the specified interfaces
         """
-        name = self.get_name_for_json()
+        name = self._get_name_for_json()
         port_blk = {'name': name,
                     'fromCard': self.module,
                     'toCard': self.module,
@@ -1126,7 +1126,7 @@ class BaseInterface(BaseACIObject):
 
     def get_port_selector_json(self):
         return self._get_port_selector_json('accportgrp',
-                                            self.get_name_for_json())
+                                            self._get_name_for_json())
 
     def get_port_channel_selector_json(self, port_name):
         return self._get_port_selector_json('accbundle', port_name)
@@ -1170,21 +1170,43 @@ class Interface(BaseInterface):
         return True
 
     def is_cdp_enabled(self):
+        """
+        Returns whether this interface has CDP configured as enabled.
+
+        :returns: True or False
+        """
         return self._cdp_config == 'enabled'
 
     def enable_cdp(self):
+        """
+        Enables CDP on this interface.
+        """
         self._cdp_config = 'enabled'
 
     def disable_cdp(self):
+        """
+        Disables CDP on this interface.
+        """
         self._cdp_config = 'disabled'
 
     def is_lldp_enabled(self):
+        """
+        Returns whether this interface has LLDP configured as enabled.
+
+        :returns: True or False
+        """
         return self._lldp_config == 'enabled'
 
     def enable_lldp(self):
+        """
+        Enables LLDP on this interface.
+        """
         self._lldp_config = 'enabled'
 
     def disable_lldp(self):
+        """
+        Disables LLDP on this interface.
+        """
         self._lldp_config = 'disabled'
 
     def get_type(self):
@@ -1199,7 +1221,7 @@ class Interface(BaseInterface):
         infra_url = '/api/mo/uni.json'
         return phys_domain_url, fabric_url, infra_url
 
-    def get_name_for_json(self):
+    def _get_name_for_json(self):
         return '%s-%s-%s-%s' % (self.pod, self.node,
                                 self.module, self.port)
 
@@ -1229,7 +1251,7 @@ class Interface(BaseInterface):
                                                  'speed': self.speed},
                                   'children': []}}
         infra['infraInfra']['children'].append(speed)
-        name = self.get_name_for_json()
+        name = self._get_name_for_json()
         accportgrp_dn = 'uni/infra/funcprof/accportgrp-%s' % name
         speed_attr = {'tnFabricHIfPolName': speed_name}
         speed_children = {'infraRsHIfPol': {'attributes': speed_attr,
@@ -1367,15 +1389,16 @@ class Interface(BaseInterface):
 
     @staticmethod
     def get(session, parent=None):
-        """Gets all of the physical interfaces from the APIC if no parent is specified.
+        """
+        Gets all of the physical interfaces from the APIC if no parent is specified.
         If a parent, of type Linecard is specified, then only those interfaces on
         that linecard are returned and they are also added as children to that linecard.
 
-        INPUT: session=Session, [parent=Linecard]
+        :param session: the instance of Session used for APIC communication
+        :param parent: Linecard instance to limit interfaces (optional)
 
-        RETURNS: list of Interface
+        :returns: list of Interface instances
         """
-
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
