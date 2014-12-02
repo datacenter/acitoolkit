@@ -78,16 +78,18 @@ if __name__ == '__main__':
         if i not in l:
             l.append(i)
 
+# -----------------------------------------------------------------------------
+# to obtain all the related json files from APIC
+
     app_json = get_app_json_from_apic(old_application)
     # take out parameter 'dn':
     del app_json['fvAp']['attributes']['dn']
 
-
-    
     cons = []
     filters = []
     bds = []
     private_networks = []
+
     # look for the contracts and bridge domains that are in used
     for epg in app_json['fvAp']['children']:
         eliminated_children = []
@@ -98,7 +100,7 @@ if __name__ == '__main__':
                 push_to_list(cons, child['fvRsProv']['attributes']['tnVzBrCPName'])
             if child.has_key('fvRsBd'):
                 push_to_list(bds, child['fvRsBd']['attributes']['tnFvBDName'])
-            if child.has_key('fvRsNodeAtt') or child.has_key('fvRsPathAtt') or child.has_key('fvRsCustQosPol'):
+            if child.has_key('fvRsNodeAtt') or child.has_key('fvRsPathAtt'):
                 eliminated_children.append(epg['fvAEPg']['children'].index(child))
         eliminated_children.sort(reverse=True)
         for index in eliminated_children:
@@ -140,22 +142,35 @@ if __name__ == '__main__':
         del fil_json['vzFilter']['attributes']['dn']
         filters_json.append(fil_json)
 
+    # combine all the achieved json into one json object
     content = {'fvTenant': {'attributes': {'name': 'bonB'}, 'children': []}}
-    content['fvTenant']['children'].append(app_json)
-    for p_n in private_networks_json:
-        content['fvTenant']['children'].append(p_n)
-    for b_j in bds_json:
-        content['fvTenant']['children'].append(b_j)
-    for c_j in contracts_json:
-        content['fvTenant']['children'].append(c_j)
-    for f_j in filters_json:
-        content['fvTenant']['children'].append(f_j)
 
+    def push_child_to_tenant(mo):
+        content['fvTenant']['children'].append(mo)
+
+    push_child_to_tenant(app_json)
+    for p_n in private_networks_json:
+        push_child_to_tenant(p_n)
+    for b_j in bds_json:
+        push_child_to_tenant(b_j)
+    for c_j in contracts_json:
+        push_child_to_tenant(c_j)
+    for f_j in filters_json:
+        push_child_to_tenant(f_j)
+
+    # remove some un-meaningful string
     content = str(content)
     content.replace('{},', '')
-    print content
+
+# -----------------------------------------------------------------------------
+
     push_json_to_github(content)
+
+# -----------------------------------------------------------------------------
+
     content = pull_json_from_github()
+
+# -----------------------------------------------------------------------------
 
     res = push_json_to_apic(ast.literal_eval(content))
     print res
