@@ -1152,6 +1152,8 @@ class Interface(BaseInterface):
         self.adminstatus = ''    # up or down
         self.speed = '10G'       # 100M, 1G, 10G or 40G
         self.mtu = ''
+        self._cdp_config = None
+        self._lldp_config = None
         self.type = 'interface'
         self.id = interface_type+module+'/'+port
         self._parent = parent
@@ -1166,6 +1168,24 @@ class Interface(BaseInterface):
         :returns: True
         """
         return True
+
+    def is_cdp_enabled(self):
+        return self._cdp_config == 'enabled'
+
+    def enable_cdp(self):
+        self._cdp_config = 'enabled'
+
+    def disable_cdp(self):
+        self._cdp_config = 'disabled'
+
+    def is_lldp_enabled(self):
+        return self._lldp_config == 'enabled'
+
+    def enable_lldp(self):
+        self._lldp_config = 'enabled'
+
+    def disable_lldp(self):
+        self._lldp_config = 'disabled'
 
     def get_type(self):
         return self.type
@@ -1214,6 +1234,14 @@ class Interface(BaseInterface):
         speed_attr = {'tnFabricHIfPolName': speed_name}
         speed_children = {'infraRsHIfPol': {'attributes': speed_attr,
                                             'children': []}}
+        cdp_children = None
+        if self._cdp_config is not None:
+            cdp_data = {'tnCdpIfPolName': 'CDP_%s' % self._cdp_config}
+            cdp_children = {'infraRsCdpIfPol': {'attributes': cdp_data}}
+        lldp_children = None
+        if self._lldp_config is not None:
+            lldp_data = {'tnLldpIfPolName': 'LLDP_%s' % self._lldp_config}
+            lldp_children = {'infraRsLldpIfPol': {'attributes': lldp_data}}
         att_ent_dn = 'uni/infra/attentp-allvlans'
         att_ent_p = {'infraRsAttEntP': {'attributes': {'tDn': att_ent_dn},
                                         'children': []}}
@@ -1221,6 +1249,10 @@ class Interface(BaseInterface):
                                                         'name': name},
                                          'children': [speed_children,
                                                       att_ent_p]}}
+        if cdp_children is not None:
+            speed_ref['infraAccPortGrp']['children'].append(cdp_children)
+        if lldp_children is not None:
+            speed_ref['infraAccPortGrp']['children'].append(lldp_children)
         speed_ref = {'infraFuncP': {'attributes': {}, 'children': [speed_ref]}}
         infra['infraInfra']['children'].append(speed_ref)
 
@@ -1230,6 +1262,17 @@ class Interface(BaseInterface):
                                                   {'name': 'allvlans'},
                                                   'children': [rs_dom_p]}}
         infra['infraInfra']['children'].append(infra_att_entity_p)
+
+        if self._cdp_config is not None:
+            cdp_if_pol = {'cdpIfPol': {'attributes': {'adminSt': self._cdp_config,
+                                                      'name': 'CDP_%s' % self._cdp_config}}}
+            infra['infraInfra']['children'].append(cdp_if_pol)
+
+        if self._lldp_config is not None:
+            lldp_if_pol = {'lldpIfPol': {'attributes': {'adminRxSt': self._lldp_config,
+                                                        'adminTxSt': self._lldp_config,
+                                                        'name': 'LLDP_%s' % self._lldp_config}}}
+            infra['infraInfra']['children'].append(lldp_if_pol)
 
         if self.adminstatus != '':
             adminstatus_attributes = {}
