@@ -366,6 +366,74 @@ otherwise it will return &#8216;/api/mo/uni.&#8217; with the fmt string appended
 </dd></dl>
 
 <dl class="class">
+<dt id="acitoolkit.aciphysobject.ENode">
+<em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">ENode</tt><big>(</big><em>attributes</em>, <em>session=None</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.ENode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.Node" title="acitoolkit.aciphysobject.Node"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.Node</span></tt></a></p>
+<p>External Node.  This class is for switch nodes that are connected to the pod, but are not
+ACI nodes, i.e. are not under control of the APIC.  Examples would be external layer 2 switches,
+external routers, or hypervisor based switches.</p>
+<p>This class will look as much as possible like the Node class recognizing that not as much information
+is available to the APIC about them as is available about ACI nodes.  Nearly all of the information used
+to create this class comes from LLDP.</p>
+<dl class="staticmethod">
+<dt id="acitoolkit.aciphysobject.ENode.get">
+<em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.ENode.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all of the loose nodes from the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; APIC session</li>
+<li><strong>parent</strong> &#8211; optional parent object of type Topology</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of ENodes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.ENode.getName">
+<tt class="descname">getName</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.ENode.getName" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Name string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.ENode.getRole">
+<tt class="descname">getRole</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.ENode.getRole" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieves the node role
+:returns: role</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.aciphysobject.ENode.info">
+<tt class="descname">info</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.ENode.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Node information summary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Formatted string that has a summary of all of the info                  gathered about the node.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="acitoolkit.aciphysobject.Fantray">
 <em class="property">class </em><tt class="descclassname">acitoolkit.aciphysobject.</tt><tt class="descname">Fantray</tt><big>(</big><em>pod</em>, <em>node</em>, <em>slot</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Fantray" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#acitoolkit.aciphysobject.BaseACIPhysModule" title="acitoolkit.aciphysobject.BaseACIPhysModule"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.aciphysobject.BaseACIPhysModule</span></tt></a></p>
@@ -669,7 +737,7 @@ most easily be done by populating the entire physical heirarchy from the Pod dow
 <li><strong>pod</strong> &#8211; String representation of the pod number</li>
 <li><strong>node</strong> &#8211; String representation of the node number</li>
 <li><strong>name</strong> &#8211; Name of the node</li>
-<li><strong>role</strong> &#8211; Role of the node.  Valid roles are None, &#8216;spine&#8217;, &#8216;leaf&#8217;, &#8216;controller&#8217;</li>
+<li><strong>role</strong> &#8211; Role of the node.  Valid roles are None, &#8216;spine&#8217;, &#8216;leaf&#8217;, &#8216;controller&#8217;, &#8216;loosenode&#8217;</li>
 <li><strong>parent</strong> &#8211; Parent pod object of the node.</li>
 </ul>
 </td>

@@ -353,6 +353,20 @@ Object Model.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.infoList">
+<tt class="descname">infoList</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.infoList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Node information.  Returns a list of (attr, value) tuples.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of [(attr, value),]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.is_attached">
 <tt class="descname">is_attached</tt><big>(</big><em>item</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.is_attached" title="Permalink to this definition">¶</a></dt>
 <dd><p>Indicates whether the item is attached to this object/
@@ -466,6 +480,99 @@ to be set to deleted.</p>
 <dt id="acitoolkit.acibaseobject.BaseRelation.set_as_detached">
 <tt class="descname">set_as_detached</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseRelation.set_as_detached" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the relation status to &#8216;detached&#8217;</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.acibaseobject.Stats">
+<em class="property">class </em><tt class="descclassname">acitoolkit.acibaseobject.</tt><tt class="descname">Stats</tt><big>(</big><em>session=None</em>, <em>counters=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.Stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for stat.</p>
+<p>Will allow the set of counters to be configured by attribute name.
+Will allow the counters to be read from APIC.
+Will allow the counters to be cleared and uncleared.  When clearing the counters,
+the current values are read and then stored.  A get will return the difference between the
+values read from the APIC and the stored values.  An unclear will simply clear the values.
+Will allow the change in values to be retrieved.</p>
+<p>When initializing the stats, a list of counters can be provided through the counters
+list. The counters structure is as follows: [(dn,[(attribute,name),...)...].  A counter
+will be created whose name is &#8220;name&#8221;, i.e. it will be accessed by that name.  Its value
+will come from the APIC object indicated by &#8220;dn&#8221; and attribute &#8220;attribute&#8221;.  The possibility
+to give an alternate name from the name of the attribute is that the same attribute name
+is used in different objects and the Stats object will essentiall flatten them.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; Optional session of type Session.  If this parameter is not provided, all the</td>
+</tr>
+</tbody>
+</table>
+<p>counts will be zero.
+:param counters: optional list of counters to include in the stats</p>
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.Stats.addCounters">
+<tt class="descname">addCounters</tt><big>(</big><em>counters</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.Stats.addCounters" title="Permalink to this definition">¶</a></dt>
+<dd><p>This routine will add counters to stats. The counters will be
+appended to any counters that already exist in the stats.
+The format of the counters parameter is [(dn,[(attribute,name),...)...].
+The dn indicates which managed object to get the counts from.  It is followed
+by a list of attribute, name pairs.  The attribute is the name of the attribute
+in the managed object to get the counter from.  The name is the name used to
+access the counters in the toolkit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Params counters:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">list of counters to be added</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.Stats.change">
+<tt class="descname">change</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.Stats.change" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return a dictionary of the counter value changes since they
+were last read by either this same method, the get() method, or a clear()
+method.  Each value is
+calculated by reading from the APIC and subtracting the corresponding lastValue</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">dictionary of counter:value</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.Stats.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.Stats.clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.Stats.get">
+<tt class="descname">get</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.Stats.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return a dictionary of the counter values.  Each value is
+calculated by reading from the APIC and subtracting the corresponding baseValue</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">dictionary of counter:value</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.Stats.unclear">
+<tt class="descname">unclear</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.Stats.unclear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will set the values that were set by the clear() method to zero so that
+a get() will return the raw values in the APIC.</p>
 </dd></dl>
 
 </dd></dl>

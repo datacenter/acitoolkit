@@ -845,17 +845,54 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 
 <dl class="class">
 <dt id="acitoolkit.acitoolkit.Interface">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Interface</tt><big>(</big><em>interface_type</em>, <em>pod</em>, <em>node</em>, <em>module</em>, <em>port</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Interface</tt><big>(</big><em>interface_type</em>, <em>pod</em>, <em>node</em>, <em>module</em>, <em>port</em>, <em>parent=None</em>, <em>session=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#acitoolkit.acitoolkit.BaseInterface" title="acitoolkit.acitoolkit.BaseInterface"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.BaseInterface</span></tt></a></p>
 <p>This class defines a physical interface.</p>
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.disable_cdp">
+<tt class="descname">disable_cdp</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.disable_cdp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disables CDP on this interface.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.disable_lldp">
+<tt class="descname">disable_lldp</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.disable_lldp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disables LLDP on this interface.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.enable_cdp">
+<tt class="descname">enable_cdp</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.enable_cdp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enables CDP on this interface.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.enable_lldp">
+<tt class="descname">enable_lldp</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.enable_lldp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enables LLDP on this interface.</p>
+</dd></dl>
+
 <dl class="staticmethod">
 <dt id="acitoolkit.acitoolkit.Interface.get">
 <em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets all of the physical interfaces from the APIC if no parent is specified.
 If a parent, of type Linecard is specified, then only those interfaces on
 that linecard are returned and they are also added as children to that linecard.</p>
-<p>INPUT: session=Session, [parent=Linecard]</p>
-<p>RETURNS: list of Interface</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<li><strong>parent</strong> &#8211; Linecard instance to limit interfaces (optional)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of Interface instances</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -864,11 +901,6 @@ that linecard are returned and they are also added as children to that linecard.
 <dd><p>Get the json for an interface.  Returns a tuple since the json is
 required to be sent in 2 posts.</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="acitoolkit.acitoolkit.Interface.get_name_for_json">
-<tt class="descname">get_name_for_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.get_name_for_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Interface.get_serial">
@@ -886,6 +918,20 @@ required to be sent in 2 posts.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.is_cdp_enabled">
+<tt class="descname">is_cdp_enabled</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.is_cdp_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether this interface has CDP configured as enabled.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="acitoolkit.acitoolkit.Interface.is_interface">
 <tt class="descname">is_interface</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.is_interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns whether this instance is considered an interface.</p>
@@ -894,6 +940,20 @@ required to be sent in 2 posts.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.is_lldp_enabled">
+<tt class="descname">is_lldp_enabled</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.is_lldp_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether this interface has LLDP configured as enabled.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
 </tr>
 </tbody>
 </table>
