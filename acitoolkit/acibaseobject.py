@@ -133,22 +133,36 @@ class BaseACIObject(object):
             self._relations.remove(BaseRelation(item, 'attached'))
         self._relations.append(BaseRelation(item, 'attached'))
 
+    def _check_relation(self, item, status):
+        check = BaseRelation(item, status)
+        return check in self._relations
+
     def is_attached(self, item):
         """
         Indicates whether the item is attached to this object/
         :returns: True or False, True indicates the item is attached.
         """
-        check = BaseRelation(item, 'attached')
-        return check in self._relations
+        return self._check_relation(item, 'attached')
+
+    def is_detached(self, item):
+        """
+        Indicates whether the item is detached from this object.
+        :returns: True or False, True indicates the item is detached.
+        """
+        return self._check_relation(item, 'detached')
 
     def detach(self, item):
         """
         Detach the object from the other object.
+        A relationship is either 'attached', 'detached', or does not exist.\
+        A detached relationship will cause the relationship to be deleted\
+        when pushed to the APIC.
 
         :param item:  Object to be detached.
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
+        if not self.is_detached(item):
             self._relations.append(BaseRelation(item, 'detached'))
 
     def get_children(self):
