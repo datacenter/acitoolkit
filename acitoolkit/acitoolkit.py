@@ -1205,6 +1205,14 @@ class Interface(BaseInterface):
         """
         return self._lldp_config == 'enabled'
 
+    def is_lldp_disabled(self):
+        """
+        Returns whether this interface has LLDP configured as disabled.
+
+        :returns: True or False
+        """
+        return self._lldp_config == 'disabled'
+
     def enable_lldp(self):
         """
         Enables LLDP on this interface.
@@ -1396,6 +1404,67 @@ class Interface(BaseInterface):
             return cls._parse_path_dn(dn)
 
     @staticmethod
+    def _get_discoveryprot_policies(session, prot):
+        """
+        :param prot: String containing either 'cdp' or 'lldp'
+        """
+        prot_policies = {}
+        if prot == 'cdp':
+            prot_class = 'cdpIfPol'
+        elif prot == 'lldp':
+            prot_class = 'lldpIfPol'
+        else:
+            raise ValueError
+
+        query_url = '/api/node/class/%s.json?query-target=self' % prot_class
+        ret = session.get(query_url)
+        prot_data = ret.json()['imdata']
+        for policy in prot_data:
+            attributes = policy['%s' % prot_class]['attributes']
+            if prot == 'cdp':
+                prot_policies[attributes['name']] = attributes['adminSt']
+            else:
+                prot_policies[attributes['name']] = attributes['adminTxSt']
+        return prot_policies
+
+    @staticmethod
+    def _get_discoveryprot_relations(session, interfaces, prot, prot_policies):
+        if prot == 'cdp':
+            prot_relation_class = 'l1RsCdpIfPolCons'
+            prot_relation_dn_class = '/cdpIfP-'
+            prot_relation_dn = '/rscdpIfPolCons'
+        elif prot == 'lldp':
+            prot_relation_class = 'l1RsLldpIfPolCons'
+            prot_relation_dn_class = '/lldpIfP-'
+            prot_relation_dn = '/rslldpIfPolCons'
+        else:
+            raise ValueError
+
+        query_url = ('/api/node/class/l1PhysIf.json?query-target=subtree&'
+                     'target-subtree-class=%s' % prot_relation_class)
+        ret = session.get(query_url)
+        prot_data = ret.json()['imdata']
+        for prot_relation in prot_data:
+            attributes = prot_relation[prot_relation_class]['attributes']
+            policy_name = attributes['tDn'].split(prot_relation_dn_class)[1]
+            interface_dn = attributes['dn'].split(prot_relation_dn)[0]
+            search_intf = Interface(*Interface._parse_physical_dn(interface_dn))
+            for intf in interfaces:
+                if intf == search_intf:
+                    if prot_policies[policy_name] == 'enabled':
+                        if prot == 'cdp':
+                            intf.enable_cdp()
+                        else:
+                            intf.enable_lldp()
+                    else:
+                        if prot == 'cdp':
+                            intf.disable_cdp()
+                        else:
+                            intf.disable_lldp()
+                    break
+        return interfaces
+
+    @staticmethod
     def get(session, parent=None):
         """
         Gets all of the physical interfaces from the APIC if no parent is specified.
@@ -1410,14 +1479,8 @@ class Interface(BaseInterface):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
-        # Get the CDP policies
-        cdp_policies = {}
-        cdp_query_url = '/api/node/class/cdpIfPol.json?query-target=self'
-        ret = session.get(cdp_query_url)
-        cdp_data = ret.json()['imdata']
-        for cdp_policy in cdp_data:
-            attributes = cdp_policy['cdpIfPol']['attributes']
-            cdp_policies[attributes['name']] = attributes['adminSt']
+        cdp_policies = Interface._get_discoveryprot_policies(session, 'cdp')
+        lldp_policies = Interface._get_discoveryprot_policies(session, 'lldp')
 
         interface_query_url = ('/api/node/class/l1PhysIf.json?query-target='
                                'self')
@@ -1445,23 +1508,8 @@ class Interface(BaseInterface):
             else:
                 resp.append(interface_obj)
 
-        # Get the CDP relationships
-        cdp_query_url = ('/api/node/class/l1PhysIf.json?query-target=subtree&'
-                         'target-subtree-class=l1RsCdpIfPolCons')
-        ret = session.get(cdp_query_url)
-        cdp_data = ret.json()['imdata']
-        for cdp_relation in cdp_data:
-            attributes = cdp_relation['l1RsCdpIfPolCons']['attributes']
-            cdp_policy_name = attributes['tDn'].split('/cdpIfP-')[1]
-            interface_dn = attributes['dn'].split('/rscdpIfPolCons')[0]
-            search_intf = Interface(*Interface._parse_physical_dn(interface_dn))
-            for intf in resp:
-                if intf == search_intf:
-                    if cdp_policies[cdp_policy_name] == 'enabled':
-                        intf.enable_cdp()
-                    else:
-                        intf.disable_cdp()
-                    break
+        resp = Interface._get_discoveryprot_relations(session, resp, 'cdp', cdp_policies)
+        resp = Interface._get_discoveryprot_relations(session, resp, 'lldp', lldp_policies)
         return resp
 
     def __str__(self):
