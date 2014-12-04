@@ -31,5 +31,8 @@ git_file = 'file_name'
 
 # Tenant that to be copied
 old_tenant = 'tenantA'
+old_application = 'applicationA'
+
 # The new tenant
 new_tenant = 'tenantB'
+new_application = 'applicationB'
