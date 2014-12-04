@@ -1177,6 +1177,14 @@ class Interface(BaseInterface):
         """
         return self._cdp_config == 'enabled'
 
+    def is_cdp_disabled(self):
+        """
+        Returns whether this interface has CDP configured as disabled.
+
+        :returns: True or False
+        """
+        return self._cdp_config == 'disabled'
+
     def enable_cdp(self):
         """
         Enables CDP on this interface.
@@ -1402,7 +1410,17 @@ class Interface(BaseInterface):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
-        interface_query_url = '/api/node/class/l1PhysIf.json?query-target=self'
+        # Get the CDP policies
+        cdp_policies = {}
+        cdp_query_url = '/api/node/class/cdpIfPol.json?query-target=self'
+        ret = session.get(cdp_query_url)
+        cdp_data = ret.json()['imdata']
+        for cdp_policy in cdp_data:
+            attributes = cdp_policy['cdpIfPol']['attributes']
+            cdp_policies[attributes['name']] = attributes['adminSt']
+
+        interface_query_url = ('/api/node/class/l1PhysIf.json?query-target='
+                               'self')
         ret = session.get(interface_query_url)
         resp = []
         interface_data = ret.json()['imdata']
@@ -1426,6 +1444,24 @@ class Interface(BaseInterface):
                     resp.append(interface_obj)
             else:
                 resp.append(interface_obj)
+
+        # Get the CDP relationships
+        cdp_query_url = ('/api/node/class/l1PhysIf.json?query-target=subtree&'
+                         'target-subtree-class=l1RsCdpIfPolCons')
+        ret = session.get(cdp_query_url)
+        cdp_data = ret.json()['imdata']
+        for cdp_relation in cdp_data:
+            attributes = cdp_relation['l1RsCdpIfPolCons']['attributes']
+            cdp_policy_name = attributes['tDn'].split('/cdpIfP-')[1]
+            interface_dn = attributes['dn'].split('/rscdpIfPolCons')[0]
+            search_intf = Interface(*Interface._parse_physical_dn(interface_dn))
+            for intf in resp:
+                if intf == search_intf:
+                    if cdp_policies[cdp_policy_name] == 'enabled':
+                        intf.enable_cdp()
+                    else:
+                        intf.disable_cdp()
+                    break
         return resp
 
     def __str__(self):
@@ -1434,6 +1470,15 @@ class Interface(BaseInterface):
                  self.mtu]
         ret = ''.join(items)
         return ret
+
+    def __eq__(self, other):
+        if (self.interface_type == other.interface_type and
+            self.pod == other.pod and
+            self.node == other.node and
+            self.module == other.module and
+            self.port == other.port):
+            return True
+        return False
 
     def _initStats(self):
         """This method will create the data structure for the statistics.
