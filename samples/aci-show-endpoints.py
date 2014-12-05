@@ -39,7 +39,10 @@ if not resp.ok:
 data = []
 endpoints = ACI.Endpoint.get(session)
 for ep in endpoints:
-    data.append((ep.mac, ep.ip, ep.if_name, ep.encap, ep.tenant, ep.app_profile, ep.epg))
+    epg = ep.epg
+    app_profile = epg.get_parent()
+    tenant = app_profile.get_parent()
+    data.append((ep.mac, ep.ip, ep.if_name, ep.encap, tenant.name, app_profile.name, epg.name))
 
 # Display the data downloaded
 template = "{0:19} {1:17} {2:15} {3:10} {4:10} {5:15} {6:15}"

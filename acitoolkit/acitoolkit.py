@@ -395,11 +395,21 @@ class EPG(CommonEPG):
         is_interfaces = False
         for interface in self.get_interfaces():
             is_interfaces = True
+            encap_text = '%s-%s' % (interface.encap_type,
+                                    interface.encap_id)
             text = {'fvRsPathAtt': {'attributes':
-                                    {'encap': '%s-%s' % (interface.encap_type,
-                                                         interface.encap_id),
+                                    {'encap': encap_text,
                                      'tDn': interface._get_path()}}}
             children.append(text)
+
+            for ep in interface.get_all_attachments(Endpoint):
+                text = {'fvStCEp': {'attributes':
+                                        {'ip': ep.ip,
+                                         'mac': ep.mac,
+                                         'name': ep.name,
+                                         'encap': encap_text,
+                                         'type': 'silent-host'}}}
+                children.append(text)
         if is_interfaces:
             text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
             children.append(text)
@@ -1681,6 +1691,13 @@ class PortChannel(BaseInterface):
 
 
 class Endpoint(BaseACIObject):
+    def __init__(self, name, mac, ip):
+        super(Endpoint, self).__init__(name)
+        self.mac = mac
+        self.ip = ip
+        self.encap = None
+        self.epg = None
+
     @staticmethod
     def get(session):
         """Gets all of the endpoints connected to the fabric from the APIC
@@ -1703,13 +1720,11 @@ class Endpoint(BaseACIObject):
         for ep in ep_data:
             children = ep['fvCEp']['children']
             ep = ep['fvCEp']['attributes']
-            endpoint = Endpoint(str(ep['name']))
-            endpoint.mac = str(ep['mac'])
-            endpoint.ip = str(ep['ip'])
+            endpoint = Endpoint(str(ep['name']), str(ep['mac']), str(ep['ip']))
             endpoint.encap = str(ep['encap'])
-            endpoint.epg = str(ep['dn']).split('/')[3][4:]
-            endpoint.tenant = str(ep['dn']).split('/')[1][3:]
-            endpoint.app_profile = str(ep['dn']).split('/')[2][3:]
+            tenant = Tenant(str(ep['dn']).split('/')[1][3:])
+            app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
+            endpoint.epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
             for child in children:
                 if 'fvRsCEpToPathEp' in child:
                     endpoint.if_name = str(child['fvRsCEpToPathEp']['attributes']['tDn'])

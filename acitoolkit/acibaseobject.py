@@ -91,6 +91,7 @@ class BaseACIObject(object):
         self._deleted = False
         self._children = []
         self._relations = []
+        self._attachments = []
         self._parent = parent
         self.descr = None
         logging.debug('Creating %s %s', self.__class__.__name__, name)
@@ -131,7 +132,9 @@ class BaseACIObject(object):
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
+            item._attachments.remove(BaseRelation(self, 'attached'))
         self._relations.append(BaseRelation(item, 'attached'))
+        item._attachments.append(BaseRelation(self, 'attached'))
 
     def _check_relation(self, item, status):
         check = BaseRelation(item, status)
@@ -162,8 +165,28 @@ class BaseACIObject(object):
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
+            item._attachments.remove(BaseRelation(self, 'attached'))
         if not self.is_detached(item):
             self._relations.append(BaseRelation(item, 'detached'))
+            item._attachments.append(BaseRelation(self, 'detached'))
+
+    def _check_attachment(self, item, status):
+        check = BaseRelation(item, status)
+        return check in self._attachments
+
+    def has_attachment(self, item):
+        """
+        Indicates whether this object is attached to the item/
+        :returns: True or False, True indicates the object is attached.
+        """
+        return self._check_attachment(item, 'attached')
+
+    def has_detachment(self, item):
+        """
+        Indicates whether the object is detached from this item.
+        :returns: True or False, True indicates the object is detached.
+        """
+        return self._check_attachment(item, 'detached')
 
     def get_children(self):
         """
@@ -297,6 +320,15 @@ class BaseACIObject(object):
                 resp.append(relation.item)
         return resp
 
+    def _get_all_relations_by_class(self, relations, attached_class, status='attached'):
+        resp = []
+        for relation in relations:
+            same_class = isinstance(relation.item, attached_class)
+            same_status = relation.status == status
+            if same_class and same_status:
+                resp.append(relation.item)
+        return resp
+
     def get_all_attached(self, attached_class, status='attached'):
         """
         Get all of the relations of objects belonging to the
@@ -306,13 +338,22 @@ class BaseACIObject(object):
         :param status:  Valid values are 'attached' and 'detached'.\
                         Default is 'attached'.
         """
-        resp = []
-        for relation in self._relations:
-            same_class = isinstance(relation.item, attached_class)
-            same_status = relation.status == status
-            if same_class and same_status:
-                resp.append(relation.item)
-        return resp
+        return self._get_all_relations_by_class(self._relations,
+                                                attached_class,
+                                                status)
+
+    def get_all_attachments(self, attached_class, status='attached'):
+        """
+        Get all of the attachments to an object belonging to the
+        specified class with the specified status.
+
+        :param attached_class:  The class that is the subject of the search.
+        :param status:  Valid values are 'attached' and 'detached'.\
+                        Default is 'attached'.
+        """
+        return self._get_all_relations_by_class(self._attachments,
+                                                attached_class,
+                                                status)
 
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""
