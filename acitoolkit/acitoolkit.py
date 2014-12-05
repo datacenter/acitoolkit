@@ -23,12 +23,29 @@ import json
 import logging
 import re
 
+
 class Tenant(BaseACIObject):
     """
     The Tenant class is used to represent the tenants within the acitoolkit
     object model.  In the APIC model, this class is roughly equivalent to
     the fvTenant class.
     """
+    @classmethod
+    def _get_apic_class(cls):
+        return 'fvTenant'
+
+    @staticmethod
+    def _get_parent_class():
+        return None
+
+    def _get_instance_subscription_url(self):
+        return '/api/mo/uni/tn-%s.json?subscription=yes' % self.name
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('uni/tn-')[1]
+        return name
+
     def get_json(self):
         """
         Returns json representation of the fvTenant object
@@ -36,7 +53,8 @@ class Tenant(BaseACIObject):
         :returns: A json dictionary of fvTenant
         """
         attr = self._generate_attributes()
-        return super(Tenant, self).get_json('fvTenant', attributes=attr)
+        return super(Tenant, self).get_json(self._get_apic_class(),
+                                            attributes=attr)
 
     @classmethod
     def get(cls, session):
@@ -46,7 +64,7 @@ class Tenant(BaseACIObject):
         :param session: the instance of Session used for APIC communication
         :returns: a list of Tenant objects
         """
-        return BaseACIObject.get(session, cls, 'fvTenant')
+        return BaseACIObject.get(session, cls, cls._get_apic_class())
 
     @classmethod
     def exists(cls, session, tenant):
@@ -93,6 +111,23 @@ class AppProfile(BaseACIObject):
             raise TypeError('Parent must be of Tenant class')
         super(AppProfile, self).__init__(name, parent)
 
+    @classmethod
+    def _get_apic_class(cls):
+        return 'fvAp'
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/ap-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('/ap-')[1]
+        return name
+
     def get_json(self):
         """
         Returns json representation of the AppProfile object.
@@ -100,7 +135,8 @@ class AppProfile(BaseACIObject):
         :returns: json dictionary of fvAp
         """
         attr = self._generate_attributes()
-        return super(AppProfile, self).get_json('fvAp', attributes=attr)
+        return super(AppProfile, self).get_json(self._get_apic_class(),
+                                                attributes=attr)
 
     @classmethod
     def get(cls, session, tenant):
@@ -111,7 +147,7 @@ class AppProfile(BaseACIObject):
                        Profiles retreived from the APIC
         :returns: List of AppProfile objects
         """
-        return BaseACIObject.get(session, cls, 'fvAp', parent=tenant,
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), parent=tenant,
                                  tenant=tenant)
 
     def _get_url_extension(self):
@@ -319,7 +355,7 @@ class CommonEPG(BaseACIObject):
         :returns: List of CommonEPG instances (or EPG instances if called\
                   from EPG class)
         """
-        return BaseACIObject.get(session, cls, 'fvAEPg', parent, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), parent, tenant)
 
 
 class EPG(CommonEPG):
@@ -338,6 +374,22 @@ class EPG(CommonEPG):
         if not isinstance(parent, AppProfile):
             raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
+
+    @classmethod
+    def _get_apic_class(cls):
+        return 'fvAEPg'
+
+    @staticmethod
+    def _get_parent_class():
+        return AppProfile
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/epg-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/epg-')[1]
 
     # Bridge Domain references
     def add_bd(self, bridgedomain):
@@ -394,11 +446,21 @@ class EPG(CommonEPG):
         is_interfaces = False
         for interface in self.get_interfaces():
             is_interfaces = True
+            encap_text = '%s-%s' % (interface.encap_type,
+                                    interface.encap_id)
             text = {'fvRsPathAtt': {'attributes':
-                                    {'encap': '%s-%s' % (interface.encap_type,
-                                                         interface.encap_id),
+                                    {'encap': encap_text,
                                      'tDn': interface._get_path()}}}
             children.append(text)
+
+            for ep in interface.get_all_attachments(Endpoint):
+                text = {'fvStCEp': {'attributes':
+                                        {'ip': ep.ip,
+                                         'mac': ep.mac,
+                                         'name': ep.name,
+                                         'encap': encap_text,
+                                         'type': 'silent-host'}}}
+                children.append(text)
         if is_interfaces:
             text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
             children.append(text)
@@ -419,7 +481,7 @@ class EPG(CommonEPG):
                                      'tDn': interface._get_path()}}}
             children.append(text)
         attr = self._generate_attributes()
-        return super(EPG, self).get_json('fvAEPg',
+        return super(EPG, self).get_json(self._get_apic_class(),
                                          attributes=attr,
                                          children=children)
 
@@ -664,6 +726,22 @@ class BridgeDomain(BaseACIObject):
             raise TypeError
         super(BridgeDomain, self).__init__(bd_name, parent)
 
+    @classmethod
+    def _get_apic_class(cls):
+        return 'fvBD'
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/BD-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/BD-')[1]
+
     def get_json(self):
         """
         Returns json representation of the bridge domain
@@ -676,7 +754,7 @@ class BridgeDomain(BaseACIObject):
                                 {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
-        return super(BridgeDomain, self).get_json('fvBD',
+        return super(BridgeDomain, self).get_json(self._get_apic_class(),
                                                   attributes=attr,
                                                   children=children)
 
@@ -774,7 +852,7 @@ class BridgeDomain(BaseACIObject):
                        instances retreived from the APIC
         :returns: List of BridgeDomain objects
         """
-        return BaseACIObject.get(session, cls, 'fvBD', tenant, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), tenant, tenant)
 
     def _get_url_extension(self):
         return '/BD-%s' % self.name
@@ -861,6 +939,22 @@ class Context(BaseACIObject):
         super(Context, self).__init__(context_name, parent)
         self._allow_all = False
 
+    @classmethod
+    def _get_apic_class(cls):
+        return 'fvCtx'
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/ctx-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/ctx-')[1]
+
     def set_allow_all(self, value=True):
         """
         Set the allow_all value. When set, contracts will not be enforced\
@@ -890,7 +984,8 @@ class Context(BaseACIObject):
             attributes['pcEnfPref'] = 'unenforced'
         else:
             attributes['pcEnfPref'] = 'enforced'
-        return super(Context, self).get_json('fvCtx', attributes=attributes)
+        return super(Context, self).get_json(self._get_apic_class(),
+                                             attributes=attributes)
 
     @classmethod
     def get(cls, session, tenant):
@@ -902,7 +997,7 @@ class Context(BaseACIObject):
                        retreived from the APIC
         :returns: List of Context objects
         """
-        return BaseACIObject.get(session, cls, 'fvCtx', tenant, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(), tenant, tenant)
 
 
 class BaseContract(BaseACIObject):
@@ -922,6 +1017,14 @@ class BaseContract(BaseACIObject):
     @staticmethod
     def _get_subject_relation_code():
         raise NotImplementedError
+
+    @classmethod
+    def _get_apic_class(cls):
+        return cls._get_contract_code()
+
+    @staticmethod
+    def _get_parent_class():
+        return Tenant
 
     def set_scope(self, scope):
         """Set the scope of this contract.
@@ -990,6 +1093,15 @@ class Contract(BaseContract):
     def _get_subject_relation_code():
         return 'vzRsSubjFiltAtt'
 
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/brc-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('/brc-')[1]
+        return name
+
     def _generate_attributes(self):
         attributes = super(Contract, self)._generate_attributes()
         attributes['scope'] = self.get_scope()
@@ -1020,6 +1132,15 @@ class Taboo(BaseContract):
     @staticmethod
     def _get_subject_relation_code():
         return 'vzRsDenyRule'
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/taboo-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        name = dn.split('/taboo-')[1]
+        return name
 
 
 class FilterEntry(BaseACIObject):
@@ -1093,7 +1214,7 @@ class BaseInterface(BaseACIObject):
     def _get_port_selector_json(self, port_type, port_name):
         """Returns the json used for selecting the specified interfaces
         """
-        name = self.get_name_for_json()
+        name = self._get_name_for_json()
         port_blk = {'name': name,
                     'fromCard': self.module,
                     'toCard': self.module,
@@ -1125,7 +1246,7 @@ class BaseInterface(BaseACIObject):
 
     def get_port_selector_json(self):
         return self._get_port_selector_json('accportgrp',
-                                            self.get_name_for_json())
+                                            self._get_name_for_json())
 
     def get_port_channel_selector_json(self, port_name):
         return self._get_port_selector_json('accbundle', port_name)
@@ -1153,6 +1274,8 @@ class Interface(BaseInterface):
         self.adminstatus = ''    # up or down
         self.speed = '10G'       # 100M, 1G, 10G or 40G
         self.mtu = ''
+        self._cdp_config = None
+        self._lldp_config = None
         self.type = 'interface'
         self.attributes['type']='interface'
         self.id = interface_type+module+'/'+port
@@ -1160,7 +1283,8 @@ class Interface(BaseInterface):
         self._parent = parent
         if parent:
             self._parent.add_child(self)
-        self.stats = Stats(self._session,counters=self._initStats())
+        self.stats = Stats(self._session, counters=self._initStats())
+
     def is_interface(self):
         """
         Returns whether this instance is considered an interface.
@@ -1168,6 +1292,62 @@ class Interface(BaseInterface):
         :returns: True
         """
         return True
+
+    def is_cdp_enabled(self):
+        """
+        Returns whether this interface has CDP configured as enabled.
+
+        :returns: True or False
+        """
+        return self._cdp_config == 'enabled'
+
+    def is_cdp_disabled(self):
+        """
+        Returns whether this interface has CDP configured as disabled.
+
+        :returns: True or False
+        """
+        return self._cdp_config == 'disabled'
+
+    def enable_cdp(self):
+        """
+        Enables CDP on this interface.
+        """
+        self._cdp_config = 'enabled'
+
+    def disable_cdp(self):
+        """
+        Disables CDP on this interface.
+        """
+        self._cdp_config = 'disabled'
+
+    def is_lldp_enabled(self):
+        """
+        Returns whether this interface has LLDP configured as enabled.
+
+        :returns: True or False
+        """
+        return self._lldp_config == 'enabled'
+
+    def is_lldp_disabled(self):
+        """
+        Returns whether this interface has LLDP configured as disabled.
+
+        :returns: True or False
+        """
+        return self._lldp_config == 'disabled'
+
+    def enable_lldp(self):
+        """
+        Enables LLDP on this interface.
+        """
+        self._lldp_config = 'enabled'
+
+    def disable_lldp(self):
+        """
+        Disables LLDP on this interface.
+        """
+        self._lldp_config = 'disabled'
 
     def get_type(self):
         return self.type
@@ -1181,7 +1361,7 @@ class Interface(BaseInterface):
         infra_url = '/api/mo/uni.json'
         return phys_domain_url, fabric_url, infra_url
 
-    def get_name_for_json(self):
+    def _get_name_for_json(self):
         return '%s-%s-%s-%s' % (self.pod, self.node,
                                 self.module, self.port)
 
@@ -1211,11 +1391,19 @@ class Interface(BaseInterface):
                                                  'speed': self.speed},
                                   'children': []}}
         infra['infraInfra']['children'].append(speed)
-        name = self.get_name_for_json()
+        name = self._get_name_for_json()
         accportgrp_dn = 'uni/infra/funcprof/accportgrp-%s' % name
         speed_attr = {'tnFabricHIfPolName': speed_name}
         speed_children = {'infraRsHIfPol': {'attributes': speed_attr,
                                             'children': []}}
+        cdp_children = None
+        if self._cdp_config is not None:
+            cdp_data = {'tnCdpIfPolName': 'CDP_%s' % self._cdp_config}
+            cdp_children = {'infraRsCdpIfPol': {'attributes': cdp_data}}
+        lldp_children = None
+        if self._lldp_config is not None:
+            lldp_data = {'tnLldpIfPolName': 'LLDP_%s' % self._lldp_config}
+            lldp_children = {'infraRsLldpIfPol': {'attributes': lldp_data}}
         att_ent_dn = 'uni/infra/attentp-allvlans'
         att_ent_p = {'infraRsAttEntP': {'attributes': {'tDn': att_ent_dn},
                                         'children': []}}
@@ -1223,6 +1411,10 @@ class Interface(BaseInterface):
                                                         'name': name},
                                          'children': [speed_children,
                                                       att_ent_p]}}
+        if cdp_children is not None:
+            speed_ref['infraAccPortGrp']['children'].append(cdp_children)
+        if lldp_children is not None:
+            speed_ref['infraAccPortGrp']['children'].append(lldp_children)
         speed_ref = {'infraFuncP': {'attributes': {}, 'children': [speed_ref]}}
         infra['infraInfra']['children'].append(speed_ref)
 
@@ -1232,6 +1424,17 @@ class Interface(BaseInterface):
                                                   {'name': 'allvlans'},
                                                   'children': [rs_dom_p]}}
         infra['infraInfra']['children'].append(infra_att_entity_p)
+
+        if self._cdp_config is not None:
+            cdp_if_pol = {'cdpIfPol': {'attributes': {'adminSt': self._cdp_config,
+                                                      'name': 'CDP_%s' % self._cdp_config}}}
+            infra['infraInfra']['children'].append(cdp_if_pol)
+
+        if self._lldp_config is not None:
+            lldp_if_pol = {'lldpIfPol': {'attributes': {'adminRxSt': self._lldp_config,
+                                                        'adminTxSt': self._lldp_config,
+                                                        'name': 'LLDP_%s' % self._lldp_config}}}
+            infra['infraInfra']['children'].append(lldp_if_pol)
 
         if self.adminstatus != '':
             adminstatus_attributes = {}
@@ -1325,20 +1528,86 @@ class Interface(BaseInterface):
             return cls._parse_path_dn(dn)
 
     @staticmethod
+    def _get_discoveryprot_policies(session, prot):
+        """
+        :param prot: String containing either 'cdp' or 'lldp'
+        """
+        prot_policies = {}
+        if prot == 'cdp':
+            prot_class = 'cdpIfPol'
+        elif prot == 'lldp':
+            prot_class = 'lldpIfPol'
+        else:
+            raise ValueError
+
+        query_url = '/api/node/class/%s.json?query-target=self' % prot_class
+        ret = session.get(query_url)
+        prot_data = ret.json()['imdata']
+        for policy in prot_data:
+            attributes = policy['%s' % prot_class]['attributes']
+            if prot == 'cdp':
+                prot_policies[attributes['name']] = attributes['adminSt']
+            else:
+                prot_policies[attributes['name']] = attributes['adminTxSt']
+        return prot_policies
+
+    @staticmethod
+    def _get_discoveryprot_relations(session, interfaces, prot, prot_policies):
+        if prot == 'cdp':
+            prot_relation_class = 'l1RsCdpIfPolCons'
+            prot_relation_dn_class = '/cdpIfP-'
+            prot_relation_dn = '/rscdpIfPolCons'
+        elif prot == 'lldp':
+            prot_relation_class = 'l1RsLldpIfPolCons'
+            prot_relation_dn_class = '/lldpIfP-'
+            prot_relation_dn = '/rslldpIfPolCons'
+        else:
+            raise ValueError
+
+        query_url = ('/api/node/class/l1PhysIf.json?query-target=subtree&'
+                     'target-subtree-class=%s' % prot_relation_class)
+        ret = session.get(query_url)
+        prot_data = ret.json()['imdata']
+        for prot_relation in prot_data:
+            attributes = prot_relation[prot_relation_class]['attributes']
+            policy_name = attributes['tDn'].split(prot_relation_dn_class)[1]
+            interface_dn = attributes['dn'].split(prot_relation_dn)[0]
+            search_intf = Interface(*Interface._parse_physical_dn(interface_dn))
+            for intf in interfaces:
+                if intf == search_intf:
+                    if prot_policies[policy_name] == 'enabled':
+                        if prot == 'cdp':
+                            intf.enable_cdp()
+                        else:
+                            intf.enable_lldp()
+                    else:
+                        if prot == 'cdp':
+                            intf.disable_cdp()
+                        else:
+                            intf.disable_lldp()
+                    break
+        return interfaces
+
+    @staticmethod
     def get(session, parent=None):
-        """Gets all of the physical interfaces from the APIC if no parent is specified.
+        """
+        Gets all of the physical interfaces from the APIC if no parent is specified.
         If a parent, of type Linecard is specified, then only those interfaces on
         that linecard are returned and they are also added as children to that linecard.
 
-        INPUT: session=Session, [parent=Linecard]
+        :param session: the instance of Session used for APIC communication
+        :param parent: Linecard instance to limit interfaces (optional)
 
-        RETURNS: list of Interface
+        :returns: list of Interface instances
         """
-
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
-        interface_query_url = '/api/node/class/l1PhysIf.json?query-target=self'
+        cdp_policies = Interface._get_discoveryprot_policies(session, 'cdp')
+        lldp_policies = Interface._get_discoveryprot_policies(session, 'lldp')
+
+        interface_query_url = ('/api/node/class/l1PhysIf.json?query-target='
+                               'self')
         ret = session.get(interface_query_url)
         resp = []
         interface_data = ret.json()['imdata']
@@ -1377,6 +1646,9 @@ class Interface(BaseInterface):
                     resp.append(interface_obj)
             else:
                 resp.append(interface_obj)
+
+        resp = Interface._get_discoveryprot_relations(session, resp, 'cdp', cdp_policies)
+        resp = Interface._get_discoveryprot_relations(session, resp, 'lldp', lldp_policies)
         return resp
 
     def __str__(self):
@@ -1386,13 +1658,22 @@ class Interface(BaseInterface):
         ret = ''.join(items)
         return ret
 
-    def _initStats(self) :
+    def __eq__(self, other):
+        if (self.interface_type == other.interface_type and
+            self.pod == other.pod and
+            self.node == other.node and
+            self.module == other.module and
+            self.port == other.port):
+            return True
+        return False
+
+    def _initStats(self):
         """This method will create the data structure for the statistics.
         The format is [(dn,[attribute,name]),...] where 'dn' is the dn of
         the managed object that contains the counter.  'attribute' is the
         name of the attribute that is the counter. 'name' is the name used
         by the toolkit to access the counter value.
-        
+
         :returns: list of counters
         """
 
@@ -1452,7 +1733,8 @@ class Interface(BaseInterface):
         result.append((dn,counters))
         
         return result
-    
+
+
 class PortChannel(BaseInterface):
     """
     This class defines a port channel interface.
@@ -1582,7 +1864,19 @@ class PortChannel(BaseInterface):
             portchannels.append(portchannel)
         return portchannels
 
+
 class Endpoint(BaseACIObject):
+    def __init__(self, name, mac, ip):
+        super(Endpoint, self).__init__(name)
+        self.mac = mac
+        self.ip = ip
+        self.encap = None
+        self.epg = None
+
+    @classmethod
+    def _get_apic_class(cls):
+        return 'fvCEp'
+
     @staticmethod
     def get(session):
         """Gets all of the endpoints connected to the fabric from the APIC
@@ -1605,13 +1899,11 @@ class Endpoint(BaseACIObject):
         for ep in ep_data:
             children = ep['fvCEp']['children']
             ep = ep['fvCEp']['attributes']
-            endpoint = Endpoint(str(ep['name']))
-            endpoint.mac = str(ep['mac'])
-            endpoint.ip = str(ep['ip'])
+            endpoint = Endpoint(str(ep['name']), str(ep['mac']), str(ep['ip']))
             endpoint.encap = str(ep['encap'])
-            endpoint.epg = str(ep['dn']).split('/')[3][4:]
-            endpoint.tenant = str(ep['dn']).split('/')[1][3:]
-            endpoint.app_profile = str(ep['dn']).split('/')[2][3:]
+            tenant = Tenant(str(ep['dn']).split('/')[1][3:])
+            app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
+            endpoint.epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
             for child in children:
                 if 'fvRsCEpToPathEp' in child:
                     endpoint.if_name = str(child['fvRsCEpToPathEp']['attributes']['tDn'])

@@ -152,6 +152,13 @@ class TestTenant(unittest.TestCase):
         tenant = Tenant('tenant')
         self.assertTrue(type(tenant.get_json()) == dict)
 
+    def test_get_parent_class(self):
+        self.assertEquals(Tenant._get_parent_class(), None)
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-test'
+        self.assertEquals(Tenant._get_name_from_dn(dn), 'test')
+
 
 class TestAppProfile(unittest.TestCase):
     def test_create(self):
@@ -171,6 +178,17 @@ class TestAppProfile(unittest.TestCase):
     def test_invalid_create_not_string_name(self):
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, AppProfile, tenant, tenant)
+
+    def test_get_parent_class(self):
+        self.assertEquals(AppProfile._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/ap-test'
+        self.assertEquals(AppProfile._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/ap-test'
+        self.assertEquals(AppProfile._get_name_from_dn(dn), 'test')
 
     def test_delete(self):
         tenant = Tenant('tenant')
@@ -233,6 +251,17 @@ class TestBridgeDomain(unittest.TestCase):
     def test_invalid_create_not_string_name(self):
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, BridgeDomain, tenant, tenant)
+
+    def test_get_parent_class(self):
+        self.assertEquals(BridgeDomain._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/BD-test'
+        self.assertEquals(BridgeDomain._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/BD-test'
+        self.assertEquals(BridgeDomain._get_name_from_dn(dn), 'test')
 
     def test_valid_delete(self):
         tenant, bd = self.create_bd()
@@ -604,6 +633,34 @@ class TestInterface(unittest.TestCase):
                          "}}]}}")
         self.assertEqual(str(fabric_json), expected_json)
 
+    def test_cdp_not_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        self.assertFalse(intf.is_cdp_enabled())
+
+    def test_cdp_is_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.enable_cdp()
+        self.assertTrue(intf.is_cdp_enabled())
+        
+    def test_cdp_is_disabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.disable_cdp()
+        self.assertFalse(intf.is_cdp_enabled())
+        
+    def test_lldp_not_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        self.assertFalse(intf.is_lldp_enabled())
+
+    def test_lldp_is_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.enable_lldp()
+        self.assertTrue(intf.is_lldp_enabled())
+        
+    def test_lldp_is_disabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.disable_lldp()
+        self.assertFalse(intf.is_lldp_enabled())
+
     def parse_name(self, text):
         (intf_type, pod, node, module, port) = Interface.parse_name(text)
         self.assertTrue(intf_type == 'eth')
@@ -658,6 +715,17 @@ class TestContract(unittest.TestCase):
         self.assertEqual(Contract._get_subject_relation_code(),
                          'vzRsSubjFiltAtt')
 
+    def test_get_parent_class(self):
+        self.assertEquals(Contract._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/brc-test'
+        self.assertEquals(Contract._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/brc-test'
+        self.assertEquals(Contract._get_name_from_dn(dn), 'test')
+
     def test_internal_generate_attributes(self):
         contract = Contract('contract')
         contract.set_scope('tenant')
@@ -679,6 +747,17 @@ class TestTaboo(unittest.TestCase):
     def test_internal_get_subject_relation_code(self):
         self.assertEqual(Taboo._get_subject_relation_code(),
                          'vzRsDenyRule')
+
+    def test_get_parent_class(self):
+        self.assertEquals(Taboo._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/taboo-test'
+        self.assertEquals(Taboo._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/taboo-test'
+        self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
 
 
 class TestEPG(unittest.TestCase):
@@ -705,6 +784,17 @@ class TestEPG(unittest.TestCase):
     def test_invalid_create_parent_wrong_class(self):
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, EPG, 'epg', tenant)
+
+    def test_get_parent_class(self):
+        self.assertEquals(EPG._get_parent_class(), AppProfile)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/ap-app/epg-test'
+        self.assertEquals(EPG._get_parent_dn(dn), 'uni/tn-tenant/ap-app')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/ap-app/epg-test'
+        self.assertEquals(EPG._get_name_from_dn(dn), 'test')
 
     def test_valid_add_bd(self):
         tenant, app, epg, bd = self.create_epg_with_bd()
@@ -989,6 +1079,17 @@ class TestContext(unittest.TestCase):
         context_json = context.get_json()
         self.assertTrue('fvCtx' in context_json)
 
+    def test_get_parent_class(self):
+        self.assertEquals(Context._get_parent_class(), Tenant)
+
+    def test_get_parent_dn(self):
+        dn = 'uni/tn-tenant/ctx-test'
+        self.assertEquals(Context._get_parent_dn(dn), 'uni/tn-tenant')
+
+    def test_get_name_from_dn(self):
+        dn = 'uni/tn-tenant/ctx-test'
+        self.assertEquals(Context._get_name_from_dn(dn), 'test')
+
     def test_set_allow_all(self):
         tenant = Tenant('cisco')
         context = Context('ctx-cisco', tenant)
@@ -1164,6 +1265,21 @@ class TestLiveEPG(TestLiveAPIC):
                 epgs = EPG.get(session, app, tenant)
                 for epg in epgs:
                     self.assertTrue(isinstance(epg, EPG))
+
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
+class TestEndpoint(unittest.TestCase):
+    def test_get_bad_session(self):
+        bad_session = 'BAD SESSION'
+        self.assertRaises(TypeError, Endpoint.get, bad_session)
+
+    def test_get(self):
+        # Login to APIC
+        session = Session(URL, LOGIN, PASSWORD)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+
+        endpoints = Endpoint.get(session)
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')

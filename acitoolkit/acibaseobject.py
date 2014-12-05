@@ -91,13 +91,92 @@ class BaseACIObject(object):
         self._deleted = False
         self._children = []
         self._relations = []
+        self._attachments = []
         self._parent = parent
         self.descr = None
+        self.subscribe = self._instance_subscribe
+        self.unsubscribe = self._instance_unsubscribe
         logging.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
                 self._parent.remove_child(self)
             self._parent.add_child(self)
+
+    @classmethod
+    def _get_subscription_url(cls):
+        return '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
+
+    def _get_instance_subscription_url(self):
+        raise NotImplementedError
+
+    @classmethod
+    def _get_apic_class(cls):
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_parent_class():
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        raise NotImplementedError
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        raise NotImplementedError
+
+    @classmethod
+    def _get_parent_from_dn(cls, dn):
+        parent_class = cls._get_parent_class()
+        if parent_class is None:
+            return None
+        parent_name = parent_class._get_name_from_dn(dn)
+        parent_dn = cls._get_parent_dn(dn)
+        parent_obj = parent_class(parent_name,
+                                  parent_class._get_parent_from_dn(parent_dn))
+        return parent_obj
+
+    @classmethod
+    def subscribe(cls, session):
+        url = cls._get_subscription_url()
+        resp = session.subscribe(url)
+        return resp
+
+    @classmethod
+    def get_event(cls, session):
+        url = cls._get_subscription_url()
+        event = session.get_event(url)
+        attributes = event['imdata'][0][cls._get_apic_class()]['attributes']
+        status = str(attributes['status'])
+        dn = str(attributes['dn'])
+        parent = cls._get_parent_from_dn(dn)
+        if status == 'created':
+            name = str(attributes['name'])
+        else:
+            name = cls._get_name_from_dn(dn)
+        obj = cls(name, parent=cls._get_parent_from_dn(dn))
+        if status == 'deleted':
+            obj.mark_as_deleted()
+        return obj
+
+    @classmethod
+    def has_events(cls, session):
+        url = cls._get_subscription_url()
+        return session.has_events(url)
+
+    def _instance_subscribe(self, session):
+        url = self._get_instance_subscription_url()
+        resp = session.subscribe(url)
+        return resp
+
+    @classmethod
+    def unsubscribe(cls, session):
+        url = '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
+        session.unsubscribe(url)
+
+    def _instance_unsubscribe(self):
+        # instance unsubscribe
+        pass
 
     def mark_as_deleted(self):
         """
@@ -131,25 +210,61 @@ class BaseACIObject(object):
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
+            item._attachments.remove(BaseRelation(self, 'attached'))
         self._relations.append(BaseRelation(item, 'attached'))
+        item._attachments.append(BaseRelation(self, 'attached'))
+
+    def _check_relation(self, item, status):
+        check = BaseRelation(item, status)
+        return check in self._relations
 
     def is_attached(self, item):
         """
         Indicates whether the item is attached to this object/
         :returns: True or False, True indicates the item is attached.
         """
-        check = BaseRelation(item, 'attached')
-        return check in self._relations
+        return self._check_relation(item, 'attached')
+
+    def is_detached(self, item):
+        """
+        Indicates whether the item is detached from this object.
+        :returns: True or False, True indicates the item is detached.
+        """
+        return self._check_relation(item, 'detached')
 
     def detach(self, item):
         """
         Detach the object from the other object.
+        A relationship is either 'attached', 'detached', or does not exist.\
+        A detached relationship will cause the relationship to be deleted\
+        when pushed to the APIC.
 
         :param item:  Object to be detached.
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
+            item._attachments.remove(BaseRelation(self, 'attached'))
+        if not self.is_detached(item):
             self._relations.append(BaseRelation(item, 'detached'))
+            item._attachments.append(BaseRelation(self, 'detached'))
+
+    def _check_attachment(self, item, status):
+        check = BaseRelation(item, status)
+        return check in self._attachments
+
+    def has_attachment(self, item):
+        """
+        Indicates whether this object is attached to the item/
+        :returns: True or False, True indicates the object is attached.
+        """
+        return self._check_attachment(item, 'attached')
+
+    def has_detachment(self, item):
+        """
+        Indicates whether the object is detached from this item.
+        :returns: True or False, True indicates the object is detached.
+        """
+        return self._check_attachment(item, 'detached')
 
     def get_children(self):
         """
@@ -283,6 +398,15 @@ class BaseACIObject(object):
                 resp.append(relation.item)
         return resp
 
+    def _get_all_relations_by_class(self, relations, attached_class, status='attached'):
+        resp = []
+        for relation in relations:
+            same_class = isinstance(relation.item, attached_class)
+            same_status = relation.status == status
+            if same_class and same_status:
+                resp.append(relation.item)
+        return resp
+
     def get_all_attached(self, attached_class, status='attached'):
         """
         Get all of the relations of objects belonging to the
@@ -292,13 +416,22 @@ class BaseACIObject(object):
         :param status:  Valid values are 'attached' and 'detached'.\
                         Default is 'attached'.
         """
-        resp = []
-        for relation in self._relations:
-            same_class = isinstance(relation.item, attached_class)
-            same_status = relation.status == status
-            if same_class and same_status:
-                resp.append(relation.item)
-        return resp
+        return self._get_all_relations_by_class(self._relations,
+                                                attached_class,
+                                                status)
+
+    def get_all_attachments(self, attached_class, status='attached'):
+        """
+        Get all of the attachments to an object belonging to the
+        specified class with the specified status.
+
+        :param attached_class:  The class that is the subject of the search.
+        :param status:  Valid values are 'attached' and 'detached'.\
+                        Default is 'attached'.
+        """
+        return self._get_all_relations_by_class(self._attachments,
+                                                attached_class,
+                                                status)
 
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""

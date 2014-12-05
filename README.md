@@ -16,8 +16,9 @@ The full documentation is published at the following link:
 Required
 
 * Python 2.7+
-* [requests library](http://docs.python-requests.org/en/latest/user/install/#install)
 * [setuptools package](https://pypi.python.org/pypi/setuptools)
+* [requests library](http://docs.python-requests.org/en/latest/user/install/#install)
+* [websocket-client library](https://github.com/liris/websocket-client)
 
 ## Downloading
 

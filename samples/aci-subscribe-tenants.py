@@ -15,8 +15,11 @@
 #    under the License.
 #
 """
-Simple application that logs on to the APIC and displays all
-of the Endpoints.
+Simple application using event subscription for the Tenant class.
+When run, this application will log into the APIC and subscribe to
+events on the Tenant class.  If a new tenant is created, the event
+will be printed on the screen.  Likewise, if an existing tenant is
+deleted.
 """
 import sys
 import getopt
@@ -34,19 +37,13 @@ if not resp.ok:
     print '%% Could not login to APIC'
     sys.exit(0)
 
-# Download all of the interfaces
-# and store the data as tuples in a list
-data = []
-endpoints = ACI.Endpoint.get(session)
-for ep in endpoints:
-    epg = ep.epg
-    app_profile = epg.get_parent()
-    tenant = app_profile.get_parent()
-    data.append((ep.mac, ep.ip, ep.if_name, ep.encap, tenant.name, app_profile.name, epg.name))
+ACI.Tenant.subscribe(session)
 
-# Display the data downloaded
-template = "{0:19} {1:17} {2:15} {3:10} {4:10} {5:15} {6:15}"
-print template.format("MACADDRESS",        "IPADDRESS",        "INTERFACE",     "ENCAP",      "TENANT", "APP PROFILE", "EPG")
-print template.format("-----------------", "---------------", "--------------", "----------", "------", "-----------", "---")
-for rec in data:
-    print template.format(*rec)
+while True:
+    if ACI.Tenant.has_events(session):
+        tenant = ACI.Tenant.get_event(session)
+        if tenant.is_deleted():
+            print 'Tenant', tenant.name, 'has been deleted.'
+        else:
+            print 'Tenant', tenant.name, 'has been created or modified.'
+    
