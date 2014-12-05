@@ -17,22 +17,25 @@
 # Fill in with the APIC admin userid
 LOGIN = 'admin'
 # Fill in with the APIC admin password
-PASSWORD = 'ins3965!'
+PASSWORD = 'password'
 # Fill in with the APIC IP address
-IPADDR = '172.31.216.100'
+IPADDR = '1.2.3.4'
 URL = 'http://' + IPADDR + ':80/'
 
 # The github account your json file stored to.
-git_account = 'yellowbang'
-git_pw = '87421github'
+git_account = 'github_account'
+git_pw = 'password'
 # File location in your git account
-git_repo = 'PyGithubTest'
-git_file = 'textFile.txt'
+git_repo = 'repo_name'
+git_file = 'file_name'
 
 # Tenant that to be copied
-old_tenant = 'bonA'
-old_application = '3Tier'
+old_tenant = 'tenantA'
+old_application = 'applicationA'
 
 # The new tenant
-new_tenant = 'bonB'
-new_application = '3TierCopy'
+new_tenant = 'tenantB'
+new_application = 'applicationB'
+
+# commit_message
+commit_message = 'push json to github'

@@ -15,7 +15,7 @@ def push_json_to_github(content):
     json_file = push_or_pull_github.get_file(repo, git_file)
     if json_file:
         json_file.delete('delete')
-    push_or_pull_github.create_file(repo, git_file, 'test pushing json', content)
+    push_or_pull_github.create_file(repo, git_file, commit_message, content)
 
 
 def pull_json_from_github():
@@ -26,9 +26,8 @@ def pull_json_from_github():
                                                 file_name=git_file)
 
 
-def push_json_to_apic(content):
-    session.login()
-    return session.push_to_apic('api/mo/uni.json', content)
+def push_json_to_apic(json_content):
+    return session.push_to_apic('api/mo/uni.json', json_content)
 
 
 def get_mo_json(mo_class, mo, mo_dn):
@@ -78,6 +77,9 @@ if __name__ == '__main__':
         if i not in l:
             l.append(i)
 
+    def push_child_to_tenant(mo):
+        tenant_json['fvTenant']['children'].append(mo)
+
 # -----------------------------------------------------------------------------
 # to obtain all the related json files from APIC
 
@@ -90,7 +92,7 @@ if __name__ == '__main__':
     bds = []
     private_networks = []
 
-    # look for the contracts and bridge domains that are in used
+    # look for the contracts and bridge domains that are related
     for epg in app_json['fvAp']['children']:
         eliminated_children = []
         for child in epg['fvAEPg']['children']:
@@ -130,10 +132,11 @@ if __name__ == '__main__':
         con_json = get_contracts_json_from_apic(con)
         del con_json['vzBrCP']['attributes']['dn']
         contracts_json.append(con_json)
-        # look for the filters that are in used
+        # look for the filters that are related
         for subj in con_json['vzBrCP']['children']:
-            for filter in subj['vzSubj']['children']:
-                push_to_list(filters, filter['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'])
+            if subj['vzSubj'].has_key('children'):
+                for filter in subj['vzSubj']['children']:
+                    push_to_list(filters, filter['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'])
 
     # achieve all the filters json
     filters_json = []
@@ -143,10 +146,7 @@ if __name__ == '__main__':
         filters_json.append(fil_json)
 
     # combine all the achieved json into one json object
-    content = {'fvTenant': {'attributes': {'name': 'bonB'}, 'children': []}}
-
-    def push_child_to_tenant(mo):
-        content['fvTenant']['children'].append(mo)
+    tenant_json = {'fvTenant': {'attributes': {'name': new_tenant}, 'children': []}}
 
     push_child_to_tenant(app_json)
     for p_n in private_networks_json:
@@ -159,18 +159,18 @@ if __name__ == '__main__':
         push_child_to_tenant(f_j)
 
     # remove some un-meaningful string
-    content = str(content)
-    content.replace('{},', '')
+    tenant_json_str = str(tenant_json)
+    tenant_json_str.replace('{},', '')
 
 # -----------------------------------------------------------------------------
 
-    push_json_to_github(content)
+    push_json_to_github(tenant_json_str)
 
 # -----------------------------------------------------------------------------
 
-    content = pull_json_from_github()
+    tenant_json_from_github = pull_json_from_github()
 
 # -----------------------------------------------------------------------------
 
-    res = push_json_to_apic(ast.literal_eval(content))
+    res = push_json_to_apic(ast.literal_eval(tenant_json_from_github))
     print res
