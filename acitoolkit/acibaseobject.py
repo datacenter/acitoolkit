@@ -105,6 +105,9 @@ class BaseACIObject(object):
     def _get_subscription_url(cls):
         return '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
 
+    def _get_instance_subscription_url(self):
+        raise NotImplementedError
+
     @classmethod
     def _get_apic_class(cls):
         raise NotImplementedError
@@ -135,7 +138,8 @@ class BaseACIObject(object):
     @classmethod
     def subscribe(cls, session):
         url = cls._get_subscription_url()
-        session.subscribe(url)
+        resp = session.subscribe(url)
+        return resp
 
     @classmethod
     def get_event(cls, session):
@@ -159,9 +163,10 @@ class BaseACIObject(object):
         url = cls._get_subscription_url()
         return session.has_events(url)
 
-    def _instance_subscribe(self):
-        # instance subscription
-        pass
+    def _instance_subscribe(self, session):
+        url = self._get_instance_subscription_url()
+        resp = session.subscribe(url)
+        return resp
 
     @classmethod
     def unsubscribe(cls, session):

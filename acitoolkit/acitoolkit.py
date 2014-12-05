@@ -37,6 +37,9 @@ class Tenant(BaseACIObject):
     def _get_parent_class():
         return None
 
+    def _get_instance_subscription_url(self):
+        return '/api/mo/uni/tn-%s.json?subscription=yes' % self.name
+
     @staticmethod
     def _get_name_from_dn(dn):
         name = dn.split('uni/tn-')[1]
@@ -1601,6 +1604,10 @@ class PortChannel(BaseInterface):
 
 
 class Endpoint(BaseACIObject):
+    @classmethod
+    def _get_apic_class(cls):
+        return 'fvCEp'
+
     @staticmethod
     def get(session):
         """Gets all of the endpoints connected to the fabric from the APIC
