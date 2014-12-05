@@ -1134,11 +1134,12 @@ class BaseInterface(BaseACIObject):
 class Interface(BaseInterface):
     """This class defines a physical interface.
     """
-    def __init__(self, interface_type, pod, node, module, port, parent=None, session=None):
+    def __init__(self, interface_type, pod, node, module, port, parent=None, session=None, attributes = None):
 #        if parent :
 #            if not isinstance(parent, Linecard):
 #                raise TypeError('An instance of Linecard class is required as the parent')
         self._session = session
+        self.attributes = attributes
         self.interface_type = str(interface_type)
         self.pod = str(pod)
         self.node = str(node)
@@ -1146,13 +1147,16 @@ class Interface(BaseInterface):
         self.port = str(port)
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.module + '/' + self.port
+        self.attributes['if_name'] = self.if_name
         super(Interface, self).__init__(self.if_name, None)
         self.porttype = ''
         self.adminstatus = ''    # up or down
         self.speed = '10G'       # 100M, 1G, 10G or 40G
         self.mtu = ''
         self.type = 'interface'
+        self.attributes['type']='interface'
         self.id = interface_type+module+'/'+port
+        
         self._parent = parent
         if parent:
             self._parent.add_child(self)
@@ -1339,15 +1343,30 @@ class Interface(BaseInterface):
         resp = []
         interface_data = ret.json()['imdata']
         for interface in interface_data:
+            attributes = {}
             dist_name = str(interface['l1PhysIf']['attributes']['dn'])
+            attributes['dist_name'] = dist_name
             porttype = str(interface['l1PhysIf']['attributes']['portT'])
+            attributes['porttype'] = porttype
             adminstatus = str(interface['l1PhysIf']['attributes']['adminSt'])
+            attributes['adminstatus'] = adminstatus
             speed = str(interface['l1PhysIf']['attributes']['speed'])
+            attributes['speed'] = speed
             mtu = str(interface['l1PhysIf']['attributes']['mtu'])
+            attributes['mtu']=mtu
             id = str(interface['l1PhysIf']['attributes']['id'])
+            attributes['id'] = id
+            attributes['monPolDn'] = str(interface['l1PhysIf']['attributes']['monPolDn'])
+            attributes['name'] = str(interface['l1PhysIf']['attributes']['name'])
+            attributes['descr'] = str(interface['l1PhysIf']['attributes']['descr'])
             (interface_type, pod, node,
              module, port) = Interface.parse_dn(dist_name)
-            interface_obj = Interface(interface_type, pod, node, module, port, parent=None, session=session)
+            attributes['interface_type']=interface_type
+            attributes['pod']=pod
+            attributes['node']=node
+            attributes['module']=module
+            attributes['port'] = port
+            interface_obj = Interface(interface_type, pod, node, module, port, parent=None, session=session, attributes = attributes)
             interface_obj.porttype = porttype
             interface_obj.adminstatus = adminstatus
             interface_obj.speed = speed
@@ -1378,14 +1397,60 @@ class Interface(BaseInterface):
         """
 
         result = []
-        counters = [('dropEvents','drops'),
-                    ('multicastPkts','multicastPkts'),
-                    ('octets','octets'),
-                    ('rXNoErrors','rxPackets'),
-                    ('tXNoErrors','txPackets'),
+        
+        dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/CDeqptIngrTotal5min'
+        counters = [('bytesRate','rxByteRate5min'),
+                    ('pktsRate','rxPacketRate5min'),
+                    ('pktsCum','rxPacketsCum'),
+                    ('bytesCum','rxBytesCum'),
+                    ('pktsPer','rxPacketsPer5min'),
+                    ('bytesPer','rxBytesPer5min'),
                     ]
-        dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/dbgEtherStats'
         result.append((dn,counters))
+        
+        dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/CDeqptEgrTotal5min'
+        counters = [('bytesRate','txByteRate5min'),
+                    ('pktsRate','txPacketRate5min'),
+                    ('pktsCum','txPacketsCum'),
+                    ('bytesCum','txBytesCum'),
+                    ('pktsPer','txPacketsPer5min'),
+                    ('bytesPer','txBytesPer5min'),
+                    ]
+        result.append((dn,counters))
+
+
+        dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/CDeqptIngrPkts5min'
+        counters = [('floodCum','rxFloodCum'),
+                    ('multicastCum','rxMcstCum'),
+                    ('unicastCum','rxUcstCum'),
+                    ('floodPer','rxFloodPer5min'),
+                    ('multicastPer','rxMcstPer5min'),
+                    ('unicastPer','rxUcstPer5min'),
+                    ]
+        result.append((dn,counters))
+
+        dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/CDeqptEgrPkts5min'
+        counters = [('floodCum','txFloodCum'),
+                    ('multicastCum','txMcstCum'),
+                    ('unicastCum','txUcstCum'),
+                    ('floodPer','txFloodPer5min'),
+                    ('multicastPer','txMcstPer5min'),
+                    ('unicastPer','txUcstPer5min'),
+                    ]
+        result.append((dn,counters))
+        
+        dn = 'topology/pod-'+self.pod+'/node-'+self.node+'/sys/phys-['+self.id+']/CDeqptIngrDropPkts5min'
+        counters = [('bufferCum','rxDropBufferCum'),
+                    ('errorCum','rxDropErrorCum'),
+                    ('forwardingCum','rxDropFwdingCum'),
+                    ('lbCum','rxDropLoadBalancingCum'),
+                    ('bufferPer','rxDropBufferPer5min'),
+                    ('errorPer','rxDropErrorPer5min'),
+                    ('forwardingPer','rxDropFwdingPer5min'),
+                    ('lbPer','rxDropLoadBalancingPer5min'),
+                    ]
+        result.append((dn,counters))
+        
         return result
     
 class PortChannel(BaseInterface):
