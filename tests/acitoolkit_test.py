@@ -633,6 +633,34 @@ class TestInterface(unittest.TestCase):
                          "}}]}}")
         self.assertEqual(str(fabric_json), expected_json)
 
+    def test_cdp_not_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        self.assertFalse(intf.is_cdp_enabled())
+
+    def test_cdp_is_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.enable_cdp()
+        self.assertTrue(intf.is_cdp_enabled())
+        
+    def test_cdp_is_disabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.disable_cdp()
+        self.assertFalse(intf.is_cdp_enabled())
+        
+    def test_lldp_not_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        self.assertFalse(intf.is_lldp_enabled())
+
+    def test_lldp_is_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.enable_lldp()
+        self.assertTrue(intf.is_lldp_enabled())
+        
+    def test_lldp_is_disabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.disable_lldp()
+        self.assertFalse(intf.is_lldp_enabled())
+
     def parse_name(self, text):
         (intf_type, pod, node, module, port) = Interface.parse_name(text)
         self.assertTrue(intf_type == 'eth')

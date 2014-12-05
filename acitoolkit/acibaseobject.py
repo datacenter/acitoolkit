@@ -91,6 +91,7 @@ class BaseACIObject(object):
         self._deleted = False
         self._children = []
         self._relations = []
+        self._attachments = []
         self._parent = parent
         self.descr = None
         self.subscribe = self._instance_subscribe
@@ -209,25 +210,61 @@ class BaseACIObject(object):
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
+            item._attachments.remove(BaseRelation(self, 'attached'))
         self._relations.append(BaseRelation(item, 'attached'))
+        item._attachments.append(BaseRelation(self, 'attached'))
+
+    def _check_relation(self, item, status):
+        check = BaseRelation(item, status)
+        return check in self._relations
 
     def is_attached(self, item):
         """
         Indicates whether the item is attached to this object/
         :returns: True or False, True indicates the item is attached.
         """
-        check = BaseRelation(item, 'attached')
-        return check in self._relations
+        return self._check_relation(item, 'attached')
+
+    def is_detached(self, item):
+        """
+        Indicates whether the item is detached from this object.
+        :returns: True or False, True indicates the item is detached.
+        """
+        return self._check_relation(item, 'detached')
 
     def detach(self, item):
         """
         Detach the object from the other object.
+        A relationship is either 'attached', 'detached', or does not exist.\
+        A detached relationship will cause the relationship to be deleted\
+        when pushed to the APIC.
 
         :param item:  Object to be detached.
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
+            item._attachments.remove(BaseRelation(self, 'attached'))
+        if not self.is_detached(item):
             self._relations.append(BaseRelation(item, 'detached'))
+            item._attachments.append(BaseRelation(self, 'detached'))
+
+    def _check_attachment(self, item, status):
+        check = BaseRelation(item, status)
+        return check in self._attachments
+
+    def has_attachment(self, item):
+        """
+        Indicates whether this object is attached to the item/
+        :returns: True or False, True indicates the object is attached.
+        """
+        return self._check_attachment(item, 'attached')
+
+    def has_detachment(self, item):
+        """
+        Indicates whether the object is detached from this item.
+        :returns: True or False, True indicates the object is detached.
+        """
+        return self._check_attachment(item, 'detached')
 
     def get_children(self):
         """
@@ -361,6 +398,15 @@ class BaseACIObject(object):
                 resp.append(relation.item)
         return resp
 
+    def _get_all_relations_by_class(self, relations, attached_class, status='attached'):
+        resp = []
+        for relation in relations:
+            same_class = isinstance(relation.item, attached_class)
+            same_status = relation.status == status
+            if same_class and same_status:
+                resp.append(relation.item)
+        return resp
+
     def get_all_attached(self, attached_class, status='attached'):
         """
         Get all of the relations of objects belonging to the
@@ -370,13 +416,22 @@ class BaseACIObject(object):
         :param status:  Valid values are 'attached' and 'detached'.\
                         Default is 'attached'.
         """
-        resp = []
-        for relation in self._relations:
-            same_class = isinstance(relation.item, attached_class)
-            same_status = relation.status == status
-            if same_class and same_status:
-                resp.append(relation.item)
-        return resp
+        return self._get_all_relations_by_class(self._relations,
+                                                attached_class,
+                                                status)
+
+    def get_all_attachments(self, attached_class, status='attached'):
+        """
+        Get all of the attachments to an object belonging to the
+        specified class with the specified status.
+
+        :param attached_class:  The class that is the subject of the search.
+        :param status:  Valid values are 'attached' and 'detached'.\
+                        Default is 'attached'.
+        """
+        return self._get_all_relations_by_class(self._attachments,
+                                                attached_class,
+                                                status)
 
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""
@@ -534,3 +589,144 @@ class BaseACIObject(object):
             if attrib[0] != '_':
                 text += textf.format(attrib, getattr(self, attrib))
         return text
+
+    def infoList(self) :
+        """
+        Node information.  Returns a list of (attr, value) tuples.
+
+        :returns: list of [(attr, value),]
+        """
+        result = []
+        for attrib in self.__dict__:
+            if attrib[0] != '_':
+                result.append((attrib, getattr(self, attrib)))
+        return result
+    
+                
+class Stats() :
+    """Class for stat.
+
+    Will allow the set of counters to be configured by attribute name.
+    Will allow the counters to be read from APIC.
+    Will allow the counters to be cleared and uncleared.  When clearing the counters,
+    the current values are read and then stored.  A get will return the difference between the
+    values read from the APIC and the stored values.  An unclear will simply clear the values.
+    Will allow the change in values to be retrieved.
+    """
+    
+    def __init__(self, session=None, counters=None) :
+        """When initializing the stats, a list of counters can be provided through the counters
+        list. The counters structure is as follows: [(dn,[(attribute,name),...)...].  A counter
+        will be created whose name is "name", i.e. it will be accessed by that name.  Its value
+        will come from the APIC object indicated by "dn" and attribute "attribute".  The possibility
+        to give an alternate name from the name of the attribute is that the same attribute name
+        is used in different objects and the Stats object will essentiall flatten them.
+
+        :param session: Optional session of type Session.  If this parameter is not provided, all the
+        counts will be zero.
+        :param counters: optional list of counters to include in the stats
+        """
+        self._session = session
+        self.counters = counters
+        self.baseValue = {}
+        self.lastValue = {}
+        self.unclear()
+        
+        for (dn,counts) in self.counters :
+            for (attribute, name) in counts :
+                self.baseValue[name] = 0
+                self.lastValue[name] = 0
+
+    def unclear(self) :
+        """Will set the values that were set by the clear() method to zero so that
+        a get() will return the raw values in the APIC.
+        """
+        for counter in self.baseValue :
+            self.baseValue[counter] = 0
+
+    def get(self) :
+        """Will return a dictionary of the counter values.  Each value is
+        calculated by reading from the APIC and subtracting the corresponding baseValue
+
+        :returns: dictionary of counter:value
+        """
+        result = {}
+        for (dn, counts) in self.counters :
+            if self._session :
+                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+                ret = self._session.get(mo_query_url)
+                data = ret.json()['imdata']
+                if data :
+                    for key in data[0] :
+                        for (attribute, name) in counts:
+                            rawCount = int(data[0][key]['attributes'][attribute])
+                            result[name] = rawCount - self.baseValue[name]
+                            self.lastValue[name] = rawCount
+            else :
+                for (attribute, name) in counts:
+                    rawCount = 0
+                    result[name] = rawCount - self.baseValue[name]
+                    self.lastValue[name] = rawCount
+                
+        return result
+
+    def clear(self) :
+        for (dn, counts) in self.counters :
+            if self._session :
+                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+                ret = self._session.get(mo_query_url)
+                data = ret.json()['imdata']
+                if data :
+                    for key in data[0] :
+                        for (attribute, name) in counts:
+                            rawCount = int(data[0][key]['attributes'][attribute])
+                            self.baseValue[name] = rawCount
+                            self.lastValue[name] = rawCount
+            else :
+                for (attribute, name) in counts:
+                    rawCount = 0
+                    self.baseValue[name] = rawCount
+                    self.lastValue[name] = rawCount
+                
+
+    def change(self) :
+        """Will return a dictionary of the counter value changes since they
+        were last read by either this same method, the get() method, or a clear()
+        method.  Each value is
+        calculated by reading from the APIC and subtracting the corresponding lastValue
+
+        :returns: dictionary of counter:value
+        """
+        result = {}
+        for (dn, counts) in self.counters :
+            if self._session :
+                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+                ret = self._session.get(mo_query_url)
+                data = ret.json()['imdata']
+                if data :
+                    for key in data[0] :
+                        for (attribute, name) in counts:
+                            rawCount = int(data[0][key]['attributes'][attribute])
+                            result[name] = rawCount - self.lastValue[name]
+                            self.lastValue[name] = rawCount
+            else :
+                for (attribute, name) in counts:
+                    rawCount = 0
+                    result[name] = rawCount - self.lastValue[name]
+                    self.lastValue[name] = rawCount
+                
+        return result
+    
+    def addCounters(self, counters) :
+        """This routine will add counters to stats. The counters will be
+        appended to any counters that already exist in the stats.
+        The format of the counters parameter is [(dn,[(attribute,name),...)...].
+        The dn indicates which managed object to get the counts from.  It is followed
+        by a list of attribute, name pairs.  The attribute is the name of the attribute
+        in the managed object to get the counter from.  The name is the name used to
+        access the counters in the toolkit.
+
+        :params counters: list of counters to be added
+        """
+        self.counters.extend(counters)
+        

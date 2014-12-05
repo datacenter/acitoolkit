@@ -254,10 +254,14 @@ class BaseACIPhysModule(BaseACIPhysObject):
         mo_query_url = '/api/mo/'+dist_name+'/running.json?query-target=self'
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
-        
-        firmware = str(node_data[0]['firmwareCardRunning']['attributes']['version'])
-        bios = str(node_data[0]['firmwareCardRunning']['attributes']['biosVer'])
+        if node_data :
+            firmware = str(node_data[0]['firmwareCardRunning']['attributes']['version'])
+            bios = str(node_data[0]['firmwareCardRunning']['attributes']['biosVer'])
+        else :
+            firmware = None
+            bios = None
         return (firmware, bios)
+    
     def get_serial(self) :
         """Returns the serial number.
         :returns: serial number string
@@ -327,8 +331,12 @@ class Systemcontroller(BaseACIPhysModule):
         mo_query_url = '/api/mo/'+new_dist_name+'/ctrlrfwstatuscont/ctrlrrunning.json?query-target=self'
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
-        
-        firmware = str(node_data[0]['firmwareCtrlrRunning']['attributes']['version'])
+
+        if node_data :
+            firmware = str(node_data[0]['firmwareCtrlrRunning']['attributes']['version'])
+        else :
+            firmware = None
+            
         bios = None
         return (firmware, bios)
         
@@ -636,7 +644,7 @@ class Node(BaseACIPhysObject):
         :param pod: String representation of the pod number
         :param node: String representation of the node number
         :param name: Name of the node
-        :param role: Role of the node.  Valid roles are None, 'spine', 'leaf', 'controller'
+        :param role: Role of the node.  Valid roles are None, 'spine', 'leaf', 'controller', 'loosenode'
         :param parent: Parent pod object of the node.
         """
 
@@ -737,7 +745,7 @@ class Node(BaseACIPhysObject):
             node = Node(pod, node_id, node_name, node_role)
             node._session = session
             node._populate_from_attributes(apic_node['fabricNode']['attributes'])
-            node._get_topSytem_info()
+            node._get_topSystem_info()
             if parent :
                 
                 if node.pod == parent.pod :
@@ -765,7 +773,7 @@ class Node(BaseACIPhysObject):
         self.vendor = attributes['vendor']
         self.fabricSt = attributes['fabricSt']
         #self.descr = attributes['descr']
-    def _get_topSytem_info(self) :
+    def _get_topSystem_info(self) :
         """ will read in topSystem object to get more information about Node"""
         
         mo_query_url = '/api/mo/'+self.dn+'/sys.json?query-target=self'
@@ -844,7 +852,219 @@ class Node(BaseACIPhysObject):
             chassisType = None
         return chassisType
     
+class ENode(Node) :
+    """External Node.  This class is for switch nodes that are connected to the pod, but are not
+    ACI nodes, i.e. are not under control of the APIC.  Examples would be external layer 2 switches,
+    external routers, or hypervisor based switches.
+
+    This class will look as much as possible like the Node class recognizing that not as much information
+    is available to the APIC about them as is available about ACI nodes.  Nearly all of the information used
+    to create this class comes from LLDP.
+    """
+    def __init__(self, attributes, session = None, parent = None) :
+        self.attributes = attributes
+        self._parent = parent
+        self._session = session
+
+        # check that session is a session
+        if self._session :
+            if not isinstance(self._session, Session) :
+                raise TypeError("session must be of type Session")
+            
+        # check that name is a string
+        if self.attributes['name'] :
+            if not isinstance(self.attributes['name'], str):
+                raise TypeError("Name must be a string")
+
+        # check that parent is not a string
+        if isinstance(parent, str):
+            raise TypeError("Parent object can't be a string")
+
+        if self._parent :
+            if self._parent.has_child(self):
+                self._parent.remove_child(self)
+            self._parent.add_child(self)
+
+        # check that role is valid
+        valid_roles = [None, 'physicalSwitch','virtualSwitch']
+        if self.attributes.get('role') not in valid_roles :
+            raise ValueError("role must be one of "+ str(valid_roles)+' found '+self.attributes.get('role'))
         
+        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+str(self.attributes.get('pod'))+'/node-'+str(self.attributes.get('id')))
+        self._common_init(self._parent)
+        
+    def _common_init(self, parent) :
+        self._deleted = False
+        self._children = []
+        self._relations = []
+
+    def info(self):
+        """
+        Node information summary.
+
+        :returns: Formatted string that has a summary of all of the info\
+                  gathered about the node.
+        """
+        text = ''
+        textf = '{0:>15}: {1}\n'
+        for attrib in self.attributes :
+            if attrib[0] != '_':
+                text += textf.format(attrib, self.attributes[attrib])
+        return text
+
+    def getName(self) :
+        """Gets name.
+
+        :returns: Name string
+        """
+        return self.attributes.get('name')
+        
+    def getRole(self) :
+        """ retrieves the node role
+        :returns: role
+        """
+        return self.attributes.get('role')
+
+
+    @staticmethod
+    def _getPhysicalSwitches(session, parent) :
+        """Look for loose nodes and build an object for each one.
+        """
+        
+        if parent :
+            if not isinstance(parent, Topology) :
+                raise TypeError('An instance of Topology class is required')
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+        lnode_query_url = ('/api/node/class/fabricLooseNode.json?'
+                               'query-target=self')
+        lnodes = []
+        ret = session.get(lnode_query_url)
+        lnode_data = ret.json()['imdata']
+        
+        for apic_node in lnode_data:
+            node_attrib = {}
+            node_attrib['dn'] = str(apic_node['fabricLooseNode']['attributes']['dn'])
+            node_attrib['name'] = str(apic_node['fabricLooseNode']['attributes']['name'])
+            node_attrib['id'] = str(apic_node['fabricLooseNode']['attributes']['id'])
+            node_attrib['role'] = 'physicalSwitch'
+            node_attrib['pod'] = None
+            node_attrib['status']= str(apic_node['fabricLooseNode']['attributes']['status'])
+            node_attrib['operIssues'] = str(apic_node['fabricLooseNode']['attributes']['operIssues'])
+            node_attrib['dn'] = str(apic_node['fabricLooseNode']['attributes']['dn'])
+            node_attrib['fabricSt'] = 'external'
+            node_attrib['descr'] = str(apic_node['fabricLooseNode']['attributes']['sysDesc'])
+            node_attrib.update(ENode._getSystem_info(session, node_attrib['dn']))
+            node = ENode(attributes = node_attrib, session=session, parent=parent)
+            lnodes.append(node)
+        return lnodes
+
+    @staticmethod
+    def _getVirtualSwitches(session, parent) :
+        """will find virtual switch nodes and return a list of such objects.
+        """
+        
+        class_query_url = ('/api/node/class/compHv.json?query-target=self')
+        vnodes = []
+        ret = session.get(class_query_url)
+        vnode_data = ret.json()['imdata']
+
+        for vnode in vnode_data :
+            attrib = {}
+            attrib['role'] = 'virtualSwitch'
+            attrib['fabricSt'] = 'external'
+            attrib['descr'] = str(vnode['compHv']['attributes']['descr'])
+            attrib['dn'] = str(vnode['compHv']['attributes']['dn'])
+            attrib['name'] = str(vnode['compHv']['attributes']['name'])
+            attrib['status'] = str(vnode['compHv']['attributes']['status'])
+            attrib['type'] = str(vnode['compHv']['attributes']['type'])
+            attrib['state'] = str(vnode['compHv']['attributes']['state'])
+            attrib['guid'] = str(vnode['compHv']['attributes']['guid'])
+            attrib['oid'] = str(vnode['compHv']['attributes']['oid'])
+            
+            vnode = ENode(attributes = attrib, session = session, parent=parent)
+            vnodes.append(vnode)
+            
+        return vnodes
+    
+    @staticmethod
+    def get(session, parent=None):
+        """Gets all of the loose nodes from the APIC.  
+
+        :param session: APIC session
+        :param parent: optional parent object of type Topology
+        :returns: list of ENodes
+        """
+        enodes = ENode._getPhysicalSwitches(session, parent)
+        enodes.extend(ENode._getVirtualSwitches(session, parent))
+        return enodes
+        
+
+
+    @staticmethod
+    def _getDn(session, dn) :
+        mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+        ret = session.get(mo_query_url)
+        node_data = ret.json()['imdata']
+        return node_data
+
+    @staticmethod
+    def _getDnChildren(session, dn) :
+        mo_query_url = '/api/mo/'+dn+'.json?query-target=children'
+        ret = session.get(mo_query_url)
+        node_data = ret.json()['imdata']
+        return node_data
+
+    @staticmethod
+    def _getSystem_info(session,dn) :
+        """This routine will fill in various other attributes of the loose node
+        """
+        attrib = {}
+        
+        mo_query_url = '/api/mo/'+dn+'.json?query-target=children'
+        ret = session.get(mo_query_url)
+        node_data = ret.json()['imdata']
+
+        for node in node_data :
+            if 'fabricLooseLink' in node :
+                dn = node['fabricLooseLink']['attributes']['portDn']
+                name = dn.split('/')
+                pod = name[1].split('-')[1]
+                node = str(name[2].split('-')[1])
+                result = re.search('phys-\[(.+)\]',dn)
+                lldp_dn = 'topology/pod-'+pod+'/node-'+node + '/sys/lldp/inst/if-[' + result.group(1)+ ']/adj-1'
+
+            if 'fabricProtLooseLink' in node :
+                dn = node['fabricProtLooseLink']['attributes']['portDn']
+                name = dn.split('/')
+                pod = name[1].split('-')[1]
+                node = str(name[2].split('-')[1])
+                lldp_dn = 'topology/pod-'+pod+'/node-'+node + '/sys/lldp/inst/if-['
+                if dn :
+                    link = ENode._getDnChildren(session,dn)
+                    for child in link :
+                        if 'pcRsMbrIfs' in child :
+                            port = child['pcRsMbrIfs']['attributes']['tSKey']
+                lldp_dn = lldp_dn+port+']/adj-1'
+                
+        lldp_data = ENode._getDn(session,lldp_dn)
+        
+        attrib['ipAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtIp'])
+        attrib['name'] = str(lldp_data[0]['lldpAdjEp']['attributes']['sysName'])
+        
+        chassisIdT = lldp_data[0]['lldpAdjEp']['attributes']['chassisIdT']
+        if chassisIdT == 'mac' :
+            attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['chassisIdV'])
+        else :
+            attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtPortMac'])
+        attrib['state'] = 'unknown'
+        return attrib
+        
+    def __eq__(self, other):
+        if type(self) is not type(other):
+            return False
+        return (self.attributes.get('name') == other.attributes.get('name')) and (self.attributes.get('role') == other.attributes.get('role'))
+    
 class Link(BaseACIPhysObject) :
     """Link class, equivalent to the fabricLink object in APIC"""
     def __init__(self, pod, link, node1, slot1, port1, node2, slot2, port2, parent=None) :
@@ -1060,4 +1280,140 @@ class Link(BaseACIPhysObject) :
        
         return pod, link
 
+#class Stats() :
+#    """Class for stat.
+#
+#    Will allow the set of counters to be configured by attribute name.
+#    Will allow the counters to be read from APIC.
+#    Will allow the counters to be cleared and uncleared.  When clearing the counters,
+#    the current values are read and then stored.  A get will return the difference between the
+#    values read from the APIC and the stored values.  An unclear will simply clear the values.
+#    Will allow the change in values to be retrieved.
+#    """
+#    
+#    def __init__(self, session=None, counters=None) :
+#        """When initializing the stats, a list of counters can be provided through the counters
+#        list. The counters structure is as follows: [(dn,[(attribute,name),...)...].  A counter
+#        will be created whose name is "name", i.e. it will be accessed by that name.  Its value
+#        will come from the APIC object indicated by "dn" and attribute "attribute".  The possibility
+#        to give an alternate name from the name of the attribute is that the same attribute name
+#        is used in different objects and the Stats object will essentiall flatten them.
+#
+#        :param session: Optional session of type Session.  If this parameter is not provided, all the
+#        counts will be zero.
+#        :param counters: optional list of counters to include in the stats
+#        """
+#        self._session = session
+#        self.counters = counters
+#        self.baseValue = {}
+#        self.lastValue = {}
+#        self.unclear()
+#        
+#        for (dn,counts) in self.counters :
+#            for (attribute, name) in counts :
+#                self.baseValue[name] = 0
+#                self.lastValue[name] = 0
+#
+#    def unclear(self) :
+#        """Will set the values that were set by the clear() method to zero so that
+#        a get() will return the raw values in the APIC.
+#        """
+#        for counter in self.baseValue :
+#            self.baseValue[counter] = 0
+#
+#    def get(self) :
+#        """Will return a dictionary of the counter values.  Each value is
+#        calculated by reading from the APIC and subtracting the corresponding baseValue
+#
+#        :returns: dictionary of counter:value
+#        """
+#        result = {}
+#        for (dn, counts) in self.counters :
+#            if self.session :
+#                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+#                ret = self.session.get(mo_query_url)
+#                data = ret.json()['imdata']
+#                if data :
+#                    for key in data[0] :
+#                        for (attribute, name) in counts:
+#                            rawCount = data[0][key]['attributes'][attribute]
+#                            result[name] = rawCount - self.baseValue[name]
+#                            self.lastValue[name] = rawCount
+#            else :
+#                for (attribute, name) in counts:
+#                    rawCount = 0
+#                    result[name] = rawCount - self.baseValue[name]
+#                    self.lastValue[name] = rawCount
+#                
+#        return result
+#
+#    def clear(self) :
+#        for (dn, counts) in self.counters :
+#            if self.session :
+#                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+#                ret = self.session.get(mo_query_url)
+#                data = ret.json()['imdata']
+#                if data :
+#                    for key in data[0] :
+#                        for (attribute, name) in counts:
+#                            rawCount = data[0][key]['attributes'][attribute]
+#                            self.baseValue[name] = rawCount
+#                            self.lastValue[name] = rawCount
+#            else :
+#                for (attribute, name) in counts:
+#                    rawCount = 0
+#                    self.baseValue[name] = rawCount
+#                    self.lastValue[name] = rawCount
+#                
+#
+#    def change(self) :
+#        """Will return a dictionary of the counter value changes since they
+#        were last read by either this same method, the get() method, or a clear()
+#        method.  Each value is
+#        calculated by reading from the APIC and subtracting the corresponding lastValue
+#
+#        :returns: dictionary of counter:value
+#        """
+#        result = {}
+#        for (dn, counts) in self.counters :
+#            if self.session :
+#                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+#                ret = self.session.get(mo_query_url)
+#                data = ret.json()['imdata']
+#                if data :
+#                    for key in data[0] :
+#                        for (attribute, name) in counts:
+#                            rawCount = data[0][key]['attributes'][attribute]
+#                            result[name] = rawCount - self.lastValue[name]
+#                            self.lastValue[name] = rawCount
+#            else :
+#                for (attribute, name) in counts:
+#                    rawCount = 0
+#                    result[name] = rawCount - self.lastValue[name]
+#                    self.lastValue[name] = rawCount
+#                
+#        return result
+#    
+#    def addCounters(self, counters) :
+#        """This routine will add counters to stats. The counters will be
+#        appended to any counters that already exist in the stats.
+#        The format of the counters parameter is [(dn,[(attribute,name),...)...].
+#        The dn indicates which managed object to get the counts from.  It is followed
+#        by a list of attribute, name pairs.  The attribute is the name of the attribute
+#        in the managed object to get the counter from.  The name is the name used to
+#        access the counters in the toolkit.
+#
+#        :params counters: list of counters to be added
+#        """
+#        self.counters.extend(counters)
+        
+        
+            
+            
+
+            
+
+        
     
+
+
