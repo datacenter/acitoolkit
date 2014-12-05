@@ -70,7 +70,7 @@ class Subscriber(threading.Thread):
         self._subscriptions = {}
         self._ws = None
         self._ws_url = None
-        self._refresh_time = 15
+        self._refresh_time = 45
         self._event_q = Queue()
         self._events = {}
 
@@ -213,7 +213,6 @@ class Session(object):
         if (timeout - TIMEOUT_GRACE_SECONDS) > 0:
             timeout = timeout - TIMEOUT_GRACE_SECONDS
         self.login_thread._login_timeout = timeout
-        self.login_thread._login_timeout = 30
         return ret
 
     def login(self):
