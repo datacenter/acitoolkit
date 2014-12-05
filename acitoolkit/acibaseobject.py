@@ -154,7 +154,7 @@ class BaseACIObject(object):
         else:
             name = cls._get_name_from_dn(dn)
         obj = cls(name, parent=cls._get_parent_from_dn(dn))
-        if 'status' == 'deleted':
+        if status == 'deleted':
             obj.mark_as_deleted()
         return obj
 
