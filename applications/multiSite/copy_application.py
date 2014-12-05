@@ -1,4 +1,5 @@
 import ast
+import sys
 import push_or_pull_github
 from acitoolkit.acisession import Session
 from credentials import *
@@ -7,6 +8,7 @@ session = Session(URL, LOGIN, PASSWORD)
 resp = session.login()
 if not resp.ok:
     print '%% Could not login to APIC'
+    sys.exit()
 
 
 def push_json_to_github(content):
@@ -158,13 +160,9 @@ if __name__ == '__main__':
     for f_j in filters_json:
         push_child_to_tenant(f_j)
 
-    # remove some un-meaningful string
-    tenant_json_str = str(tenant_json)
-    tenant_json_str.replace('{},', '')
-
 # -----------------------------------------------------------------------------
 
-    push_json_to_github(tenant_json_str)
+    push_json_to_github(str(tenant_json))
 
 # -----------------------------------------------------------------------------
 
