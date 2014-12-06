@@ -4,8 +4,8 @@ Getting APIC objects
 With the acitoolkit, it is possible to get objects from the APIC
 either on demand or through object event subscriptions.  In most
 cases, getting the objects on demand will be sufficient.  However, in
-cases where action needs to be taken immediately or must be frequently
-polled, event subscriptions can be used.
+cases where action needs to be taken immediately or to avoid frequent
+polling of the APIC, event subscriptions can be used.
 
 Objects on demand
 -----------------
