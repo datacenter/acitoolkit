@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Search &mdash; acitoolkit 0.1 documentation</title>
+  <title>Setting up the environment &mdash; acitoolkit 0.1 documentation</title>
   
 
   
@@ -28,7 +28,10 @@
   
 
   
-    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/> 
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="Tutorial" href="tutorial.html"/>
+        <link rel="next" title="Building a Simple Tenant Configuration" href="tutorialsimpleconfig.html"/>
+        <link rel="prev" title="Tutorial" href="tutorial.html"/> 
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -44,7 +47,7 @@
       <div class="wy-side-nav-search">
         <a href="index.html" class="fa fa-home"> acitoolkit</a>
         <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="#" method="get">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -55,7 +58,7 @@
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
         
-            <ul>
+            <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
@@ -63,9 +66,13 @@
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorial.html">Tutorial</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="">Setting up the environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#deploying-to-the-apic">Deploying to the APIC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
 </ul>
 </li>
@@ -100,8 +107,12 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li></li>
+          <li><a href="tutorial.html">Tutorial</a> &raquo;</li>
+      
+    <li>Setting up the environment</li>
       <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/tutorialsetup.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -109,22 +120,63 @@
 </div>
           <div role="main">
             
-  <noscript>
-  <div id="fallback" class="admonition warning">
-    <p class="last">
-      Please activate JavaScript to enable the search
-      functionality.
-    </p>
-  </div>
-  </noscript>
+  <div class="section" id="setting-up-the-environment">
+<h1>Setting up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this headline">¶</a></h1>
+<p>This tutorial will walk you through installing the acitoolkit using
+the sources so that you will be able to edit the samples and even the
+acitoolkit source code if so desired.</p>
+<div class="section" id="download">
+<h2>Download<a class="headerlink" href="#download" title="Permalink to this headline">¶</a></h2>
+<p>First, we must download the acitoolkit.  This is best done using git,
+but can be done by downloading the package as a zip.</p>
+<p>If you have git installed, clone the repository using the following
+command:</p>
+<div class="highlight-python"><div class="highlight"><pre>git clone https://github.com/datacenter/acitoolkit.git
+</pre></div>
+</div>
+<p>If git is not installed, you can download the acitoolkit as a zip file
+instead.:</p>
+<div class="highlight-python"><div class="highlight"><pre>wget https://github.com/datacenter/acitoolkit/archive/master.zip
+unzip master.zip
+</pre></div>
+</div>
+</div>
+<div class="section" id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h2>
+<div class="sidebar">
+<p class="first sidebar-title">Note</p>
+<p class="last">The directory may be named <tt class="docutils literal"><span class="pre">acitoolkit-master</span></tt> if
+downloaded as a zip file.</p>
+</div>
+<p>Next, cd into the created directory</p>
+<div class="highlight-python"><div class="highlight"><pre>cd acitoolkit
+</pre></div>
+</div>
+<p>and install the acitoolkit</p>
+<div class="highlight-python"><div class="highlight"><pre>python setup.py install
+</pre></div>
+</div>
+<p>Note that when installing on Mac or Linux, you will likely need to run
+this as administrator so preface the command with the <tt class="docutils literal"><span class="pre">sudo</span></tt> keyword
+as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre>sudo python setup.py install
+</pre></div>
+</div>
+</div>
+</div>
 
-  
-  <div id="search-results">
-  
-  </div>
 
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tutorialsimpleconfig.html" class="btn btn-neutral float-right" title="Building a Simple Tenant Configuration"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tutorial.html" class="btn btn-neutral" title="Tutorial"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
@@ -160,7 +212,6 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="_static/searchtools.js"></script>
 
   
 
@@ -176,14 +227,7 @@
           SphinxRtdTheme.StickyNav.enable();
       });
   </script>
-  
-  <script type="text/javascript">
-    jQuery(function() { Search.loadIndex("searchindex.js"); });
-  </script>
-  
-  <script type="text/javascript" id="searchindexloader"></script>
    
-
 
 </body>
 </html>

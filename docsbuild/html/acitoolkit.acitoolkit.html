@@ -67,12 +67,13 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#deploying-to-the-apic">Deploying to the APIC</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#deploying-to-the-apic">Deploying to the APIC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">API Reference</a><ul class="current">
@@ -779,21 +780,8 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 
 <dl class="class">
 <dt id="acitoolkit.acitoolkit.Endpoint">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Endpoint</tt><big>(</big><em>name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Endpoint" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Endpoint</tt><big>(</big><em>name</em>, <em>mac</em>, <em>ip</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Endpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
-<p>Constructor initializes the basic object and should be called by        the init routines of inheriting subclasses.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>name</strong> &#8211; String containing the name of the object                     instance</li>
-<li><strong>parent</strong> &#8211; Parent object within the acitoolkit object model.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
 <dl class="staticmethod">
 <dt id="acitoolkit.acitoolkit.Endpoint.get">
 <em class="property">static </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Endpoint.get" title="Permalink to this definition">¶</a></dt>
@@ -918,6 +906,20 @@ required to be sent in 2 posts.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.is_cdp_disabled">
+<tt class="descname">is_cdp_disabled</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.is_cdp_disabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether this interface has CDP configured as disabled.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="acitoolkit.acitoolkit.Interface.is_cdp_enabled">
 <tt class="descname">is_cdp_enabled</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.is_cdp_enabled" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns whether this interface has CDP configured as enabled.</p>
@@ -940,6 +942,20 @@ required to be sent in 2 posts.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.Interface.is_lldp_disabled">
+<tt class="descname">is_lldp_disabled</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.is_lldp_disabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether this interface has LLDP configured as disabled.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
 </tr>
 </tbody>
 </table>

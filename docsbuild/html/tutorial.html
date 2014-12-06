@@ -29,7 +29,7 @@
 
   
     <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
-        <link rel="next" title="API Reference" href="modules.html"/>
+        <link rel="next" title="Setting up the environment" href="tutorialsetup.html"/>
         <link rel="prev" title="Object Model" href="objectmodel.html"/> 
 
   
@@ -66,12 +66,9 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#setting-up-the-environment">Setting up the environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#deploying-to-the-apic">Deploying to the APIC</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
@@ -120,261 +117,27 @@
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
 <p>This document is meant to give a tutorial-like overview of the
 acitoolkit package.</p>
-<div class="section" id="setting-up-the-environment">
-<h2>Setting up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this headline">¶</a></h2>
-<p>This tutorial will walk you through installing the acitoolkit using
-the sources so that you will be able to edit the samples and even the
-acitoolkit source code if so desired.</p>
-<div class="section" id="download">
-<h3>Download<a class="headerlink" href="#download" title="Permalink to this headline">¶</a></h3>
-<p>First, we must download the acitoolkit.  This is best done using git,
-but can be done by downloading the package as a zip.</p>
-<p>If you have git installed, clone the repository using the following
-command:</p>
-<div class="highlight-python"><div class="highlight"><pre>git clone https://github.com/datacenter/acitoolkit.git
-</pre></div>
-</div>
-<p>If git is not installed, you can download the acitoolkit as a zip file
-instead.:</p>
-<div class="highlight-python"><div class="highlight"><pre>wget https://github.com/datacenter/acitoolkit/archive/master.zip
-unzip master.zip
-</pre></div>
-</div>
-</div>
-<div class="section" id="install">
-<h3>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h3>
-<div class="sidebar">
-<p class="first sidebar-title">Note</p>
-<p class="last">The directory may be named <tt class="docutils literal"><span class="pre">acitoolkit-master</span></tt> if
-downloaded as a zip file.</p>
-</div>
-<p>Next, cd into the created directory</p>
-<div class="highlight-python"><div class="highlight"><pre>cd acitoolkit
-</pre></div>
-</div>
-<p>and install the acitoolkit</p>
-<div class="highlight-python"><div class="highlight"><pre>python setup.py install
-</pre></div>
-</div>
-<p>Note that when installing on Mac or Linux, you will likely need to run
-this as administrator so preface the command with the <tt class="docutils literal"><span class="pre">sudo</span></tt> keyword
-as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo python setup.py install
-</pre></div>
-</div>
-</div>
-</div>
-<div class="section" id="building-a-simple-tenant-configuration">
-<h2>Building a Simple Tenant Configuration<a class="headerlink" href="#building-a-simple-tenant-configuration" title="Permalink to this headline">¶</a></h2>
-<p>The following section will walk you through the implementation of the
-<tt class="docutils literal"><span class="pre">tutorial.py</span></tt> file found in the <tt class="docutils literal"><span class="pre">/samples/</span></tt> directory.  This code
-will create a minimal configuration that will configure 2 interfaces
-on the fabric to be on the same network so that they can
-communicate. This code can be executed with the following command from
-within the <tt class="docutils literal"><span class="pre">/samples/</span></tt> directory:</p>
-<div class="highlight-python"><div class="highlight"><pre>python tutorial.py
-</pre></div>
-</div>
-<div class="section" id="imports">
-<h3><cite>Imports</cite><a class="headerlink" href="#imports" title="Permalink to this headline">¶</a></h3>
-<p>The first part of the tutorial program consists of the <tt class="docutils literal"><span class="pre">import</span></tt>
-statements.  The acitoolkit module from the acitoolkit package is
-imported as is the credentials.py file.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">acitoolkit.acitoolkit</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">credentials</span> <span class="kn">import</span> <span class="o">*</span>
-</pre></div>
-</div>
-<p>The <tt class="docutils literal"><span class="pre">acitoolkit</span></tt> module within the acitoolkit package provides
-access to all of the acitoolkit configuration.</p>
-<p>The <tt class="docutils literal"><span class="pre">credentials.py</span></tt> file contains the login credentials for the
-APIC and is shown in its entirety below.  It contains the following
-variables: <tt class="docutils literal"><span class="pre">LOGIN</span></tt>, <tt class="docutils literal"><span class="pre">PASSWORD</span></tt>, and <tt class="docutils literal"><span class="pre">IPADDR</span></tt>.  These variables
-should be modified to the settings of your particular APIC.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">LOGIN</span> <span class="o">=</span> <span class="s">&#39;admin&#39;</span>
-<span class="n">PASSWORD</span> <span class="o">=</span> <span class="s">&#39;password&#39;</span>
-<span class="n">IPADDR</span> <span class="o">=</span> <span class="s">&#39;10.1.1.1&#39;</span>
-<span class="n">URL</span> <span class="o">=</span> <span class="s">&#39;https://&#39;</span> <span class="o">+</span> <span class="n">IPADDR</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="tenant-creation">
-<h3><cite>Tenant Creation</cite><a class="headerlink" href="#tenant-creation" title="Permalink to this headline">¶</a></h3>
-<p>All of the configuration will be created within a single tenant named
-<tt class="docutils literal"><span class="pre">tutorial</span></tt>.  This is done by creating an instance of the Tenant
-class and passing it a string containing the tenant name.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">tenant</span> <span class="o">=</span> <span class="n">Tenant</span><span class="p">(</span><span class="s">&#39;tutorial&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="application-profile">
-<h3><cite>Application Profile</cite><a class="headerlink" href="#application-profile" title="Permalink to this headline">¶</a></h3>
-<p>The Application Profile contains all of the Endpoint Groups
-representing the application.  The next line of code creates the
-application profile.  It does this by creating an instance of the
-<tt class="docutils literal"><span class="pre">AppProfile</span></tt> class and passing it a string containing the
-Application Profile name and the <tt class="docutils literal"><span class="pre">Tenant</span></tt> object that this
-<tt class="docutils literal"><span class="pre">AppProfile</span></tt> will belong.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">app</span> <span class="o">=</span> <span class="n">AppProfile</span><span class="p">(</span><span class="s">&#39;myapp&#39;</span><span class="p">,</span> <span class="n">tenant</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Note that many of the objects within the acitoolkit are created in
-this way, namely with a name and a parent object.  The parent object
-must be an instance of this class&#8217;s parent class according to the
-acitoolkit object model.  The parent class of <tt class="docutils literal"><span class="pre">AppProfile</span></tt> is
-<tt class="docutils literal"><span class="pre">Tenant</span></tt>.</p>
-</div>
-<div class="section" id="endpoint-group">
-<h3><cite>Endpoint Group</cite><a class="headerlink" href="#endpoint-group" title="Permalink to this headline">¶</a></h3>
-<p>The Endpoint Group provides the policy based configuration for
-Endpoints that are members of the Endpoint Group.  This is represented
-by the <tt class="docutils literal"><span class="pre">EPG</span></tt> class.  In this case, we create an <tt class="docutils literal"><span class="pre">EPG</span></tt> with the
-name <cite>myapp</cite> and pass the <tt class="docutils literal"><span class="pre">AppProfile</span></tt> that we created to be the
-parent object.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">epg</span> <span class="o">=</span> <span class="n">EPG</span><span class="p">(</span><span class="s">&#39;myepg&#39;</span><span class="p">,</span> <span class="n">app</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="context-and-bridge-domain">
-<h3><cite>Context and Bridge Domain</cite><a class="headerlink" href="#context-and-bridge-domain" title="Permalink to this headline">¶</a></h3>
-<p>We also need an L3 namespace and L2 forwarding domain so we create the
-<tt class="docutils literal"><span class="pre">Context</span></tt> and <tt class="docutils literal"><span class="pre">BridgeDomain</span></tt> in the same manner as we did for the
-previous objects.  For both of these classes, the parent class is
-Tenant.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">context</span> <span class="o">=</span> <span class="n">Context</span><span class="p">(</span><span class="s">&#39;myvrf&#39;</span><span class="p">,</span> <span class="n">tenant</span><span class="p">)</span>
-<span class="n">bd</span> <span class="o">=</span> <span class="n">BridgeDomain</span><span class="p">(</span><span class="s">&#39;mybd&#39;</span><span class="p">,</span> <span class="n">tenant</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>We then associate the <tt class="docutils literal"><span class="pre">BridgeDomain</span></tt> instance with the <tt class="docutils literal"><span class="pre">Context</span></tt>
-instance.  This indicates that this <tt class="docutils literal"><span class="pre">BridgeDomain</span></tt> exists within
-this <tt class="docutils literal"><span class="pre">Context</span></tt>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">bd</span><span class="o">.</span><span class="n">add_context</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The <tt class="docutils literal"><span class="pre">EPG</span></tt> is then associated with the <tt class="docutils literal"><span class="pre">BridgeDomain</span></tt> that we created.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">epg</span><span class="o">.</span><span class="n">add_bd</span><span class="p">(</span><span class="n">bd</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<div class="section" id="associating-the-tenant-configuration-with-the-network">
-<h2>Associating the tenant configuration with the network<a class="headerlink" href="#associating-the-tenant-configuration-with-the-network" title="Permalink to this headline">¶</a></h2>
-<p>At this point, the tenant configuration is complete.  However, it is
-not bound to the physical network yet so let&#8217;s connect the EPG to 2
-interfaces.</p>
-<div class="section" id="physical-interfaces">
-<h3><cite>Physical Interfaces</cite><a class="headerlink" href="#physical-interfaces" title="Permalink to this headline">¶</a></h3>
-<p>First, we must create objects to represent the physical interfaces
-using the <tt class="docutils literal"><span class="pre">Interface</span></tt> class.  Interface objects are named using
-interface type, pod, node (switch), module (linecard), and port
-names.  In this case, the interface type is <tt class="docutils literal"><span class="pre">'eth'</span></tt> for ethernet and
-the interfaces are located in pod 1 on leaf switch 101 in module 1
-within ports 15 and 16.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">if1</span> <span class="o">=</span> <span class="n">Interface</span><span class="p">(</span><span class="s">&#39;eth&#39;</span><span class="p">,</span> <span class="s">&#39;1&#39;</span><span class="p">,</span> <span class="s">&#39;101&#39;</span><span class="p">,</span> <span class="s">&#39;1&#39;</span><span class="p">,</span> <span class="s">&#39;15&#39;</span><span class="p">)</span>
-<span class="n">if2</span> <span class="o">=</span> <span class="n">Interface</span><span class="p">(</span><span class="s">&#39;eth&#39;</span><span class="p">,</span> <span class="s">&#39;1&#39;</span><span class="p">,</span> <span class="s">&#39;101&#39;</span><span class="p">,</span> <span class="s">&#39;1&#39;</span><span class="p">,</span> <span class="s">&#39;16&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="vlans">
-<h3><cite>VLANs</cite><a class="headerlink" href="#vlans" title="Permalink to this headline">¶</a></h3>
-<p>In order to allow multiple EPGs to connect to the same interface, the
-ACI fabric uses network virtualization technologies such as VLAN,
-VXLAN, and NVGRE to keep the traffic isolated.  In this case, we chose
-to use VLAN since it is the most ubiquitous and we chose to use the
-same encapsulation on both physical interfaces, namely VLAN 5.</p>
-<p>The <tt class="docutils literal"><span class="pre">L2Interface</span> <span class="pre">class</span></tt> represents the virtual L2 network interface.  In
-this case, this is the VLAN attached to a given physical interface.
-This is the interface where L2 protocols (such as spanning tree in
-traditional networks) run.  Link layer protocols such as LLDP run
-directly on the physical interface independent of VLANs.</p>
-<p>We create the <tt class="docutils literal"><span class="pre">L2Interface</span></tt> and pass a name <tt class="docutils literal"><span class="pre">vlan5_on_if1</span></tt>, the encapsulation
-technology <tt class="docutils literal"><span class="pre">vlan</span></tt>, and the virtual network identifier <tt class="docutils literal"><span class="pre">5</span></tt> as part of the
-contructor.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">vlan5_on_if1</span> <span class="o">=</span> <span class="n">L2Interface</span><span class="p">(</span><span class="s">&#39;vlan5_on_if1&#39;</span><span class="p">,</span> <span class="s">&#39;vlan&#39;</span><span class="p">,</span> <span class="s">&#39;5&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>We next associate this <tt class="docutils literal"><span class="pre">L2Interface</span></tt> to the desired physical
-interface.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">vlan5_on_if1</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">if1</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>And we repeat for the second physical interface.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">vlan5_on_if2</span> <span class="o">=</span> <span class="n">L2Interface</span><span class="p">(</span><span class="s">&#39;vlan5_on_if2&#39;</span><span class="p">,</span> <span class="s">&#39;vlan&#39;</span><span class="p">,</span> <span class="s">&#39;5&#39;</span><span class="p">)</span>
-<span class="n">vlan5_on_if2</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">if2</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Now, we simply associate the <tt class="docutils literal"><span class="pre">EPG</span></tt> with the <tt class="docutils literal"><span class="pre">L2Interface</span></tt> objects
-that we created.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">epg</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">vlan5_on_if1</span><span class="p">)</span>
-<span class="n">epg</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">vlan5_on_if2</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<div class="section" id="deploying-to-the-apic">
-<h2>Deploying to the APIC<a class="headerlink" href="#deploying-to-the-apic" title="Permalink to this headline">¶</a></h2>
-<p>At this point, the entire configuration is done and all that is left
-is connecting to the APIC and deploying the configuration.</p>
-<p>First, we log into the APIC.  This is done through the <tt class="docutils literal"><span class="pre">Session</span></tt>
-class.  We create an instance and pass it the login credentials,
-namely the <tt class="docutils literal"><span class="pre">URL</span></tt>, <tt class="docutils literal"><span class="pre">LOGIN</span></tt>, and <tt class="docutils literal"><span class="pre">PASSWORD</span></tt>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">(</span><span class="n">URL</span><span class="p">,</span> <span class="n">LOGIN</span><span class="p">,</span> <span class="n">PASSWORD</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>We also initiate the actual login.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">session</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Once the login is complete, we can now send our configuration to the
-APIC. This is done by calling the <tt class="docutils literal"><span class="pre">Session</span></tt> object with the
-<tt class="docutils literal"><span class="pre">push_to_apic</span></tt> function that requires a URL and the JSON data to
-send to the APIC.  All of the configuration for the application
-topology is collected under the <tt class="docutils literal"><span class="pre">Tenant</span></tt>.  In order to get the URL to
-use and the JSON for our configuration, we simply call the <tt class="docutils literal"><span class="pre">Tenant</span></tt>
-instance with <tt class="docutils literal"><span class="pre">get_url</span></tt> and <tt class="docutils literal"><span class="pre">get_json</span></tt> respectively.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">resp</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">push_to_apic</span><span class="p">(</span><span class="n">tenant</span><span class="o">.</span><span class="n">get_url</span><span class="p">(),</span> <span class="n">data</span><span class="o">=</span><span class="n">tenant</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
-</pre></div>
-</div>
-<p>The <tt class="docutils literal"><span class="pre">push_to_apic</span></tt> call returns an object.  This object is an
-instance of the <tt class="docutils literal"><span class="pre">Response</span></tt> class from the popular <a class="reference external" href="http://docs.python-requests.org/en/latest/#">requests</a> library which provides
-a rich set of return codes and status.  Here, we simply check that the
-call was successful.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
-   <span class="k">print</span> <span class="s">&#39;Success&#39;</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="displaying-the-json-configuration">
-<h2>Displaying the JSON Configuration<a class="headerlink" href="#displaying-the-json-configuration" title="Permalink to this headline">¶</a></h2>
-<p>At this point, we&#8217;re done !  The configuration has been sent to the
-APIC.  Congratulations, you just programmed a datacenter fabric !  You
-should be able to see your new tenant <tt class="docutils literal"><span class="pre">tutorial</span></tt> within the APIC GUI
-with its new EPG and static path bindings.</p>
-<p>The next few lines in the <tt class="docutils literal"><span class="pre">tutorial.py</span></tt> file simply print what was
-sent to the APIC.  You can use this to manually edit the JSON if you
-wish to access the richer API on the APIC that the acitoolkit does not
-expose.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="s">&#39;Pushed the following JSON to the APIC&#39;</span>
-<span class="k">print</span> <span class="s">&#39;URL:&#39;</span><span class="p">,</span> <span class="n">tenant</span><span class="o">.</span><span class="n">get_url</span><span class="p">()</span>
-<span class="k">print</span> <span class="s">&#39;JSON:&#39;</span><span class="p">,</span> <span class="n">tenant</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="removing-the-tenant-configuration">
-<h2>Removing the tenant configuration<a class="headerlink" href="#removing-the-tenant-configuration" title="Permalink to this headline">¶</a></h2>
-<p>The last few lines of the tutorial.py file are commented out.  This is
-because if executed they will delete the configuration that we just
-sent to the APIC.  In order to delete the tenant configuration, we
-simply mark the <tt class="docutils literal"><span class="pre">Tenant</span></tt> as deleted and push the configuration to
-the APIC.  This causes all of the configuration underneath the
-<tt class="docutils literal"><span class="pre">Tenant</span></tt> to be deleted.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c">#tenant.mark_as_deleted()</span>
-<span class="c">#resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())</span>
-</pre></div>
-</div>
-<p>So, if you uncomment these 2 lines and re-run the entire
-<tt class="docutils literal"><span class="pre">tutorial.py</span></tt> file, you will again push the configuration to the
-APIC, print it again, and then immediately delete the configuration
-leaving you where we started.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html#download">Download</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html#install">Install</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#configuration-object-definition">Configuration Object Definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#deploying-to-the-apic">Deploying to the APIC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html#objects-on-demand">Objects on demand</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html#event-subscriptions">Event subscriptions</a></li>
+</ul>
+</li>
+</ul>
 </div>
 </div>
 
@@ -384,7 +147,7 @@ leaving you where we started.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="modules.html" class="btn btn-neutral float-right" title="API Reference"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tutorialsetup.html" class="btn btn-neutral float-right" title="Setting up the environment"/>Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="objectmodel.html" class="btn btn-neutral" title="Object Model"><span class="fa fa-arrow-circle-left"></span> Previous</a>

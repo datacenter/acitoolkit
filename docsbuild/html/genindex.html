@@ -65,12 +65,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#deploying-to-the-apic">Deploying to the APIC</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
@@ -385,6 +382,10 @@
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.EPG">EPG (class in acitoolkit.acitoolkit)</a>
   </dt>
 
+      
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.EventHandler">EventHandler (class in acitoolkit.acisession)</a>
+  </dt>
+
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
@@ -403,6 +404,10 @@
 
       
   <dt><a href="cableplan.html#cableplan.CABLEPLAN.exists_switch">exists_switch() (cableplan.CABLEPLAN method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.EventHandler.exit">exit() (acitoolkit.acisession.EventHandler method)</a>
   </dt>
 
       
@@ -558,6 +563,10 @@
   </dt>
 
       
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.get_all_attachments">get_all_attachments() (acitoolkit.acibaseobject.BaseACIObject method)</a>
+  </dt>
+
+      
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.CommonEPG.get_all_consumed">get_all_consumed() (acitoolkit.acitoolkit.CommonEPG method)</a>
   </dt>
 
@@ -605,6 +614,20 @@
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.L2Interface.get_encap_type">get_encap_type() (acitoolkit.acitoolkit.L2Interface method)</a>
   </dt>
 
+      
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.get_event">get_event() (acitoolkit.acibaseobject.BaseACIObject class method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Session.get_event">(acitoolkit.acisession.Session method)</a>
+  </dt>
+
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Subscriber.get_event">(acitoolkit.acisession.Subscriber method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.get_interfaces">get_interfaces() (acitoolkit.acibaseobject.BaseACIObject method)</a>
   </dt>
@@ -733,12 +756,12 @@
   <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Link.get_node1">get_node1() (acitoolkit.aciphysobject.Link method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Link.get_node2">get_node2() (acitoolkit.aciphysobject.Link method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.BaseACIPhysModule.get_obj">get_obj() (acitoolkit.aciphysobject.BaseACIPhysModule class method)</a>
   </dt>
@@ -860,6 +883,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.has_attachment">has_attachment() (acitoolkit.acibaseobject.BaseACIObject method)</a>
+  </dt>
+
+      
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.EPG.has_bd">has_bd() (acitoolkit.acitoolkit.EPG method)</a>
   </dt>
 
@@ -879,6 +906,24 @@
       </dl></dd>
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.has_detachment">has_detachment() (acitoolkit.acibaseobject.BaseACIObject method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.has_events">has_events() (acitoolkit.acibaseobject.BaseACIObject class method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Session.has_events">(acitoolkit.acisession.Session method)</a>
+  </dt>
+
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Subscriber.has_events">(acitoolkit.acisession.Subscriber method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BridgeDomain.has_subnet">has_subnet() (acitoolkit.acitoolkit.BridgeDomain method)</a>
   </dt>
@@ -922,6 +967,10 @@
 
       </dl></dd>
       
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Interface.is_cdp_disabled">is_cdp_disabled() (acitoolkit.acitoolkit.Interface method)</a>
+  </dt>
+
+      
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Interface.is_cdp_enabled">is_cdp_enabled() (acitoolkit.acitoolkit.Interface method)</a>
   </dt>
 
@@ -930,9 +979,15 @@
   </dt>
 
       
-  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseRelation.is_detached">is_detached() (acitoolkit.acibaseobject.BaseRelation method)</a>
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.is_detached">is_detached() (acitoolkit.acibaseobject.BaseACIObject method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseRelation.is_detached">(acitoolkit.acibaseobject.BaseRelation method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
@@ -961,6 +1016,10 @@
   </dt>
 
       </dl></dd>
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Interface.is_lldp_disabled">is_lldp_disabled() (acitoolkit.acitoolkit.Interface method)</a>
+  </dt>
+
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Interface.is_lldp_enabled">is_lldp_enabled() (acitoolkit.acitoolkit.Interface method)</a>
   </dt>
@@ -999,14 +1058,18 @@
   <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Linecard">Linecard (class in acitoolkit.aciphysobject)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.Link">Link (class in acitoolkit.aciphysobject)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="cableplan.html#cableplan.CP_PORT.list">list() (cableplan.CP_PORT method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Login">Login (class in acitoolkit.acisession)</a>
   </dt>
 
       
@@ -1146,6 +1209,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Subscriber.refresh_subscriptions">refresh_subscriptions() (acitoolkit.acisession.Subscriber method)</a>
+  </dt>
+
+      
   <dt><a href="cableplan.html#cableplan.CP_LINK.remainingAvail">remainingAvail() (cableplan.CP_LINK method)</a>
   </dt>
 
@@ -1191,6 +1258,20 @@
   </dt>
 
       </dl></dd>
+      
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.EventHandler.run">run() (acitoolkit.acisession.EventHandler method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Login.run">(acitoolkit.acisession.Login method)</a>
+  </dt>
+
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Subscriber.run">(acitoolkit.acisession.Subscriber method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
 </tr></table>
 
@@ -1231,12 +1312,12 @@
   <dt><a href="cableplan.html#cableplan.CP_SWITCH.set_name">set_name() (cableplan.CP_SWITCH method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="cableplan.html#cableplan.CP_SWITCH.set_parent">set_parent() (cableplan.CP_SWITCH method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseContract.set_scope">set_scope() (acitoolkit.acitoolkit.BaseContract method)</a>
   </dt>
@@ -1247,6 +1328,24 @@
 
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Subnet">Subnet (class in acitoolkit.acitoolkit)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.subscribe">subscribe() (acitoolkit.acibaseobject.BaseACIObject class method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Session.subscribe">(acitoolkit.acisession.Session method)</a>
+  </dt>
+
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Subscriber.subscribe">(acitoolkit.acisession.Subscriber method)</a>
+  </dt>
+
+      </dl></dd>
+      
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Subscriber">Subscriber (class in acitoolkit.acisession)</a>
   </dt>
 
       
@@ -1283,6 +1382,22 @@
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.Stats.unclear">unclear() (acitoolkit.acibaseobject.Stats method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.unsubscribe">unsubscribe() (acitoolkit.acibaseobject.BaseACIObject class method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Session.unsubscribe">(acitoolkit.acisession.Session method)</a>
+  </dt>
+
+        
+  <dt><a href="acitoolkit.acisession.html#acitoolkit.acisession.Subscriber.unsubscribe">(acitoolkit.acisession.Subscriber method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
 </tr></table>
 

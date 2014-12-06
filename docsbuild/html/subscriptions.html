@@ -1,0 +1,285 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Getting APIC objects &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="Tutorial" href="tutorial.html"/>
+        <link rel="next" title="API Reference" href="modules.html"/>
+        <link rel="prev" title="Building a Simple Tenant Configuration" href="tutorialsimpleconfig.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="tutorial.html">Tutorial</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="tutorial.html">Tutorial</a> &raquo;</li>
+      
+    <li>Getting APIC objects</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/subscriptions.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="getting-apic-objects">
+<h1>Getting APIC objects<a class="headerlink" href="#getting-apic-objects" title="Permalink to this headline">¶</a></h1>
+<p>With the acitoolkit, it is possible to get objects from the APIC
+either on demand or through object event subscriptions.  In most
+cases, getting the objects on demand will be sufficient.  However, in
+cases where action needs to be taken immediately or to avoid frequent
+polling of the APIC, event subscriptions can be used.</p>
+<div class="section" id="objects-on-demand">
+<h2>Objects on demand<a class="headerlink" href="#objects-on-demand" title="Permalink to this headline">¶</a></h2>
+<p>Getting objects on demand is fairly straightforward.  Each class that
+allows getting objects from the APIC has a <tt class="docutils literal"><span class="pre">get</span></tt> class method.  This
+method will return a list of objects belonging to that class type and
+will be retrieved from the APIC immediately upon calling.</p>
+<p>Since the acitoolkit can be used to control multiple APICs at the same
+time, the <tt class="docutils literal"><span class="pre">Session</span></tt> class instance representing the connection to
+the desired APIC is also passed.</p>
+<p>An example is shown in the code snippet below.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">tenants</span> <span class="o">=</span> <span class="n">Tenant</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">tenant</span> <span class="ow">in</span> <span class="n">tenants</span><span class="p">:</span>
+    <span class="k">print</span> <span class="n">tenant</span><span class="o">.</span><span class="n">name</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="event-subscriptions">
+<h2>Event subscriptions<a class="headerlink" href="#event-subscriptions" title="Permalink to this headline">¶</a></h2>
+<p>Event subscriptions allow immediate notification when an object is
+created, modified, or deleted.  Events will be received only for
+classes or instances that are subscribed.</p>
+<div class="section" id="class-subscriptions">
+<h3>Class subscriptions<a class="headerlink" href="#class-subscriptions" title="Permalink to this headline">¶</a></h3>
+<p>To create a class subscription, the class method <tt class="docutils literal"><span class="pre">subscribe</span></tt> is
+called on the desired class along with the appropriate <tt class="docutils literal"><span class="pre">Session</span></tt>
+class instance.  This is shown in the code snippet below using the
+<tt class="docutils literal"><span class="pre">Tenant</span></tt> class as the example.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Tenant</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To check an event has arrived, the method <tt class="docutils literal"><span class="pre">has_event</span></tt> can be called
+on the subscribed class.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Tenant</span><span class="o">.</span><span class="n">has_event</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If there is an event waiting, this will return <tt class="docutils literal"><span class="pre">True</span></tt>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">While this may look like it requires polling the APIC, it is
+actually just checking a local event receive queue.  This
+event queue is populated by a separate thread receiving
+events from the APIC.  Thus, calling <tt class="docutils literal"><span class="pre">has_event</span></tt> will not
+result in additional communication with the APIC so that
+this call can be run in a tight loop with minimal overhead
+and/or spun into a seperate thread if desired.</p>
+</div>
+<p>To retrieve the event, a call is made to the <tt class="docutils literal"><span class="pre">get_event</span></tt> method as
+shown below.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">event</span> <span class="o">=</span> <span class="n">Tenant</span><span class="o">.</span><span class="n">get_event</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will return a instance of the object with the appropriate
+settings indicating the change.  For instance, if the <tt class="docutils literal"><span class="pre">Tenant</span></tt> named <em>Bob</em>
+is deleted, the event will return a <tt class="docutils literal"><span class="pre">Tenant</span></tt> instance with the name set
+to <em>Bob</em> and it will be marked as <em>deleted</em>.</p>
+<p>To no longer receive events for this particular class, the class
+method <tt class="docutils literal"><span class="pre">unsubscribe</span></tt> can be called.  This will cause the
+subscription to be removed from the APIC.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Tenant</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Under the covers, the event subscriptions use a web socket to
+communicate with the APIC to receive the events.  The events are then
+collected by a thread and placed into an event queue that is then
+queried by user code.  Event subscriptions are refreshed automatically
+by the toolkit using a separate thread.</p>
+</div>
+<div class="section" id="instance-subscriptions">
+<h3>Instance subscriptions<a class="headerlink" href="#instance-subscriptions" title="Permalink to this headline">¶</a></h3>
+<p>Instance subscriptions are the same as class subscriptions except that
+the events are limited to only that particular object instance such
+as:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">bob</span> <span class="o">=</span> <span class="n">Tenant</span><span class="p">(</span><span class="s">&#39;bob&#39;</span><span class="p">)</span>
+<span class="n">bob</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+<span class="n">bob</span><span class="o">.</span><span class="n">has_event</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+<span class="n">event</span> <span class="o">=</span> <span class="n">bob</span><span class="o">.</span><span class="n">get_event</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A more useful example would be the following code which will wait for
+an event for the instance of <tt class="docutils literal"><span class="pre">Tenant</span></tt> with the name <em>Bob</em> and then
+print a message if the instance was deleted.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">bob</span> <span class="o">=</span> <span class="n">Tenant</span><span class="p">(</span><span class="s">&#39;Bob&#39;</span><span class="p">)</span>
+<span class="n">bob</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">bob</span><span class="o">.</span><span class="n">has_event</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+        <span class="n">bobs_event</span> <span class="o">=</span> <span class="n">bob</span><span class="o">.</span><span class="n">get_event</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bobs_event</span><span class="o">.</span><span class="n">is_deleted</span><span class="p">():</span>
+            <span class="k">print</span> <span class="s">&#39;Bob was deleted&#39;</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="modules.html" class="btn btn-neutral float-right" title="API Reference"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tutorialsimpleconfig.html" class="btn btn-neutral" title="Building a Simple Tenant Configuration"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

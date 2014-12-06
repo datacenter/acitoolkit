@@ -67,12 +67,13 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#setting-up-the-environment">Setting up the environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#building-a-simple-tenant-configuration">Building a Simple Tenant Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#deploying-to-the-apic">Deploying to the APIC</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#deploying-to-the-apic">Deploying to the APIC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">API Reference</a><ul class="current">
@@ -174,7 +175,8 @@ Functions may be overwritten by inheriting classes.</p>
 <dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.detach">
 <tt class="descname">detach</tt><big>(</big><em>item</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.detach" title="Permalink to this definition">¶</a></dt>
-<dd><p>Detach the object from the other object.</p>
+<dd><p>Detach the object from the other object.
+A relationship is either &#8216;attached&#8217;, &#8216;detached&#8217;, or does not exist.        A detached relationship will cause the relationship to be deleted        when pushed to the APIC.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -255,6 +257,25 @@ specified class with the specified status.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.get_all_attachments">
+<tt class="descname">get_all_attachments</tt><big>(</big><em>attached_class</em>, <em>status='attached'</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_all_attachments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all of the attachments to an object belonging to the
+specified class with the specified status.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>attached_class</strong> &#8211; The class that is the subject of the search.</li>
+<li><strong>status</strong> &#8211; Valid values are &#8216;attached&#8217; and &#8216;detached&#8217;.                        Default is &#8216;attached&#8217;.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.get_children">
 <tt class="descname">get_children</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_children" title="Permalink to this definition">¶</a></dt>
 <dd><table class="docutils field-list" frame="void" rules="none">
@@ -266,6 +287,11 @@ specified class with the specified status.</p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.get_event">
+<em class="property">classmethod </em><tt class="descname">get_event</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_event" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.get_interfaces">
@@ -323,6 +349,13 @@ Object Model.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.has_attachment">
+<tt class="descname">has_attachment</tt><big>(</big><em>item</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_attachment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicates whether this object is attached to the item/
+:returns: True or False, True indicates the object is attached.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.has_child">
 <tt class="descname">has_child</tt><big>(</big><em>obj</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_child" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check for existence of a child in the children list</p>
@@ -337,6 +370,18 @@ Object Model.</p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.has_detachment">
+<tt class="descname">has_detachment</tt><big>(</big><em>item</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_detachment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicates whether the object is detached from this item.
+:returns: True or False, True indicates the object is detached.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.has_events">
+<em class="property">classmethod </em><tt class="descname">has_events</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_events" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.info">
@@ -378,6 +423,13 @@ Object Model.</p>
 <tt class="descname">is_deleted</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.is_deleted" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if the object has been deleted.
 :returns: True or False, True indicates the object has been deleted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.is_detached">
+<tt class="descname">is_detached</tt><big>(</big><em>item</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.is_detached" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicates whether the item is detached from this object.
+:returns: True or False, True indicates the item is detached.</p>
 </dd></dl>
 
 <dl class="staticmethod">
@@ -428,6 +480,16 @@ to be set to deleted.</p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.subscribe">
+<em class="property">classmethod </em><tt class="descname">subscribe</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.subscribe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.unsubscribe">
+<em class="property">classmethod </em><tt class="descname">unsubscribe</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.unsubscribe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
