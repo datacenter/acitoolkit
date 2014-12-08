@@ -14,28 +14,53 @@
 #    under the License.
 #
 
-# Fill in with the APIC admin userid
-LOGIN = 'admin'
-# Fill in with the APIC admin password
-PASSWORD = 'password'
-# Fill in with the APIC IP address
-IPADDR = '1.2.3.4'
-URL = 'http://' + IPADDR + ':80/'
+# Specify your action
+action = {
+    # when copy_json is True, json files related to the tenant or application
+    # profile will be acquire from APIC and push to your github account.
+    # when paste_json is True, json file on your github account will be pulled
+    # and applied to your target APIC (to_apic).
+    'copy_json': True,
+    'paste_json': True
+}
 
-# The github account your json file stored to.
-git_account = 'github_account'
-git_pw = 'password'
-# File location in your git account
-git_repo = 'repo_name'
-git_file = 'file_name'
+# Specify the source from: the APIC, the tenant name and application profile.
+from_apic = {
+    # Fill in with the APIC admin user id
+    'LOGIN': 'admin',
+    # Fill in with the APIC admin password
+    'PASSWORD': 'password',
+    # Fill in with the APIC IP address
+    'URL': 'http://' + '1.2.3.4' + ':80/',
+    # Tenant or application that to be copied
+    'tenant': 'tenantA',
+    'application': 'applicationA'
+}
 
-# Tenant that to be copied
-old_tenant = 'tenantA'
-old_application = 'applicationA'
+# Specify the destination: the APIC, the tenant name and application profile.
+to_apic = {
+    # Fill in with the APIC admin user id
+    'LOGIN': 'admin',
+    # Fill in with the APIC admin password
+    'PASSWORD': 'password',
+    # Fill in with the APIC IP address
+    'URL': 'http://' + '1.2.3.4' + ':80/',
+    # Tenant or application that to be copied
+    'tenant': 'tenantB',
+    'application': 'applicationB'
+}
 
-# The new tenant
-new_tenant = 'tenantB'
-new_application = 'applicationB'
+# Specify the github account where you want to store your configuration file at.
+github_info = {
+    # The github account your json file stored to.
+    'git_account': 'github_account',
+    'git_pw': 'password',
+    # File location in your git account
+    'git_repo': 'repo_name',
+    'git_file': 'file_name',
+    # commit_message
+    'commit_message': 'push json to github',
+    # branch of repo:
+    'branch': 'master'
+}
 
-# commit_message
-commit_message = 'push json to github'
