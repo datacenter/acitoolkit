@@ -59,6 +59,8 @@ github_info = {
     'git_repo': 'repo_name',
     'git_file': 'file_name',
     # commit_message
-    'commit_message': 'push json to github'
+    'commit_message': 'push json to github',
+    # branch of repo:
+    'branch': 'master'
 }
 
