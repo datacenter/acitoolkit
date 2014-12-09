@@ -35,7 +35,7 @@ TENANT_NAME = 'cisco'
 APP_NAME = 'fancyapp'
 EPG_NAME = 'redis'
 INTERFACE = {'type': 'eth',
-             'pod': '1', 'node': '101', 'module': '1', 'port': '65'}
+             'pod': '1', 'node': '101', 'module': '1', 'port': '35'}
 VLAN = {'name': 'vlan5',
         'encap_type': 'vlan',
         'encap_id': '5'}
