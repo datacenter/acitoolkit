@@ -5,4 +5,3 @@ Applications
    :maxdepth: 2
 
    cableplan
-   multiSite
