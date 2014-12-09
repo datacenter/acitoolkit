@@ -22,7 +22,7 @@ ensure that unit tests are added to cover the new functionality and
 that the entire test suite is run against the modified toolkit before
 submitting the code.  Minimal code coverage can be verified using
 tools such as
-[coverage.py]<https://pypi.python.org/pypi/setuptools>. For instance,
+[coverage.py](https://pypi.python.org/pypi/setuptools). For instance,
 after installing coverage.py, the toolkit can be run with the
 command::
 
