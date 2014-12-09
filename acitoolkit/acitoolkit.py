@@ -22,7 +22,7 @@ from acisession import Session
 import json
 import logging
 import re
-
+import copy
 
 class Tenant(BaseACIObject):
     """
@@ -1264,12 +1264,19 @@ class Interface(BaseInterface):
 #            if not isinstance(parent, Linecard):
 #                raise TypeError('An instance of Linecard class is required as the parent')
         self._session = session
-        self.attributes = attributes
+        self.attributes = {}
+        self.attributes = copy.deepcopy(attributes)
         self.interface_type = str(interface_type)
         self.pod = str(pod)
         self.node = str(node)
         self.module = str(module)
         self.port = str(port)
+        self.attributes['interface_type'] = str(interface_type)
+        self.attributes['pod'] = str(pod)
+        self.attributes['node'] = str(node)
+        self.attributes['module'] = str(module)
+        self.attributes['port'] = str(port)
+        
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.module + '/' + self.port
         self.attributes['if_name'] = self.if_name
@@ -1663,11 +1670,13 @@ class Interface(BaseInterface):
         return ret
 
     def __eq__(self, other):
-        if (self.interface_type == other.interface_type and
-            self.pod == other.pod and
-            self.node == other.node and
-            self.module == other.module and
-            self.port == other.port):
+        if type(self) != type(other) :
+            return False
+        if (self.attributes['interface_type'] == other.attributes.get('interface_type') and
+            self.attributes['pod'] == other.attributes.get('pod') and
+            self.attributes['node'] == other.attributes.get('node') and
+            self.attributes['module'] == other.attributes.get('module') and
+            self.attributes['port'] == other.attributes.get('port')):
             return True
         return False
 
