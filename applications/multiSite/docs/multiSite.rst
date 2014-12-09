@@ -1,4 +1,4 @@
-cableplan module
+MultiSite
 ====================
 The multiSite module allows the programmer to easily copy existing
 tenant or application from an APIC account to another APIC account.
@@ -31,10 +31,8 @@ Then simply run::
 
   python copy_tenant.py
 
-Then you will copy a tenant from one APIC to another APIC.
+or ::
 
+  python copy_application.py
 
-.. automodule:: cable
-    :members:
-    :undoc-members:
-    :show-inheritance:
+Then you will copy a tenant or an application from one APIC to another APIC.
