@@ -22,7 +22,7 @@ import random
 from credentials import *
 import sys
 
-LIVE_TEST = False
+LIVE_TEST = True
 MAX_RANDOM_STRING_SIZE = 20
 
 
@@ -1657,4 +1657,38 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
 if __name__ == '__main__':
-    unittest.main()
+
+    live = unittest.TestSuite()
+    live.addTest(unittest.makeSuite(TestLiveTenant))
+    live.addTest(unittest.makeSuite(TestLiveAPIC))
+    live.addTest(unittest.makeSuite(TestLiveTenant))
+    live.addTest(unittest.makeSuite(TestLiveInterface))
+    live.addTest(unittest.makeSuite(TestLivePortChannel))
+    live.addTest(unittest.makeSuite(TestLiveAppProfile))
+    live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveContracts))
+    live.addTest(unittest.makeSuite(TestEndpoint))
+    live.addTest(unittest.makeSuite(TestApic))
+
+    offline = unittest.TestSuite()
+    offline.addTest(unittest.makeSuite(TestBaseRelation))
+    offline.addTest(unittest.makeSuite(TestBaseACIObject))
+    offline.addTest(unittest.makeSuite(TestTenant))
+    offline.addTest(unittest.makeSuite(TestAppProfile))
+    offline.addTest(unittest.makeSuite(TestBridgeDomain))
+    offline.addTest(unittest.makeSuite(TestL2Interface))
+    offline.addTest(unittest.makeSuite(TestL3Interface))
+    offline.addTest(unittest.makeSuite(TestInterface))
+    offline.addTest(unittest.makeSuite(TestBaseContract))
+    offline.addTest(unittest.makeSuite(TestContract))
+    offline.addTest(unittest.makeSuite(TestTaboo))
+    offline.addTest(unittest.makeSuite(TestEPG))
+    offline.addTest(unittest.makeSuite(TestOutsideEPG))
+    offline.addTest(unittest.makeSuite(TestJson))
+    offline.addTest(unittest.makeSuite(TestPortChannel))
+    offline.addTest(unittest.makeSuite(TestContext))
+    offline.addTest(unittest.makeSuite(TestOspf))
+
+    full = unittest.TestSuite([live, offline])
+
+    unittest.main(defaultTest='offline')
