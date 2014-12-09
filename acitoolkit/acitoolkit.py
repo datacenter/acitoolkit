@@ -459,7 +459,11 @@ class EPG(CommonEPG):
                                          'mac': ep.mac,
                                          'name': ep.name,
                                          'encap': encap_text,
-                                         'type': 'silent-host'}}}
+                                         'type': 'silent-host'},
+                                    'children':
+                                        [{'fvRsStCEpToPathEp': {'attributes':
+                                                                {'tDn': interface._get_path()},
+                                                                'children': []}}]}}
                 children.append(text)
         if is_interfaces:
             text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
@@ -2017,6 +2021,39 @@ class Endpoint(BaseACIObject):
         return 'fvCEp'
 
     @staticmethod
+    def _get(session, interfaces, endpoints, apic_endpoint_class, endpoint_path):
+        # Get all of the Endpoints
+        endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
+                              '&rsp-subtree=full' % apic_endpoint_class)
+        ret = session.get(endpoint_query_url)
+        ep_data = ret.json()['imdata']
+        for ep in ep_data:
+            if ep[apic_endpoint_class]['attributes']['lcC'] == 'static':
+                continue
+            children = ep[apic_endpoint_class]['children']
+            ep = ep[apic_endpoint_class]['attributes']
+            endpoint = Endpoint(str(ep['name']), str(ep['mac']), str(ep['ip']))
+            endpoint.encap = str(ep['encap'])
+            tenant = Tenant(str(ep['dn']).split('/')[1][3:])
+            app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
+            endpoint.epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
+            for child in children:
+                if endpoint_path in child:
+                    endpoint.if_name = str(child[endpoint_path]['attributes']['tDn'])
+                    for interface in interfaces:
+                        interface = interface['fabricPathEp']['attributes']
+                        interface_dn = str(interface['dn'])
+                        if endpoint.if_name == interface_dn:
+                            if str(interface['lagT']) == 'not-aggregated':
+                                endpoint.if_name = Interface(*Interface.parse_dn(interface_dn)).if_name
+                            else:
+                                endpoint.if_name = interface['name']
+                    endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
+                    ret = session.get(endpoint_query_url)
+            endpoints.append(endpoint)
+        return endpoints
+
+    @staticmethod
     def get(session):
         """Gets all of the endpoints connected to the fabric from the APIC
         """
@@ -2029,34 +2066,12 @@ class Endpoint(BaseACIObject):
         ret = session.get(interface_query_url)
         interfaces = ret.json()['imdata']
 
-        # Get all of the Endpoints
-        endpoint_query_url = ('/api/node/class/fvCEp.json?'
-                              'query-target=self&rsp-subtree=full')
         endpoints = []
-        ret = session.get(endpoint_query_url)
-        ep_data = ret.json()['imdata']
-        for ep in ep_data:
-            children = ep['fvCEp']['children']
-            ep = ep['fvCEp']['attributes']
-            endpoint = Endpoint(str(ep['name']), str(ep['mac']), str(ep['ip']))
-            endpoint.encap = str(ep['encap'])
-            tenant = Tenant(str(ep['dn']).split('/')[1][3:])
-            app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
-            endpoint.epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
-            for child in children:
-                if 'fvRsCEpToPathEp' in child:
-                    endpoint.if_name = str(child['fvRsCEpToPathEp']['attributes']['tDn'])
-                    for interface in interfaces:
-                        interface = interface['fabricPathEp']['attributes']
-                        interface_dn = str(interface['dn'])
-                        if endpoint.if_name == interface_dn:
-                            if str(interface['lagT']) == 'not-aggregated':
-                                endpoint.if_name = Interface(*Interface.parse_dn(interface_dn)).if_name
-                            else:
-                                endpoint.if_name = interface['name']
-                    endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
-                    ret = session.get(endpoint_query_url)
-            endpoints.append(endpoint)
+        endpoints = Endpoint._get(session, interfaces, endpoints,
+                                  'fvCEp', 'fvRsCEpToPathEp')
+        endpoints = Endpoint._get(session, interfaces, endpoints,
+                                  'fvStCEp', 'fvRsStCEpToPathEp')
+
         return endpoints
 
 
