@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>acitoolkit.acitoolkit module &mdash; acitoolkit 0.1 documentation</title>
+  <title>acitoolkit module &mdash; acitoolkit 0.1 documentation</title>
   
 
   
@@ -31,7 +31,7 @@
     <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
         <link rel="up" title="acitoolkit package" href="acitoolkit.html"/>
         <link rel="next" title="Applications" href="applications.html"/>
-        <link rel="prev" title="acitoolkit.acisession module" href="acitoolkit.acisession.html"/> 
+        <link rel="prev" title="acisession module" href="acitoolkit.acisession.html"/> 
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -69,10 +69,6 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#associating-the-tenant-configuration-with-the-network">Associating the tenant configuration with the network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#deploying-to-the-apic">Deploying to the APIC</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#displaying-the-json-configuration">Displaying the JSON Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html#removing-the-tenant-configuration">Removing the tenant configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
 </ul>
 </li>
@@ -111,7 +107,7 @@
       
           <li><a href="acitoolkit.html">acitoolkit package</a> &raquo;</li>
       
-    <li>acitoolkit.acitoolkit module</li>
+    <li>acitoolkit module</li>
       <li class="wy-breadcrumbs-aside">
         
           <a href="_sources/acitoolkit.acitoolkit.txt" rel="nofollow"> View page source</a>
@@ -123,7 +119,7 @@
           <div role="main">
             
   <div class="section" id="module-acitoolkit.acitoolkit">
-<span id="acitoolkit-acitoolkit-module"></span><h1>acitoolkit.acitoolkit module<a class="headerlink" href="#module-acitoolkit.acitoolkit" title="Permalink to this headline">¶</a></h1>
+<span id="acitoolkit-module"></span><h1>acitoolkit module<a class="headerlink" href="#module-acitoolkit.acitoolkit" title="Permalink to this headline">¶</a></h1>
 <p>Main ACI Toolkit module
 This is the main module that comprises the ACI Toolkit.</p>
 <dl class="class">
@@ -833,7 +829,7 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 
 <dl class="class">
 <dt id="acitoolkit.acitoolkit.Interface">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Interface</tt><big>(</big><em>interface_type</em>, <em>pod</em>, <em>node</em>, <em>module</em>, <em>port</em>, <em>parent=None</em>, <em>session=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Interface</tt><big>(</big><em>interface_type</em>, <em>pod</em>, <em>node</em>, <em>module</em>, <em>port</em>, <em>parent=None</em>, <em>session=None</em>, <em>attributes={}</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#acitoolkit.acitoolkit.BaseInterface" title="acitoolkit.acitoolkit.BaseInterface"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.BaseInterface</span></tt></a></p>
 <p>This class defines a physical interface.</p>
 <dl class="method">
@@ -997,6 +993,69 @@ of the interface.</p>
 <em class="property">static </em><tt class="descname">parse_name</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.parse_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a name that is of the form:
 &lt;type&gt; &lt;pod&gt;/&lt;mod&gt;/&lt;port&gt;</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.acitoolkit.InterfaceStats">
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">InterfaceStats</tt><big>(</big><em>parent</em>, <em>interfaceDn</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.InterfaceStats" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class defines interface statistics.  It will provide methods to
+retrieve the stats.  The stats are returned as a dictionary with the
+following structure:</p>
+<p>stats= {&lt;counterFamily&gt;:{&lt;granularity&gt;:{&lt;period&gt;:{&lt;counter&gt;:value}}}}</p>
+<p>stats are gathered and summed up in time intervals or granularities. For each granularity there are a set of time periods
+identified by the &lt;period&gt; field.  The current stats are stored in period 0.  These stats are zeroed at the beginning of the
+time interval and are updated at a smaller time interval depending on the granularity.  Historical statistics have periods that are
+greater than 0.  The number of historical stats to keep is determined by the monitoring policy and may be specifc to a particular counter
+family.</p>
+<p>The counter families are as follows: &#8216;egrTotal&#8217;, &#8216;egrBytes&#8217;,&#8217;egrPkts&#8217;,&#8217;egrDropPkts&#8217;, &#8216;ingrBytes&#8217;,&#8217;ingrPkts&#8217;,
+&#8216;ingrTotal&#8217;, &#8216;ingrDropPkts&#8217;, &#8216;ingrUnkBytes&#8217;,&#8217;ingrUnkPkts&#8217;.</p>
+<p>The granularities are: &#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, and &#8216;1year&#8217;.</p>
+<p>For each counter family/granularity/period there are several counter values retained.  The best way to see a list of these
+counters is to print the keys of the dictionary.</p>
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.InterfaceStats.get">
+<tt class="descname">get</tt><big>(</big><em>session=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.InterfaceStats.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the count dictionary.  This method will read in all the counters and return them as a dictionary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; Session to use when accessing the APIC</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of counters. Format is {&lt;counterFamily&gt;:{&lt;granularity&gt;:{&lt;period&gt;:{&lt;counter&gt;:value}}}}</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.InterfaceStats.retrieve">
+<tt class="descname">retrieve</tt><big>(</big><em>countFamily</em>, <em>granularity</em>, <em>period</em>, <em>countName</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.InterfaceStats.retrieve" title="Permalink to this definition">¶</a></dt>
+<dd><p>This will return the requested count from stats that were loaded with
+the previous get().  It will return 0 for counts that don&#8217;t exist or None
+for time stamps that don&#8217;t exist.</p>
+<p>Note that this method will not access the APIC, it will only work on data that was previously loaded with a get().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>countFamily</strong> &#8211; The counter family string.  Examples are &#8216;egrTotal&#8217;, &#8216;ingrDropPkts, etc.</li>
+<li><strong>granularity</strong> &#8211; String specifying the counter time granularity.  Possible values are: &#8216;5min&#8217;, &#8216;15min&#8217;,
+&#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, and &#8216;1year&#8217;</li>
+<li><strong>period</strong> &#8211; Integer of time period to get the counter from.  Period 0 is the current period. Period 1 is the previous
+time granularity.</li>
+<li><strong>countName</strong> &#8211; Name of the actual counter.  Examples are &#8216;unicastPer&#8217;, &#8216;unicastRate&#8217;, etc.  Counter names are unique per counter family.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">integer, float or None.  If the counter is not present, it will return 0.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -1208,6 +1267,62 @@ The address is set via the L3Interface.set_addr() method</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>l3if_type</strong> &#8211; L3 interface type. Valid values are &#8216;sub-interface&#8217;,                          &#8216;l3-port&#8217;, and &#8216;ext-svi&#8217;</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.acitoolkit.MonitorPolicy">
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">MonitorPolicy</tt><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class is used to manage monitoring policies.  Through this class you can list the available
+policies, show the policy that is in effect, modify policies, create policies, and delete policies.</p>
+<dl class="classmethod">
+<dt id="acitoolkit.acitoolkit.MonitorPolicy.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method will read the monitoring policies from the APIC and return
+a fully expanded version of them in the form of a dictionary.  The format will
+be:</p>
+<p>{policyType:{policyName:{policyTarget:{granularity:{counter:{&#8216;adminState&#8217;:&lt;adminState&gt;, &#8216;retHist&#8217;:&lt;restHist&gt;}}}}}}</p>
+<dl class="docutils">
+<dt>Where policyType is &#8216;fabric&#8217; or &#8216;access&#8217; corresponding to the type of interface</dt>
+<dd><p class="first">policyName is the name of the policy such as &#8216;default&#8217; or &#8216;mon&#8217;
+policyTarget is the monitoring target: values include &#8216;interface&#8217;, &#8216;hypervisor&#8217;, &#8216;hypervisorNic&#8217;, &#8216;extendedChassis&#8217;,&#8217;portChannel&#8217;
+granularity is the time granularity that the counters are rolled up to - possible values are</p>
+<blockquote>
+<div>5min, 15min, 1h, 1d, 1w, 1mo, 1qtr, 1year.</div></blockquote>
+<p class="last">counter: The counter depends on what the target is. Examples are: &#8216;eqptEgrTotal&#8217;, &#8216;epqtIngrDropPkts&#8217;
+adminState : Administrative state either &#8216;enabled&#8217; or &#8216;disabled&#8217;
+retHist:  How long of a history to keep the data: &#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year, &#8216;2year  11      2 Years&#8217;, and &#8216;3year&#8217;</p>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; the instance of Session used for APIC communication</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of the currently configured monitoring polices</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="acitoolkit.acitoolkit.MonitorPolicy.getNames">
+<em class="property">static </em><tt class="descname">getNames</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy.getNames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return a dictionary of policy names.  There will be two items in the dictionary, &#8220;fabric&#8221;
+and &#8220;access&#8221;.  For each item there will be a list of names of policies.</p>
+<p>The returned data looks like the following.
+{&#8216;fabric&#8217;:[&#8216;fname1&#8217;,fname2&#8217;,...], &#8216;access&#8217;:[&#8216;aname1&#8217;, &#8216;aname2&#8217;,...]}</p>
+<p>These names can then be used to access a specific policy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">dictionary of monitoring policy names</td>
 </tr>
 </tbody>
 </table>
@@ -1585,6 +1700,11 @@ appended.</p>
 <dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
 <p>This class defines an instance of connectivity to a
 Virtual Machine Manager (such as VMware vCenter)</p>
+<dl class="classmethod">
+<dt id="acitoolkit.acitoolkit.VMM.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.VMM.get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.VMM.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.VMM.get_json" title="Permalink to this definition">¶</a></dt>
@@ -1624,7 +1744,7 @@ vSwitch on the Virtual Machine Manager</p>
         <a href="applications.html" class="btn btn-neutral float-right" title="Applications"/>Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="acitoolkit.acisession.html" class="btn btn-neutral" title="acitoolkit.acisession module"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="acitoolkit.acisession.html" class="btn btn-neutral" title="acisession module"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
