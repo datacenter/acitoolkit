@@ -16,41 +16,27 @@
 """
 Function used by samples to get the APIC login credentials from the command
 line (--help gives usage).  If login credentials are not provided on the
-command line, the credentials are taken from the file credentials.py.
+command line, the bash environment variables are taken from the file ~/.profile.
 """
+import argparse
+import os
 import sys
-import getopt
 
 
-def get_login_info(argv):
-    usage = ('Usage: %s -l <login> -p <password> -u <url>\n'
-             'Any option not provided will be imported from '
-             'credentials.py') % argv[0]
+def get_login_info(return_parser=True):
 
-    try:
-        from credentials import PASSWORD, LOGIN, URL
-    except ImportError:
-        PASSWORD = ''
-        LOGIN = ''
-        URL = ''
+    description = 'Set the environment variables for Acitoolkit login info.'
+
+    parser = argparse.ArgumentParser(description=description)
 
     try:
-        opts, args = getopt.getopt(argv[1:],
-                                   "hl:p:u:",
-                                   ["help", "login=", "password=",
-                                    "url="])
-    except getopt.GetoptError:
-        print argv[0], ': illegal option'
-        print usage
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ('-h', '--help'):
-            print usage
-            sys.exit()
-        elif opt in ('-l', '--apic-login'):
-            LOGIN = arg
-        elif opt in ('-p', '--apic-password'):
-            PASSWORD = arg
-        elif opt in ('-u', '--apic-url'):
-            URL = arg
-    return (LOGIN, PASSWORD, URL)
+        parser.add_argument('-u', '--url', default=os.environ['APIC_URL'], help='APIC IP address.')
+        parser.add_argument('-l', '--login', default=os.environ['APIC_LOGIN'], help='APIC login ID.')
+        parser.add_argument('-p', '--password', default=os.environ['APIC_PASSWORD'], help='APIC login password.')
+
+    except KeyError as key:
+        print '%s has not been set as environment variable yet.\n Please use "set_acitoolkit_login_environment.py" to set the %s' %(key, key)
+        sys.exit()
+
+    return parser
+

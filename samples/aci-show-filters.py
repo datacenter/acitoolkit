@@ -19,16 +19,17 @@ Simple application that logs on to the APIC and displays all
 of the Filters.
 """
 import sys
-import getopt
-import acitoolkit.acitoolkit as ACI
+# import acitoolkit.acitoolkit as ACI
+import aaacitoolkit as ACI
 from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from credentials.py file
-(LOGIN, PASSWORD, URL) = get_login_info(sys.argv)
+parser = get_login_info()
+args = parser.parse_args()
 
 # Login to APIC
-session = ACI.Session(URL, LOGIN, PASSWORD)
+session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
     print '%% Could not login to APIC'
@@ -44,8 +45,28 @@ for fe in filter_entries:
     filter_name = dn.split('/')[2][4:]
     filter_entry_name = dn.split('/')[3][2:]
     data.append((tenant_name, filter_name, filter_entry_name))
-# IPython.embed()
 
+# tenants = ACI.Tenant.get(session)
+# for tenant in tenants:
+#     filter_entries = ACI.FilterEntry.get(session, tenant=tenant)
+#     for fe in filter_entries:
+#         dn = fe['vzEntry']['attributes']['dn']
+#         tenant_name = dn.split('/')[1][3:]
+#         filter_name = dn.split('/')[2][4:]
+#         filter_entry_name = dn.split('/')[3][2:]
+#         data.append((tenant_name, filter_name, filter_entry_name))
+
+# tenants = ACI.Tenant.get(session)
+# for tenant in tenants:
+#     contracts = ACI.Contract.get(session, tenant)
+#     for contract in contracts:
+#         filter_entries = ACI.FilterEntry.get(session, parent=contract)
+#         for fe in filter_entries:
+#             dn = fe['vzEntry']['attributes']['dn']
+#             tenant_name = dn.split('/')[1][3:]
+#             filter_name = dn.split('/')[2][4:]
+#             filter_entry_name = dn.split('/')[3][2:]
+#             data.append((tenant_name, filter_name, filter_entry_name))
 
 # Display the data downloaded
 template = '{0:19} {1:30} {2:20}'
