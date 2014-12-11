@@ -1210,34 +1210,6 @@ class FilterEntry(BaseACIObject):
                              'children': [text]}}
         return text
 
-    @staticmethod
-    def get(session, tenant=None, parent=None):
-        """
-        :param session: the instance of Session used for APIC communication
-        :param parent: the instance of Contract. In acitoolkit, Contract is \
-                       parent of FilterEntry. When defined, only return the \
-                       Filter Entries associated with the parent; else return \
-                       all Filter Entries from the APIC;
-        :param tenant: the instance of Tenant. When defined, only return the \
-                       Filter Entries for the particular tenant; else return \
-                       all Filter Entries from the APIC;
-        :return: Filter Entries from the APIC.
-        """
-        if not isinstance(session, Session):
-            raise TypeError('An instance of Session class is required')
-        filter_entry_query_url = '/api/node/class/vzEntry.json'
-        filter_entries = []
-        ret = session.get(filter_entry_query_url)
-        fe_data = ret.json()['imdata']
-        for filter_entry in fe_data:
-            if isinstance(tenant, Tenant):
-                dn = filter_entry['vzEntry']['attributes']['dn']
-                tenant_name = dn.split('/')[1][3:]
-                if tenant.name != tenant_name:
-                    continue
-            filter_entries.append(filter_entry)
-        return filter_entries
-
 
 class BaseInterface(BaseACIObject):
     """Abstract class used to provide base functionality to other Interface
