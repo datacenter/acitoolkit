@@ -23,9 +23,7 @@ import os
 import sys
 
 
-def get_login_info(return_parser=True):
-
-    description = 'Set the environment variables for Acitoolkit login info.'
+def get_login_info(description='No description'):
 
     parser = argparse.ArgumentParser(description=description)
 

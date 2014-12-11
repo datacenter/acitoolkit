@@ -26,8 +26,9 @@ import acitoolkit.acitoolkit as ACI
 from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
-# Otherwise, take them from credentials.py file
-parser = get_login_info()
+# Otherwise, take them from your environment variables file ~/.profile
+description = 'Simple application using event subscription for the Tenant class. When run, this application will log into the APIC and subscribe to events on the Tenant class.  If a new tenant is created, the event will be printed on the screen.  Likewise, if an existing tenant is deleted.'
+parser = get_login_info(description)
 args = parser.parse_args()
 
 # Login to APIC

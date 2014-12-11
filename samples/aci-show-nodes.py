@@ -20,17 +20,18 @@ of the physical nodes; both belonging to and connected to the
 fabric.
 """
 import sys
-import getopt
 from acitoolkit.acitoolkit import Session
 from acitoolkit.aciphysobject import Node, ENode
 from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
-# Otherwise, take them from credentials.py file
-(LOGIN, PASSWORD, URL) = get_login_info(sys.argv)
+# Otherwise, take them from your environment variables file ~/.profile
+description = 'Simple application that logs on to the APIC and displays all of the physical nodes; both belonging to and connected to the fabric.'
+parser = get_login_info(description)
+args = parser.parse_args()
 
 # Login to APIC
-session = Session(URL, LOGIN, PASSWORD)
+session = Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
     print '%% Could not login to APIC'

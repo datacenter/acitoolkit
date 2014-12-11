@@ -16,9 +16,6 @@
 #
 """
 It logs in to the APIC and will create the tenant.
-
-Before running, please make sure that the credentials.py
-file has the URL, LOGIN, and PASSWORD set for your APIC environment.
 """
 import acitoolkit.acitoolkit as ACI
 from acisampleslib import get_login_info
@@ -29,7 +26,8 @@ from acisampleslib import get_login_info
 DEFAULT_TENANT_NAME = 'tenant_kit'
 
 # Get all the arguments
-parser = get_login_info()
+description = 'It logs in to the APIC and will create the tenant.'
+parser = get_login_info(description)
 parser.add_argument('-t', '--tenant', help='The name of tenant', default=DEFAULT_TENANT_NAME)
 
 args = parser.parse_args()
