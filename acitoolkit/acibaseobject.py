@@ -659,9 +659,15 @@ class Stats() :
                 if data :
                     for key in data[0] :
                         for (attribute, name) in counts:
-                            rawCount = int(data[0][key]['attributes'][attribute])
+                            rawCountTxt = data[0][key]['attributes'][attribute]
+                            rawCount = round(float(rawCountTxt),2) if (rawCountTxt.find('.')!=-1) else int(rawCountTxt)
                             result[name] = rawCount - self.baseValue[name]
                             self.lastValue[name] = rawCount
+                else :
+                    for (attribute, name) in counts:
+                        rawCount = 0
+                        result[name] = rawCount - self.baseValue[name]
+                        self.lastValue[name] = rawCount
             else :
                 for (attribute, name) in counts:
                     rawCount = 0
@@ -679,9 +685,15 @@ class Stats() :
                 if data :
                     for key in data[0] :
                         for (attribute, name) in counts:
-                            rawCount = int(data[0][key]['attributes'][attribute])
+                            rawCountTxt = data[0][key]['attributes'][attribute]
+                            rawCount = round(float(rawCountTxt),2) if (rawCountTxt.find('.')!=-1) else int(rawCountTxt)
                             self.baseValue[name] = rawCount
                             self.lastValue[name] = rawCount
+                else :
+                    for (attribute, name) in counts:
+                        rawCount = 0
+                        result[name] = rawCount - self.baseValue[name]
+                        self.lastValue[name] = rawCount
             else :
                 for (attribute, name) in counts:
                     rawCount = 0
@@ -706,9 +718,15 @@ class Stats() :
                 if data :
                     for key in data[0] :
                         for (attribute, name) in counts:
-                            rawCount = int(data[0][key]['attributes'][attribute])
+                            rawCountTxt = data[0][key]['attributes'][attribute]
+                            rawCount = round(float(rawCountTxt),2) if (rawCountTxt.find('.')!=-1) else int(rawCountTxt)
                             result[name] = rawCount - self.lastValue[name]
                             self.lastValue[name] = rawCount
+                else :
+                    for (attribute, name) in counts:
+                        rawCount = 0
+                        result[name] = rawCount - self.baseValue[name]
+                        self.lastValue[name] = rawCount
             else :
                 for (attribute, name) in counts:
                     rawCount = 0

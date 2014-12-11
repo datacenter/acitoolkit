@@ -1,5 +1,5 @@
-acitoolkit.acitoolkit module
-============================
+acitoolkit module
+=================
 
 .. automodule:: acitoolkit.acitoolkit
     :members:

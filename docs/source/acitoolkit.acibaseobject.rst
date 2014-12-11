@@ -1,5 +1,5 @@
-acitoolkit.acibaseobject module
-===============================
+acibaseobject module
+====================
 
 .. automodule:: acitoolkit.acibaseobject
     :members:

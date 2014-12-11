@@ -640,10 +640,29 @@ class TestFind(unittest.TestCase):
 
                 
 
-            
-        
+                    
             
 
     
 if __name__ == '__main__':
-    unittest.main()
+    offline = unittest.TestSuite()
+    
+    offline.addTest(unittest.makeSuite(TestPod))
+    offline.addTest(unittest.makeSuite(TestNode))
+    offline.addTest(unittest.makeSuite(TestLink))
+    offline.addTest(unittest.makeSuite(TestFan))
+    offline.addTest(unittest.makeSuite(TestPowerSupply))
+    offline.addTest(unittest.makeSuite(TestLinecard))
+    offline.addTest(unittest.makeSuite(TestSupervisor))
+    offline.addTest(unittest.makeSuite(TestSystemcontroller))
+    offline.addTest(unittest.makeSuite(TestExternalNode))
+    offline.addTest(unittest.makeSuite(TestFind))
+    
+    live = unittest.TestSuite()
+    live.addTest(unittest.makeSuite(TestLiveAPIC))
+    live.addTest(unittest.makeSuite(TestLivePod))
+    
+    full = unittest.TestSuite([live, offline])
+
+    unittest.main(defaultTest='offline')
+

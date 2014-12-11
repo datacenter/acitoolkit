@@ -672,6 +672,22 @@ class TestInterface(unittest.TestCase):
     def test_parse_name_space(self):
         self.parse_name('eth 1/2/3/4')
 
+    def test_set_attributes(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        intf2 = Interface('eth', '6', '7', '8', '9')
+        
+        self.assertTrue(intf1.attributes['interface_type'] == 'eth')
+        self.assertTrue(intf1.attributes['pod'] == '1')
+        self.assertTrue(intf1.attributes['node'] == '2')
+        self.assertTrue(intf1.attributes['module'] == '3')
+        self.assertTrue(intf1.attributes['port'] == '4')
+        
+        self.assertTrue(intf2.attributes['interface_type'] == 'eth')
+        self.assertTrue(intf2.attributes['pod'] == '6')
+        self.assertTrue(intf2.attributes['node'] == '7')
+        self.assertTrue(intf2.attributes['module'] == '8')
+        self.assertTrue(intf2.attributes['port'] == '9')
+        
     # def test_parse_name_no_space(self):
     #    self.parse_name('eth1/2/3/4')
 
