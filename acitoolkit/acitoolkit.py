@@ -23,7 +23,6 @@ import json
 import logging
 import re
 import copy
-from IPython import embed
 
 class Tenant(BaseACIObject):
     """
