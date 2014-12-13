@@ -23,6 +23,7 @@ import json
 import logging
 import re
 import copy
+from IPython import embed
 
 class Tenant(BaseACIObject):
     """
@@ -1149,8 +1150,8 @@ class Taboo(BaseContract):
 
 class FilterEntry(BaseACIObject):
     """ FilterEntry :  roughly equivalent to vzEntry """
-    def __init__(self, name, applyToFrag, arpOpc, dFromPort, dToPort,
-                 etherT, prot, sFromPort, sToPort, tcpRules, parent):
+    def __init__(self, name, parent, applyToFrag='0', arpOpc='0', dFromPort='0', dToPort='0',
+                 etherT='0', prot='0', sFromPort='0', sToPort='0', tcpRules='0'):
         """
         :param name: String containing the name of this FilterEntry instance.
         :param applyToFrag: True or False.  True indicates that this\
