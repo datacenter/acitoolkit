@@ -1210,6 +1210,47 @@ class FilterEntry(BaseACIObject):
                              'children': [text]}}
         return text
 
+    @classmethod
+    def get(cls, session, parent=None, tenant=None):
+        """
+        To get all of acitoolkit style Filter Entries APIC class.
+
+        :param session:  the instance of Session used for APIC communication
+        :param parent:  Object to assign as the parent to the created objects.
+        :param tenant:  Tenant object to assign the created objects.
+        """
+
+        apic_class = 'vzRsSubjFiltAtt'
+
+        if isinstance(tenant, str):
+            raise TypeError
+        logging.debug('%s.get called', cls.__name__)
+        if tenant is None:
+            tenant_url = ''
+        else:
+            tenant_url = '/tn-%s' % tenant.name
+            if parent is not None:
+                tenant_url = tenant_url + parent._get_url_extension()
+        query_url = ('/api/mo/uni%s.json?query-target=subtree&'
+                     'target-subtree-class=%s' % (tenant_url, apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        resp = []
+        for object_data in data:
+            dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
+            tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
+            tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
+            names = ()
+            if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class)-1:] == dn.split('/')[3][5:] and dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
+                name = str(object_data[apic_class]['attributes']['tRn'][4:])
+                if name[:len(parent.name)] == parent.name and name[len(parent.name):] != '':
+                    obj = cls(name[len(parent.name):], parent)
+                    attribute_data = object_data[apic_class]['attributes']
+                    obj._populate_from_attributes(attribute_data)
+                    resp.append(obj)
+        return resp
+
 
 class BaseInterface(BaseACIObject):
     """Abstract class used to provide base functionality to other Interface
@@ -1276,7 +1317,7 @@ class Interface(BaseInterface):
         self.attributes['node'] = str(node)
         self.attributes['module'] = str(module)
         self.attributes['port'] = str(port)
-        
+
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.module + '/' + self.port
         self.attributes['if_name'] = self.if_name
@@ -1290,7 +1331,7 @@ class Interface(BaseInterface):
         self.type = 'interface'
         self.attributes['type']='interface'
         self.id = interface_type+module+'/'+port
-        
+
         self._parent = parent
         if parent:
             self._parent.add_child(self)
@@ -1701,13 +1742,13 @@ class InterfaceStats() :
 
     For each counter family/granularity/period there are several counter values retained.  The best way to see a list of these
     counters is to print the keys of the dictionary.
-    
+
 
     """
     def __init__(self, parent, interfaceDn) :
         self._parent = parent
         self._interfaceDn = interfaceDn
-        
+
     def get(self,session = None) :
         """
         Retrieve the count dictionary.  This method will read in all the counters and return them as a dictionary.
@@ -1768,7 +1809,7 @@ class InterfaceStats() :
                             countName = 'ingrUnkPkts'
                         else :
                             countName = count
-                        
+
                         granularity = re.search('(\d+\D+)$', count).group(1)
 
                         if countName not in result :
@@ -1777,7 +1818,7 @@ class InterfaceStats() :
                             result[countName][granularity] = {}
                         if period not in result[countName][granularity] :
                             result[countName][granularity][period] = {}
-                            
+
                         if countName in ['egrTotal','ingrTotal'] :
                             for attrName in ['bytesAvg','bytesCum','bytesMax','bytesMin','bytesPer',
                                              'pktsAvg','pktsCum','pktsMax','pktsMin','pktsPer'] :
@@ -1785,7 +1826,7 @@ class InterfaceStats() :
                             for attrName in ['bytesRate','bytesRateAvg','bytesRateMax','bytesRateMin',
                                              'pktsRate','pktsRateAvg','pktsRateMax','pktsRateMin'] :
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
-                                
+
                         elif countName in ['egrBytes', 'ingrBytes'] :
                             for attrName in ['floodAvg','floodCum','floodMax','floodMin','floodPer',
                                              'multicastAvg','multicastCum','multicastMax','multicastMin','multicastPer'] :
@@ -1801,7 +1842,7 @@ class InterfaceStats() :
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['floodRate','multicastRate','unicastRate'] :
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
-                                
+
                         elif countName in ['egrDropPkts'] :
                             for attrName in ['afdWredAvg','afdWredCum','afdWredMax','afdWredMin','afdWredPer',
                                              'bufferAvg','bufferCum','bufferMax','bufferMin','bufferPer',
@@ -1819,14 +1860,14 @@ class InterfaceStats() :
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['bufferRate','errorRate','forwardingRate','lbRate'] :
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
-                                
+
                         elif countName in ['ingrUnkBytes'] :
                             for attrName in ['unclassifiedAvg','unclassifiedCum','unclassifiedMax','unclassifiedMin','unclassifiedPer',
                                              'unicastAvg','unicastCum','unicastMax','unicastMin','unicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['unclassifiedRate','unicastRate'] :
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
-                            
+
                         elif countName in ['ingrUnkPkts'] :
                             for attrName in ['unclassifiedAvg','unclassifiedCum','unclassifiedMax','unclassifiedMin','unclassifiedPer',
                                             'unicastAvg','unicastCum','unicastMax','unicastMin','unicastPer'] :
@@ -1838,7 +1879,7 @@ class InterfaceStats() :
                             exit()
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
-                                
+
             else :
                 noCounts = True
         else :
@@ -1846,7 +1887,7 @@ class InterfaceStats() :
         # store the result to be accessed by the retrieve method
         self.result = result
         return result
-    
+
     def retrieve(self,countFamily, granularity, period, countName) :
         """
         This will return the requested count from stats that were loaded with
@@ -1872,8 +1913,8 @@ class InterfaceStats() :
             result = 0.0
         else :
             result = 0
-                          
-            
+
+
         # overwrite result if it exists
         if countFamily in self.result :
             if granularity in self.result[countFamily] :
@@ -1886,7 +1927,7 @@ class InterfaceStats() :
         return result
 
 
-        
+
 class PortChannel(BaseInterface):
     """
     This class defines a port channel interface.
@@ -2227,7 +2268,7 @@ class MonitorPolicy() :
         for node in data :
                 names.append(node['monInfraPol']['attributes']['name'])
         result['access'] = names
-        
+
         names = []
         class_query_url = '/api/node/class/monFabricPol.json?query-target=self'
         ret = session.get(class_query_url)
@@ -2249,14 +2290,14 @@ class MonitorPolicy() :
                 for granularity in cls.granularityTypes :
                     policy[targetName][counter][granularity]= {'adminState':'disabled','histRet':'none'}
         return policy
-    
+
     @staticmethod
     def _getClass(session, aciClass) :
         class_query_url = '/api/node/class/'+aciClass+'.json?query-target=self'
         ret = session.get(class_query_url)
         data = ret.json()['imdata']
         return data
-    
+
     @classmethod
     def get(cls,session) :
         """This method will read the monitoring policies from the APIC and return
@@ -2277,7 +2318,7 @@ class MonitorPolicy() :
         :param session: the instance of Session used for APIC communication
         :returns:  Dictionary of the currently configured monitoring polices
         """
-        
+
         # now we have the correct interface object
         # get high level policy
 
@@ -2290,7 +2331,7 @@ class MonitorPolicy() :
 
         cls.counterTypes = ['eqptEgrBytes','eqptEgrPkts','eqptEgrTotal','eqptEgrDropPkts', 'eqptIngrBytes','eqptIngrPkts','eqptIngrTotal', 'eqptIngrDropPkts', 'eqptIngrUnkBytes','eqptIngrUnkPkts']
         cls.granularityTypes = ['5min','15min','1h','1d','1w','1mo','1qtr','1year']
-    
+
 
 
         policy = {}
@@ -2311,15 +2352,15 @@ class MonitorPolicy() :
     @classmethod
     def _getPolicy(cls, session, dn) :
         policy = cls._initPolicy()
-        
-        children = cls._getChildren(session, dn)                
+
+        children = cls._getChildren(session, dn)
         for child in children :
             if child[0] == 'statsHierColl' :
                 for target in cls.policyTargets :
                     targetName = cls.policyTargets[target]
                     for counter in cls.counterTypes :
                         cls._loadPolicy(policy,targetName, str(child[1]['attributes']['granularity']), counter, child[1])
-                    
+
         for child in children :
             if child[0] in ['monFabricTarget', 'monInfraTarget'] :
                 target = str(child[1]['attributes']['scope'])
@@ -2329,7 +2370,7 @@ class MonitorPolicy() :
                         if targetChild[0] == 'statsHierColl' :
                             for counter in cls.counterTypes :
                                 cls._loadPolicy(policy, cls.policyTargets[target], str(targetChild[1]['attributes']['granularity']), counter, targetChild[1])
-                        
+
                     for targetChild in targetChildren :
                         if targetChild[0] == 'statsReportable' :
                             counter = str(targetChild[1]['attributes']['scope'])
@@ -2337,20 +2378,20 @@ class MonitorPolicy() :
                             for statsReportableChild in statsReportableChildren :
                                 if statsReportableChild[0] == 'statsColl' :
                                     cls._loadPolicy(policy, cls.policyTargets[target], str(statsReportableChild[1]['attributes']['granularity']),counter,statsReportableChild[1])
-                                    
+
         # if a granularity is disabled, all larger granularities are also disabled
         for target in cls.policyTargets :
             targetName = cls.policyTargets[target]
             for counter in cls.counterTypes :
                 disable_found = False
-                
+
                 for gran in cls.granularityTypes :
                     if policy[targetName][counter][gran]['adminState']=='disabled' :
                         disable_found = True
                     if disable_found :
                         policy[targetName][counter][gran]['adminState']='disabled'
         return policy
-    
+
     @classmethod
     def _getChildren(cls, session, dn) :
         result = []
@@ -2367,7 +2408,7 @@ class MonitorPolicy() :
         adminState = str(aciObject['attributes']['adminState'])
         if adminState != 'inherited' :
             policy[targetName][counter][granularity]['adminState']=adminState
-    
+
         histRet = str(aciObject['attributes']['histRet'])
         if histRet != 'inherited' :
             policy[targetName][counter][granularity]['histRet']= histRet
