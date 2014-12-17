@@ -20,21 +20,19 @@ command line, the bash environment variables are taken from the file ~/.profile.
 """
 import argparse
 import os
-import sys
+
+DEFAULT_URL = os.environ['APIC_URL'] if 'APIC_URL' in os.environ.keys() else ''
+DEFAULT_LOGIN = os.environ['APIC_LOGIN'] if 'APIC_LOGIN' in os.environ.keys() else ''
+DEFAULT_PASSWORD = os.environ['APIC_PASSWORD'] if 'APIC_PASSWORD' in os.environ.keys() else ''
 
 
 def get_login_info(description='No description'):
 
     parser = argparse.ArgumentParser(description=description)
 
-    try:
-        parser.add_argument('-u', '--url', default=os.environ['APIC_URL'], help='APIC IP address.')
-        parser.add_argument('-l', '--login', default=os.environ['APIC_LOGIN'], help='APIC login ID.')
-        parser.add_argument('-p', '--password', default=os.environ['APIC_PASSWORD'], help='APIC login password.')
-
-    except KeyError as key:
-        print '%s has not been set as environment variable yet.\n Please use "set_acitoolkit_login_environment.py" to set the %s' %(key, key)
-        sys.exit()
+    parser.add_argument('-u', '--url', default=DEFAULT_URL, help='APIC IP address.')
+    parser.add_argument('-l', '--login', default=DEFAULT_LOGIN, help='APIC login ID.')
+    parser.add_argument('-p', '--password', default=DEFAULT_PASSWORD, help='APIC login password.')
 
     return parser
 
