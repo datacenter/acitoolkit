@@ -21,9 +21,22 @@ command line, the bash environment variables are taken from the file ~/.profile.
 import argparse
 import os
 
-DEFAULT_URL = os.environ['APIC_URL'] if 'APIC_URL' in os.environ.keys() else ''
-DEFAULT_LOGIN = os.environ['APIC_LOGIN'] if 'APIC_LOGIN' in os.environ.keys() else ''
-DEFAULT_PASSWORD = os.environ['APIC_PASSWORD'] if 'APIC_PASSWORD' in os.environ.keys() else ''
+
+def set_default(key):
+    if 'APIC_'+key.upper() in os.environ.keys():
+        return os.environ['APIC_'+key.upper()]
+    else:
+        try:
+            import credentials
+        except ImportError:
+            print 'credentials.py does not exist.'
+            return ''
+        return credentials.__getattribute__(key.upper())
+
+
+DEFAULT_URL = set_default('url')
+DEFAULT_LOGIN = set_default('login')
+DEFAULT_PASSWORD = set_default('password')
 
 
 def get_login_info(description='No description'):
