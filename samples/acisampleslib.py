@@ -16,41 +16,36 @@
 """
 Function used by samples to get the APIC login credentials from the command
 line (--help gives usage).  If login credentials are not provided on the
-command line, the credentials are taken from the file credentials.py.
+command line, the bash environment variables are taken from the file ~/.profile.
 """
-import sys
-import getopt
+import argparse
+import os
 
 
-def get_login_info(argv):
-    usage = ('Usage: %s -l <login> -p <password> -u <url>\n'
-             'Any option not provided will be imported from '
-             'credentials.py') % argv[0]
+def set_default(key):
+    if 'APIC_'+key.upper() in os.environ.keys():
+        return os.environ['APIC_'+key.upper()]
+    else:
+        try:
+            import credentials
+        except ImportError:
+            print 'credentials.py does not exist.'
+            return ''
+        return credentials.__getattribute__(key.upper())
 
-    try:
-        from credentials import PASSWORD, LOGIN, URL
-    except ImportError:
-        PASSWORD = ''
-        LOGIN = ''
-        URL = ''
 
-    try:
-        opts, args = getopt.getopt(argv[1:],
-                                   "hl:p:u:",
-                                   ["help", "login=", "password=",
-                                    "url="])
-    except getopt.GetoptError:
-        print argv[0], ': illegal option'
-        print usage
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ('-h', '--help'):
-            print usage
-            sys.exit()
-        elif opt in ('-l', '--apic-login'):
-            LOGIN = arg
-        elif opt in ('-p', '--apic-password'):
-            PASSWORD = arg
-        elif opt in ('-u', '--apic-url'):
-            URL = arg
-    return (LOGIN, PASSWORD, URL)
+DEFAULT_URL = set_default('url')
+DEFAULT_LOGIN = set_default('login')
+DEFAULT_PASSWORD = set_default('password')
+
+
+def get_login_info(description='No description'):
+
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument('-u', '--url', default=DEFAULT_URL, help='APIC IP address.')
+    parser.add_argument('-l', '--login', default=DEFAULT_LOGIN, help='APIC login ID.')
+    parser.add_argument('-p', '--password', default=DEFAULT_PASSWORD, help='APIC login password.')
+
+    return parser
+

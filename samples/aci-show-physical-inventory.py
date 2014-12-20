@@ -14,30 +14,34 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-"""
-Simple application that logs on to the APIC and displays all
-of the Tenants.
-"""
-import sys
-import acitoolkit.acitoolkit as ACI
+
+from acitoolkit.aciphysobject import *
 from acisampleslib import get_login_info
 
+def print_inventory(item):
+    for child in item.get_children():
+        print_inventory(child)
+    print item.info()
+
 # Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Tenants.'
-parser = get_login_info()
+# Otherwise, take them from your environment variables
+description = 'Simple application that logs on to the APIC and displays the physical inventory.'
+parser = get_login_info(description)
 args = parser.parse_args()
 
 # Login to APIC
-session = ACI.Session(args.url, args.login, args.password)
+session = Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
     print '%% Could not login to APIC'
     sys.exit(0)
 
-# Download all of the tenants
-print "TENANT"
-print "------"
-tenants = ACI.Tenant.get(session)
-for tenant in tenants:
-    print tenant.name
+# Print the inventory of each Pod
+pods = Pod.get(session) 
+for pod in pods:
+    pod.populate_children(deep=True)
+    pod_name = 'Pod: %s' % pod.name
+    print pod_name
+    print '=' * len(pod_name)
+    print_inventory(pod)
+    

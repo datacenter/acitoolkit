@@ -928,63 +928,89 @@ class ContractConfigSubMode(SubMode):
                 except IndexError:
                     print 'too few arguemnts.'
                     return
-                port.insert(0, oprt)
-                port.insert(0, cmd)
+                if oprt == 'range':
+                    pass
+                elif oprt == 'lt':
+                    port.insert(0, '1')
+                elif oprt == 'gt':
+                    port.insert(1, 65535)
+                elif oprt == 'eq':
+                    port.insert(0, args[idx+3])
                 return port
             else:
-                return [cmd]
+                return [0, 0]
 
-        def check_flag_name(args):
+        def check_tcp_rule(args):
             def check_name(args, sign):
                 idx = args.index(sign)
                 try:
                     return [sign, args[idx + 1]]
                 except IndexError:
-                    print 'Error, flag name is not defined.'
+                    print 'Error, tcp rule is not defined.'
             if ('+') in args:
-                flag_sign = '+'
-                return check_name(args, flag_sign)
+                return check_name(args, '+')[1]
             elif ('-') in args:
-                flag_sign = '-'
-                return check_name(args, flag_sign)
+                return 'unspecified'
 
         args = args.split()
         if args[0] == 'arp':
+            arp_arg = 0
             if len(args) > 2:
                 print '%% arp takes one arguments, %s are given\n' % len(args)
                 return
-            arp_arg = 0
-            if args[1] in ['request', '1', 1]:
-                arp_arg = 1
-            elif args[1] in ['response', '2', 2]:
-                arp_arg = 2
-            else:
+            elif len(args) <= 1:
                 print 'Invalid argument. Default value', arp_arg, 'is applied.'
-            print [self.negative, self.sequence_number, args[0], arp_arg]
+            else :
+                if args[1] in ['request', '1', 1]:
+                    arp_arg = 1
+                elif args[1] in ['reply', '2', 2]:
+                    arp_arg = 2
+            FilterEntry(str(self.sequence_number),
+                        self.contract,
+                        arpOpc=str(arp_arg),
+                        etherT='arp')
         elif args[0] == 'ethertype':
             if len(args) != 2:
                 print '%% ethertype must be called with 1 ethertype number\n'
             else:
-                print [self.negative] + [self.sequence_number] + args
+                FilterEntry(str(self.sequence_number),
+                            self.contract,
+                            etherT=str(args[1]))
         elif args[0] in self.permit_args + ['unspecified'] and args[0] not in ['tcp', 'udp']:
-            apply_fra = False
+            apply_fra = 'false'
             if args[len(args) - 1] == 'fragment':
-                apply_fra = True
-            print [self.negative, self.sequence_number, args[0], apply_fra]
+                apply_fra = 'true'
+            FilterEntry(str(self.sequence_number),
+                        self.contract,
+                        etherT='ip',
+                        prot=args[0],
+                        applyToFrag=str(apply_fra))
         elif args[0] in ['tcp', 'udp']:
             out_put = [self.negative, self.sequence_number, args[0]]
             from_arg = check_from_to_args(args, 'from-port')
             to_arg = check_from_to_args(args, 'to-port')
+            tcp_rule = '0'
             if args[0] == 'tcp':
-                flag_name = check_flag_name(args)
-                print out_put, from_arg, to_arg, flag_name
-                return
-            print out_put, from_arg, to_arg
+                tcp_rule = check_tcp_rule(args)
+            FilterEntry(str(self.sequence_number),
+                        self.contract,
+                        etherT='ip',
+                        prot=args[0],
+                        dFromPort=str(to_arg[0]),
+                        dToPort=str(to_arg[1]),
+                        sFromPort=str(from_arg[0]),
+                        sToPort=str(from_arg[1]),
+                        tcpRules=tcp_rule)
+
+        resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                      self.tenant.get_json())
+        if not resp.ok:
+            error_message(resp)
 
     def complete_permit(self, text, line, begidx, endidx):
         signs = ['+', '-']
         protocol_args = ['from-port', 'to-port']
-        flag_name_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
+        tcp_rule_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
 
         args, num, first_cmd, nth_cmd, cmd = self.get_args_num_nth(text, line)
         if cmd == 'permit':
@@ -995,14 +1021,14 @@ class ContractConfigSubMode(SubMode):
                 return self.get_completions(text, ethertype_args)
         elif cmd == 'arp':
             if num == 2:
-                arp_args = ['unspecified', 'response', 'request', 'DEFAULT']
+                arp_args = ['unspecified', 'reply', 'request', 'DEFAULT']
                 return self.get_completions(text, arp_args)
         elif cmd in self.permit_args and cmd not in ['tcp', 'udp']:
             return ['fragment']
-        elif cmd in ['tcp', 'udp'] or cmd.isdigit() or cmd in flag_name_array:
+        elif cmd in ['tcp', 'udp'] or cmd.isdigit() or cmd in tcp_rule_array:
             return self.get_completions(text, self.filter_args(line, protocol_args + signs if args[1] == 'tcp' else protocol_args))
         elif cmd in ['+', '-'] and num > 2 and args[1] == 'tcp':
-            return self.get_completions(text, flag_name_array)
+            return self.get_completions(text, tcp_rule_array)
         elif cmd in protocol_args and num > 2:
             return self.get_completions(text, self.operators)
 

@@ -16,28 +16,37 @@
 #
 """
 Simple application that logs on to the APIC and displays all
-of the Tenants.
+of the physical nodes; both belonging to and connected to the
+fabric.
 """
 import sys
-import acitoolkit.acitoolkit as ACI
+from acitoolkit.acitoolkit import Session
+from acitoolkit.aciphysobject import Node, ENode
 from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Tenants.'
-parser = get_login_info()
+description = 'Simple application that logs on to the APIC and displays all of the physical nodes; both belonging to and connected to the fabric.'
+parser = get_login_info(description)
 args = parser.parse_args()
 
 # Login to APIC
-session = ACI.Session(args.url, args.login, args.password)
+session = Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
     print '%% Could not login to APIC'
     sys.exit(0)
 
-# Download all of the tenants
-print "TENANT"
-print "------"
-tenants = ACI.Tenant.get(session)
-for tenant in tenants:
-    print tenant.name
+# List of classes to get and print
+phy_classes = (Node, ENode)
+
+for phy_class in phy_classes:
+    # Print the class name
+    class_name = phy_class.__name__
+    print class_name
+    print '=' * len(class_name)
+
+    # Get and print all of the items from the APIC
+    items = phy_class.get(session)
+    for item in items:
+        print item.info()

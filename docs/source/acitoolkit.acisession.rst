@@ -1,5 +1,5 @@
-acitoolkit.acisession module
-============================
+acisession module
+=================
 
 .. automodule:: acitoolkit.acisession
     :members:

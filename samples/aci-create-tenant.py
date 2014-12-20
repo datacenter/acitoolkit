@@ -15,29 +15,35 @@
 #    under the License.
 #
 """
-Simple application that logs on to the APIC and displays all
-of the Tenants.
+It logs in to the APIC and will create the tenant.
 """
-import sys
 import acitoolkit.acitoolkit as ACI
 from acisampleslib import get_login_info
 
-# Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Tenants.'
-parser = get_login_info()
+
+# Define static values to pass (edit these if you wish to set differently)
+
+DEFAULT_TENANT_NAME = 'tenant_kit'
+
+# Get all the arguments
+description = 'It logs in to the APIC and will create the tenant.'
+parser = get_login_info(description)
+parser.add_argument('-t', '--tenant', help='The name of tenant', default=DEFAULT_TENANT_NAME)
+
 args = parser.parse_args()
 
-# Login to APIC
+# Login to the APIC
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
     print '%% Could not login to APIC'
-    sys.exit(0)
 
-# Download all of the tenants
-print "TENANT"
-print "------"
-tenants = ACI.Tenant.get(session)
-for tenant in tenants:
-    print tenant.name
+# Create the Tenant, App Profile, and EPG
+tenant = ACI.Tenant(args.tenant)
+
+# Push it all to the APIC
+resp = session.push_to_apic(tenant.get_url(),
+                            tenant.get_json())
+if not resp.ok:
+    print '%% Error: Could not push configuration to APIC'
+    print resp.text

@@ -16,7 +16,7 @@
 #
 """
 Simple application that logs on to the APIC and displays all
-of the Tenants.
+of the Contracts.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
@@ -24,8 +24,8 @@ from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Tenants.'
-parser = get_login_info()
+description = 'Simple application that logs on to the APIC and displays all of the Contracts.'
+parser = get_login_info(description)
 args = parser.parse_args()
 
 # Login to APIC
@@ -35,9 +35,20 @@ if not resp.ok:
     print '%% Could not login to APIC'
     sys.exit(0)
 
-# Download all of the tenants
-print "TENANT"
-print "------"
+# Download all of the contracts
+# and store the data as tuples in a list
+data = []
 tenants = ACI.Tenant.get(session)
 for tenant in tenants:
-    print tenant.name
+    contracts = ACI.Contract.get(session, tenant)
+    for contract in contracts:
+        data.append((tenant.name, contract.name))
+
+# IPython.embed()
+
+# Display the data downloaded
+template = '{0:19} {1:20}'
+print template.format("Tenant", "Contract")
+print template.format("------", "--------")
+for rec in data:
+    print template.format(*rec)
