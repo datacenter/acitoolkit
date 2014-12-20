@@ -2233,6 +2233,20 @@ class VMM(BaseACIObject):
 
         return vmmProvP
 
+    @classmethod
+    def get(cls, session):
+        query_url = '/api/node/class/vmmCtrlrP.json?query-target=subtree'
+                     #'target-subtree-class=%s' % prot_relation_class)
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        for item in data:
+            for key in item:
+                print key
+        print data
+        raise NotImplementedError
+        #for item in data:
+        #    if 'vmmCtrlrP' in item:
+        #        print 'vmmCtrlrP:', item['vmmCtrlrP']['attributes']['name']
 
 class Search(BaseACIObject):
     """This is an empty class used to create a search object for use with the "find" method.
