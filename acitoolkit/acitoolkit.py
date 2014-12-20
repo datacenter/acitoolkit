@@ -24,6 +24,7 @@ import logging
 import re
 import copy
 
+
 class Tenant(BaseACIObject):
     """
     The Tenant class is used to represent the tenants within the acitoolkit
@@ -455,15 +456,15 @@ class EPG(CommonEPG):
 
             for ep in interface.get_all_attachments(Endpoint):
                 text = {'fvStCEp': {'attributes':
-                                        {'ip': ep.ip,
-                                         'mac': ep.mac,
-                                         'name': ep.name,
-                                         'encap': encap_text,
-                                         'type': 'silent-host'},
-                                    'children':
-                                        [{'fvRsStCEpToPathEp': {'attributes':
-                                                                {'tDn': interface._get_path()},
-                                                                'children': []}}]}}
+                                    {'ip': ep.ip,
+                                     'mac': ep.mac,
+                                     'name': ep.name,
+                                     'encap': encap_text,
+                                     'type': 'silent-host'},
+                                    'children': [{'fvRsStCEpToPathEp':
+                                                  {'attributes':
+                                                   {'tDn': interface._get_path()},
+                                                   'children': []}}]}}
                 children.append(text)
         if is_interfaces:
             text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
@@ -1300,10 +1301,8 @@ class BaseInterface(BaseACIObject):
 class Interface(BaseInterface):
     """This class defines a physical interface.
     """
-    def __init__(self, interface_type, pod, node, module, port, parent=None, session=None, attributes = {}):
-#        if parent :
-#            if not isinstance(parent, Linecard):
-#                raise TypeError('An instance of Linecard class is required as the parent')
+    def __init__(self, interface_type, pod, node, module, port, parent=None, session=None, attributes={}):
+
         self._session = session
         self.attributes = {}
         self.attributes = copy.deepcopy(attributes)
@@ -1329,7 +1328,7 @@ class Interface(BaseInterface):
         self._cdp_config = None
         self._lldp_config = None
         self.type = 'interface'
-        self.attributes['type']='interface'
+        self.attributes['type'] = 'interface'
         self.id = interface_type+module+'/'+port
 
         self._parent = parent
@@ -1546,7 +1545,7 @@ class Interface(BaseInterface):
         interface_type = module[:3]
         module = module[3:]
         port = name[5].split(']')[0]
-        #id = re.search('\[(.+)\]',dn).group(1)
+
         return interface_type, pod, node, module, port
 
     @staticmethod
@@ -1562,7 +1561,7 @@ class Interface(BaseInterface):
         interface_type = module[:3]
         module = module[3:]
         port = name[4].split(']')[0]
-        #id = re.search('\[(.+)\]',dn).group(1)
+
         return interface_type, pod, node, module, port
 
     @classmethod
@@ -1666,18 +1665,17 @@ class Interface(BaseInterface):
 
         # also get information about the ethernet interface
         eth_query_url = ('/api/node/class/ethpmPhysIf.json?query-target='
-                               'self')
+                         'self')
         ethResp = session.get(eth_query_url)
         resp = []
         ethData = ethResp.json()['imdata']
 
         # re-index the ethernet port info so it can be referenced by dn
         ethDataDict = {}
-        for object in ethData :
+        for object in ethData:
 
             ethDataDict[object['ethpmPhysIf']['attributes']['dn']] = object['ethpmPhysIf']['attributes']
-        
-        
+
         for interface in interface_data:
             attributes = {}
             dist_name = str(interface['l1PhysIf']['attributes']['dn'])
@@ -1689,7 +1687,7 @@ class Interface(BaseInterface):
             speed = str(interface['l1PhysIf']['attributes']['speed'])
             attributes['speed'] = speed
             mtu = str(interface['l1PhysIf']['attributes']['mtu'])
-            attributes['mtu']=mtu
+            attributes['mtu'] = mtu
             id = str(interface['l1PhysIf']['attributes']['id'])
             attributes['id'] = id
             attributes['monPolDn'] = str(interface['l1PhysIf']['attributes']['monPolDn'])
@@ -1697,13 +1695,13 @@ class Interface(BaseInterface):
             attributes['descr'] = str(interface['l1PhysIf']['attributes']['descr'])
             (interface_type, pod, node,
              module, port) = Interface.parse_dn(dist_name)
-            attributes['interface_type']=interface_type
-            attributes['pod']=pod
-            attributes['node']=node
-            attributes['module']=module
+            attributes['interface_type'] = interface_type
+            attributes['pod'] = pod
+            attributes['node'] = node
+            attributes['module'] = module
             attributes['port'] = port
             attributes['operSt'] = ethDataDict[dist_name+'/phys']['operSt']
-            interface_obj = Interface(interface_type, pod, node, module, port, parent=None, session=session, attributes = attributes)
+            interface_obj = Interface(interface_type, pod, node, module, port, parent=None, session=session, attributes=attributes)
             interface_obj.porttype = porttype
             interface_obj.adminstatus = adminstatus
             interface_obj.speed = speed
@@ -1727,17 +1725,19 @@ class Interface(BaseInterface):
         return ret
 
     def __eq__(self, other):
-        if type(self) != type(other) :
+        if type(self) != type(other):
             return False
         if (self.attributes['interface_type'] == other.attributes.get('interface_type') and
-            self.attributes['pod'] == other.attributes.get('pod') and
-            self.attributes['node'] == other.attributes.get('node') and
-            self.attributes['module'] == other.attributes.get('module') and
-            self.attributes['port'] == other.attributes.get('port')):
+                self.attributes['pod'] == other.attributes.get('pod') and
+                self.attributes['node'] == other.attributes.get('node') and
+                self.attributes['module'] == other.attributes.get('module') and
+                self.attributes['port'] == other.attributes.get('port')):
+
             return True
         return False
 
-class InterfaceStats() :
+
+class InterfaceStats():
     """
     This class defines interface statistics.  It will provide methods to
     retrieve the stats.  The stats are returned as a dictionary with the
@@ -1761,11 +1761,11 @@ class InterfaceStats() :
 
 
     """
-    def __init__(self, parent, interfaceDn) :
+    def __init__(self, parent, interfaceDn):
         self._parent = parent
         self._interfaceDn = interfaceDn
 
-    def get(self,session = None) :
+    def get(self, session=None):
         """
         Retrieve the count dictionary.  This method will read in all the counters and return them as a dictionary.
 
@@ -1773,18 +1773,18 @@ class InterfaceStats() :
 
         :returns:  Dictionary of counters. Format is {<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}
         """
-        nameMap = {'eqptEgrTotal':'egrTotal',
-                   'eqptEgrBytes':'egrBytes',
-                   'eqptEgrpkts':'egrPkts',
+        nameMap = {'eqptEgrTotal': 'egrTotal',
+                   'eqptEgrBytes': 'egrBytes',
+                   'eqptEgrpkts': 'egrPkts',
                    'egrDropPkts': 'egrDropPkts',
-                   'eqptIngrBytes':'ingrBytes',
-                   'eqptIngrPkts':'ingrPkts',
-                   'eqptIngrTotal':'ingrTotal',
+                   'eqptIngrBytes': 'ingrBytes',
+                   'eqptIngrPkts': 'ingrPkts',
+                   'eqptIngrTotal': 'ingrTotal',
                    'eqptIngrDropPkts': 'ingrDropPkts',
-                   'eqptIngrUnkBytes':'ingrUnkBytes',
-                   'eqptIngrUnkPkts':'ingrUnkPkts'}
+                   'eqptIngrUnkBytes': 'ingrUnkBytes',
+                   'eqptIngrUnkPkts': 'ingrUnkPkts'}
         result = {}
-        if not session :
+        if not session:
             session = self._parent._session
 
         mo_query_url = '/api/mo/'+self._interfaceDn+'.json?query-target=self&rsp-subtree-include=stats'
@@ -1792,119 +1792,119 @@ class InterfaceStats() :
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
         noCounts = False
-        if data :
-            if 'children' in data[0]['l1PhysIf'] :
+        if data:
+            if 'children' in data[0]['l1PhysIf']:
                 children = data[0]['l1PhysIf']['children']
-                for grandchildren in children :
-                    for count in grandchildren :
+                for grandchildren in children:
+                    for count in grandchildren:
                         counterAttr = grandchildren[count]['attributes']
-                        if re.search('^C',counterAttr['rn']) :
+                        if re.search('^C', counterAttr['rn']):
                             period = 0
-                        else :
-                            #period = rn
+                        else:
                             period = int(counterAttr['index'])
-                        if 'EgrTotal' in count :
+
+                        if 'EgrTotal' in count:
                             countName = 'egrTotal'
-                        elif 'EgrBytes' in count :
+                        elif 'EgrBytes' in count:
                             countName = 'egrBytes'
-                        elif 'EgrPkts' in count :
+                        elif 'EgrPkts' in count:
                             countName = 'egrPkts'
-                        elif 'EgrDropPkts' in count :
-                            countName =  'egrDropPkts'
-                        elif 'IngrBytes' in count :
+                        elif 'EgrDropPkts' in count:
+                            countName = 'egrDropPkts'
+                        elif 'IngrBytes' in count:
                             countName = 'ingrBytes'
-                        elif 'IngrPkts' in count :
+                        elif 'IngrPkts' in count:
                             countName = 'ingrPkts'
-                        elif 'IngrTotal' in count :
+                        elif 'IngrTotal' in count:
                             countName = 'ingrTotal'
-                        elif 'IngrDropPkts' in count :
-                            countName =  'ingrDropPkts'
-                        elif 'IngrUnkBytes' in count :
+                        elif 'IngrDropPkts' in count:
+                            countName = 'ingrDropPkts'
+                        elif 'IngrUnkBytes' in count:
                             countName = 'ingrUnkBytes'
-                        elif 'IngrUnkPkts' in count :
+                        elif 'IngrUnkPkts' in count:
                             countName = 'ingrUnkPkts'
-                        else :
+                        else:
                             countName = count
 
                         granularity = re.search('(\d+\D+)$', count).group(1)
 
-                        if countName not in result :
+                        if countName not in result:
                             result[countName] = {}
-                        if granularity not in result[countName] :
+                        if granularity not in result[countName]:
                             result[countName][granularity] = {}
-                        if period not in result[countName][granularity] :
+                        if period not in result[countName][granularity]:
                             result[countName][granularity][period] = {}
 
-                        if countName in ['egrTotal','ingrTotal'] :
-                            for attrName in ['bytesAvg','bytesCum','bytesMax','bytesMin','bytesPer',
-                                             'pktsAvg','pktsCum','pktsMax','pktsMin','pktsPer'] :
+                        if countName in ['egrTotal', 'ingrTotal']:
+                            for attrName in ['bytesAvg', 'bytesCum', 'bytesMax', 'bytesMin', 'bytesPer',
+                                             'pktsAvg', 'pktsCum', 'pktsMax', 'pktsMin', 'pktsPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['bytesRate','bytesRateAvg','bytesRateMax','bytesRateMin',
-                                             'pktsRate','pktsRateAvg','pktsRateMax','pktsRateMin'] :
+                            for attrName in ['bytesRate', 'bytesRateAvg', 'bytesRateMax', 'bytesRateMin',
+                                             'pktsRate', 'pktsRateAvg', 'pktsRateMax', 'pktsRateMin']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
-                        elif countName in ['egrBytes', 'ingrBytes'] :
-                            for attrName in ['floodAvg','floodCum','floodMax','floodMin','floodPer',
-                                             'multicastAvg','multicastCum','multicastMax','multicastMin','multicastPer'] :
+                        elif countName in ['egrBytes', 'ingrBytes']:
+                            for attrName in ['floodAvg', 'floodCum', 'floodMax', 'floodMin', 'floodPer',
+                                             'multicastAvg', 'multicastCum', 'multicastMax', 'multicastMin', 'multicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['floodRate',
-                                             'multicastRate','multicastRateAvg','multicastRateMax','multicastRateMin'] :
+                                             'multicastRate', 'multicastRateAvg', 'multicastRateMax', 'multicastRateMin']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
-                        elif countName in ['egrPkts', 'ingrPkts'] :
-                            for attrName in ['floodAvg','floodCum','floodMax','floodMin','floodPer',
-                                            'multicastAvg','multicastCum','multicastMax','multicastMin','multicastPer',
-                                            'unicastAvg','unicastCum','unicastMax','unicastMin','unicastPer'] :
+                        elif countName in ['egrPkts', 'ingrPkts']:
+                            for attrName in ['floodAvg', 'floodCum', 'floodMax', 'floodMin', 'floodPer',
+                                             'multicastAvg', 'multicastCum', 'multicastMax', 'multicastMin', 'multicastPer',
+                                             'unicastAvg', 'unicastCum', 'unicastMax', 'unicastMin', 'unicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['floodRate','multicastRate','unicastRate'] :
+                            for attrName in ['floodRate', 'multicastRate', 'unicastRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
-                        elif countName in ['egrDropPkts'] :
-                            for attrName in ['afdWredAvg','afdWredCum','afdWredMax','afdWredMin','afdWredPer',
-                                             'bufferAvg','bufferCum','bufferMax','bufferMin','bufferPer',
-                                             'errorAvg','errorCum','errorMax','errorMin','errorPer']:
+                        elif countName in ['egrDropPkts']:
+                            for attrName in ['afdWredAvg', 'afdWredCum', 'afdWredMax', 'afdWredMin', 'afdWredPer',
+                                             'bufferAvg', 'bufferCum', 'bufferMax', 'bufferMin', 'bufferPer',
+                                             'errorAvg', 'errorCum', 'errorMax', 'errorMin', 'errorPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['afdWredRate',
                                              'bufferRate',
-                                             'errorRate'] :
+                                             'errorRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
-                        elif countName in ['ingrDropPkts'] :
-                            for attrName in ['bufferAvg','bufferCum','bufferMax','bufferMin','bufferPer',
-                                            'errorAvg','errorCum','errorMax','errorMin','errorPer',
-                                            'forwardingAvg','forwardingCum','forwardingMax','forwardingMin','forwardingPer',
-                                            'lbAvg','lbCum','lbMax','lbMin','lbPer']:
+                        elif countName in ['ingrDropPkts']:
+                            for attrName in ['bufferAvg', 'bufferCum', 'bufferMax', 'bufferMin', 'bufferPer',
+                                             'errorAvg', 'errorCum', 'errorMax', 'errorMin', 'errorPer',
+                                             'forwardingAvg', 'forwardingCum', 'forwardingMax', 'forwardingMin', 'forwardingPer',
+                                             'lbAvg', 'lbCum', 'lbMax', 'lbMin', 'lbPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['bufferRate','errorRate','forwardingRate','lbRate'] :
+                            for attrName in ['bufferRate', 'errorRate', 'forwardingRate', 'lbRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
-                        elif countName in ['ingrUnkBytes'] :
-                            for attrName in ['unclassifiedAvg','unclassifiedCum','unclassifiedMax','unclassifiedMin','unclassifiedPer',
-                                             'unicastAvg','unicastCum','unicastMax','unicastMin','unicastPer']:
+                        elif countName in ['ingrUnkBytes']:
+                            for attrName in ['unclassifiedAvg', 'unclassifiedCum', 'unclassifiedMax', 'unclassifiedMin', 'unclassifiedPer',
+                                             'unicastAvg', 'unicastCum', 'unicastMax', 'unicastMin', 'unicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['unclassifiedRate','unicastRate'] :
+                            for attrName in ['unclassifiedRate', 'unicastRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
-                        elif countName in ['ingrUnkPkts'] :
-                            for attrName in ['unclassifiedAvg','unclassifiedCum','unclassifiedMax','unclassifiedMin','unclassifiedPer',
-                                            'unicastAvg','unicastCum','unicastMax','unicastMin','unicastPer'] :
+                        elif countName in ['ingrUnkPkts']:
+                            for attrName in ['unclassifiedAvg', 'unclassifiedCum', 'unclassifiedMax', 'unclassifiedMin', 'unclassifiedPer',
+                                             'unicastAvg', 'unicastCum', 'unicastMax', 'unicastMin', 'unicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['unclassifiedRate','unicastRate'] :
+                            for attrName in ['unclassifiedRate', 'unicastRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
-                        else :
+                        else:
                             print countName, granularity, period
                             exit()
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
-            else :
+            else:
                 noCounts = True
-        else :
+        else:
             noCounts = True
         # store the result to be accessed by the retrieve method
         self.result = result
         return result
 
-    def retrieve(self,countFamily, granularity, period, countName) :
+    def retrieve(self, countFamily, granularity, period, countName):
         """
         This will return the requested count from stats that were loaded with
         the previous get().  It will return 0 for counts that don't exist or None
@@ -1912,36 +1912,34 @@ class InterfaceStats() :
 
         Note that this method will not access the APIC, it will only work on data that was previously loaded with a get().
 
-        :param countFamily: The counter family string.  Examples are 'egrTotal', 'ingrDropPkts, etc.
-        :param granularity: String specifying the counter time granularity.  Possible values are: '5min', '15min',
+       :param countFamily: The counter family string.  Examples are 'egrTotal', 'ingrDropPkts, etc.
+       :param granularity: String specifying the counter time granularity.  Possible values are: '5min', '15min',
                             '1h', '1d', '1w', '1mo', '1qtr', and '1year'
-        :param period: Integer of time period to get the counter from.  Period 0 is the current period. Period 1 is the previous
+       :param period: Integer of time period to get the counter from.  Period 0 is the current period. Period 1 is the previous
                             time granularity.
-        :param countName: Name of the actual counter.  Examples are 'unicastPer', 'unicastRate', etc.  Counter names are unique per counter family.
+       :param countName: Name of the actual counter.  Examples are 'unicastPer', 'unicastRate', etc.  Counter names are unique per counter family.
 
-        :returns:  integer, float or None.  If the counter is not present, it will return 0.
+       :returns:  integer, float or None.  If the counter is not present, it will return 0.
         """
 
         # initialize result to a miss
-        if countName in ['intervalEnd','intervalStart'] :
+        if countName in ['intervalEnd', 'intervalStart']:
             result = None
-        elif countName in ['pktsRateAvg','pktsRateAvg','bytesRateAvg','bytesRateAvg'] :
+        elif countName in ['pktsRateAvg', 'pktsRateAvg', 'bytesRateAvg', 'bytesRateAvg']:
             result = 0.0
-        else :
+        else:
             result = 0
 
-
         # overwrite result if it exists
-        if countFamily in self.result :
-            if granularity in self.result[countFamily] :
-                if period in self.result[countFamily][granularity] :
-                    if countName in self.result[countFamily][granularity][period] :
+        if countFamily in self.result:
+            if granularity in self.result[countFamily]:
+                if period in self.result[countFamily][granularity]:
+                    if countName in self.result[countFamily][granularity][period]:
 
-                        #read value
+                        # read value
                         result = self.result[countFamily][granularity][period][countName]
 
         return result
-
 
 
 class PortChannel(BaseInterface):
@@ -2010,7 +2008,7 @@ class PortChannel(BaseInterface):
         """
         Returns json representation of the PortChannel
 
-        :returns: json dictionary of the PortChannel
+       :returns: json dictionary of the PortChannel
         """
         vpc = self.is_vpc()
         pc_mode = 'link'
@@ -2259,71 +2257,73 @@ class Search(BaseACIObject):
     def __init__(self):
         pass
 
-class BaseMonitorClass(object) :
+
+class BaseMonitorClass(object):
     """ Base class for monitoring policies.  These are methods that can be used on all monitoring objects.
     """
-    def setName(self, name) :
+    def setName(self, name):
         """
         Sets the name of the MonitorStats.
 
-        :param name: String to use as the name
+       :param name: String to use as the name
         """
         self.name = name
         self.modified = True
-        
-    def setDescription(self, description) :
+
+    def setDescription(self, description):
         """
         Sets the description of the MonitorStats.
 
-        :param description: String to use as the description
+       :param description: String to use as the description
         """
         self.description = description
         self.modified = True
-        
-    def isModified(self) :
+
+    def isModified(self):
         """
-        Returns True if this policy and any children have been modified or created and not been written to the APIC
+        Returns True if this policy and any children have been modified or
+        created and not been written to the APIC
         """
-        for child in self._children :
-            if child.isModified() :
+        for child in self._children:
+            if child.isModified():
                 return True
-        
+
         return self.modified
 
-        
-    def add_child(self, obj) :
+    def add_child(self, obj):
         """
         Adds a child to the object.  If that child is already in the children list, it will
         remove the old one first.
 
-        :param obj: Child object to be added
+       :param obj: Child object to be added
         """
-        if obj in self._children :
+        if obj in self._children:
             self._children.remove(obj)
         self._children.append(obj)
-        
-    def remove_child(self, obj) :
-        """
-        Removes a child from the object.  
 
-        :param obj: Child object to be removed
+    def remove_child(self, obj):
         """
-        if obj in self._chilren :
+        Removes a child from the object.
+
+       :param obj: Child object to be removed
+        """
+        if obj in self._chilren:
             self._children.remove(obj)
-            
+
     def get_children(self):
         """
-        :returns: List of children objects.
+       :returns: List of children objects.
         """
         return self._children
 
-    def get_parent(self) :
+    def get_parent(self):
         """
-        :returns: parent object
+       :returns: parent object
         """
         return self._parent
-    
-class MonitorPolicy(BaseMonitorClass) :
+
+
+class MonitorPolicy(BaseMonitorClass):
     """
     This class is the top-most container for a monitoring policy that controlls how statistics are gathered.
     It has immediate children, CollectionPolicy objects, that control the default behavior for any network
@@ -2338,11 +2338,10 @@ class MonitorPolicy(BaseMonitorClass) :
     result, the name cannot be changed.  If you read a policy from the APIC, change the name, and write it
     back, it will create a new policy with the new name and leave the old, original policy, in place
     with its original name.
-    
+
     A description may be optionally added to the policy.
-    
     """
-    def __init__(self, policyType, name) :
+    def __init__(self, policyType, name):
         """
         The MonitorPolicy is initialized with simply a policy type and a name.  There are two policy types: 'fabric'
         and 'access'.  The 'fabric' monitoring policies can be applied to certain MonitorTarget types and 'access'
@@ -2354,120 +2353,121 @@ class MonitorPolicy(BaseMonitorClass) :
         will be /uni/infra/moninfra-[name] in the APIC.
 
         :param policyType:  String specifying whether this is a fabric or access policy
-        :param name:        String specifying a name for the policy.  
+        :param name:        String specifying a name for the policy.
         """
-        policyTypeEnum = ['fabric','access']
+        policyTypeEnum = ['fabric', 'access']
 
-        if not policyType in policyTypeEnum :
-            raise ValueError('Policy Type must be one of:',policyTypeEnum)
+        if policyType not in policyTypeEnum:
+            raise ValueError('Policy Type must be one of:', policyTypeEnum)
 
         self.name = name
         self.policyType = policyType
         self.descr = ''
         self._children = []
-        #assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
-        #or the policy is written to the APIC.
-        self.modified = True 
+        # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
+        # or the policy is written to the APIC.
+        self.modified = True
 
     @classmethod
-    def get(cls,session) :
+    def get(cls, session):
         """
         get() will get all of the monitor policies from the APIC and return them as a list.  It will get both
         fabric and access (infra) policies including default policies.
 
-        :param session: the instance of Session used for APIC communication
-        :returns : List of MonitorPolicy objects
+       :param session: the instance of Session used for APIC communication
+       :returns: List of MonitorPolicy objects
         """
         result = []
         aciObjects = cls._getClass(session, 'monInfraPol')
-        for data in aciObjects :
+        for data in aciObjects:
             name = data['monInfraPol']['attributes']['name']
-            policyObject = MonitorPolicy('access',name)
+            policyObject = MonitorPolicy('access', name)
             policyObject.setDescription(data['monInfraPol']['attributes']['descr'])
             cls._getPolicy(policyObject, session, data['monInfraPol']['attributes']['dn'])
             result.append(policyObject)
 
         aciObjects = cls._getClass(session, 'monFabricPol')
-        for data in aciObjects :
+        for data in aciObjects:
             name = data['monFabricPol']['attributes']['name']
-            policyObject = MonitorPolicy('fabric',name)
+            policyObject = MonitorPolicy('fabric', name)
             policyObject.setDescription(data['monFabricPol']['attributes']['descr'])
             cls._getPolicy(policyObject, session, data['monFabricPol']['attributes']['dn'])
             result.append(policyObject)
         return result
-    
+
     @staticmethod
-    def _getClass(session, aciClass) :
+    def _getClass(session, aciClass):
         class_query_url = '/api/node/class/'+aciClass+'.json?query-target=self'
         ret = session.get(class_query_url)
         data = ret.json()['imdata']
         return data
-        
+
     @classmethod
-    def _getPolicy(cls, policyObject, session, dn) :
+    def _getPolicy(cls, policyObject, session, dn):
         children = cls._getChildren(session, dn)
-        for child in children :
-            if child[0] == 'statsHierColl' :
+        for child in children:
+            if child[0] == 'statsHierColl':
                 granularity = str(child[1]['attributes']['granularity'])
                 adminState = str(child[1]['attributes']['adminState'])
                 retention = str(child[1]['attributes']['histRet'])
                 collPolicy = CollectionPolicy(policyObject, granularity, retention, adminState)
                 collPolicy.setName(child[1]['attributes']['name'])
                 collPolicy.setDescription(child[1]['attributes']['descr'])
-                
-            if child[0] in ['monFabricTarget', 'monInfraTarget'] :
+
+            if child[0] in ['monFabricTarget', 'monInfraTarget']:
                 scope = str(child[1]['attributes']['scope'])
 
-                #initially only l1PhysIf is supported as a target
-                if scope == 'l1PhysIf' :
+                # initially only l1PhysIf is supported as a target
+                if scope == 'l1PhysIf':
                     target = MonitorTarget(policyObject, scope)
                     target.setName(str(child[1]['attributes']['name']))
                     target.setDescription(str(child[1]['attributes']['descr']))
                     dn = child[1]['attributes']['dn']
                     targetChildren = cls._getChildren(session, dn)
-                    for targetChild in targetChildren :
-                        if targetChild[0] == 'statsReportable' :
+                    for targetChild in targetChildren:
+                        if targetChild[0] == 'statsReportable':
                             scope = str(targetChild[1]['attributes']['scope'])
                             scope = MonitorStats.statsDictionary[scope]
                             statFamily = MonitorStats(target, scope)
                             statFamily.setName(str(targetChild[1]['attributes']['name']))
                             statFamily.setDescription(str(targetChild[1]['attributes']['name']))
                             dn = targetChild[1]['attributes']['dn']
-                            statChildren = cls._getChildren(session,dn)
-                            for statChild in statChildren :
-                                if statChild[0] == 'statsColl' :
+                            statChildren = cls._getChildren(session, dn)
+                            for statChild in statChildren:
+                                if statChild[0] == 'statsColl':
                                     granularity = str(statChild[1]['attributes']['granularity'])
                                     adminState = str(statChild[1]['attributes']['adminState'])
                                     retention = str(statChild[1]['attributes']['histRet'])
                                     collPolicy = CollectionPolicy(statFamily, granularity, retention, adminState)
                                     collPolicy.setName(statChild[1]['attributes']['name'])
                                     collPolicy.setDescription(statChild[1]['attributes']['descr'])
-                        if targetChild[0] == 'statsHierColl' :
+                        if targetChild[0] == 'statsHierColl':
                             granularity = str(targetChild[1]['attributes']['granularity'])
                             adminState = str(targetChild[1]['attributes']['adminState'])
                             retention = str(targetChild[1]['attributes']['histRet'])
                             collPolicy = CollectionPolicy(target, granularity, retention, adminState)
                             collPolicy.setName(targetChild[1]['attributes']['name'])
                             collPolicy.setDescription(targetChild[1]['attributes']['descr'])
-                
+
     @classmethod
-    def _getChildren(cls, session, dn) :
+    def _getChildren(cls, session, dn):
         result = []
         mo_query_url = '/api/mo/'+dn+'.json?query-target=children'
         ret = session.get(mo_query_url)
         mo_data = ret.json()['imdata']
-        for node in mo_data :
+        for node in mo_data:
             for key in node:
-                result.append((key,node[key]))
+                result.append((key, node[key]))
         return result
 
-    def __str__(self) :
+    def __str__(self):
         """
         Return print string.
         """
         return self.policyType+':'+self.name
-    
-class MonitorTarget(BaseMonitorClass) :
+
+
+class MonitorTarget(BaseMonitorClass):
     """
     This class is a child of a MonitorPolicy object. It is used to specify a scope for appling a monitoring
     policy.  An example scope would be the Interface class, meaning that the monitoring policies specified
@@ -2476,21 +2476,21 @@ class MonitorTarget(BaseMonitorClass) :
     the collection policy for the specified target plus optional MonitorStats objects that allow finer grained
     control over specific families of statistics such as ingress packets, ingrPkts.
     """
-    def __init__(self, parent, target) :
+    def __init__(self, parent, target):
         """
         The MonitorTarget object is initialized with a parent of type MonitorPoliy, and a target string.
         Initially, this toolkit only support a target of type 'l1PhysIf'.  The 'l1PhyIf' target is a layer
         1 physical interface or "port".  The MonitorTarget will narrow the scope of the policy specified by
         the children of the MonitorTarget to be only the target class.
 
-        :param parent :  Parent object that his monitor target is a child of. It must be of type MonitorPolicy
-        :param target :  String specifying the target class for the Monitor policy.  
+       :param parent:  Parent object that his monitor target is a child of. It must be of type MonitorPolicy
+       :param target:  String specifying the target class for the Monitor policy.
         """
         targetEnum = ['l1PhysIf']
-        if not type(parent) in [MonitorPolicy] :
+        if not type(parent) in [MonitorPolicy]:
             raise TypeError('Parent of MonitorTarget must be one of type MonitorPolicy')
-        if target not in targetEnum :
-            raise ValueError('target must be one of:',targetEnum)
+        if target not in targetEnum:
+            raise ValueError('target must be one of:', targetEnum)
 
         self._parent = parent
         self.scope = target
@@ -2498,40 +2498,43 @@ class MonitorTarget(BaseMonitorClass) :
         self.name = ''
         self._parent.add_child(self)
         self._children = []
-        #assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
-        #or the policy is written to the APIC.
-        self.modified = True 
-    def __str__(self) :
+        # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
+        # or the policy is written to the APIC.
+        self.modified = True
+
+    def __str__(self):
         return self.scope
-        
-class MonitorStats(BaseMonitorClass) :
+
+
+class MonitorStats(BaseMonitorClass):
     """
     This class is a child of a MonitorTarget object.  It is used to specify a scope for applying a monitoring policy
     that is more fine grained than the MonitorTarget.  Specifically, the MonitorStats object specifies a statistics
     family such as "ingress packets" or "egress bytes".
     """
-    statsDictionary = {'eqptEgrBytes':'egrBytes','eqptEgrPkts':'egrPkts',
-                       'eqptEgrTotal':'egrTotal','eqptEgrDropPkts':'egrDropPkts',
-                       'eqptIngrBytes':'ingrBytes','eqptIngrPkts':'ingrPkts',
-                       'eqptIngrTotal':'ingrTotal', 'eqptIngrDropPkts':'ingrDropPkts',
-                       'eqptIngrUnkBytes':'ingrUnkBytes','eqptIngrUnkPkts':'ingrUnkPkts'}
-    def __init__(self, parent, statsFamily) :
+    statsDictionary = {'eqptEgrBytes': 'egrBytes', 'eqptEgrPkts': 'egrPkts',
+                       'eqptEgrTotal': 'egrTotal', 'eqptEgrDropPkts': 'egrDropPkts',
+                       'eqptIngrBytes': 'ingrBytes', 'eqptIngrPkts': 'ingrPkts',
+                       'eqptIngrTotal': 'ingrTotal', 'eqptIngrDropPkts': 'ingrDropPkts',
+                       'eqptIngrUnkBytes': 'ingrUnkBytes', 'eqptIngrUnkPkts': 'ingrUnkPkts'}
+
+    def __init__(self, parent, statsFamily):
         """
         The MonitorStats object must always be initialized with a parent object of type MonitorTarget.
         It sets the scope of its children collection policies (CollectionPolicy) to a particular statistics family.
 
-        :param parent: Parent object that this monitor stats object should be applied to.
+       :param parent: Parent object that this monitor stats object should be applied to.
                        This must be an object of type MonitorTarget.
-        :param statsFamily: String specifying the statistics family that the children collection policies should
-                       be applied to.  Possible values are :['egrBytes','egrPkts','egrTotal','egrDropPkts',
-                       'ingrBytes','ingrPkts','ingrTotal', 'ingrDropPkts', 'ingrUnkBytes','ingrUnkPkts']
+       :param statsFamily: String specifying the statistics family that the children collection policies should
+                       be applied to.  Possible values are:['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts',
+                       'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
         """
-        statsFamilyEnum = ['egrBytes','egrPkts','egrTotal','egrDropPkts','ingrBytes','ingrPkts',
-                           'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes','ingrUnkPkts']
-        if not type(parent) in [MonitorTarget] :
+        statsFamilyEnum = ['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts', 'ingrBytes', 'ingrPkts',
+                           'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
+        if not type(parent) in [MonitorTarget]:
             raise TypeError('Parent of MonitorStats must be one of type MonitorTarget')
-        if statsFamily not in statsFamilyEnum :
-            raise ValueError('statsFamily must be one of:',statsFamilyEnum)
+        if statsFamily not in statsFamilyEnum:
+            raise ValueError('statsFamily must be one of:', statsFamilyEnum)
 
         self._parent = parent
         self.scope = statsFamily
@@ -2539,14 +2542,15 @@ class MonitorStats(BaseMonitorClass) :
         self.name = ''
         self._parent.add_child(self)
         self._children = []
-        #assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
-        #or the policy is written to the APIC.
-        self.modified = True 
-        
-    def __str__(self) :
+        # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
+        # or the policy is written to the APIC.
+        self.modified = True
+
+    def __str__(self):
         return self.scope
-    
-class CollectionPolicy(BaseMonitorClass) :
+
+
+class CollectionPolicy(BaseMonitorClass):
     """
     This class is a child of a MonitorPolicy object, MonitorTarget object or a MonitorStats object.  It is where the statistics collection
     policy is actually specified.  It applies to all of the statistics that are at the scope level of the parent object,
@@ -2562,7 +2566,7 @@ class CollectionPolicy(BaseMonitorClass) :
     This object is roughly the same as the statsColl and statsHierColl objects in the APIC.
     """
 
-    def __init__(self, parent, granularity, retention, adminState = 'enabled') :
+    def __init__(self, parent, granularity, retention, adminState='enabled'):
         """
         The CollectionPolicy must always be initialized with a parent object of type MonitorPolicy, MonitorTarget or MonitorStats.
         The granularity must also be specifically specified.  The retention period can be specified, set to "none", or set to "inherited".
@@ -2584,29 +2588,30 @@ class CollectionPolicy(BaseMonitorClass) :
         because there is no higher level policy to inherit from.  If this were to happen, 'inherited' will be treated as
         'enabled'.
 
-        :param parent: Parent object that this collection policy should be applied to.
+       :param parent: Parent object that this collection policy should be applied to.
                        This must be an object of type MonitorStats, MonitorTarget, or MonitorPolicy.
-        :param granularity:  String specifying the time collection interval or granularity of this policy.  Possible values are:
-                       ['5min','15min','1h','1d','1w','1mo','1qtr','1year'].
-        :param retention: String specifying how much history to retain the collected statistics for.  The retention will be for
-                       time units of the granularity specified.  Possible values are ['none','inherited', '5min', '15min', '1h',
-                       '1d', '1w', '10d','1mo', '1qtr', '1year', '2year','3year'].
-        :param adminState:  Administrative status.  String to specify whether stats should be collected at the specified
+       :param granularity:  String specifying the time collection interval or granularity of this policy.  Possible values are:
+                       ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year'].
+       :param retention: String specifying how much history to retain the collected statistics for.  The retention will be for
+                       time units of the granularity specified.  Possible values are ['none', 'inherited', '5min', '15min', '1h',
+                       '1d', '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'].
+       :param adminState:  Administrative status.  String to specify whether stats should be collected at the specified
                        granularity.  Possible values are ['enabled', 'disabled', 'inherited'].  The default if not
                        specified is 'enabled'.
         """
-        granularityEnum = ['5min','15min','1h','1d','1w','1mo','1qtr','1year']
-        retentionEnum = ['none','inherited', '5min', '15min', '1h', '1d', '1w', '10d','1mo', '1qtr', '1year', '2year','3year']
-        adminStateEnum = ['enabled','disabled','inherited']
+        granularityEnum = ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year']
+        retentionEnum = ['none', 'inherited', '5min', '15min', '1h', '1d',
+                         '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year']
+        adminStateEnum = ['enabled', 'disabled', 'inherited']
 
-        if not type(parent) in [MonitorStats, MonitorTarget, MonitorPolicy] :
+        if type(parent) not in [MonitorStats, MonitorTarget, MonitorPolicy]:
             raise TypeError('Parent of collection policy must be one of MonitorStats, MonitorTarget, or MonitorPolicy')
-        if granularity not in granularityEnum :
-            raise ValueError('granularity must be one of:',granularityEnum)
-        if retention not in retentionEnum :
-            raise ValueError('retention must be one of:',retentionEnum)
-        if adminState not in adminStateEnum :
-            raise ValueError('adminState must be one of:',adminStateEnum)
+        if granularity not in granularityEnum:
+            raise ValueError('granularity must be one of:', granularityEnum)
+        if retention not in retentionEnum:
+            raise ValueError('retention must be one of:', retentionEnum)
+        if adminState not in adminStateEnum:
+            raise ValueError('adminState must be one of:', adminStateEnum)
 
         self._parent = parent
         self.granularity = granularity
@@ -2614,15 +2619,16 @@ class CollectionPolicy(BaseMonitorClass) :
         self.retention = retention
         self.adminState = adminState
         self._children = []
-        
+
         self._parent.add_child(self)
-        #assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
-        #or the policy is written to the APIC.
-        self.modified = True 
-    def __str__(self) :
+        # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
+        # or the policy is written to the APIC.
+        self.modified = True
+
+    def __str__(self):
         return self.granularity
-    
-    def setAdminState(self, adminState) :
+
+    def setAdminState(self, adminState):
         """
         Sets the administrative status.
 
@@ -2632,21 +2638,19 @@ class CollectionPolicy(BaseMonitorClass) :
         """
         if self.adminState != adminState:
             self.modified = True
-            
+
         self.adminState = adminState
 
-        
-    def setRetention(self, retention) :
+    def setRetention(self, retention):
         """
         Sets the retention period.
 
-        :param retention: String specifying how much history to retain the collected statistics for.  The retention will be for
-                       time units of the granularity specified.  Possible values are ['none','inherited', '5min', '15min', '1h',
-                       '1d', '1w', '10d','1mo', '1qtr', '1year', '2year','3year'].
+       :param retention: String specifying how much history to retain the collected statistics for.  The retention will be for
+                       time units of the granularity specified.  Possible values are ['none', 'inherited', '5min', '15min', '1h',
+                       '1d', '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'].
         """
 
-        if self.retention != retention :
+        if self.retention != retention:
             self.modified = True
-            
+
         self.retention = retention
-        
