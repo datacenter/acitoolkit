@@ -148,8 +148,8 @@ class AppProfile(BaseACIObject):
                        Profiles retreived from the APIC
         :returns: List of AppProfile objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(), parent=tenant,
-                                 tenant=tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+                                 parent=tenant, tenant=tenant)
 
     def _get_url_extension(self):
         return '/ap-%s' % self.name
@@ -356,7 +356,8 @@ class CommonEPG(BaseACIObject):
         :returns: List of CommonEPG instances (or EPG instances if called\
                   from EPG class)
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(), parent, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+                                 parent, tenant)
 
 
 class EPG(CommonEPG):
@@ -455,6 +456,7 @@ class EPG(CommonEPG):
             children.append(text)
 
             for ep in interface.get_all_attachments(Endpoint):
+                path = interface._get_path()
                 text = {'fvStCEp': {'attributes':
                                     {'ip': ep.ip,
                                      'mac': ep.mac,
@@ -463,11 +465,12 @@ class EPG(CommonEPG):
                                      'type': 'silent-host'},
                                     'children': [{'fvRsStCEpToPathEp':
                                                   {'attributes':
-                                                   {'tDn': interface._get_path()},
+                                                   {'tDn': path},
                                                    'children': []}}]}}
                 children.append(text)
         if is_interfaces:
-            text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
+            text = {'fvRsDomAtt': {'attributes':
+                                   {'tDn': 'uni/phys-allvlans'}}}
             children.append(text)
 
         is_vmms = False
@@ -857,7 +860,8 @@ class BridgeDomain(BaseACIObject):
                        instances retreived from the APIC
         :returns: List of BridgeDomain objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(), tenant, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+                                 tenant, tenant)
 
     def _get_url_extension(self):
         return '/BD-%s' % self.name
@@ -1002,7 +1006,8 @@ class Context(BaseACIObject):
                        retreived from the APIC
         :returns: List of Context objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(), tenant, tenant)
+        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+                                 tenant, tenant)
 
 
 class BaseContract(BaseACIObject):
@@ -1150,8 +1155,9 @@ class Taboo(BaseContract):
 
 class FilterEntry(BaseACIObject):
     """ FilterEntry :  roughly equivalent to vzEntry """
-    def __init__(self, name, parent, applyToFrag='0', arpOpc='0', dFromPort='0', dToPort='0',
-                 etherT='0', prot='0', sFromPort='0', sToPort='0', tcpRules='0'):
+    def __init__(self, name, parent, applyToFrag='0', arpOpc='0',
+                 dFromPort='0', dToPort='0', etherT='0', prot='0',
+                 sFromPort='0', sToPort='0', tcpRules='0'):
         """
         :param name: String containing the name of this FilterEntry instance.
         :param applyToFrag: True or False.  True indicates that this\
@@ -1301,7 +1307,8 @@ class BaseInterface(BaseACIObject):
 class Interface(BaseInterface):
     """This class defines a physical interface.
     """
-    def __init__(self, interface_type, pod, node, module, port, parent=None, session=None, attributes={}):
+    def __init__(self, interface_type, pod, node, module, port,
+                 parent=None, session=None, attributes={}):
 
         self._session = session
         self.attributes = {}
@@ -1622,8 +1629,8 @@ class Interface(BaseInterface):
         for prot_relation in prot_data:
             attributes = prot_relation[prot_relation_class]['attributes']
             policy_name = attributes['tDn'].split(prot_relation_dn_class)[1]
-            interface_dn = attributes['dn'].split(prot_relation_dn)[0]
-            search_intf = Interface(*Interface._parse_physical_dn(interface_dn))
+            intf_dn = attributes['dn'].split(prot_relation_dn)[0]
+            search_intf = Interface(*Interface._parse_physical_dn(intf_dn))
             for intf in interfaces:
                 if intf == search_intf:
                     if prot_policies[policy_name] == 'enabled':
