@@ -398,7 +398,8 @@ class BaseACIObject(object):
                 resp.append(relation.item)
         return resp
 
-    def _get_all_relations_by_class(self, relations, attached_class, status='attached'):
+    def _get_all_relations_by_class(self, relations, attached_class,
+                                    status='attached'):
         resp = []
         for relation in relations:
             same_class = isinstance(relation.item, attached_class)
@@ -590,7 +591,7 @@ class BaseACIObject(object):
                 text += textf.format(attrib, getattr(self, attrib))
         return text
 
-    def infoList(self) :
+    def infoList(self):
         """
         Node information.  Returns a list of (attr, value) tuples.
 
@@ -601,29 +602,32 @@ class BaseACIObject(object):
             if attrib[0] != '_':
                 result.append((attrib, getattr(self, attrib)))
         return result
-    
-                
-class Stats() :
+
+
+class Stats():
     """Class for stat.
 
     Will allow the set of counters to be configured by attribute name.
     Will allow the counters to be read from APIC.
-    Will allow the counters to be cleared and uncleared.  When clearing the counters,
-    the current values are read and then stored.  A get will return the difference between the
-    values read from the APIC and the stored values.  An unclear will simply clear the values.
+    Will allow the counters to be cleared and uncleared.
+    When clearing the counters, the current values are read and then stored.
+    A get will return the difference between the values read from the APIC
+    and the stored values.  An unclear will simply clear the values.
     Will allow the change in values to be retrieved.
     """
-    
-    def __init__(self, session=None, counters=None) :
-        """When initializing the stats, a list of counters can be provided through the counters
-        list. The counters structure is as follows: [(dn,[(attribute,name),...)...].  A counter
-        will be created whose name is "name", i.e. it will be accessed by that name.  Its value
-        will come from the APIC object indicated by "dn" and attribute "attribute".  The possibility
-        to give an alternate name from the name of the attribute is that the same attribute name
-        is used in different objects and the Stats object will essentiall flatten them.
 
-        :param session: Optional session of type Session.  If this parameter is not provided, all the
-        counts will be zero.
+    def __init__(self, session=None, counters=None):
+        """When initializing the stats, a list of counters can be provided
+        through the counters list. The counters structure is as follows:
+        [(dn,[(attribute,name),...)...].  A counter will be created whose
+        name is "name", i.e. it will be accessed by that name.  Its value
+        will come from the APIC object indicated by "dn" and attribute
+        "attribute".  The possibility to give an alternate name from the
+        name of the attribute is that the same attribute name is used in
+        different objects and the Stats object will essentiall flatten them.
+
+        :param session: Optional session of type Session.  If this parameter\
+        is not provided, all the counts will be zero.
         :param counters: optional list of counters to include in the stats
         """
         self._session = session
@@ -631,120 +635,118 @@ class Stats() :
         self.baseValue = {}
         self.lastValue = {}
         self.unclear()
-        
-        for (dn,counts) in self.counters :
-            for (attribute, name) in counts :
+
+        for (dn, counts) in self.counters:
+            for (attribute, name) in counts:
                 self.baseValue[name] = 0
                 self.lastValue[name] = 0
 
-    def unclear(self) :
+    def unclear(self):
         """Will set the values that were set by the clear() method to zero so that
         a get() will return the raw values in the APIC.
         """
-        for counter in self.baseValue :
+        for counter in self.baseValue:
             self.baseValue[counter] = 0
 
-    def get(self) :
+    def get(self):
         """Will return a dictionary of the counter values.  Each value is
-        calculated by reading from the APIC and subtracting the corresponding baseValue
+        calculated by reading from the APIC and subtracting the
+        corresponding baseValue
 
         :returns: dictionary of counter:value
         """
         result = {}
-        for (dn, counts) in self.counters :
-            if self._session :
+        for (dn, counts) in self.counters:
+            if self._session:
                 mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
                 ret = self._session.get(mo_query_url)
                 data = ret.json()['imdata']
-                if data :
-                    for key in data[0] :
+                if data:
+                    for key in data[0]:
                         for (attribute, name) in counts:
                             rawCountTxt = data[0][key]['attributes'][attribute]
-                            rawCount = round(float(rawCountTxt),2) if (rawCountTxt.find('.')!=-1) else int(rawCountTxt)
+                            rawCount = round(float(rawCountTxt), 2) if (rawCountTxt.find('.') != -1) else int(rawCountTxt)
                             result[name] = rawCount - self.baseValue[name]
                             self.lastValue[name] = rawCount
-                else :
+                else:
                     for (attribute, name) in counts:
                         rawCount = 0
                         result[name] = rawCount - self.baseValue[name]
                         self.lastValue[name] = rawCount
-            else :
+            else:
                 for (attribute, name) in counts:
                     rawCount = 0
                     result[name] = rawCount - self.baseValue[name]
                     self.lastValue[name] = rawCount
-                
+
         return result
 
-    def clear(self) :
-        for (dn, counts) in self.counters :
-            if self._session :
+    def clear(self):
+        for (dn, counts) in self.counters:
+            if self._session:
                 mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
                 ret = self._session.get(mo_query_url)
                 data = ret.json()['imdata']
-                if data :
-                    for key in data[0] :
+                if data:
+                    for key in data[0]:
                         for (attribute, name) in counts:
                             rawCountTxt = data[0][key]['attributes'][attribute]
-                            rawCount = round(float(rawCountTxt),2) if (rawCountTxt.find('.')!=-1) else int(rawCountTxt)
+                            rawCount = round(float(rawCountTxt), 2) if (rawCountTxt.find('.') != -1) else int(rawCountTxt)
                             self.baseValue[name] = rawCount
                             self.lastValue[name] = rawCount
-                else :
+                else:
                     for (attribute, name) in counts:
                         rawCount = 0
                         result[name] = rawCount - self.baseValue[name]
                         self.lastValue[name] = rawCount
-            else :
+            else:
                 for (attribute, name) in counts:
                     rawCount = 0
                     self.baseValue[name] = rawCount
                     self.lastValue[name] = rawCount
-                
 
-    def change(self) :
+    def change(self):
         """Will return a dictionary of the counter value changes since they
-        were last read by either this same method, the get() method, or a clear()
-        method.  Each value is
-        calculated by reading from the APIC and subtracting the corresponding lastValue
+           were last read by either this same method, the get() method, or
+           a clear() method.  Each value is calculated by reading from the
+           APIC and subtracting the corresponding lastValue
 
         :returns: dictionary of counter:value
         """
         result = {}
-        for (dn, counts) in self.counters :
-            if self._session :
+        for (dn, counts) in self.counters:
+            if self._session:
                 mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
                 ret = self._session.get(mo_query_url)
                 data = ret.json()['imdata']
-                if data :
-                    for key in data[0] :
+                if data:
+                    for key in data[0]:
                         for (attribute, name) in counts:
                             rawCountTxt = data[0][key]['attributes'][attribute]
-                            rawCount = round(float(rawCountTxt),2) if (rawCountTxt.find('.')!=-1) else int(rawCountTxt)
+                            rawCount = round(float(rawCountTxt), 2) if (rawCountTxt.find('.') != -1) else int(rawCountTxt)
                             result[name] = rawCount - self.lastValue[name]
                             self.lastValue[name] = rawCount
-                else :
+                else:
                     for (attribute, name) in counts:
                         rawCount = 0
                         result[name] = rawCount - self.baseValue[name]
                         self.lastValue[name] = rawCount
-            else :
+            else:
                 for (attribute, name) in counts:
                     rawCount = 0
                     result[name] = rawCount - self.lastValue[name]
                     self.lastValue[name] = rawCount
-                
         return result
-    
-    def addCounters(self, counters) :
+
+    def addCounters(self, counters):
         """This routine will add counters to stats. The counters will be
-        appended to any counters that already exist in the stats.
-        The format of the counters parameter is [(dn,[(attribute,name),...)...].
-        The dn indicates which managed object to get the counts from.  It is followed
-        by a list of attribute, name pairs.  The attribute is the name of the attribute
-        in the managed object to get the counter from.  The name is the name used to
-        access the counters in the toolkit.
+        appended to any counters that already exist in the stats. The format
+        of the counters parameter is [(dn,[(attribute,name),...)...]. The dn
+        indicates which managed object to get the counts from.  It is followed
+        by a list of attribute, name pairs.  The attribute is the name of the
+        attribute in the managed object to get the counter from.  The name is
+        the name used to access the counters in the toolkit.
 
         :params counters: list of counters to be added
         """
         self.counters.extend(counters)
-        
