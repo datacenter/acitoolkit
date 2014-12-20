@@ -86,6 +86,8 @@ class BaseACIPhysObject(BaseACIObject):
             other = child.get_json()
             if other is not None:
                 data = self._combine_json(data, other)
+        if len(data) == 0:
+            return None
         return data
 
     def get_url(self, fmt='json'):
