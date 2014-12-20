@@ -55,7 +55,8 @@ class BaseACIPhysObject(BaseACIObject):
             return data
         phys_domain, fabric, infra = data
         other_phys_domain, other_fabric, other_infra = other
-        infra['infraInfra']['children'].extend(other_infra['infraInfra']['children'])
+        infra['infraInfra']['children'].extend(other_infra['infraInfra']
+                                               ['children'])
 
         # Remove duplicate named policies
         for item in infra['infraInfra']['children']:
@@ -98,10 +99,11 @@ class BaseACIPhysObject(BaseACIObject):
         pass
 
     def add_child(self, child_obj):
-        """Add a child to the children list. All children must be unique so it will
-        first delete the child if it already exists.
+        """Add a child to the children list. All children must be unique so it
+        will first delete the child if it already exists.
 
-        :param child_obj: a child object to be added as a child to this object.  This will be put into the _children list.
+        :param child_obj: a child object to be added as a child to this object.
+                          This will be put into the _children list.
 
         :returns: None
         """
@@ -113,8 +115,10 @@ class BaseACIPhysObject(BaseACIObject):
         """Returns the list of children.  If childType is provided, then
         it will return all of the children of the matching type.
 
-        :param childType: This optional parameter will cause this method to return only those children\
-                        that match the type of childType.  If this parameter is ommitted, then all of the children will be returned.
+        :param childType: This optional parameter will cause this method to\
+                        return only those children\
+                        that match the type of childType.  If this parameter\
+                        is ommitted, then all of the children will be returned.
 
         :returns: list of children
         """
@@ -198,7 +202,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.pod = str(pod)
         self.node = str(node)
         self.slot = str(slot)
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+self.pod+'/node-'+self.node+'/slot-'+self.slot)
+        logging.debug('Creating %s %s', self.__class__.__name__,
+                      'pod-'+self.pod+'/node-'+self.node+'/slot-'+self.slot)
         self._common_init(parent)
 
     def get_slot(self):
@@ -209,7 +214,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
         return self.slot
 
     def __eq__(self, other):
-        """ Two modules are considered equal if their class type is the same and pod, node, slot, type all match.
+        """ Two modules are considered equal if their class type is the same
+        and pod, node, slot, type all match.
         """
         if type(self) is not type(other):
             return False
@@ -234,7 +240,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
     def get_obj(cls, session, apic_class, parent):
         """Gets all of the Nodes from the APIC.  This is called by the
         module specific get() methods.  The parameters passed include the
-        APIC object class, apic_class, so that this will work for different kinds of modules.
+        APIC object class, apic_class, so that this will work for
+        different kinds of modules.
 
         :param session: APIC session to use when retrieving the nodes
         :param apic_class: The object class in APIC to retrieve
@@ -257,7 +264,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
             card._session = session
             card._apic_class = apic_class
             card._populate_from_attributes(apic_obj[apic_class]['attributes'])
-            card._additional_populate_from_attributes(apic_obj[apic_class]['attributes'])
+            card._additional_populate_from_attributes(
+                apic_obj[apic_class]['attributes'])
             (card.firmware, card.bios) = card._get_firmware(dist_name)
             card.node = node_id
             card.pod = pod
@@ -778,7 +786,7 @@ class Node(BaseACIPhysObject):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
         node_query_url = ('/api/node/class/fabricNode.json?'
-                               'query-target=self')
+                          'query-target=self')
         nodes = []
         ret = session.get(node_query_url)
         node_data = ret.json()['imdata']
@@ -817,7 +825,6 @@ class Node(BaseACIPhysObject):
         self.dn = attributes['dn']
         self.vendor = attributes['vendor']
         self.fabricSt = attributes['fabricSt']
-        #self.descr = attributes['descr']
 
     def _get_topSystem_info(self):
         """ will read in topSystem object to get more information about Node"""
@@ -981,7 +988,7 @@ class ENode(Node):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
         lnode_query_url = ('/api/node/class/fabricLooseNode.json?'
-                               'query-target=self')
+                           'query-target=self')
         lnodes = []
         ret = session.get(lnode_query_url)
         lnode_data = ret.json()['imdata']
