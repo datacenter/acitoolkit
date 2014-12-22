@@ -2311,38 +2311,87 @@ class BaseMonitorClass(object):
 
         return self.modified
 
-    def add_child(self, obj):
-        """
-        Adds a child to the object.  If that child is already in the children list, it will
-        remove the old one first.
-
-       :param obj: Child object to be added
-        """
-        if obj in self._children:
-            self._children.remove(obj)
-        self._children.append(obj)
-
-    def remove_child(self, obj):
-        """
-        Removes a child from the object.
-
-       :param obj: Child object to be removed
-        """
-        if obj in self._chilren:
-            self._children.remove(obj)
-
-    def get_children(self):
-        """
-       :returns: List of children objects.
-        """
-        return self._children
-
     def get_parent(self):
         """
        :returns: parent object
         """
         return self._parent
 
+    def add_stats(self, stat_obj):
+        """
+        Adds a stats family object.
+
+        :param stat_obj: Statistics family object of type MonitorStats.
+        """
+        self.monitor_stats[stat_obj.scope]=stat_obj
+        self.modified = True
+    
+    def remove_stats(self, stats_family):
+        """
+        Remove a stats family object.  The object to remove is identified by
+        a string, e.g. 'ingrPkts', or 'egrTotal'.  This string can be found
+        in the 'MonitorStats.scope' attribute of the object.
+
+        :param stats_family: Statistics family string.
+        """
+        if not isinstance(stats_family, str):
+            raise TypeError('MonitorStats must be identified by a string')
+
+        if stats_family in self.monitor_stats :
+            self.monitor_stats.remove(stats_family)
+            self.modified = True
+            
+    
+    def add_target(self, target_obj):
+        """
+        Add a target object.
+
+        :param target_obj: target object of type MonitorTarget
+        """
+        self.monitor_target[target_obj.scope]=target_obj
+        self.modified = True
+
+    def remove_target(self, target):
+        """
+        Remove a target object.  The object to remove is identified by
+        a string, e.g 'l1PhysIf'.  This string can be found
+        in the 'MonitorTarget.scope' attribute of the object.
+
+        :param target: target to remove.
+        """
+        if not isinstance(target, str):
+            raise TypeError('MonitorTarget must be identified by a string')
+
+        if target in self.monitor_target :
+            self.monitor_target.remove(target)
+            self.modified = True
+            
+    
+    def add_collection_policy(self, coll_obj):
+        """
+        Add a collection policy.
+
+        :param coll_obj :  A collection policy object of type CollectionPolicy
+        """
+        self.collection_policy[coll_obj.granularity]=coll_obj
+        self.modified = True
+    
+    def remove_collection_policy(self, collection):
+        """
+        Remove a collection_policy object.  The object to remove is identified by
+        its granularity, e.g. '5min', '15min', etc.  This string can be found
+        in the 'CollectionPolicy.granularity' attribute of the object.
+
+        :param collection: CollectionPolicy to remove.
+        """
+        if collection not in CollectionPolicy.granularityEnum :
+            raise TypeError('CollectionPolicy must be identified by its granularity')
+
+        if collection in self.collection_policy :
+            self.collection_policy.remove(collection)
+            self.modified = True
+            
+    
 
 class MonitorPolicy(BaseMonitorClass):
     """
@@ -2352,7 +2401,17 @@ class MonitorPolicy(BaseMonitorClass):
     are used to override the default behavior for a particular target class such as Interfaces.  There can be
     further granularity of control through children of the MonitorTarget sub-objects.
 
-    To make a policy take effect for a particular port for example, you must attach that monitoring policy to
+    Children of the MonitorPolicy will be CollectionPolicy objects that define
+    the collection policy plus optional MonitorTarget objects that allow finer grained
+    control over specific target APIC objects such as 'l1PhysIf' (layer 1 physical interface).
+
+    The CollectionPolicy children are contained in a dictionary called "collection_policy" that is indexed
+    by the granulariy of the CollectionPolicy, e.g. '5min', '15min', etc.
+
+    The MonitorTarget children are contained in a dictionary called "monitor_target" that is indexed by the
+    name of the target object, e.g. 'l1PhysIf'.
+    
+    To make a policy take effect for a particular port, for example, you must attach that monitoring policy to
     the port.
 
     Note that the name of the MonitorPolicy is used to construct the dn of the object in the APIC.  As a
@@ -2384,7 +2443,9 @@ class MonitorPolicy(BaseMonitorClass):
         self.name = name
         self.policyType = policyType
         self.descr = ''
-        self._children = []
+        self.collection_policy = {}
+        self.monitor_target = {}
+        
         # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
         # or the policy is written to the APIC.
         self.modified = True
@@ -2487,15 +2548,102 @@ class MonitorPolicy(BaseMonitorClass):
         """
         return self.policyType+':'+self.name
 
+    def flat(self, target='l1PhysIf'):
+        """
+        This method will return a data structure that is a flattened version of the monitor policy.
+        The flattened version is one that walks through the heirarchy of the policy and determines
+        the administrative state and retention policy for each granularity of each statistics family.
+        This is done for the target specified, i.e. 'l1PhysIf'
+
+        For example, if 'foo' is a MonitorPolicy object, then flatPol = foo.flat('l1PhysIf') will return a
+        dictionary that looks like the following:
+
+        adminState = flatPol['counter_family']['granularity'].adminState
+        retention = flatPol['counter_family']['granularity'].retention
+
+        The dictionary will have all of the counter families for all of the granularities and the value
+        returned is the administrative state nad retention value that is the final result
+        of resolving the policy heirarchy.
+
+        :param target:  APIC target object.  This will default to 'l1PhysIf'
+        :returns: Dictionary of statistic administrative state and retentions indexed by
+                  counter family and granularity.
+        """
+        class Policy(object) :
+            def __init__(self) :
+                self.adminState = 'disabled'
+                self.retention = 'none'
+            
+        result = {}
+
+        # initialize data structure
+
+        
+        for statFamily in MonitorStats.statsFamilyEnum:
+            result[statFamily] = {}
+            for granularity in CollectionPolicy.granularityEnum :
+                result[statFamily][granularity] = Policy()
+
+        # walk through the policy heirarchy and over-ride each
+        # policy with the more specific one
+
+        for granularity in self.collection_policy :
+            retention = self.collection_policy[granularity].retention
+            adminState = self.collection_policy[granularity].adminState
+            for statFamily in MonitorStats.statsFamilyEnum:
+                result[statFamily][granularity].adminState = adminState
+                result[statFamily][granularity].retention = retention
+
+        # now go through monitor targets
+        targetPolicy = self.monitor_target[target]
+        for granularity in targetPolicy.collection_policy:
+            retention = targetPolicy.collection_policy[granularity].retention
+            adminState = targetPolicy.collection_policy[granularity].adminState
+            for statFamily in MonitorStats.statsFamilyEnum:
+                if adminState != 'inherited':
+                    result[statFamily][granularity].adminState = adminState
+                if retention != 'inherited':
+                    result[statFamily][granularity].retention = retention
+        
+        for statFamily in targetPolicy.monitor_stats:
+            for granularity in targetPolicy.monitor_stats[statFamily].collection_policy:
+                retention = targetPolicy.monitor_stats[statFamily].collection_policy[granularity].retention
+                adminState = targetPolicy.monitor_stats[statFamily].collection_policy[granularity].adminState
+                
+                if adminState != 'inherited':
+                    result[statFamily][granularity].adminState = adminState
+                if retention != 'inherited':
+                    result[statFamily][granularity].retention = retention
+                
+        # if the lesser granularity is disabled, then the larger granularity is as well
+        for statFamily in MonitorStats.statsFamilyEnum:
+            disable_found = False
+            for granularity in CollectionPolicy.granularityEnum:
+                if result[statFamily][granularity].adminState=='disabled' :
+                    disable_found = True
+                if disable_found :
+                    result[statFamily][granularity].adminState='disabled'
+          
+        return result
+
 
 class MonitorTarget(BaseMonitorClass):
     """
     This class is a child of a MonitorPolicy object. It is used to specify a scope for appling a monitoring
     policy.  An example scope would be the Interface class, meaning that the monitoring policies specified
     here will apply to all Interface clas objects (l1PhysIf in the APIC) that use the parent MonitoringPolicy as
-    their monitoring policy.  Children of the MonitorTarget will be CollectionPolicy objects that define
+    their monitoring policy.
+
+    Children of the MonitorTarget will be CollectionPolicy objects that define
     the collection policy for the specified target plus optional MonitorStats objects that allow finer grained
     control over specific families of statistics such as ingress packets, ingrPkts.
+
+    The CollectionPolicy children are contained in a dictionary called "collection_policy" that is indexed
+    by the granulariy of the CollectionPolicy, e.g. '5min', '15min', etc.
+
+    The MonitorStats children are contained in a dictionary called "monitor_stats" that is indexed by the
+    name of the statistics family, e.g. 'ingrBytes', 'ingrPkts', etc.
+    
     """
     def __init__(self, parent, target):
         """
@@ -2517,15 +2665,15 @@ class MonitorTarget(BaseMonitorClass):
         self.scope = target
         self.descr = ''
         self.name = ''
-        self._parent.add_child(self)
-        self._children = []
+        self._parent.add_target(self)
+        self.collection_policy = {}
+        self.monitor_stats = {}
         # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
         # or the policy is written to the APIC.
         self.modified = True
 
     def __str__(self):
         return self.scope
-
 
 class MonitorStats(BaseMonitorClass):
     """
@@ -2539,30 +2687,34 @@ class MonitorStats(BaseMonitorClass):
                        'eqptIngrTotal': 'ingrTotal', 'eqptIngrDropPkts': 'ingrDropPkts',
                        'eqptIngrUnkBytes': 'ingrUnkBytes', 'eqptIngrUnkPkts': 'ingrUnkPkts'}
 
+    statsFamilyEnum = ['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts', 'ingrBytes', 'ingrPkts',
+                       'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
     def __init__(self, parent, statsFamily):
         """
         The MonitorStats object must always be initialized with a parent object of type MonitorTarget.
         It sets the scope of its children collection policies (CollectionPolicy) to a particular statistics family.
 
+        The MonitorStats object contains a dictionary of collection policies called collection_policy.  This
+        is a dictionary of children CollectionPolicy objects indexed by their granularity, e.g. '5min', '15min',
+        etc.
+        
        :param parent: Parent object that this monitor stats object should be applied to.
                        This must be an object of type MonitorTarget.
        :param statsFamily: String specifying the statistics family that the children collection policies should
                        be applied to.  Possible values are:['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts',
                        'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
         """
-        statsFamilyEnum = ['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts', 'ingrBytes', 'ingrPkts',
-                           'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
         if not type(parent) in [MonitorTarget]:
             raise TypeError('Parent of MonitorStats must be one of type MonitorTarget')
-        if statsFamily not in statsFamilyEnum:
+        if statsFamily not in MonitorStats.statsFamilyEnum:
             raise ValueError('statsFamily must be one of:', statsFamilyEnum)
 
         self._parent = parent
         self.scope = statsFamily
         self.descr = ''
         self.name = ''
-        self._parent.add_child(self)
-        self._children = []
+        self._parent.add_stats(self)
+        self.collection_policy = {}
         # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
         # or the policy is written to the APIC.
         self.modified = True
@@ -2586,6 +2738,9 @@ class CollectionPolicy(BaseMonitorClass):
 
     This object is roughly the same as the statsColl and statsHierColl objects in the APIC.
     """
+    granularityEnum = ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year'] # this must be in order from small to large
+    retentionEnum = ['none', 'inherited', '5min', '15min', '1h', '1d',
+                         '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year']
 
     def __init__(self, parent, granularity, retention, adminState='enabled'):
         """
@@ -2620,16 +2775,13 @@ class CollectionPolicy(BaseMonitorClass):
                        granularity.  Possible values are ['enabled', 'disabled', 'inherited'].  The default if not
                        specified is 'enabled'.
         """
-        granularityEnum = ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year']
-        retentionEnum = ['none', 'inherited', '5min', '15min', '1h', '1d',
-                         '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year']
         adminStateEnum = ['enabled', 'disabled', 'inherited']
 
         if type(parent) not in [MonitorStats, MonitorTarget, MonitorPolicy]:
             raise TypeError('Parent of collection policy must be one of MonitorStats, MonitorTarget, or MonitorPolicy')
-        if granularity not in granularityEnum:
+        if granularity not in CollectionPolicy.granularityEnum:
             raise ValueError('granularity must be one of:', granularityEnum)
-        if retention not in retentionEnum:
+        if retention not in CollectionPolicy.retentionEnum:
             raise ValueError('retention must be one of:', retentionEnum)
         if adminState not in adminStateEnum:
             raise ValueError('adminState must be one of:', adminStateEnum)
@@ -2641,7 +2793,7 @@ class CollectionPolicy(BaseMonitorClass):
         self.adminState = adminState
         self._children = []
 
-        self._parent.add_child(self)
+        self._parent.add_collection_policy(self)
         # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
         # or the policy is written to the APIC.
         self.modified = True
