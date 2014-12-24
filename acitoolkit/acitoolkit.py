@@ -32,8 +32,10 @@ class Tenant(BaseACIObject):
     the fvTenant class.
     """
     @classmethod
-    def _get_apic_class(cls):
-        return 'fvTenant'
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append('fvTenant')
+        return resp
 
     @staticmethod
     def _get_parent_class():
@@ -54,7 +56,7 @@ class Tenant(BaseACIObject):
         :returns: A json dictionary of fvTenant
         """
         attr = self._generate_attributes()
-        return super(Tenant, self).get_json(self._get_apic_class(),
+        return super(Tenant, self).get_json(self._get_apic_classes()[0],
                                             attributes=attr)
 
     @classmethod
@@ -65,7 +67,7 @@ class Tenant(BaseACIObject):
         :param session: the instance of Session used for APIC communication
         :returns: a list of Tenant objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class())
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0])
 
     @classmethod
     def exists(cls, session, tenant):
@@ -113,8 +115,10 @@ class AppProfile(BaseACIObject):
         super(AppProfile, self).__init__(name, parent)
 
     @classmethod
-    def _get_apic_class(cls):
-        return 'fvAp'
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append('fvAp')
+        return resp
 
     @staticmethod
     def _get_parent_class():
@@ -136,7 +140,7 @@ class AppProfile(BaseACIObject):
         :returns: json dictionary of fvAp
         """
         attr = self._generate_attributes()
-        return super(AppProfile, self).get_json(self._get_apic_class(),
+        return super(AppProfile, self).get_json(self._get_apic_classes()[0],
                                                 attributes=attr)
 
     @classmethod
@@ -148,7 +152,7 @@ class AppProfile(BaseACIObject):
                        Profiles retreived from the APIC
         :returns: List of AppProfile objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
                                  parent=tenant, tenant=tenant)
 
     def _get_url_extension(self):
@@ -356,7 +360,7 @@ class CommonEPG(BaseACIObject):
         :returns: List of CommonEPG instances (or EPG instances if called\
                   from EPG class)
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
                                  parent, tenant)
 
 
@@ -378,8 +382,10 @@ class EPG(CommonEPG):
         super(EPG, self).__init__(epg_name, parent)
 
     @classmethod
-    def _get_apic_class(cls):
-        return 'fvAEPg'
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append('fvAEPg')
+        return resp
 
     @staticmethod
     def _get_parent_class():
@@ -467,6 +473,8 @@ class EPG(CommonEPG):
                                                   {'attributes':
                                                    {'tDn': path},
                                                    'children': []}}]}}
+                if ep.is_deleted():
+                    text['fvStCEp']['attributes']['status'] = 'deleted'
                 children.append(text)
         if is_interfaces:
             text = {'fvRsDomAtt': {'attributes':
@@ -489,7 +497,7 @@ class EPG(CommonEPG):
                                      'tDn': interface._get_path()}}}
             children.append(text)
         attr = self._generate_attributes()
-        return super(EPG, self).get_json(self._get_apic_class(),
+        return super(EPG, self).get_json(self._get_apic_classes()[0],
                                          attributes=attr,
                                          children=children)
 
@@ -735,8 +743,10 @@ class BridgeDomain(BaseACIObject):
         super(BridgeDomain, self).__init__(bd_name, parent)
 
     @classmethod
-    def _get_apic_class(cls):
-        return 'fvBD'
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append('fvBD')
+        return resp
 
     @staticmethod
     def _get_parent_class():
@@ -762,7 +772,7 @@ class BridgeDomain(BaseACIObject):
                                 {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
-        return super(BridgeDomain, self).get_json(self._get_apic_class(),
+        return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
                                                   attributes=attr,
                                                   children=children)
 
@@ -860,7 +870,7 @@ class BridgeDomain(BaseACIObject):
                        instances retreived from the APIC
         :returns: List of BridgeDomain objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
                                  tenant, tenant)
 
     def _get_url_extension(self):
@@ -949,8 +959,10 @@ class Context(BaseACIObject):
         self._allow_all = False
 
     @classmethod
-    def _get_apic_class(cls):
-        return 'fvCtx'
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append('fvCtx')
+        return resp
 
     @staticmethod
     def _get_parent_class():
@@ -993,7 +1005,7 @@ class Context(BaseACIObject):
             attributes['pcEnfPref'] = 'unenforced'
         else:
             attributes['pcEnfPref'] = 'enforced'
-        return super(Context, self).get_json(self._get_apic_class(),
+        return super(Context, self).get_json(self._get_apic_classes()[0],
                                              attributes=attributes)
 
     @classmethod
@@ -1006,7 +1018,7 @@ class Context(BaseACIObject):
                        retreived from the APIC
         :returns: List of Context objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_class(),
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
                                  tenant, tenant)
 
 
@@ -1029,8 +1041,10 @@ class BaseContract(BaseACIObject):
         raise NotImplementedError
 
     @classmethod
-    def _get_apic_class(cls):
-        return cls._get_contract_code()
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append(cls._get_contract_code())
+        return resp
 
     @staticmethod
     def _get_parent_class():
@@ -2080,16 +2094,42 @@ class PortChannel(BaseInterface):
 
 
 class Endpoint(BaseACIObject):
-    def __init__(self, name, mac, ip):
-        super(Endpoint, self).__init__(name)
-        self.mac = mac
-        self.ip = ip
+    def __init__(self, name, parent):
+        if not isinstance(parent, EPG):
+            raise TypeError('Parent must be of EPG class')
+        super(Endpoint, self).__init__(name, parent=parent)
+        self.mac = None
+        self.ip = None
         self.encap = None
-        self.epg = None
 
     @classmethod
-    def _get_apic_class(cls):
-        return 'fvCEp'
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append('fvCEp')
+        resp.append('fvStCEp')
+        return resp
+
+    @staticmethod
+    def _get_parent_class():
+        return EPG
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        if '/stcep-' in dn:
+            return dn.split('/stcep-')[0]
+        else:
+            return dn.split('/cep-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        if '/stcep-' in dn:
+            name = dn.split('/stcep-')[1].split('-type-')[0]
+        else:
+            name = dn.split('/cep-')[1]
+        return name
+
+    def get_json(self):
+        return None
 
     @staticmethod
     def _get(session, interfaces, endpoints, apic_endpoint_class, endpoint_path):
@@ -2103,11 +2143,13 @@ class Endpoint(BaseACIObject):
                 continue
             children = ep[apic_endpoint_class]['children']
             ep = ep[apic_endpoint_class]['attributes']
-            endpoint = Endpoint(str(ep['name']), str(ep['mac']), str(ep['ip']))
-            endpoint.encap = str(ep['encap'])
             tenant = Tenant(str(ep['dn']).split('/')[1][3:])
             app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
-            endpoint.epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
+            epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
+            endpoint = Endpoint(str(ep['name']), parent=epg)
+            endpoint.mac = str(ep['mac'])
+            endpoint.ip = str(ep['ip'])
+            endpoint.encap = str(ep['encap'])
             for child in children:
                 if endpoint_path in child:
                     endpoint.if_name = str(child[endpoint_path]['attributes']['tDn'])

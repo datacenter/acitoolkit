@@ -103,14 +103,17 @@ class BaseACIObject(object):
             self._parent.add_child(self)
 
     @classmethod
-    def _get_subscription_url(cls):
-        return '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
+    def _get_subscription_urls(cls):
+        resp = []
+        for class_name in cls._get_apic_classes():
+            resp.append('/api/class/%s.json?subscription=yes' % class_name)
+        return resp
 
-    def _get_instance_subscription_url(self):
+    def _get_instance_subscription_urls(self):
         raise NotImplementedError
 
     @classmethod
-    def _get_apic_class(cls):
+    def _get_apic_classes(cls):
         raise NotImplementedError
 
     @staticmethod
@@ -138,31 +141,44 @@ class BaseACIObject(object):
 
     @classmethod
     def subscribe(cls, session):
-        url = cls._get_subscription_url()
-        resp = session.subscribe(url)
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            resp = session.subscribe(url)
+            if resp is not None:
+                if not resp.ok:
+                    return resp
         return resp
 
     @classmethod
     def get_event(cls, session):
-        url = cls._get_subscription_url()
-        event = session.get_event(url)
-        attributes = event['imdata'][0][cls._get_apic_class()]['attributes']
-        status = str(attributes['status'])
-        dn = str(attributes['dn'])
-        parent = cls._get_parent_from_dn(dn)
-        if status == 'created':
-            name = str(attributes['name'])
-        else:
-            name = cls._get_name_from_dn(dn)
-        obj = cls(name, parent=cls._get_parent_from_dn(dn))
-        if status == 'deleted':
-            obj.mark_as_deleted()
-        return obj
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in cls._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0][class_name]['attributes']
+            status = str(attributes['status'])
+            dn = str(attributes['dn'])
+            parent = cls._get_parent_from_dn(dn)
+            if status == 'created':
+                name = str(attributes['name'])
+            else:
+                name = cls._get_name_from_dn(dn)
+            obj = cls(name, parent=cls._get_parent_from_dn(dn))
+            if status == 'deleted':
+                obj.mark_as_deleted()
+            return obj
 
     @classmethod
     def has_events(cls, session):
-        url = cls._get_subscription_url()
-        return session.has_events(url)
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            if session.has_events(url):
+                return True
+        return False
 
     def _instance_subscribe(self, session):
         url = self._get_instance_subscription_url()
@@ -171,8 +187,9 @@ class BaseACIObject(object):
 
     @classmethod
     def unsubscribe(cls, session):
-        url = '/api/class/%s.json?subscription=yes' % cls._get_apic_class()
-        session.unsubscribe(url)
+        for class_name in cls._get_apic_classes():
+            url = '/api/class/%s.json?subscription=yes' % class_name
+            session.unsubscribe(url)
 
     def _instance_unsubscribe(self):
         # instance unsubscribe

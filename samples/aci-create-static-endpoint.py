@@ -66,9 +66,12 @@ vlan_intf.attach(intf)
 epg.attach(vlan_intf)
 
 # Create the Endpoint
-ep = ACI.Endpoint(name='00:50:56:11:22:33',
-                  mac='00:50:56:11:22:33',
-                  ip='10.10.5.5')
+mac = '00:50:56:11:22:33'
+ip = '10.10.5.5'
+ep = ACI.Endpoint(name=mac,
+                  parent=epg)
+ep.mac = mac
+ep.ip = ip
 
 # Assign it to the L2Interface
 ep.attach(vlan_intf)
