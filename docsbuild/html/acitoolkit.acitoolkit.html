@@ -66,10 +66,19 @@
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="monitor_policy.html">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor_policy.html#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statsbody.html">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">API Reference</a><ul class="current">
@@ -247,6 +256,146 @@ classes.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass">
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">BaseMonitorClass</tt><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Base class for monitoring policies.  These are methods that can be used on all monitoring objects.</p>
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.add_collection_policy">
+<tt class="descname">add_collection_policy</tt><big>(</big><em>coll_obj</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.add_collection_policy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a collection policy.</p>
+<p>:param coll_obj :  A collection policy object of type CollectionPolicy</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.add_stats">
+<tt class="descname">add_stats</tt><big>(</big><em>stat_obj</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.add_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a stats family object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>stat_obj</strong> &#8211; Statistics family object of type MonitorStats.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.add_target">
+<tt class="descname">add_target</tt><big>(</big><em>target_obj</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.add_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a target object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target_obj</strong> &#8211; target object of type MonitorTarget</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.get_parent">
+<tt class="descname">get_parent</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.get_parent" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">parent object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.isModified">
+<tt class="descname">isModified</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.isModified" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if this policy and any children have been modified or
+created and not been written to the APIC</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.remove_collection_policy">
+<tt class="descname">remove_collection_policy</tt><big>(</big><em>collection</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.remove_collection_policy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a collection_policy object.  The object to remove is identified by
+its granularity, e.g. &#8216;5min&#8217;, &#8216;15min&#8217;, etc.  This string can be found
+in the &#8216;CollectionPolicy.granularity&#8217; attribute of the object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>collection</strong> &#8211; CollectionPolicy to remove.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.remove_stats">
+<tt class="descname">remove_stats</tt><big>(</big><em>stats_family</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.remove_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a stats family object.  The object to remove is identified by
+a string, e.g. &#8216;ingrPkts&#8217;, or &#8216;egrTotal&#8217;.  This string can be found
+in the &#8216;MonitorStats.scope&#8217; attribute of the object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>stats_family</strong> &#8211; Statistics family string.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.remove_target">
+<tt class="descname">remove_target</tt><big>(</big><em>target</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.remove_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a target object.  The object to remove is identified by
+a string, e.g &#8216;l1PhysIf&#8217;.  This string can be found
+in the &#8216;MonitorTarget.scope&#8217; attribute of the object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> &#8211; target to remove.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.setDescription">
+<tt class="descname">setDescription</tt><big>(</big><em>description</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.setDescription" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Sets the description of the MonitorStats.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>description</strong> &#8211; String to use as the description</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.BaseMonitorClass.setName">
+<tt class="descname">setName</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseMonitorClass.setName" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Sets the name of the MonitorStats.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> &#8211; String to use as the name</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="acitoolkit.acitoolkit.BridgeDomain">
 <em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">BridgeDomain</tt><big>(</big><em>bd_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BridgeDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
@@ -397,6 +546,104 @@ classes.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>subnet</strong> &#8211; Instance of Subnet class to remove from this                       BridgeDomain.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.acitoolkit.CollectionPolicy">
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">CollectionPolicy</tt><big>(</big><em>parent</em>, <em>granularity</em>, <em>retention</em>, <em>adminState='enabled'</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.CollectionPolicy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.acitoolkit.BaseMonitorClass" title="acitoolkit.acitoolkit.BaseMonitorClass"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.BaseMonitorClass</span></tt></a></p>
+<p>This class is a child of a MonitorPolicy object, MonitorTarget object or a MonitorStats object.  It is where the statistics collection
+policy is actually specified.  It applies to all of the statistics that are at the scope level of the parent object,
+i.e. all, specific to a target, or specific to a statistics family.  What is specified in the CollectionPolicy is the
+time granularity of the collection and how much history to retain.  For example, the granularity might be 5 minutes (5min)
+or 1 hour (1h).  How much history to retain is similarly specified.  For example you might specify that it be kept for 10 days (10d)
+or 2 years (2year).</p>
+<p>If the CollectionPolicy is a child of a MonitorStats object, it can optionally have children that specify the policy
+for raising threshold alarms on the fields in the stats family specified in the MonitorStats object.  This has yet to be
+implemented.</p>
+<p>This object is roughly the same as the statsColl and statsHierColl objects in the APIC.</p>
+<dl class="docutils">
+<dt>The CollectionPolicy must always be initialized with a parent object of type MonitorPolicy, MonitorTarget or MonitorStats.</dt>
+<dd><p class="first">The granularity must also be specifically specified.  The retention period can be specified, set to &#8220;none&#8221;, or set to &#8220;inherited&#8221;.
+Note that the &#8220;none&#8221; value is a string, not the Python None.  When the retention period is set to &#8220;none&#8221; there will be no
+historical stats kept.  However, assuming collection is enabled, stats will be kept for the current time period.</p>
+<p>If the retention period is set to &#8220;inherited&#8221;, the value will be inherited from the less specific policy directly above this one.
+The same applies to the adminState value.  It can be &#8216;disabled&#8217;, &#8216;enabled&#8217;, or &#8216;inherited&#8217;.  If &#8216;disabled&#8217;, the current scope of
+counters are not gathered.  If enabled, they are gathered.  If &#8216;inherited&#8217;, it will be according to the next higher scope.</p>
+<p>Having the &#8216;inherited&#8217; option on the retention and administrative status allows these items independently controlled at the current
+stats granularity.  For example, you can specify that ingress unknown packets are gathered every 15 minutes by setting
+adding a collection policy that specifies a 15 minutes granularity and an adminState of &#8216;enabled&#8217; under a MonitorStats object that
+sets the scope to be ingress unknown packets.  This might override a higher level policy that disabled collection at a 15 minute
+interval.   However, you can set the retention in that same object to be &#8220;inherited&#8221; so that this specific policy does not
+change the retention behavior from that of the higher, less specific, policy.</p>
+<p class="last">When the CollectionPolicy is a child at the top level, i.e. of the MonitorPolicy, the &#8216;inherited&#8217; option is not allowed
+because there is no higher level policy to inherit from.  If this were to happen, &#8216;inherited&#8217; will be treated as
+&#8216;enabled&#8217;.</p>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>parent</strong> &#8211; Parent object that this collection policy should be applied to.
+This must be an object of type MonitorStats, MonitorTarget, or MonitorPolicy.</li>
+<li><strong>granularity</strong> &#8211; String specifying the time collection interval or granularity of this policy.  Possible values are:
+[&#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;].</li>
+<li><strong>retention</strong> &#8211; String specifying how much history to retain the collected statistics for.  The retention will be for
+time units of the granularity specified.  Possible values are [&#8216;none&#8217;, &#8216;inherited&#8217;, &#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;,
+&#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;, &#8216;2year&#8217;, &#8216;3year&#8217;].</li>
+<li><strong>adminState</strong> &#8211; Administrative status.  String to specify whether stats should be collected at the specified
+granularity.  Possible values are [&#8216;enabled&#8217;, &#8216;disabled&#8217;, &#8216;inherited&#8217;].  The default if not
+specified is &#8216;enabled&#8217;.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="acitoolkit.acitoolkit.CollectionPolicy.granularityEnum">
+<tt class="descname">granularityEnum</tt><em class="property"> = ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year']</em><a class="headerlink" href="#acitoolkit.acitoolkit.CollectionPolicy.granularityEnum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="acitoolkit.acitoolkit.CollectionPolicy.retentionEnum">
+<tt class="descname">retentionEnum</tt><em class="property"> = ['none', 'inherited', '5min', '15min', '1h', '1d', '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year']</em><a class="headerlink" href="#acitoolkit.acitoolkit.CollectionPolicy.retentionEnum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.CollectionPolicy.setAdminState">
+<tt class="descname">setAdminState</tt><big>(</big><em>adminState</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.CollectionPolicy.setAdminState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the administrative status.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>adminState</strong> &#8211; Administrative status.  String to specify whether stats should be collected at the specified
+granularity.  Possible values are [&#8216;enabled&#8217;, &#8216;disabled&#8217;, &#8216;inherited&#8217;].  The default if not
+specified is &#8216;enabled&#8217;.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.CollectionPolicy.setRetention">
+<tt class="descname">setRetention</tt><big>(</big><em>retention</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.CollectionPolicy.setRetention" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Sets the retention period.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>retention</strong> &#8211; String specifying how much history to retain the collected statistics for.  The retention will be for
+time units of the granularity specified.  Possible values are [&#8216;none&#8217;, &#8216;inherited&#8217;, &#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;,
+&#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;, &#8216;2year&#8217;, &#8216;3year&#8217;].</td>
 </tr>
 </tbody>
 </table>
@@ -776,7 +1023,7 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 
 <dl class="class">
 <dt id="acitoolkit.acitoolkit.Endpoint">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Endpoint</tt><big>(</big><em>name</em>, <em>mac</em>, <em>ip</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Endpoint" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">Endpoint</tt><big>(</big><em>name</em>, <em>parent</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Endpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
 <dl class="staticmethod">
 <dt id="acitoolkit.acitoolkit.Endpoint.get">
@@ -784,11 +1031,16 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 <dd><p>Gets all of the endpoints connected to the fabric from the APIC</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.Endpoint.get_json">
+<tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Endpoint.get_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="acitoolkit.acitoolkit.FilterEntry">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">FilterEntry</tt><big>(</big><em>name</em>, <em>applyToFrag</em>, <em>arpOpc</em>, <em>dFromPort</em>, <em>dToPort</em>, <em>etherT</em>, <em>prot</em>, <em>sFromPort</em>, <em>sToPort</em>, <em>tcpRules</em>, <em>parent</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.FilterEntry" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">FilterEntry</tt><big>(</big><em>name</em>, <em>parent</em>, <em>applyToFrag='0'</em>, <em>arpOpc='0'</em>, <em>dFromPort='0'</em>, <em>dToPort='0'</em>, <em>etherT='0'</em>, <em>prot='0'</em>, <em>sFromPort='0'</em>, <em>sToPort='0'</em>, <em>tcpRules='0'</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.FilterEntry" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
 <p>FilterEntry :  roughly equivalent to vzEntry</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -811,6 +1063,25 @@ Note that there should only be one BridgeDomain attached to the EPG.</p>
 </tr>
 </tbody>
 </table>
+<dl class="classmethod">
+<dt id="acitoolkit.acitoolkit.FilterEntry.get">
+<em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em>, <em>parent=None</em>, <em>tenant=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.FilterEntry.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>To get all of acitoolkit style Filter Entries APIC class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
+<li><strong>parent</strong> &#8211; Object to assign as the parent to the created objects.</li>
+<li><strong>tenant</strong> &#8211; Tenant object to assign the created objects.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.FilterEntry.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.FilterEntry.get_json" title="Permalink to this definition">¶</a></dt>
@@ -1033,10 +1304,12 @@ counters is to print the keys of the dictionary.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.InterfaceStats.retrieve">
 <tt class="descname">retrieve</tt><big>(</big><em>countFamily</em>, <em>granularity</em>, <em>period</em>, <em>countName</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.InterfaceStats.retrieve" title="Permalink to this definition">¶</a></dt>
-<dd><p>This will return the requested count from stats that were loaded with
+<dd><blockquote>
+<div><p>This will return the requested count from stats that were loaded with
 the previous get().  It will return 0 for counts that don&#8217;t exist or None
 for time stamps that don&#8217;t exist.</p>
 <p>Note that this method will not access the APIC, it will only work on data that was previously loaded with a get().</p>
+</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1276,58 +1549,168 @@ The address is set via the L3Interface.set_addr() method</p>
 
 <dl class="class">
 <dt id="acitoolkit.acitoolkit.MonitorPolicy">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">MonitorPolicy</tt><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is used to manage monitoring policies.  Through this class you can list the available
-policies, show the policy that is in effect, modify policies, create policies, and delete policies.</p>
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">MonitorPolicy</tt><big>(</big><em>policyType</em>, <em>name</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.acitoolkit.BaseMonitorClass" title="acitoolkit.acitoolkit.BaseMonitorClass"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.BaseMonitorClass</span></tt></a></p>
+<p>This class is the top-most container for a monitoring policy that controlls how statistics are gathered.
+It has immediate children, CollectionPolicy objects, that control the default behavior for any network
+element that uses this monitoring policy.  It may optionally have MonitorTarget objects as children that
+are used to override the default behavior for a particular target class such as Interfaces.  There can be
+further granularity of control through children of the MonitorTarget sub-objects.</p>
+<p>Children of the MonitorPolicy will be CollectionPolicy objects that define
+the collection policy plus optional MonitorTarget objects that allow finer grained
+control over specific target APIC objects such as &#8216;l1PhysIf&#8217; (layer 1 physical interface).</p>
+<p>The CollectionPolicy children are contained in a dictionary called &#8220;collection_policy&#8221; that is indexed
+by the granulariy of the CollectionPolicy, e.g. &#8216;5min&#8217;, &#8216;15min&#8217;, etc.</p>
+<p>The MonitorTarget children are contained in a dictionary called &#8220;monitor_target&#8221; that is indexed by the
+name of the target object, e.g. &#8216;l1PhysIf&#8217;.</p>
+<p>To make a policy take effect for a particular port, for example, you must attach that monitoring policy to
+the port.</p>
+<p>Note that the name of the MonitorPolicy is used to construct the dn of the object in the APIC.  As a
+result, the name cannot be changed.  If you read a policy from the APIC, change the name, and write it
+back, it will create a new policy with the new name and leave the old, original policy, in place
+with its original name.</p>
+<p>A description may be optionally added to the policy.</p>
+<p>The MonitorPolicy is initialized with simply a policy type and a name.  There are two policy types: &#8216;fabric&#8217;
+and &#8216;access&#8217;.  The &#8216;fabric&#8217; monitoring policies can be applied to certain MonitorTarget types and &#8216;access&#8217;
+monitoring policies can be applied to other MonitorTarget types. Initially however, both policies can
+have l1PhysIf as targets.</p>
+<p>A name must be specified because it is used to build the distinguising name (dn) along with the policyType in
+the APIC.  The dn for &#8220;fabric&#8221; policies will be /uni/fabric/monfabric-[name] and for &#8220;access&#8221; policies it
+will be /uni/infra/moninfra-[name] in the APIC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>policyType</strong> &#8211; String specifying whether this is a fabric or access policy</li>
+<li><strong>name</strong> &#8211; String specifying a name for the policy.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="acitoolkit.acitoolkit.MonitorPolicy.flat">
+<tt class="descname">flat</tt><big>(</big><em>target='l1PhysIf'</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy.flat" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method will return a data structure that is a flattened version of the monitor policy.
+The flattened version is one that walks through the heirarchy of the policy and determines
+the administrative state and retention policy for each granularity of each statistics family.
+This is done for the target specified, i.e. &#8216;l1PhysIf&#8217;</p>
+<p>For example, if &#8216;foo&#8217; is a MonitorPolicy object, then flatPol = foo.flat(&#8216;l1PhysIf&#8217;) will return a
+dictionary that looks like the following:</p>
+<p>adminState = flatPol[&#8216;counter_family&#8217;][&#8216;granularity&#8217;].adminState
+retention = flatPol[&#8216;counter_family&#8217;][&#8216;granularity&#8217;].retention</p>
+<p>The dictionary will have all of the counter families for all of the granularities and the value
+returned is the administrative state nad retention value that is the final result
+of resolving the policy heirarchy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> &#8211; APIC target object.  This will default to &#8216;l1PhysIf&#8217;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of statistic administrative state and retentions indexed by
+counter family and granularity.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="classmethod">
 <dt id="acitoolkit.acitoolkit.MonitorPolicy.get">
 <em class="property">classmethod </em><tt class="descname">get</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy.get" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method will read the monitoring policies from the APIC and return
-a fully expanded version of them in the form of a dictionary.  The format will
-be:</p>
-<p>{policyType:{policyName:{policyTarget:{granularity:{counter:{&#8216;adminState&#8217;:&lt;adminState&gt;, &#8216;retHist&#8217;:&lt;restHist&gt;}}}}}}</p>
-<dl class="docutils">
-<dt>Where policyType is &#8216;fabric&#8217; or &#8216;access&#8217; corresponding to the type of interface</dt>
-<dd><p class="first">policyName is the name of the policy such as &#8216;default&#8217; or &#8216;mon&#8217;
-policyTarget is the monitoring target: values include &#8216;interface&#8217;, &#8216;hypervisor&#8217;, &#8216;hypervisorNic&#8217;, &#8216;extendedChassis&#8217;,&#8217;portChannel&#8217;
-granularity is the time granularity that the counters are rolled up to - possible values are</p>
-<blockquote>
-<div>5min, 15min, 1h, 1d, 1w, 1mo, 1qtr, 1year.</div></blockquote>
-<p class="last">counter: The counter depends on what the target is. Examples are: &#8216;eqptEgrTotal&#8217;, &#8216;epqtIngrDropPkts&#8217;
-adminState : Administrative state either &#8216;enabled&#8217; or &#8216;disabled&#8217;
-retHist:  How long of a history to keep the data: &#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year, &#8216;2year  11      2 Years&#8217;, and &#8216;3year&#8217;</p>
-</dd>
-</dl>
+<dd><blockquote>
+<div>get() will get all of the monitor policies from the APIC and return them as a list.  It will get both
+fabric and access (infra) policies including default policies.</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; the instance of Session used for APIC communication</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of the currently configured monitoring polices</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of MonitorPolicy objects</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
-<dl class="staticmethod">
-<dt id="acitoolkit.acitoolkit.MonitorPolicy.getNames">
-<em class="property">static </em><tt class="descname">getNames</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorPolicy.getNames" title="Permalink to this definition">¶</a></dt>
-<dd><p>Will return a dictionary of policy names.  There will be two items in the dictionary, &#8220;fabric&#8221;
-and &#8220;access&#8221;.  For each item there will be a list of names of policies.</p>
-<p>The returned data looks like the following.
-{&#8216;fabric&#8217;:[&#8216;fname1&#8217;,fname2&#8217;,...], &#8216;access&#8217;:[&#8216;aname1&#8217;, &#8216;aname2&#8217;,...]}</p>
-<p>These names can then be used to access a specific policy.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acitoolkit.acitoolkit.MonitorStats">
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">MonitorStats</tt><big>(</big><em>parent</em>, <em>statsFamily</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorStats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.acitoolkit.BaseMonitorClass" title="acitoolkit.acitoolkit.BaseMonitorClass"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.BaseMonitorClass</span></tt></a></p>
+<p>This class is a child of a MonitorTarget object.  It is used to specify a scope for applying a monitoring policy
+that is more fine grained than the MonitorTarget.  Specifically, the MonitorStats object specifies a statistics
+family such as &#8220;ingress packets&#8221; or &#8220;egress bytes&#8221;.</p>
+<dl class="docutils">
+<dt>The MonitorStats object must always be initialized with a parent object of type MonitorTarget.</dt>
+<dd><p class="first">It sets the scope of its children collection policies (CollectionPolicy) to a particular statistics family.</p>
+<p class="last">The MonitorStats object contains a dictionary of collection policies called collection_policy.  This
+is a dictionary of children CollectionPolicy objects indexed by their granularity, e.g. &#8216;5min&#8217;, &#8216;15min&#8217;,
+etc.</p>
+</dd>
+</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">dictionary of monitoring policy names</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>parent</strong> &#8211; Parent object that this monitor stats object should be applied to.
+This must be an object of type MonitorTarget.</li>
+<li><strong>statsFamily</strong> &#8211; String specifying the statistics family that the children collection policies should
+be applied to.  Possible values are:[&#8216;egrBytes&#8217;, &#8216;egrPkts&#8217;, &#8216;egrTotal&#8217;, &#8216;egrDropPkts&#8217;,
+&#8216;ingrBytes&#8217;, &#8216;ingrPkts&#8217;, &#8216;ingrTotal&#8217;, &#8216;ingrDropPkts&#8217;, &#8216;ingrUnkBytes&#8217;, &#8216;ingrUnkPkts&#8217;]</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
+<dl class="attribute">
+<dt id="acitoolkit.acitoolkit.MonitorStats.statsDictionary">
+<tt class="descname">statsDictionary</tt><em class="property"> = {'eqptIngrPkts': 'ingrPkts', 'eqptIngrUnkBytes': 'ingrUnkBytes', 'eqptEgrTotal': 'egrTotal', 'eqptIngrTotal': 'ingrTotal', 'eqptIngrBytes': 'ingrBytes', 'eqptEgrBytes': 'egrBytes', 'eqptIngrDropPkts': 'ingrDropPkts', 'eqptEgrPkts': 'egrPkts', 'eqptIngrUnkPkts': 'ingrUnkPkts', 'eqptEgrDropPkts': 'egrDropPkts'}</em><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorStats.statsDictionary" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="acitoolkit.acitoolkit.MonitorStats.statsFamilyEnum">
+<tt class="descname">statsFamilyEnum</tt><em class="property"> = ['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts', 'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']</em><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorStats.statsFamilyEnum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
+<dl class="class">
+<dt id="acitoolkit.acitoolkit.MonitorTarget">
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">MonitorTarget</tt><big>(</big><em>parent</em>, <em>target</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.MonitorTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#acitoolkit.acitoolkit.BaseMonitorClass" title="acitoolkit.acitoolkit.BaseMonitorClass"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.BaseMonitorClass</span></tt></a></p>
+<p>This class is a child of a MonitorPolicy object. It is used to specify a scope for appling a monitoring
+policy.  An example scope would be the Interface class, meaning that the monitoring policies specified
+here will apply to all Interface clas objects (l1PhysIf in the APIC) that use the parent MonitoringPolicy as
+their monitoring policy.</p>
+<p>Children of the MonitorTarget will be CollectionPolicy objects that define
+the collection policy for the specified target plus optional MonitorStats objects that allow finer grained
+control over specific families of statistics such as ingress packets, ingrPkts.</p>
+<p>The CollectionPolicy children are contained in a dictionary called &#8220;collection_policy&#8221; that is indexed
+by the granulariy of the CollectionPolicy, e.g. &#8216;5min&#8217;, &#8216;15min&#8217;, etc.</p>
+<p>The MonitorStats children are contained in a dictionary called &#8220;monitor_stats&#8221; that is indexed by the
+name of the statistics family, e.g. &#8216;ingrBytes&#8217;, &#8216;ingrPkts&#8217;, etc.</p>
+<dl class="docutils">
+<dt>The MonitorTarget object is initialized with a parent of type MonitorPoliy, and a target string.</dt>
+<dd>Initially, this toolkit only support a target of type &#8216;l1PhysIf&#8217;.  The &#8216;l1PhyIf&#8217; target is a layer
+1 physical interface or &#8220;port&#8221;.  The MonitorTarget will narrow the scope of the policy specified by
+the children of the MonitorTarget to be only the target class.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>parent</strong> &#8211; Parent object that his monitor target is a child of. It must be of type MonitorPolicy</li>
+<li><strong>target</strong> &#8211; String specifying the target class for the Monitor policy.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">
@@ -1477,7 +1860,8 @@ This interface defines the OSPF area, authentication, etc.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.PortChannel.get_json">
 <tt class="descname">get_json</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.PortChannel.get_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns json representation of the PortChannel</p>
+<dd><blockquote>
+<div>Returns json representation of the PortChannel</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

@@ -66,10 +66,19 @@
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="monitor_policy.html">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor_policy.html#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statsbody.html">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">API Reference</a><ul class="current">
@@ -149,7 +158,8 @@ init routines of inheriting subclasses.</p>
 <em class="property">classmethod </em><tt class="descname">get_obj</tt><big>(</big><em>session</em>, <em>apic_class</em>, <em>parent</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysModule.get_obj" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets all of the Nodes from the APIC.  This is called by the
 module specific get() methods.  The parameters passed include the
-APIC object class, apic_class, so that this will work for different kinds of modules.</p>
+APIC object class, apic_class, so that this will work for
+different kinds of modules.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -212,13 +222,14 @@ APIC object class, apic_class, so that this will work for different kinds of mod
 <dl class="method">
 <dt id="acitoolkit.aciphysobject.BaseACIPhysObject.add_child">
 <tt class="descname">add_child</tt><big>(</big><em>child_obj</em><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.BaseACIPhysObject.add_child" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add a child to the children list. All children must be unique so it will
-first delete the child if it already exists.</p>
+<dd><p>Add a child to the children list. All children must be unique so it
+will first delete the child if it already exists.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>child_obj</strong> &#8211; a child object to be added as a child to this object.  This will be put into the _children list.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>child_obj</strong> &#8211; a child object to be added as a child to this object.
+This will be put into the _children list.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
 </tr>
@@ -257,7 +268,7 @@ it will return all of the children of the matching type.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>childType</strong> &#8211; This optional parameter will cause this method to return only those children                        that match the type of childType.  If this parameter is ommitted, then all of the children will be returned.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>childType</strong> &#8211; This optional parameter will cause this method to                        return only those children                        that match the type of childType.  If this parameter                        is ommitted, then all of the children will be returned.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of children</td>
 </tr>
@@ -273,7 +284,7 @@ it will return all of the children of the matching type.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Nothing - physical objects are not modifiable</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">JSON of contained Interfaces</td>
 </tr>
 </tbody>
 </table>
@@ -674,9 +685,7 @@ most easily be done by populating the entire physical heirarchy from the Pod dow
 <dl class="method">
 <dt id="acitoolkit.aciphysobject.Link.get_port2">
 <tt class="descname">get_port2</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.aciphysobject.Link.get_port2" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the Linecard object that corresponds to the second port of the link.  The port must be a child of
-the Linecard in the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
-most easily be done by populating the entire physical heirarchy from the Pod down.</p>
+<dd><p>Returns the Linecard object that corresponds to the second port of        the link. The port must be a child of the Linecard in the Node in        the Pod that this link is a member of, i.e. it must already have been        read from the APIC.  This can most easily be done by populating the        entire physical heirarchy from the Pod down.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1037,27 +1046,13 @@ children of the the parent.  The system controlles will also be added as childre
 <div class="section" id="future-work">
 <h2>Future Work<a class="headerlink" href="#future-work" title="Permalink to this headline">¶</a></h2>
 <p>Future work items to be added to aciphysobject include:</p>
-<ul>
-<li><p class="first">Add a stats sub-object.  This object would provide access to all the
-relevant statistics gathered by the system.  An example syntax of
-its use would be something like:</p>
-<blockquote>
-<div><div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</pre></div>
-</div>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">counter</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s">&#39;foobar&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div></blockquote>
-</li>
-<li><p class="first">Add an events sub-oject.  This would work similarly to the stats
-object.</p>
-</li>
-<li><p class="first">Add a top level object called Topology that would have Pod as its
+<ul class="simple">
+<li>Add an events sub-oject.  This would work similarly to the stats
+object.</li>
+<li>Add a top level object called Topology that would have Pod as its
 child.  This object would also contain devices attached to the
 fabric, so called loose nodes, external links, and discovered
-end-points.</p>
-</li>
+end-points.</li>
 </ul>
 </div>
 </div>

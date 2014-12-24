@@ -1,0 +1,453 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Monitor Policy &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="next" title="Tutorial" href="tutorial.html"/>
+        <link rel="prev" title="Object Model" href="objectmodel.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statsbody.html">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Monitor Policy</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/monitor_policy.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="monitor-policy">
+<h1>Monitor Policy<a class="headerlink" href="#monitor-policy" title="Permalink to this headline">¶</a></h1>
+<p>The monitor policy, <a class="reference internal" href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorPolicy" title="acitoolkit.acitoolkit.MonitorPolicy"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.MonitorPolicy</span></tt></a>, defines what
+statistical information is gathered
+and how long historical information is kept.  It is also where events
+that are triggered by these stats are configured (to be supported).</p>
+<p>Multiple monitoring policies can be defined and various APIC objects
+then reference the monitoring policy they are using.  For example,
+a <tt class="docutils literal"><span class="pre">l1PhysIf</span></tt> object in the APIC has an attribute called <tt class="docutils literal"><span class="pre">monPolDn</span></tt>
+which is the distinguishing name of the monitoring policy that it
+references.  In the toolkit, the <tt class="docutils literal"><span class="pre">l1PhysIf</span></tt> object is represented by
+the <a class="reference internal" href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Interface" title="acitoolkit.acitoolkit.Interface"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.Interface</span></tt></a> class.</p>
+<p>There are two types of monitoring policies:<tt class="docutils literal"><span class="pre">fabric</span></tt> and <tt class="docutils literal"><span class="pre">access</span></tt>
+and they are identified by the <tt class="docutils literal"><span class="pre">policyType</span></tt> attribute of the monitor
+policy.  The <tt class="docutils literal"><span class="pre">fabric</span></tt> type is used to monitor ACI fabric interfaces
+while the <tt class="docutils literal"><span class="pre">access</span></tt> type is used to monitor ACI access or <tt class="docutils literal"><span class="pre">infra</span></tt>
+interfaces.  The same class is used for both types of monitoring
+policies in the acitoolkit.</p>
+<p>The monitoring policy is a hierarchical policy consisting of monitor
+policy class, <a class="reference internal" href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorPolicy" title="acitoolkit.acitoolkit.MonitorPolicy"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.MonitorPolicy</span></tt></a>, at the
+top with the following classes below it:
+<a class="reference internal" href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorTarget" title="acitoolkit.acitoolkit.MonitorTarget"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.MonitorTarget</span></tt></a>,
+<a class="reference internal" href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorStats" title="acitoolkit.acitoolkit.MonitorStats"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.MonitorStats</span></tt></a>, and
+<a class="reference internal" href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.CollectionPolicy" title="acitoolkit.acitoolkit.CollectionPolicy"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.CollectionPolicy</span></tt></a>.</p>
+<p>The following diagram shows their relationship.</p>
+<img alt="_images/monitorpolicyhier.png" src="_images/monitorpolicyhier.png" />
+<p><strong>CollectionPolicy</strong> is where the actual collection policy is
+defined.  What it applies to is determined by where it is in the
+monitoring policy hierarchy.  The three most important attributes of the
+collection policy are <tt class="docutils literal"><span class="pre">adminState</span></tt>, <tt class="docutils literal"><span class="pre">granularity</span></tt> and <tt class="docutils literal"><span class="pre">retention</span></tt>.  Additional
+attributes are a <tt class="docutils literal"><span class="pre">name</span></tt> and <tt class="docutils literal"><span class="pre">description</span></tt> which are optional and
+can be set using the <tt class="docutils literal"><span class="pre">setName(&lt;name&gt;)</span></tt> and
+<tt class="docutils literal"><span class="pre">setDescription(&lt;description&gt;)</span></tt> methods respectively.</p>
+<p>The <tt class="docutils literal"><span class="pre">adminState</span></tt> attribute can be <tt class="docutils literal"><span class="pre">enabled</span></tt>, <tt class="docutils literal"><span class="pre">disabled</span></tt> or
+<tt class="docutils literal"><span class="pre">inherited</span></tt>.  If <tt class="docutils literal"><span class="pre">enabled</span></tt>, that granularity of statistics will be
+gathered.  If <tt class="docutils literal"><span class="pre">disabled</span></tt>, that granularity of statistics will not be
+gathered and <em>neither will any larger granularities</em>.  This is because
+the statistics gathered at one granularity are then rolled up into the
+larger granularity.  If you don&#8217;t gather the finer one, then there is
+no data to roll up to the coarser one.</p>
+<p>If the <tt class="docutils literal"><span class="pre">adminState</span></tt> is set to <tt class="docutils literal"><span class="pre">inherited</span></tt>, the current object does
+not determine the <tt class="docutils literal"><span class="pre">adminState</span></tt>.  Instead, the <tt class="docutils literal"><span class="pre">adminState</span></tt> of the
+collection policy of the next higher level in the monitoring policy
+hierarchy will be used.  This means that the <tt class="docutils literal"><span class="pre">adminState</span></tt> at the
+highest level of the monitoring policy <em>cannot</em> be set to
+<tt class="docutils literal"><span class="pre">inherited</span></tt> because there is no higher level to inherit from.</p>
+<p>The <tt class="docutils literal"><span class="pre">granularity</span></tt> attribute can have one of the following values:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="26%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Value</th>
+<th class="head">Meaning</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>5min</td>
+<td>5 minutes</td>
+</tr>
+<tr class="row-odd"><td>15min</td>
+<td>15 minutes</td>
+</tr>
+<tr class="row-even"><td>1h</td>
+<td>1 hour</td>
+</tr>
+<tr class="row-odd"><td>1d</td>
+<td>1 day</td>
+</tr>
+<tr class="row-even"><td>1w</td>
+<td>1 week</td>
+</tr>
+<tr class="row-odd"><td>1mo</td>
+<td>1 month</td>
+</tr>
+<tr class="row-even"><td>1qtr</td>
+<td>1 quarter</td>
+</tr>
+<tr class="row-odd"><td>1year</td>
+<td>1 year</td>
+</tr>
+</tbody>
+</table>
+<p>This is the time interval over which the stats are initially gathered
+and the interval for which they are kept.</p>
+<p>For example, if the granularity is <tt class="docutils literal"><span class="pre">15min</span></tt>, then the cumulative
+stats for that granularity will start at 0 at the beginning of the 15
+minute interval and will accumulate during the interval.  At the end
+of the interval, the final values will be moved to the historical
+statistics if the <tt class="docutils literal"><span class="pre">retention</span></tt> attribute is so configured.  The rate
+statistics will be the rate during the 15 minute interval and the rate
+averages will be the average rate during the 15 minute interval.</p>
+<p>Statistics are only kept for granularities that have an adminState of
+<tt class="docutils literal"><span class="pre">enabled</span></tt> either explicitly or through inheritance and no finer
+(smaller) granularities are <tt class="docutils literal"><span class="pre">disabled</span></tt>.</p>
+<p>The <tt class="docutils literal"><span class="pre">retention</span></tt> attribute determines how long historical data at a
+given granularity is kept.  It can have one of the following values:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="87%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Value</th>
+<th class="head">Meaning</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>none</td>
+<td>Do not keep historical data</td>
+</tr>
+<tr class="row-odd"><td>inherited</td>
+<td>Use the policy from the next  higher level of hierarchy</td>
+</tr>
+<tr class="row-even"><td>5min</td>
+<td>5 minutes</td>
+</tr>
+<tr class="row-odd"><td>15min</td>
+<td>15 minutes</td>
+</tr>
+<tr class="row-even"><td>1h</td>
+<td>1 hour</td>
+</tr>
+<tr class="row-odd"><td>1d</td>
+<td>1 day</td>
+</tr>
+<tr class="row-even"><td>1w</td>
+<td>1 week</td>
+</tr>
+<tr class="row-odd"><td>10d</td>
+<td>10 days</td>
+</tr>
+<tr class="row-even"><td>1mo</td>
+<td>1 month</td>
+</tr>
+<tr class="row-odd"><td>1qtr</td>
+<td>1 quarter</td>
+</tr>
+<tr class="row-even"><td>1year</td>
+<td>1 year</td>
+</tr>
+<tr class="row-odd"><td>2year</td>
+<td>2 years</td>
+</tr>
+<tr class="row-even"><td>3year</td>
+<td>3 years</td>
+</tr>
+</tbody>
+</table>
+<p>It does not make any sense to have a retention period that is less
+than the granularity, however this is not checked for in the
+acitoolkit.</p>
+<p><strong>MonitorStats</strong> sets the scope for any collection policy under it.
+The scope here is a family of statistics.  The possible scope values
+are as follows:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="73%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Value</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>egrBytes</td>
+<td>Egress bytes</td>
+</tr>
+<tr class="row-odd"><td>egrPkts</td>
+<td>Egress packets</td>
+</tr>
+<tr class="row-even"><td>egrTotal</td>
+<td>Egress total</td>
+</tr>
+<tr class="row-odd"><td>egrDropPkts</td>
+<td>Egress drop packets</td>
+</tr>
+<tr class="row-even"><td>ingrBytes</td>
+<td>Ingress bytes</td>
+</tr>
+<tr class="row-odd"><td>ingrPkts</td>
+<td>Ingress packets</td>
+</tr>
+<tr class="row-even"><td>ingrTotal</td>
+<td>Ingress total</td>
+</tr>
+<tr class="row-odd"><td>ingrDropPkts</td>
+<td>Ingress drop packets</td>
+</tr>
+<tr class="row-even"><td>ingrUnkBytes</td>
+<td>Ingress unknown bytes</td>
+</tr>
+<tr class="row-odd"><td>ingrUnkPkts</td>
+<td>Ingress unknown packets</td>
+</tr>
+</tbody>
+</table>
+<p>A more detailed description of the statistics can be found here.</p>
+<p>The collection policies under the <tt class="docutils literal"><span class="pre">MonitorStats</span></tt> object determine
+the default collection policy for the set of statistics selected by
+the above scope.</p>
+<p>Other attributes of the <tt class="docutils literal"><span class="pre">MonitorStats</span></tt> class are <tt class="docutils literal"><span class="pre">name</span></tt> and
+<tt class="docutils literal"><span class="pre">description</span></tt> which can be set with the <tt class="docutils literal"><span class="pre">setName(&lt;name&gt;)</span></tt> and
+<tt class="docutils literal"><span class="pre">setDescription(&lt;description&gt;)</span></tt> methods respectively.  Setting these
+attributes is optional.</p>
+<p><strong>MonitorTarget</strong> sets the scope to a particular APIC target object
+for all of the collections policies below it.  Currently, there is
+only one APIC target object type supported and that is &#8216;l1PhysIf&#8217;.
+The <tt class="docutils literal"><span class="pre">scope</span></tt> attribute is where the target type is stored.
+Support for additional target objects will be added as required.   The
+<tt class="docutils literal"><span class="pre">scope</span></tt> attributed is initialized when the MonitorTarget is created
+and cannot be changed.</p>
+<p>Other attributes of the <tt class="docutils literal"><span class="pre">MonitorStats</span></tt> class are <tt class="docutils literal"><span class="pre">name</span></tt> and
+<tt class="docutils literal"><span class="pre">description</span></tt> which can be set with the <tt class="docutils literal"><span class="pre">setName(&lt;name&gt;)</span></tt> and
+<tt class="docutils literal"><span class="pre">setDescription(&lt;description&gt;)</span></tt> methods respectively.  Setting these
+attributes is optional.</p>
+<p><strong>MonitorPolicy</strong> is the root of the monitor policy hierarchy.  This
+object must have <tt class="docutils literal"><span class="pre">name</span></tt> and <tt class="docutils literal"><span class="pre">policyType</span></tt> attribute.  The
+<tt class="docutils literal"><span class="pre">policyType</span></tt> must be either <tt class="docutils literal"><span class="pre">fabric</span></tt> or <tt class="docutils literal"><span class="pre">access</span></tt> and the name
+must be unique for each <tt class="docutils literal"><span class="pre">policyType</span></tt>.</p>
+<p>The monitor policy will be referenced by its <tt class="docutils literal"><span class="pre">policyType</span></tt> and
+<tt class="docutils literal"><span class="pre">name</span></tt> by individual APIC objects.</p>
+<p>The monitor policy contains the default collection policies as well as
+any <tt class="docutils literal"><span class="pre">MonitorTarget</span></tt> objects that specify a more specific scope.</p>
+<p>The monitor policy must contain a <tt class="docutils literal"><span class="pre">CollectionPolicy</span></tt> for each
+granularity and the <tt class="docutils literal"><span class="pre">adminState</span></tt> and <tt class="docutils literal"><span class="pre">retention</span></tt> attributes of the
+<tt class="docutils literal"><span class="pre">CollectionPolicy</span></tt> cannot be <tt class="docutils literal"><span class="pre">inherited</span></tt> because they are at the
+top of the inheritance tree.  When a MonitorPolicy object is created,
+it will be initialized with the appropriate <tt class="docutils literal"><span class="pre">CollectionPolicy</span></tt>
+objects, which, in turn, will be set to a default administrative state
+of <tt class="docutils literal"><span class="pre">disabled</span></tt>.  This means that these polies <em>must</em> be overwritten
+if stats should be collected.  They can either be explicitly replaced
+with the <tt class="docutils literal"><span class="pre">add_collection_policy(&lt;CollectionPolicy</span> <span class="pre">object&gt;)</span></tt> method,
+or implicitly replaced by more specific collection policies in the
+inheritance hierarchy.</p>
+<div class="section" id="policy-resolution">
+<h2>Policy Resolution<a class="headerlink" href="#policy-resolution" title="Permalink to this headline">¶</a></h2>
+<p>The ultimate policy that is applied to any counter is determined by
+walking through the monitoring policy from the top down.  The
+collection policy at each level
+of the hierarchy determines how statistics will be kept for those
+statistics that are <em>in scope</em>.</p>
+<p>For example, the collection policy
+for each granularity is specified at the top of the hierarchy under
+the MonitorPolicy object.  These collection policies will apply to all
+statistics unless overwritten by a more specific policy under a
+MonitorTarget object.</p>
+<p>If there is a MonitorTarget object, it will set the scope for the
+monitoring policy to be more specific for the collection policies
+under it.  Initially, the only target supported is &#8216;l1PhyIf&#8217; which is
+for an <tt class="docutils literal"><span class="pre">Interface</span></tt> object.  Any collection policies under this
+<tt class="docutils literal"><span class="pre">MonitorTarget</span></tt> will override the corresponding collection policy under
+the <tt class="docutils literal"><span class="pre">MonitorPolicy</span></tt> parent object.  It is possible that there are no
+collection policies specified at this level.</p>
+<p>If there are <tt class="docutils literal"><span class="pre">MonitorStats</span></tt> objects under the <tt class="docutils literal"><span class="pre">MonitorTarget</span></tt> object, they
+will set the scope to be even more specific for the collection policies
+under them.  Each <tt class="docutils literal"><span class="pre">MonitorStats</span></tt> object can have under it collection policies for
+any of the granularities.</p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="objectmodel.html" class="btn btn-neutral" title="Object Model"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -64,10 +64,19 @@
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="monitor_policy.html">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor_policy.html#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statsbody.html">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
@@ -169,6 +178,10 @@
 
       </dl></dd>
       
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.add_collection_policy">add_collection_policy() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
+  </dt>
+
+      
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BridgeDomain.add_context">add_context() (acitoolkit.acitoolkit.BridgeDomain method)</a>
   </dt>
 
@@ -185,6 +198,10 @@
   </dt>
 
       
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.add_stats">add_stats() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
+  </dt>
+
+      
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BridgeDomain.add_subnet">add_subnet() (acitoolkit.acitoolkit.BridgeDomain method)</a>
   </dt>
 
@@ -193,7 +210,7 @@
   </dt>
 
       
-  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.Stats.addCounters">addCounters() (acitoolkit.acibaseobject.Stats method)</a>
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.add_target">add_target() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
   </dt>
 
       
@@ -239,6 +256,10 @@
   </dt>
 
       
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass">BaseMonitorClass (class in acitoolkit.acitoolkit)</a>
+  </dt>
+
+      
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseRelation">BaseRelation (class in acitoolkit.acibaseobject)</a>
   </dt>
 
@@ -261,11 +282,7 @@
   </dt>
 
       
-  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.Stats.change">change() (acitoolkit.acibaseobject.Stats method)</a>
-  </dt>
-
-      
-  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.Stats.clear">clear() (acitoolkit.acibaseobject.Stats method)</a>
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.CollectionPolicy">CollectionPolicy (class in acitoolkit.acitoolkit)</a>
   </dt>
 
       
@@ -448,6 +465,10 @@
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.find">find() (acitoolkit.acibaseobject.BaseACIObject method)</a>
   </dt>
 
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorPolicy.flat">flat() (acitoolkit.acitoolkit.MonitorPolicy method)</a>
+  </dt>
+
   </dl></td>
 </tr></table>
 
@@ -459,10 +480,6 @@
   </dt>
 
       <dd><dl>
-        
-  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.Stats.get">(acitoolkit.acibaseobject.Stats method)</a>
-  </dt>
-
         
   <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.ENode.get">(acitoolkit.aciphysobject.ENode static method)</a>
   </dt>
@@ -525,6 +542,10 @@
 
         
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Endpoint.get">(acitoolkit.acitoolkit.Endpoint static method)</a>
+  </dt>
+
+        
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.FilterEntry.get">(acitoolkit.acitoolkit.FilterEntry class method)</a>
   </dt>
 
         
@@ -680,6 +701,10 @@
   </dt>
 
         
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.Endpoint.get_json">(acitoolkit.acitoolkit.Endpoint method)</a>
+  </dt>
+
+        
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.FilterEntry.get_json">(acitoolkit.acitoolkit.FilterEntry method)</a>
   </dt>
 
@@ -782,6 +807,12 @@
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.get_parent">get_parent() (acitoolkit.acibaseobject.BaseACIObject method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.get_parent">(acitoolkit.acitoolkit.BaseMonitorClass method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.BaseACIPhysObject.get_pod">get_pod() (acitoolkit.aciphysobject.BaseACIPhysObject method)</a>
   </dt>
@@ -885,11 +916,11 @@
   </dt>
 
       
-  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorPolicy.getNames">getNames() (acitoolkit.acitoolkit.MonitorPolicy static method)</a>
+  <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.ENode.getRole">getRole() (acitoolkit.aciphysobject.ENode method)</a>
   </dt>
 
       
-  <dt><a href="acitoolkit.aciphysobject.html#acitoolkit.aciphysobject.ENode.getRole">getRole() (acitoolkit.aciphysobject.ENode method)</a>
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.CollectionPolicy.granularityEnum">granularityEnum (acitoolkit.acitoolkit.CollectionPolicy attribute)</a>
   </dt>
 
   </dl></td>
@@ -998,8 +1029,6 @@
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.is_deleted">is_deleted() (acitoolkit.acibaseobject.BaseACIObject method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.is_detached">is_detached() (acitoolkit.acibaseobject.BaseACIObject method)</a>
   </dt>
@@ -1010,6 +1039,8 @@
   </dt>
 
       </dl></dd>
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.is_interface">is_interface() (acitoolkit.acibaseobject.BaseACIObject static method)</a>
   </dt>
@@ -1054,6 +1085,10 @@
 
       
   <dt><a href="cableplan.html#cableplan.CP_LINK.isConnected">isConnected() (cableplan.CP_LINK method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.isModified">isModified() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
   </dt>
 
       
@@ -1110,14 +1145,22 @@
   <dt><a href="cableplan.html#cableplan.CP_LINK.match_links">match_links() (cableplan.CP_LINK static method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="cableplan.html#cableplan.CP_SWITCH.merge">merge() (cableplan.CP_SWITCH method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorPolicy">MonitorPolicy (class in acitoolkit.acitoolkit)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorStats">MonitorStats (class in acitoolkit.acitoolkit)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorTarget">MonitorTarget (class in acitoolkit.acitoolkit)</a>
   </dt>
 
   </dl></td>
@@ -1256,8 +1299,10 @@
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.remove_child">remove_child() (acitoolkit.acibaseobject.BaseACIObject method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.remove_collection_policy">remove_collection_policy() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
+  </dt>
+
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BridgeDomain.remove_context">remove_context() (acitoolkit.acitoolkit.BridgeDomain method)</a>
   </dt>
@@ -1268,8 +1313,18 @@
   </dt>
 
       </dl></dd>
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.remove_stats">remove_stats() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
+  </dt>
+
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BridgeDomain.remove_subnet">remove_subnet() (acitoolkit.acitoolkit.BridgeDomain method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.remove_target">remove_target() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
   </dt>
 
       
@@ -1282,6 +1337,10 @@
   </dt>
 
       </dl></dd>
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.CollectionPolicy.retentionEnum">retentionEnum (acitoolkit.acitoolkit.CollectionPolicy attribute)</a>
+  </dt>
+
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.InterfaceStats.retrieve">retrieve() (acitoolkit.acitoolkit.InterfaceStats method)</a>
   </dt>
@@ -1344,14 +1403,34 @@
   <dt><a href="cableplan.html#cableplan.CP_SWITCH.set_parent">set_parent() (cableplan.CP_SWITCH method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseContract.set_scope">set_scope() (acitoolkit.acitoolkit.BaseContract method)</a>
   </dt>
 
       
-  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.Stats">Stats (class in acitoolkit.acibaseobject)</a>
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.CollectionPolicy.setAdminState">setAdminState() (acitoolkit.acitoolkit.CollectionPolicy method)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.setDescription">setDescription() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.BaseMonitorClass.setName">setName() (acitoolkit.acitoolkit.BaseMonitorClass method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.CollectionPolicy.setRetention">setRetention() (acitoolkit.acitoolkit.CollectionPolicy method)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorStats.statsDictionary">statsDictionary (acitoolkit.acitoolkit.MonitorStats attribute)</a>
+  </dt>
+
+      
+  <dt><a href="acitoolkit.acitoolkit.html#acitoolkit.acitoolkit.MonitorStats.statsFamilyEnum">statsFamilyEnum (acitoolkit.acitoolkit.MonitorStats attribute)</a>
   </dt>
 
       
@@ -1405,12 +1484,6 @@
 
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.Stats.unclear">unclear() (acitoolkit.acibaseobject.Stats method)</a>
-  </dt>
-
-  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject.unsubscribe">unsubscribe() (acitoolkit.acibaseobject.BaseACIObject class method)</a>

@@ -1,0 +1,338 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Statistics &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="Statistics" href="stats.html"/>
+        <link rel="next" title="Statistics Detail" href="statsdetail.html"/>
+        <link rel="prev" title="Statistics" href="stats.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitor_policy.html">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor_policy.html#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="stats.html">Statistics</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="stats.html">Statistics</a> &raquo;</li>
+      
+    <li>Statistics</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/statsbody.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="statistics">
+<h1>Statistics<a class="headerlink" href="#statistics" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<p>Statistics are gathered at each Interface according to the monitoring
+policy referenced by that Interface. See <a class="reference internal" href="monitor_policy.html#monitor-policy-label"><em>Monitor Policy</em></a> for
+details of the monitoring policy.</p>
+<p>This section describes the statistic counters themselves.</p>
+<div class="section" id="statistic-families">
+<h2>Statistic Families<a class="headerlink" href="#statistic-families" title="Permalink to this headline">¶</a></h2>
+<p>The statistics are broken into multiple statistic families and each
+family consists of a set of specific counters, rate values, and
+timestamps.</p>
+<p>An enumerated list of statistic families is found in the MonitorStats
+class and can be found as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;import acitoolkit.acitoolkit as ACI</span>
+<span class="go">&gt;&gt;&gt;statistic_family_list = ACI.MonitorStats.statsFamilyEnum</span>
+<span class="go">&gt;&gt;&gt;for statistic_family in statistic_family_list:</span>
+<span class="gp">... </span> <span class="k">print</span> <span class="n">statistic_family</span>
+</pre></div>
+</div>
+<p>The families are as follows:</p>
+<ul class="simple">
+<li><a class="reference internal" href="stats/egrBytes.html#egrbytes-label"><em>egrbytes</em></a></li>
+<li><a class="reference internal" href="stats/egrPkts.html#egrpkts-label"><em>egrPkts</em></a></li>
+<li><a class="reference internal" href="stats/egrTotal.html#egrtotal-label"><em>egrTotal</em></a></li>
+<li><a class="reference internal" href="stats/egrDropPkts.html#egrdroppkts-label"><em>egrDropPkts</em></a></li>
+<li><a class="reference internal" href="stats/ingrBytes.html#ingrbytes-label"><em>ingrBytes</em></a></li>
+<li><a class="reference internal" href="stats/ingrPkts.html#ingrpkts-label"><em>ingrPkts</em></a></li>
+<li><a class="reference internal" href="stats/ingrTotal.html#ingrtotal-label"><em>ingrTotal</em></a></li>
+<li><a class="reference internal" href="stats/ingrDropPkts.html#ingrdroppkts-label"><em>ingrDropPkts</em></a></li>
+<li><a class="reference internal" href="stats/ingrUnkBytes.html#ingrunkbytes-label"><em>ingrUnkBytes</em></a></li>
+<li><a class="reference internal" href="stats/ingrUnkPkts.html#ingrunkpkts-label"><em>ingrUnkPkts</em></a></li>
+</ul>
+<p>Each statistic family is described in detail below and can be accessed
+via the <tt class="docutils literal"><span class="pre">stats</span></tt> object contained in the <tt class="docutils literal"><span class="pre">Interface</span></tt> object.  Each
+stats family is referenced by its name (see list above), a
+granularity, and an epoch number in the following manner:</p>
+<div class="highlight-python"><div class="highlight"><pre>stats = interface.stats[&lt;stats_family&gt;][&lt;granularity&gt;][&lt;epoch&gt;]
+</pre></div>
+</div>
+<p>This returns a dictionary of counter name, value pairs.</p>
+<p>For example, if you wanted to show the per day total of ingress,
+unicast packets from the previous day you would do the following:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">][</span><span class="s">&#39;1h&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;unicastPer&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The specific counter names can be found at
+<a class="reference internal" href="statsdetail.html#statistics-detail-label"><em>Statistics Detail</em></a>.</p>
+<p>Each counter family has an interval start and end value as well which
+can be used to understand exactly when the counters were gathered.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="s">&#39;start&#39;</span><span class="p">,</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">][</span><span class="s">&#39;1h&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;intervalStart&#39;</span><span class="p">]</span>
+<span class="k">print</span> <span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">][</span><span class="s">&#39;1h&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;intervalEnd&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="granularity">
+<h2>Granularity<a class="headerlink" href="#granularity" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">&lt;granularity&gt;</span></tt>, also called &#8220;interval&#8221;,  must be one of:</p>
+<ul class="simple">
+<li>5min</li>
+<li>15min</li>
+<li>1h</li>
+<li>1d</li>
+<li>1w</li>
+<li>1mo</li>
+<li>1qtr</li>
+<li>1year</li>
+</ul>
+<p>An enumerated list of granularities is found in the CollectionPolicy
+class and can be found as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;import acitoolkit.acitoolkit as ACI</span>
+<span class="go">&gt;&gt;&gt;granularity_list = ACI.CollectionPolicy.granularityEnum</span>
+<span class="go">&gt;&gt;&gt;for granularity in granularity_list:</span>
+<span class="gp">... </span> <span class="k">print</span> <span class="n">granularity</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="epoch">
+<h2>Epoch<a class="headerlink" href="#epoch" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">&lt;epoch&gt;</span></tt> is an integer representing which set of historical
+stats you want to reference.  Epoch <tt class="docutils literal"><span class="pre">0</span></tt> is the current epoch which
+has not yet completed.  Epoch <tt class="docutils literal"><span class="pre">1</span></tt> is the most recent one and so on.
+The length of each epoch is determined by the granularity.</p>
+<p>The number of epochs available will be determined by the retention
+policy and granularity specified in the monitoring policy and how long
+they have been in place.</p>
+<p>For example, if the monitoring policy for a particular statistics
+family has a granularity of <tt class="docutils literal"><span class="pre">5min</span></tt> and a retention policy of <tt class="docutils literal"><span class="pre">1h</span></tt>
+and it has been in place for more than one hour, then there will be a
+total of 13 epochs, 0 through 12.  Epoch 0 will be the one currently
+active.  Epoch 1 will be for the previous 5 minute interval.  Epoch 2
+will be for the 5 minute interval previous to epoch 1 and so on.  At
+the beginning of the current Epoch, the values in Epoch 0 will be
+distorted because they are only for a fraction of that epoch
+(potentially a zero fraction) and the other 12 will represent an hour
+of history.</p>
+</div>
+<div class="section" id="update-frequency-for-current-epoch">
+<h2>Update Frequency for current epoch<a class="headerlink" href="#update-frequency-for-current-epoch" title="Permalink to this headline">¶</a></h2>
+<p>The current epoch, epoch 0, will be updated as it occurs, i.e. in near
+real-time.  The interval that it updates depends on the epoch, or interval,
+granularity.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="46%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Granularity</th>
+<th class="head">Update frequency</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>5min</td>
+<td>Every 10 seconds</td>
+</tr>
+<tr class="row-odd"><td>15min</td>
+<td>Every 5 minutes</td>
+</tr>
+<tr class="row-even"><td>1h</td>
+<td>Every 15 minutes</td>
+</tr>
+<tr class="row-odd"><td>1d</td>
+<td>Every hour</td>
+</tr>
+<tr class="row-even"><td>1w</td>
+<td>Every day</td>
+</tr>
+<tr class="row-odd"><td>1mo</td>
+<td>Every day</td>
+</tr>
+<tr class="row-even"><td>1qtr</td>
+<td>Every day</td>
+</tr>
+<tr class="row-odd"><td>1year</td>
+<td>Every day</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="statsdetail.html" class="btn btn-neutral float-right" title="Statistics Detail"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="stats.html" class="btn btn-neutral" title="Statistics"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
