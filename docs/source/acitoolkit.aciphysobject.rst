@@ -13,14 +13,6 @@ Future Work
 --------------------
 Future work items to be added to aciphysobject include:
 
-* Add a stats sub-object.  This object would provide access to all the
-  relevant statistics gathered by the system.  An example syntax of
-  its use would be something like:
-
-    >>> interface.stats.get()
-
-   >>> counter = interface.stats('foobar')
-
 * Add an events sub-oject.  This would work similarly to the stats
   object.
 
