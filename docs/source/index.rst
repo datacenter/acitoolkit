@@ -14,7 +14,9 @@ Contents:
 
    introduction
    objectmodel
+   monitor_policy
    tutorial
+   stats
    modules
    applications
 
