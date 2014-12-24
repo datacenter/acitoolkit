@@ -16,7 +16,7 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
-from acibaseobject import BaseACIObject, BaseRelation, Stats
+from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
 # from aciphysobject import Linecard
 import json
@@ -1808,7 +1808,7 @@ class InterfaceStats():
                         if re.search('^C', counterAttr['rn']):
                             period = 0
                         else:
-                            period = int(counterAttr['index'])
+                            period = int(counterAttr['index'])+1
 
                         if 'EgrTotal' in count:
                             countName = 'egrTotal'
