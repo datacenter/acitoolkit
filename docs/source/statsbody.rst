@@ -41,19 +41,29 @@ The families are as follows:
 * :ref:`ingrUnkBytes <ingrUnkBytes-label>`
 * :ref:`ingrUnkPkts <ingrUnkPkts-label>`
 
+*******************
+Accessing Stats
+*******************
+
 Each statistic family is described in detail below and can be accessed
-via the ``stats`` object contained in the ``Interface`` object.  Each
-stats family is referenced by its name (see list above), a
+via the ``stats`` object contained in the ``Interface`` object.  
+
+You first use the get() method to read the stats from the APIC
+controller.::
+
+  stats = interface.stats.get()
+
+This will return a data structure that will allow each counter
+to be referenced by its name (see list above), a
 granularity, and an epoch number in the following manner::
 
-  stats = interface.stats[<stats_family>][<granularity>][<epoch>]
-
-This returns a dictionary of counter name, value pairs.
+  counter = stats[<stats_family>][<granularity>][<epoch>][<counter_name>]
 
 For example, if you wanted to show the per day total of ingress,
 unicast packets from the previous day you would do the following::
 
-  print interface.stats['ingrPkts']['1h'][1]['unicastPer']
+  stats = interface.stats.get()
+  print stats['ingrPkts']['1h'][1]['unicastPer']
 
 The specific counter names can be found at
 :ref:`statistics-detail-label`.
@@ -64,6 +74,39 @@ can be used to understand exactly when the counters were gathered.::
   print 'start', interface.stats['ingrPkts']['1h'][1]['intervalStart']
   print 'end', interface.stats['ingrPkts']['1h'][1]['intervalEnd']
    
+One thing to note about accessing the stats is that if a particular
+counter is not currently being kept by the APIC controller, that
+particular counter will not be returned by the get() method.  This
+means that you should either test for its existence before accessing
+it, or use the standard python dictionary get method to 
+return a default value that your code can handle::
+
+  print stats['ingrPkts']['1h'][1].get('unicastPer',0)
+
+A typical example of counters that may not exist would be for an
+epoch that is not being retained or a granularity that is not 
+be gathered.
+
+One issue with the above is that some counters are floating point, some
+are integers and some are timestamps.  Returning a default of
+zero can lead to inconsistent formatting.  To work around this problem
+use the ``retrieve()`` method that will return 
+the coutner value or a default value that is consistent.  The format
+of the retrive method is as follows::
+
+  interface.stats.retrieve(<stats_family>,<granularity>,<epoch>,<counter_name>)
+
+The get() method will load the counter values and then they are accessed by
+the retrieve method as follows::
+
+  interface.stats.get()
+  print interface.stats.retrieve('ingrPkts','1h',1,'unicastPer')
+
+Note that the result of the ``get()`` method was not used.  It did cause
+a read of the stats from the APIC which are then stored in the
+``interface.stats`` object.  After that, the ``interface.stats.retrieve()``
+method will access those previously read counters.  The ``retrieve()``
+method will not refresh the counters.
 
 ********************
 Granularity
