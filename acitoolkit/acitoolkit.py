@@ -46,8 +46,12 @@ class Tenant(BaseACIObject):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        name = dn.split('uni/tn-')[1]
+        name = dn.split('uni/tn-')[1].split('/')[0]
         return name
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return None
 
     def get_json(self):
         """
@@ -130,7 +134,7 @@ class AppProfile(BaseACIObject):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        name = dn.split('/ap-')[1]
+        name = dn.split('/ap-')[1].split('/')[0]
         return name
 
     def get_json(self):
@@ -397,7 +401,7 @@ class EPG(CommonEPG):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        return dn.split('/epg-')[1]
+        return dn.split('/epg-')[1].split('/')[0]
 
     # Bridge Domain references
     def add_bd(self, bridgedomain):
@@ -758,7 +762,7 @@ class BridgeDomain(BaseACIObject):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        return dn.split('/BD-')[1]
+        return dn.split('/BD-')[1].split('/')[0]
 
     def get_json(self):
         """
@@ -974,7 +978,7 @@ class Context(BaseACIObject):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        return dn.split('/ctx-')[1]
+        return dn.split('/ctx-')[1].split('/')[0]
 
     def set_allow_all(self, value=True):
         """
@@ -1123,7 +1127,7 @@ class Contract(BaseContract):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        name = dn.split('/brc-')[1]
+        name = dn.split('/brc-')[1].split('/')[0]
         return name
 
     def _generate_attributes(self):
@@ -1163,7 +1167,7 @@ class Taboo(BaseContract):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        name = dn.split('/taboo-')[1]
+        name = dn.split('/taboo-')[1].split('/')[0]
         return name
 
 
@@ -2131,6 +2135,12 @@ class Endpoint(BaseACIObject):
     def get_json(self):
         return None
 
+    def _populate_from_attributes(self, attributes):
+        print attributes
+        self.mac = str(attributes['mac'])
+        self.ip = str(attributes['ip'])
+        self.encap = str(attributes['encap'])
+
     @staticmethod
     def _get(session, interfaces, endpoints, apic_endpoint_class, endpoint_path):
         # Get all of the Endpoints
@@ -2311,6 +2321,7 @@ class VMM(BaseACIObject):
         #    if 'vmmCtrlrP' in item:
         #        print 'vmmCtrlrP:', item['vmmCtrlrP']['attributes']['name']
 
+
 class Search(BaseACIObject):
     """This is an empty class used to create a search object for use with the "find" method.
 
@@ -2365,9 +2376,9 @@ class BaseMonitorClass(object):
 
         :param stat_obj: Statistics family object of type MonitorStats.
         """
-        self.monitor_stats[stat_obj.scope]=stat_obj
+        self.monitor_stats[stat_obj.scope] = stat_obj
         self.modified = True
-    
+
     def remove_stats(self, stats_family):
         """
         Remove a stats family object.  The object to remove is identified by
@@ -2379,18 +2390,17 @@ class BaseMonitorClass(object):
         if not isinstance(stats_family, str):
             raise TypeError('MonitorStats must be identified by a string')
 
-        if stats_family in self.monitor_stats :
+        if stats_family in self.monitor_stats:
             self.monitor_stats.remove(stats_family)
             self.modified = True
-            
-    
+
     def add_target(self, target_obj):
         """
         Add a target object.
 
         :param target_obj: target object of type MonitorTarget
         """
-        self.monitor_target[target_obj.scope]=target_obj
+        self.monitor_target[target_obj.scope] = target_obj
         self.modified = True
 
     def remove_target(self, target):
@@ -2404,20 +2414,19 @@ class BaseMonitorClass(object):
         if not isinstance(target, str):
             raise TypeError('MonitorTarget must be identified by a string')
 
-        if target in self.monitor_target :
+        if target in self.monitor_target:
             self.monitor_target.remove(target)
             self.modified = True
-            
-    
+
     def add_collection_policy(self, coll_obj):
         """
         Add a collection policy.
 
         :param coll_obj :  A collection policy object of type CollectionPolicy
         """
-        self.collection_policy[coll_obj.granularity]=coll_obj
+        self.collection_policy[coll_obj.granularity] = coll_obj
         self.modified = True
-    
+
     def remove_collection_policy(self, collection):
         """
         Remove a collection_policy object.  The object to remove is identified by
@@ -2426,14 +2435,13 @@ class BaseMonitorClass(object):
 
         :param collection: CollectionPolicy to remove.
         """
-        if collection not in CollectionPolicy.granularityEnum :
+        if collection not in CollectionPolicy.granularityEnum:
             raise TypeError('CollectionPolicy must be identified by its granularity')
 
-        if collection in self.collection_policy :
+        if collection in self.collection_policy:
             self.collection_policy.remove(collection)
             self.modified = True
-            
-    
+
 
 class MonitorPolicy(BaseMonitorClass):
     """
@@ -2452,7 +2460,7 @@ class MonitorPolicy(BaseMonitorClass):
 
     The MonitorTarget children are contained in a dictionary called "monitor_target" that is indexed by the
     name of the target object, e.g. 'l1PhysIf'.
-    
+
     To make a policy take effect for a particular port, for example, you must attach that monitoring policy to
     the port.
 
@@ -2487,7 +2495,7 @@ class MonitorPolicy(BaseMonitorClass):
         self.descr = ''
         self.collection_policy = {}
         self.monitor_target = {}
-        
+
         # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
         # or the policy is written to the APIC.
         self.modified = True
@@ -2611,25 +2619,23 @@ class MonitorPolicy(BaseMonitorClass):
         :returns: Dictionary of statistic administrative state and retentions indexed by
                   counter family and granularity.
         """
-        class Policy(object) :
-            def __init__(self) :
+        class Policy(object):
+            def __init__(self):
                 self.adminState = 'disabled'
                 self.retention = 'none'
-            
+
         result = {}
 
         # initialize data structure
-
-        
         for statFamily in MonitorStats.statsFamilyEnum:
             result[statFamily] = {}
-            for granularity in CollectionPolicy.granularityEnum :
+            for granularity in CollectionPolicy.granularityEnum:
                 result[statFamily][granularity] = Policy()
 
         # walk through the policy heirarchy and over-ride each
         # policy with the more specific one
 
-        for granularity in self.collection_policy :
+        for granularity in self.collection_policy:
             retention = self.collection_policy[granularity].retention
             adminState = self.collection_policy[granularity].adminState
             for statFamily in MonitorStats.statsFamilyEnum:
@@ -2646,26 +2652,25 @@ class MonitorPolicy(BaseMonitorClass):
                     result[statFamily][granularity].adminState = adminState
                 if retention != 'inherited':
                     result[statFamily][granularity].retention = retention
-        
+
         for statFamily in targetPolicy.monitor_stats:
             for granularity in targetPolicy.monitor_stats[statFamily].collection_policy:
                 retention = targetPolicy.monitor_stats[statFamily].collection_policy[granularity].retention
                 adminState = targetPolicy.monitor_stats[statFamily].collection_policy[granularity].adminState
-                
+
                 if adminState != 'inherited':
                     result[statFamily][granularity].adminState = adminState
                 if retention != 'inherited':
                     result[statFamily][granularity].retention = retention
-                
+
         # if the lesser granularity is disabled, then the larger granularity is as well
         for statFamily in MonitorStats.statsFamilyEnum:
             disable_found = False
             for granularity in CollectionPolicy.granularityEnum:
-                if result[statFamily][granularity].adminState=='disabled' :
+                if result[statFamily][granularity].adminState == 'disabled':
                     disable_found = True
-                if disable_found :
-                    result[statFamily][granularity].adminState='disabled'
-          
+                if disable_found:
+                    result[statFamily][granularity].adminState = 'disabled'
         return result
 
 
@@ -2685,7 +2690,6 @@ class MonitorTarget(BaseMonitorClass):
 
     The MonitorStats children are contained in a dictionary called "monitor_stats" that is indexed by the
     name of the statistics family, e.g. 'ingrBytes', 'ingrPkts', etc.
-    
     """
     def __init__(self, parent, target):
         """
@@ -2717,6 +2721,7 @@ class MonitorTarget(BaseMonitorClass):
     def __str__(self):
         return self.scope
 
+
 class MonitorStats(BaseMonitorClass):
     """
     This class is a child of a MonitorTarget object.  It is used to specify a scope for applying a monitoring policy
@@ -2731,6 +2736,7 @@ class MonitorStats(BaseMonitorClass):
 
     statsFamilyEnum = ['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts', 'ingrBytes', 'ingrPkts',
                        'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
+
     def __init__(self, parent, statsFamily):
         """
         The MonitorStats object must always be initialized with a parent object of type MonitorTarget.
@@ -2739,7 +2745,7 @@ class MonitorStats(BaseMonitorClass):
         The MonitorStats object contains a dictionary of collection policies called collection_policy.  This
         is a dictionary of children CollectionPolicy objects indexed by their granularity, e.g. '5min', '15min',
         etc.
-        
+
        :param parent: Parent object that this monitor stats object should be applied to.
                        This must be an object of type MonitorTarget.
        :param statsFamily: String specifying the statistics family that the children collection policies should

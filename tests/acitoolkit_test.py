@@ -21,6 +21,7 @@ import string
 import random
 from credentials import *
 import sys
+import time
 
 LIVE_TEST = True
 MAX_RANDOM_STRING_SIZE = 20
@@ -641,12 +642,12 @@ class TestInterface(unittest.TestCase):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.enable_cdp()
         self.assertTrue(intf.is_cdp_enabled())
-        
+
     def test_cdp_is_disabled(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.disable_cdp()
         self.assertFalse(intf.is_cdp_enabled())
-        
+
     def test_lldp_not_enabled(self):
         intf = Interface('eth', '1', '1', '1', '1')
         self.assertFalse(intf.is_lldp_enabled())
@@ -655,7 +656,7 @@ class TestInterface(unittest.TestCase):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.enable_lldp()
         self.assertTrue(intf.is_lldp_enabled())
-        
+
     def test_lldp_is_disabled(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.disable_lldp()
@@ -672,22 +673,22 @@ class TestInterface(unittest.TestCase):
     def test_parse_name_space(self):
         self.parse_name('eth 1/2/3/4')
 
-    def test_set_attributes(self) :
+    def test_set_attributes(self):
         intf1 = Interface('eth', '1', '2', '3', '4')
         intf2 = Interface('eth', '6', '7', '8', '9')
-        
+
         self.assertTrue(intf1.attributes['interface_type'] == 'eth')
         self.assertTrue(intf1.attributes['pod'] == '1')
         self.assertTrue(intf1.attributes['node'] == '2')
         self.assertTrue(intf1.attributes['module'] == '3')
         self.assertTrue(intf1.attributes['port'] == '4')
-        
+
         self.assertTrue(intf2.attributes['interface_type'] == 'eth')
         self.assertTrue(intf2.attributes['pod'] == '6')
         self.assertTrue(intf2.attributes['node'] == '7')
         self.assertTrue(intf2.attributes['module'] == '8')
         self.assertTrue(intf2.attributes['port'] == '9')
-        
+
     # def test_parse_name_no_space(self):
     #    self.parse_name('eth1/2/3/4')
 
@@ -970,6 +971,26 @@ class TestOutsideEPG(unittest.TestCase):
         self.assertTrue('l3extOut' in str(outside_epg.get_json()))
 
 
+class TestEndpoint(unittest.TestCase):
+    def test_create(self):
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        ep = Endpoint('00-11-22-33-44-55', epg)
+        tenant.get_json()
+
+    def test_create_on_interface(self):
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        ep = Endpoint('00-11-22-33-44-55', epg)
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_interface = L2Interface('vlan5', 'vlan', '5')
+        vlan_interface.attach(interface)
+        epg.attach(vlan_interface)
+        ep.attach(vlan_interface)
+
+
 class TestJson(unittest.TestCase):
     def test_simple_3tier_app(self):
         tenant = Tenant('cisco')
@@ -1235,6 +1256,83 @@ class TestLiveTenant(TestLiveAPIC):
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
+class TestLiveSubscription(TestLiveAPIC):
+    def test_create_class_subscription(self):
+        session = self.login_to_apic()
+        Tenant.subscribe(session)
+        self.assertFalse(Tenant.has_events(session))
+        Tenant.unsubscribe(session)
+
+    def test_delete_unsubscribed_class_subscription(self):
+        session = self.login_to_apic()
+        Tenant.unsubscribe(session)
+        self.assertFalse(Tenant.has_events(session))
+
+    def test_double_class_subscription(self):
+        session = self.login_to_apic()
+        Tenant.subscribe(session)
+        Tenant.subscribe(session)
+        self.assertFalse(Tenant.has_events(session))
+        Tenant.unsubscribe(session)
+
+    def test_get_event_no_subcribe(self):
+        session = self.login_to_apic()
+        self.assertFalse(Tenant.has_events(session))
+        self.assertRaises(ValueError, Tenant.get_event(session))
+
+    def test_get_actual_event(self):
+        session = self.login_to_apic()
+        Tenant.subscribe(session)
+
+        # Get all of the existing tenants
+        tenants = Tenant.get(session)
+        tenant_names = []
+        for tenant in tenants:
+            tenant_names.append(tenant.name)
+
+        # Pick a unique tenant name not currently in APIC
+        tenant_name = tenant_names[0]
+        while tenant_name in tenant_names:
+            tenant_name = random_size_string()
+
+        # Create the tenant and push to APIC
+        new_tenant = Tenant(tenant_name)
+        resp = session.push_to_apic(new_tenant.get_url(),
+                                    data=new_tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Wait for the event to come through the subscription
+        # If it takes more than 2 seconds, fail the test.
+        # Pass the test as quickly as possible
+        start_time = time.time()
+        while True:
+            current_time = time.time()
+            time_elapsed = current_time - start_time
+            self.assertTrue(time_elapsed < 2)
+            if Tenant.has_events(session):
+                break
+
+        event_tenant = Tenant.get_event(session)
+        is_tenant = isinstance(event_tenant, Tenant)
+        self.assertTrue(is_tenant)
+
+        new_tenant.mark_as_deleted()
+        resp = session.push_to_apic(new_tenant.get_url(),
+                                    data=new_tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_resubscribe(self):
+        session = self.login_to_apic()
+        Tenant.subscribe(session)
+
+        # Test the refresh used for subscription timeout
+        session.subscription_thread.refresh_subscriptions()
+
+        # Test the resubscribe used after re-login on login timeout
+        session.subscription_thread._resubscribe()
+
+
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveInterface(TestLiveAPIC):
     def test_get_all_interfaces(self):
         session = self.login_to_apic()
@@ -1284,7 +1382,7 @@ class TestLiveEPG(TestLiveAPIC):
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
-class TestEndpoint(unittest.TestCase):
+class TestLiveEndpoint(unittest.TestCase):
     def test_get_bad_session(self):
         bad_session = 'BAD SESSION'
         self.assertRaises(TypeError, Endpoint.get, bad_session)
@@ -1677,14 +1775,14 @@ if __name__ == '__main__':
     live = unittest.TestSuite()
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
-    live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveInterface))
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
     live.addTest(unittest.makeSuite(TestLiveContracts))
-    live.addTest(unittest.makeSuite(TestEndpoint))
+    live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
+    live.addTest(unittest.makeSuite(TestLiveSubscription))
 
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestBaseRelation))
@@ -1704,7 +1802,12 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestPortChannel))
     offline.addTest(unittest.makeSuite(TestContext))
     offline.addTest(unittest.makeSuite(TestOspf))
+    offline.addTest(unittest.makeSuite(TestEndpoint))
 
     full = unittest.TestSuite([live, offline])
+
+    # Add tests to this suite while developing the tests
+    # This allows only these tests to be run
+    develop = unittest.TestSuite()
 
     unittest.main(defaultTest='offline')

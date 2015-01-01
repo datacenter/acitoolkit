@@ -162,12 +162,13 @@ class BaseACIObject(object):
             attributes = event['imdata'][0][class_name]['attributes']
             status = str(attributes['status'])
             dn = str(attributes['dn'])
-            parent = cls._get_parent_from_dn(dn)
+            parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
             if status == 'created':
                 name = str(attributes['name'])
             else:
                 name = cls._get_name_from_dn(dn)
-            obj = cls(name, parent=cls._get_parent_from_dn(dn))
+            obj = cls(name, parent=parent)
+            obj._populate_from_attributes(attributes)
             if status == 'deleted':
                 obj.mark_as_deleted()
             return obj
