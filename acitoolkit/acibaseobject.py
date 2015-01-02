@@ -620,5 +620,3 @@ class BaseACIObject(object):
             if attrib[0] != '_':
                 result.append((attrib, getattr(self, attrib)))
         return result
-
-
