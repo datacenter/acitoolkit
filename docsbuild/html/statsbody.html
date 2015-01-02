@@ -161,17 +161,26 @@ class and can be found as follows:</p>
 <li><a class="reference internal" href="stats/ingrUnkBytes.html#ingrunkbytes-label"><em>ingrUnkBytes</em></a></li>
 <li><a class="reference internal" href="stats/ingrUnkPkts.html#ingrunkpkts-label"><em>ingrUnkPkts</em></a></li>
 </ul>
+</div>
+<div class="section" id="accessing-stats">
+<h2>Accessing Stats<a class="headerlink" href="#accessing-stats" title="Permalink to this headline">¶</a></h2>
 <p>Each statistic family is described in detail below and can be accessed
-via the <tt class="docutils literal"><span class="pre">stats</span></tt> object contained in the <tt class="docutils literal"><span class="pre">Interface</span></tt> object.  Each
-stats family is referenced by its name (see list above), a
-granularity, and an epoch number in the following manner:</p>
-<div class="highlight-python"><div class="highlight"><pre>stats = interface.stats[&lt;stats_family&gt;][&lt;granularity&gt;][&lt;epoch&gt;]
+via the <tt class="docutils literal"><span class="pre">stats</span></tt> object contained in the <tt class="docutils literal"><span class="pre">Interface</span></tt> object.</p>
+<p>You first use the get() method to read the stats from the APIC
+controller.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">stats</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>This returns a dictionary of counter name, value pairs.</p>
+<p>This will return a data structure that will allow each counter
+to be referenced by its name (see list above), a
+granularity, and an epoch number in the following manner:</p>
+<div class="highlight-python"><div class="highlight"><pre>counter = stats[&lt;stats_family&gt;][&lt;granularity&gt;][&lt;epoch&gt;][&lt;counter_name&gt;]
+</pre></div>
+</div>
 <p>For example, if you wanted to show the per day total of ingress,
 unicast packets from the previous day you would do the following:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">][</span><span class="s">&#39;1h&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;unicastPer&#39;</span><span class="p">]</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">stats</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="k">print</span> <span class="n">stats</span><span class="p">[</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">][</span><span class="s">&#39;1h&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;unicastPer&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>The specific counter names can be found at
@@ -182,6 +191,38 @@ can be used to understand exactly when the counters were gathered.:</p>
 <span class="k">print</span> <span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">][</span><span class="s">&#39;1h&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;intervalEnd&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
+<p>One thing to note about accessing the stats is that if a particular
+counter is not currently being kept by the APIC controller, that
+particular counter will not be returned by the get() method.  This
+means that you should either test for its existence before accessing
+it, or use the standard python dictionary get method to
+return a default value that your code can handle:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">stats</span><span class="p">[</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">][</span><span class="s">&#39;1h&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;unicastPer&#39;</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A typical example of counters that may not exist would be for an
+epoch that is not being retained or a granularity that is not
+be gathered.</p>
+<p>One issue with the above is that some counters are floating point, some
+are integers and some are timestamps.  Returning a default of
+zero can lead to inconsistent formatting.  To work around this problem
+use the <tt class="docutils literal"><span class="pre">retrieve()</span></tt> method that will return
+the coutner value or a default value that is consistent.  The format
+of the retrive method is as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre>interface.stats.retrieve(&lt;stats_family&gt;,&lt;granularity&gt;,&lt;epoch&gt;,&lt;counter_name&gt;)
+</pre></div>
+</div>
+<p>The get() method will load the counter values and then they are accessed by
+the retrieve method as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="k">print</span> <span class="n">interface</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="s">&#39;ingrPkts&#39;</span><span class="p">,</span><span class="s">&#39;1h&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s">&#39;unicastPer&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the result of the <tt class="docutils literal"><span class="pre">get()</span></tt> method was not used.  It did cause
+a read of the stats from the APIC which are then stored in the
+<tt class="docutils literal"><span class="pre">interface.stats</span></tt> object.  After that, the <tt class="docutils literal"><span class="pre">interface.stats.retrieve()</span></tt>
+method will access those previously read counters.  The <tt class="docutils literal"><span class="pre">retrieve()</span></tt>
+method will not refresh the counters.</p>
 </div>
 <div class="section" id="granularity">
 <h2>Granularity<a class="headerlink" href="#granularity" title="Permalink to this headline">¶</a></h2>
