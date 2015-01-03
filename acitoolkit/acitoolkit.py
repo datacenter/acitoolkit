@@ -1661,32 +1661,53 @@ class Interface(BaseInterface):
         return interfaces
 
     @staticmethod
-    def get(session, parent=None):
+    def get(session, pod_parent=None, node=None, module=None, port=None):
         """
         Gets all of the physical interfaces from the APIC if no parent is specified.
-        If a parent, of type Linecard is specified, then only those interfaces on
+        If a parent of type Linecard is specified, then only those interfaces on
         that linecard are returned and they are also added as children to that linecard.
 
+        If the pod, node, module and port are specified, then only that specific
+        interface is read.
+        
         :param session: the instance of Session used for APIC communication
-        :param parent: Linecard instance to limit interfaces (optional)
+        :param pod_parent: Linecard instance to limit interfaces or pod number (optional)
+        :param node: Node id string.  This specifies the switch to read. (optional)
+        :param module: Module id string.  This specifies the module or slot of the port. (optional)
+        :param port: Port number.  This is the port to read. (optional)
 
         :returns: list of Interface instances
         """
+
+        if port :
+            if not isinstance(module, str) :
+                raise ValueError('When specifying a specific port, the module must be identified by a string')
+            if not isinstance(node, str) :
+                raise ValueError('When specifying a specific port, the node must be identified by a string')
+            if not isinstance(pod_parent, str) :
+                raise ValueError('When specifying a specific port, the pod must be identified by a string')
+        
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
         cdp_policies = Interface._get_discoveryprot_policies(session, 'cdp')
         lldp_policies = Interface._get_discoveryprot_policies(session, 'lldp')
 
-        interface_query_url = ('/api/node/class/l1PhysIf.json?query-target='
-                               'self')
+        if port :
+            dist_name = 'topology/pod-{0}/node-{1}/sys/phys-[eth{2}/{3}]'.format(pod_parent, node, module, port)
+            interface_query_url = ('/api/mo/'+dist_name+'.json?query-target=self')
+            eth_query_url = ('/api/mo/'+dist_name+'/phys.json?query-target=self')
+        else :
+            interface_query_url = ('/api/node/class/l1PhysIf.json?query-target='
+                                   'self')
+            eth_query_url = ('/api/node/class/ethpmPhysIf.json?query-target='
+                             'self')
+                  
         ret = session.get(interface_query_url)
         resp = []
         interface_data = ret.json()['imdata']
-
+        
         # also get information about the ethernet interface
-        eth_query_url = ('/api/node/class/ethpmPhysIf.json?query-target='
-                         'self')
         ethResp = session.get(eth_query_url)
         resp = []
         ethData = ethResp.json()['imdata']
@@ -1728,8 +1749,8 @@ class Interface(BaseInterface):
             interface_obj.speed = speed
             interface_obj.mtu = mtu
 
-            if parent:
-                if interface_obj.pod == parent.pod and interface_obj.node == parent.node and interface_obj.module == parent.slot:
+            if not isinstance(pod_parent, str) and pod_parent:
+                if interface_obj.pod == pod_parent.pod and interface_obj.node == pod_parent.node and interface_obj.module == pod_parent.slot:
                     resp.append(interface_obj)
             else:
                 resp.append(interface_obj)
@@ -1773,7 +1794,7 @@ class InterfaceStats():
     family.
 
     The counter families are as follows: 'egrTotal', 'egrBytes','egrPkts','egrDropPkts', 'ingrBytes','ingrPkts',
-    'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes','ingrUnkPkts'.
+    'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes','ingrUnkPkts', 'ingrStorm'.
 
     The granularities are: '5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', and '1year'.
 
@@ -1794,16 +1815,6 @@ class InterfaceStats():
 
         :returns:  Dictionary of counters. Format is {<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}
         """
-        nameMap = {'eqptEgrTotal': 'egrTotal',
-                   'eqptEgrBytes': 'egrBytes',
-                   'eqptEgrpkts': 'egrPkts',
-                   'egrDropPkts': 'egrDropPkts',
-                   'eqptIngrBytes': 'ingrBytes',
-                   'eqptIngrPkts': 'ingrPkts',
-                   'eqptIngrTotal': 'ingrTotal',
-                   'eqptIngrDropPkts': 'ingrDropPkts',
-                   'eqptIngrUnkBytes': 'ingrUnkBytes',
-                   'eqptIngrUnkPkts': 'ingrUnkPkts'}
         result = {}
         if not session:
             session = self._parent._session
@@ -1844,6 +1855,8 @@ class InterfaceStats():
                             countName = 'ingrUnkBytes'
                         elif 'IngrUnkPkts' in count:
                             countName = 'ingrUnkPkts'
+                        elif 'IngrStorm' in count :
+                            countName = 'ingrStorm'
                         else:
                             countName = count
 
@@ -1911,9 +1924,14 @@ class InterfaceStats():
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['unclassifiedRate', 'unicastRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
+                        elif countName in ['ingrStorm']:
+                            for attrName in ['dropBytesAvg','dropBytesCum','dropBytesMax','dropBytesMin','dropBytesPer']:
+                                result[countName][granularity][period][attrName] = int(counterAttr[attrName])
+                            for attrName in ['dropBytesRate','dropBytesRateAvg','dropBytesRateMax','dropBytesRateMin'] :
+                                result[countName][granularity][period][attrName] = float(counterAttr[attrName])
                         else:
-                            print countName, granularity, period
-                            exit()
+                            print 'Found unsupported counter',countName, granularity, period
+                            
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
@@ -1946,7 +1964,14 @@ class InterfaceStats():
         # initialize result to a miss
         if countName in ['intervalEnd', 'intervalStart']:
             result = None
-        elif countName in ['pktsRateAvg', 'pktsRateAvg', 'bytesRateAvg', 'bytesRateAvg']:
+
+        elif countName in ['pktsRate', 'pktsRateAvg', 'pktsRateMax','pktsRateMin',
+                           'bytesRate', 'bytesRateAvg', 'bytesRateMax','bytesRateMin',
+                           'floodRate', 'unicastRate', 'unclassifiedRate'
+                           'afdWredRate', 'bufferRate', 'errorRate',
+                           'forwardingRate', 'lbRate',
+                           'multicastRate', 'multicastRateAvg', 'multicastRateMax', 'multicastRateMin',
+                           'dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax','dropBytesRateMin']:
             result = 0.0
         else:
             result = 0
@@ -2727,10 +2752,11 @@ class MonitorStats(BaseMonitorClass):
                        'eqptEgrTotal': 'egrTotal', 'eqptEgrDropPkts': 'egrDropPkts',
                        'eqptIngrBytes': 'ingrBytes', 'eqptIngrPkts': 'ingrPkts',
                        'eqptIngrTotal': 'ingrTotal', 'eqptIngrDropPkts': 'ingrDropPkts',
-                       'eqptIngrUnkBytes': 'ingrUnkBytes', 'eqptIngrUnkPkts': 'ingrUnkPkts'}
+                       'eqptIngrUnkBytes': 'ingrUnkBytes', 'eqptIngrUnkPkts': 'ingrUnkPkts',
+                       'eqptIngrStorm': 'ingrStorm'}
 
     statsFamilyEnum = ['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts', 'ingrBytes', 'ingrPkts',
-                       'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
+                       'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts', 'ingrStorm']
     def __init__(self, parent, statsFamily):
         """
         The MonitorStats object must always be initialized with a parent object of type MonitorTarget.
@@ -2744,7 +2770,7 @@ class MonitorStats(BaseMonitorClass):
                        This must be an object of type MonitorTarget.
        :param statsFamily: String specifying the statistics family that the children collection policies should
                        be applied to.  Possible values are:['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts',
-                       'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts']
+                       'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts', 'ingrStorm']
         """
         if not type(parent) in [MonitorTarget]:
             raise TypeError('Parent of MonitorStats must be one of type MonitorTarget')
