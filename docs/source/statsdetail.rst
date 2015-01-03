@@ -16,4 +16,7 @@ The following are details about each of the counters
    stats/egrDropPkts.rst
    stats/ingrDropPkts.rst
    stats/ingrUnkBytes.rst
+   stats/ingrStorm.rst
    stats/ingrUnkPkts.rst
+
+
