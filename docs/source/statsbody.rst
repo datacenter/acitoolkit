@@ -40,6 +40,8 @@ The families are as follows:
 * :ref:`ingrDropPkts <ingrDropPkts-label>`
 * :ref:`ingrUnkBytes <ingrUnkBytes-label>`
 * :ref:`ingrUnkPkts <ingrUnkPkts-label>`
+* :ref:`ingrStorm <ingrStorm-label>`
+
 
 *******************
 Accessing Stats
@@ -107,6 +109,52 @@ a read of the stats from the APIC which are then stored in the
 ``interface.stats`` object.  After that, the ``interface.stats.retrieve()``
 method will access those previously read counters.  The ``retrieve()``
 method will not refresh the counters.
+
+aci-show-interface-stats.py
+----------------------------
+
+The interface stats can also be accessed via the simple python script
+``aci-show-interface-stats.py``.  This script has a couple of display
+options to customize the output.
+
+A simple run of the script will display each interface in the network
+and a couple of selected stats for each::
+
+  python aci-show-interface-stats.py
+
+The default display is for the ``5min`` granularity and the current,
+i.e. 0, epoch.  An alternative granularity can be selected with the
+``-granularity`` command line option.::
+
+  python aci-show-interface-stats.py -granularity 1h
+
+The epoch can be specified with the ``-epoch`` option.::
+
+  python aci-show-interface-stats.py -granularity 1h -epoch 3
+
+A specific interface can be specified with the ``-interface`` option.  
+This might be useful
+if there are a large number of interfaces.::
+
+  python aci-show-interface-stats.py -g 1h -e 3 -interface 1/201/1/1
+
+Note that we are also showing the abbreviated form of the other
+command line options.  The above will show stats for pod 1, switch
+201, slot 1, port 1.
+
+If all of the stats for a given interface are desired, the ``-full``
+option should be used.
+
+  python aci-show-interface-stats.py -g 1h -e 3 -i 1/201/1/1 -full
+
+This last option will show only those stats that have been collected
+according to the monitoring policy.  Also, note that this last option
+only works when the ``-interface`` option is also used.
+
+
+
+
+
 
 ********************
 Granularity
