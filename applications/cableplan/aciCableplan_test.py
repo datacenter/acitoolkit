@@ -21,7 +21,7 @@ import sys
 import unittest
 import cableplan
 import os
-LIVE_TEST = False
+LIVE_TEST = True
 
 class Test_ParseXML(unittest.TestCase) :
     def get_temporary_filename(self) :
