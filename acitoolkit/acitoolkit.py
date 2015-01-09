@@ -64,6 +64,40 @@ class Tenant(BaseACIObject):
                                             attributes=attr)
 
     @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {
+            'fvAp': AppProfile,
+            'fvBD': BridgeDomain,
+            'fvCtx': Context,
+            'vzBrCP': Contract,
+            'vzTaboo': Taboo,
+            }
+
+    @classmethod
+    def get_deep(cls, session, names=[]):
+        resp = []
+        assert isinstance(names, list), ('names should be a list'
+                                         ' of strings')
+
+        # If no tenant names passed, get all tenant names from APIC
+        if len(names) == 0:
+            tenants = Tenant.get(session)
+            for tenant in tenants:
+                names.append(tenant.name)
+
+        for name in names:
+            query_url = ('/api/mo/uni/tn-%s.json?query-target=self&'
+                         'rsp-subtree=full' % name)
+            ret = session.get(query_url)
+            data = ret.json()['imdata']
+            obj = super(Tenant, cls).get_deep(full_data=data,
+                                              working_data=data,
+                                              parent=None)
+            obj._extract_relationships(data)
+            resp.append(obj)
+        return resp
+
+    @classmethod
     def get(cls, session):
         """
         Gets all of the tenants from the APIC.
@@ -123,6 +157,12 @@ class AppProfile(BaseACIObject):
         resp = []
         resp.append('fvAp')
         return resp
+
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {
+            'fvAEPg': EPG,
+            }
 
     @staticmethod
     def _get_parent_class():
@@ -391,6 +431,13 @@ class EPG(CommonEPG):
         resp.append('fvAEPg')
         return resp
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {
+            'fvCEp': Endpoint,
+            'fvStCEp': Endpoint,
+            }
+
     @staticmethod
     def _get_parent_class():
         return AppProfile
@@ -442,6 +489,47 @@ class EPG(CommonEPG):
                   a BridgeDomain.
         """
         return self._has_any_relation(BridgeDomain)
+
+    def _extract_relationships(self, data):
+        app_profile = self.get_parent()
+        tenant = app_profile.get_parent()
+        tenant_children = data[0]['fvTenant']['children']
+        epg_children = None
+        for app in tenant_children:
+            if 'fvAp' in app:
+                if app['fvAp']['attributes']['name'] == app_profile.name:
+                    for epg in app['fvAp']['children']:
+                        if 'fvAEPg' in epg:
+                            if epg['fvAEPg']['attributes']['name'] == self.name:
+                                epg_children = epg['fvAEPg']['children']
+        for child in epg_children:
+            if 'fvRsBd' in child:
+                bd_name = child['fvRsBd']['attributes']['tnFvBDName']
+                bd_search = Search()
+                bd_search.name = bd_name
+                objs = tenant.find(bd_search)
+                for bd in objs:
+                    if isinstance(bd, BridgeDomain):
+                        self.add_bd(bd)
+            elif 'fvRsPathAtt' in child:
+                pass
+            elif 'fvRsProv' in child:
+                contract_name = child['fvRsProv']['attributes']['tnVzBrCPName']
+                contract_search = Search()
+                contract_search.name = contract_name
+                objs = tenant.find(contract_search)
+                for contract in objs:
+                    if isinstance(contract, Contract):
+                        self.provide(contract)
+            elif 'fvRsCons' in child:
+                contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
+                contract_search = Search()
+                contract_search.name = contract_name
+                objs = tenant.find(contract_search)
+                for contract in objs:
+                    if isinstance(contract, Contract):
+                        self.consume(contract)
+        super(EPG, self)._extract_relationships(data)
 
     # Output
     def get_json(self):
@@ -752,6 +840,12 @@ class BridgeDomain(BaseACIObject):
         resp.append('fvBD')
         return resp
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {
+            'fvSubnet': Subnet,
+            }
+
     @staticmethod
     def _get_parent_class():
         return Tenant
@@ -779,6 +873,26 @@ class BridgeDomain(BaseACIObject):
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
                                                   attributes=attr,
                                                   children=children)
+
+    def _extract_relationships(self, data):
+        tenant_children = data[0]['fvTenant']['children']
+        for child in tenant_children:
+            if 'fvBD' in child:
+                bd_name = child['fvBD']['attributes']['name']
+                if bd_name == self.name:
+                    bd_children = child['fvBD']['children']
+                    for bd_child in bd_children:
+                        if 'fvRsCtx' in bd_child:
+                            context_name = bd_child['fvRsCtx']['attributes']['tnFvCtxName']
+                            tenant = self.get_parent()
+                            context_search = Search()
+                            context_search.name = context_name
+                            objs = tenant.find(context_search)
+                            for context in objs:
+                                if isinstance(context, Context):
+                                    self.add_context(context)
+                    break
+        super(BridgeDomain, self)._extract_relationships(data)
 
     # Context references
     def add_context(self, context):
@@ -894,6 +1008,12 @@ class Subnet(BaseACIObject):
         super(Subnet, self).__init__(subnet_name, parent)
         self._addr = None
 
+    @classmethod
+    def _get_apic_classes(cls):
+        resp = []
+        resp.append('fvSubnet')
+        return resp
+
     def get_addr(self):
         """
         Get the subnet address
@@ -932,6 +1052,9 @@ class Subnet(BaseACIObject):
         """
         self.set_addr(attributes['ip'])
 
+    def _extract_attributes(self, attributes):
+        self.set_addr(str(attributes['ip']))
+
     @classmethod
     def get(cls, session, bridgedomain, tenant):
         """
@@ -968,6 +1091,10 @@ class Context(BaseACIObject):
         resp.append('fvCtx')
         return resp
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {}
+
     @staticmethod
     def _get_parent_class():
         return Tenant
@@ -979,6 +1106,13 @@ class Context(BaseACIObject):
     @staticmethod
     def _get_name_from_dn(dn):
         return dn.split('/ctx-')[1].split('/')[0]
+
+    def _extract_attributes(self, attributes):
+        if attributes['pcEnfPref'] == 'unenforced':
+            allow_all = True
+        else:
+            allow_all = False
+        self.set_allow_all(allow_all)
 
     def set_allow_all(self, value=True):
         """
@@ -1136,6 +1270,30 @@ class Contract(BaseContract):
         return attributes
 
     @classmethod
+    def get_deep(cls, full_data, working_data, parent=None):
+        contract_data = working_data[0]['vzBrCP']
+        contract = Contract(str(contract_data['attributes']['name']),
+                            parent)
+        for child in contract_data['children']:
+            if 'vzSubj' in child:
+                subject = child['vzSubj']
+                for subj_child in subject['children']:
+                    if 'vzRsSubjFiltAtt' in subj_child:
+                        filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
+                        filter_name = filter_attributes['rn'].split('rssubjFiltAtt-')[1]
+                        for filter in full_data[0]['fvTenant']['children']:
+                            if 'vzFilter' in filter:
+                                match_name = filter['vzFilter']['attributes']['name']
+                                if match_name == filter_name:
+                                    for entry in filter['vzFilter']['children']:
+                                        if 'vzEntry' in entry:
+                                            entry_obj = FilterEntry.create_from_apic_json(entry, contract)
+
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {}
+
+    @classmethod
     def get(cls, session, tenant):
         """Gets all of the Contracts from the APIC for a particular tenant.
         """
@@ -1221,6 +1379,17 @@ class FilterEntry(BaseACIObject):
         attributes['tcpRules'] = self.tcpRules
         return attributes
 
+    def _extract_attributes(self, attributes):
+        self.applyToFrag = str(attributes['applyToFrag'])
+        self.arpOpc = str(attributes['arpOpc'])
+        self.dFromPort = str(attributes['dFromPort'])
+        self.dToPort = str(attributes['dToPort'])
+        self.etherT = str(attributes['etherT'])
+        self.prot = str(attributes['prot'])
+        self.sFromPort = str(attributes['sFromPort'])
+        self.sToPort = str(attributes['sToPort'])
+        self.tcpRules = str(attributes['tcpRules'])
+
     def get_json(self):
         """
         Returns json representation of the FilterEntry
@@ -1237,6 +1406,55 @@ class FilterEntry(BaseACIObject):
 
     @classmethod
     def get(cls, session, parent=None, tenant=None):
+        """
+        To get all of acitoolkit style Filter Entries APIC class.
+
+        :param session:  the instance of Session used for APIC communication
+        :param parent:  Object to assign as the parent to the created objects.
+        :param tenant:  Tenant object to assign the created objects.
+        """
+
+        apic_class = 'vzRsSubjFiltAtt'
+
+        if isinstance(tenant, str):
+            raise TypeError
+        logging.debug('%s.get called', cls.__name__)
+        if tenant is None:
+            tenant_url = ''
+        else:
+            tenant_url = '/tn-%s' % tenant.name
+            if parent is not None:
+                tenant_url = tenant_url + parent._get_url_extension()
+        query_url = ('/api/mo/uni%s.json?query-target=subtree&'
+                     'target-subtree-class=%s' % (tenant_url, apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        resp = []
+        for object_data in data:
+            dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
+            tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
+            tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
+            names = ()
+            if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class)-1:] == dn.split('/')[3][5:] and dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
+                name = str(object_data[apic_class]['attributes']['tRn'][4:])
+                if name[:len(parent.name)] == parent.name and name[len(parent.name):] != '':
+                    obj = cls(name[len(parent.name):], parent)
+                    attribute_data = object_data[apic_class]['attributes']
+                    obj._populate_from_attributes(attribute_data)
+                    resp.append(obj)
+        return resp
+
+    @classmethod
+    def create_from_apic_json(cls, data, parent):
+        attributes = data['vzEntry']['attributes']
+        entry = cls(name=str(attributes['name']),
+                    parent=parent)
+        entry._extract_attributes(attributes)
+        return entry
+
+    @classmethod
+    def get_deep(cls, session, parent=None, tenant=None):
         """
         To get all of acitoolkit style Filter Entries APIC class.
 
@@ -1673,7 +1891,7 @@ class Interface(BaseInterface):
 
         If the pod, node, module and port are specified, then only that specific
         interface is read.
-        
+
         :param session: the instance of Session used for APIC communication
         :param pod_parent: Linecard instance to limit interfaces or pod number (optional)
         :param node: Node id string.  This specifies the switch to read. (optional)
@@ -1683,34 +1901,34 @@ class Interface(BaseInterface):
         :returns: list of Interface instances
         """
 
-        if port :
-            if not isinstance(module, str) :
+        if port:
+            if not isinstance(module, str):
                 raise ValueError('When specifying a specific port, the module must be identified by a string')
-            if not isinstance(node, str) :
+            if not isinstance(node, str):
                 raise ValueError('When specifying a specific port, the node must be identified by a string')
-            if not isinstance(pod_parent, str) :
+            if not isinstance(pod_parent, str):
                 raise ValueError('When specifying a specific port, the pod must be identified by a string')
-        
+
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
         cdp_policies = Interface._get_discoveryprot_policies(session, 'cdp')
         lldp_policies = Interface._get_discoveryprot_policies(session, 'lldp')
 
-        if port :
+        if port:
             dist_name = 'topology/pod-{0}/node-{1}/sys/phys-[eth{2}/{3}]'.format(pod_parent, node, module, port)
             interface_query_url = ('/api/mo/'+dist_name+'.json?query-target=self')
             eth_query_url = ('/api/mo/'+dist_name+'/phys.json?query-target=self')
-        else :
+        else:
             interface_query_url = ('/api/node/class/l1PhysIf.json?query-target='
                                    'self')
             eth_query_url = ('/api/node/class/ethpmPhysIf.json?query-target='
                              'self')
-                  
+
         ret = session.get(interface_query_url)
         resp = []
         interface_data = ret.json()['imdata']
-        
+
         # also get information about the ethernet interface
         ethResp = session.get(eth_query_url)
         resp = []
@@ -1859,7 +2077,7 @@ class InterfaceStats():
                             countName = 'ingrUnkBytes'
                         elif 'IngrUnkPkts' in count:
                             countName = 'ingrUnkPkts'
-                        elif 'IngrStorm' in count :
+                        elif 'IngrStorm' in count:
                             countName = 'ingrStorm'
                         else:
                             countName = count
@@ -1929,13 +2147,12 @@ class InterfaceStats():
                             for attrName in ['unclassifiedRate', 'unicastRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
                         elif countName in ['ingrStorm']:
-                            for attrName in ['dropBytesAvg','dropBytesCum','dropBytesMax','dropBytesMin','dropBytesPer']:
+                            for attrName in ['dropBytesAvg', 'dropBytesCum', 'dropBytesMax', 'dropBytesMin', 'dropBytesPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['dropBytesRate','dropBytesRateAvg','dropBytesRateMax','dropBytesRateMin'] :
+                            for attrName in ['dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax', 'dropBytesRateMin']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
                         else:
-                            print 'Found unsupported counter',countName, granularity, period
-                            
+                            print 'Found unsupported counter', countName, granularity, period
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
@@ -1969,13 +2186,13 @@ class InterfaceStats():
         if countName in ['intervalEnd', 'intervalStart']:
             result = None
 
-        elif countName in ['pktsRate', 'pktsRateAvg', 'pktsRateMax','pktsRateMin',
-                           'bytesRate', 'bytesRateAvg', 'bytesRateMax','bytesRateMin',
+        elif countName in ['pktsRate', 'pktsRateAvg', 'pktsRateMax', 'pktsRateMin',
+                           'bytesRate', 'bytesRateAvg', 'bytesRateMax', 'bytesRateMin',
                            'floodRate', 'unicastRate', 'unclassifiedRate'
                            'afdWredRate', 'bufferRate', 'errorRate',
                            'forwardingRate', 'lbRate',
                            'multicastRate', 'multicastRateAvg', 'multicastRateMax', 'multicastRateMin',
-                           'dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax','dropBytesRateMin']:
+                           'dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax', 'dropBytesRateMin']:
             result = 0.0
         else:
             result = 0
@@ -2138,6 +2355,10 @@ class Endpoint(BaseACIObject):
         resp.append('fvStCEp')
         return resp
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {}
+
     @staticmethod
     def _get_parent_class():
         return EPG
@@ -2161,16 +2382,22 @@ class Endpoint(BaseACIObject):
         return None
 
     def _populate_from_attributes(self, attributes):
-        print attributes
         self.mac = str(attributes['mac'])
         self.ip = str(attributes['ip'])
         self.encap = str(attributes['encap'])
 
     @staticmethod
-    def _get(session, interfaces, endpoints, apic_endpoint_class, endpoint_path):
+    def _get(session, endpoint_name, interfaces, endpoints, apic_endpoint_class, endpoint_path):
         # Get all of the Endpoints
-        endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
-                              '&rsp-subtree=full' % apic_endpoint_class)
+        if endpoint_name is None:
+            endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
+                                  '&rsp-subtree=full' % apic_endpoint_class)
+        else:
+            endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
+                                  '&query-target-filter=eq(%s.name,"%s")'
+                                  '&rsp-subtree=full' % (apic_endpoint_class,
+                                                         apic_endpoint_class,
+                                                         endpoint_name))
         ret = session.get(endpoint_query_url)
         ep_data = ret.json()['imdata']
         for ep in ep_data:
@@ -2185,6 +2412,7 @@ class Endpoint(BaseACIObject):
             endpoint.mac = str(ep['mac'])
             endpoint.ip = str(ep['ip'])
             endpoint.encap = str(ep['encap'])
+            endpoint.timestamp = str(ep['modTs'])
             for child in children:
                 if endpoint_path in child:
                     endpoint.if_name = str(child[endpoint_path]['attributes']['tDn'])
@@ -2202,7 +2430,7 @@ class Endpoint(BaseACIObject):
         return endpoints
 
     @staticmethod
-    def get(session):
+    def get(session, endpoint_name=None):
         """Gets all of the endpoints connected to the fabric from the APIC
         """
         if not isinstance(session, Session):
@@ -2215,9 +2443,9 @@ class Endpoint(BaseACIObject):
         interfaces = ret.json()['imdata']
 
         endpoints = []
-        endpoints = Endpoint._get(session, interfaces, endpoints,
+        endpoints = Endpoint._get(session, endpoint_name, interfaces, endpoints,
                                   'fvCEp', 'fvRsCEpToPathEp')
-        endpoints = Endpoint._get(session, interfaces, endpoints,
+        endpoints = Endpoint._get(session, endpoint_name, interfaces, endpoints,
                                   'fvStCEp', 'fvRsStCEpToPathEp')
 
         return endpoints
@@ -2334,7 +2562,6 @@ class VMM(BaseACIObject):
     @classmethod
     def get(cls, session):
         query_url = '/api/node/class/vmmCtrlrP.json?query-target=subtree'
-                     #'target-subtree-class=%s' % prot_relation_class)
         ret = session.get(query_url)
         data = ret.json()['imdata']
         for item in data:
@@ -2342,9 +2569,6 @@ class VMM(BaseACIObject):
                 print key
         print data
         raise NotImplementedError
-        #for item in data:
-        #    if 'vmmCtrlrP' in item:
-        #        print 'vmmCtrlrP:', item['vmmCtrlrP']['attributes']['name']
 
 
 class Search(BaseACIObject):
@@ -2762,7 +2986,7 @@ class MonitorStats(BaseMonitorClass):
 
     statsFamilyEnum = ['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts', 'ingrBytes', 'ingrPkts',
                        'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes', 'ingrUnkPkts', 'ingrStorm']
-        
+
     def __init__(self, parent, statsFamily):
         """
         The MonitorStats object must always be initialized with a parent object of type MonitorTarget.
@@ -2812,9 +3036,9 @@ class CollectionPolicy(BaseMonitorClass):
 
     This object is roughly the same as the statsColl and statsHierColl objects in the APIC.
     """
-    granularityEnum = ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year'] # this must be in order from small to large
+    granularityEnum = ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year']  # this must be in order from small to large
     retentionEnum = ['none', 'inherited', '5min', '15min', '1h', '1d',
-                         '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year']
+                     '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year']
 
     def __init__(self, parent, granularity, retention, adminState='enabled'):
         """

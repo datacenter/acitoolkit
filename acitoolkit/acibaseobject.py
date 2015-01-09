@@ -128,6 +128,13 @@ class BaseACIObject(object):
     def _get_name_from_dn(dn):
         raise NotImplementedError
 
+    def _extract_attributes(self, attributes):
+        pass
+
+    def _extract_relationships(self, data):
+        for child in self.get_children():
+            child._extract_relationships(data)
+
     @classmethod
     def _get_parent_from_dn(cls, dn):
         parent_class = cls._get_parent_class()
@@ -138,6 +145,25 @@ class BaseACIObject(object):
         parent_obj = parent_class(parent_name,
                                   parent_class._get_parent_from_dn(parent_dn))
         return parent_obj
+
+    @classmethod
+    def get_deep(cls, full_data, working_data, parent=None):
+        for item in working_data:
+            for key in item:
+                if key in cls._get_apic_classes():
+                    obj = cls(str(item[key]['attributes']['name']), parent)
+                    obj._extract_attributes(item[key]['attributes'])
+                    if 'children' in item[key]:
+                        for child in item[key]['children']:
+                            for apic_class in child:
+                                class_map = cls._get_toolkit_to_apic_classmap()
+                                if apic_class not in class_map:
+                                    continue
+                                else:
+                                    class_map[apic_class].get_deep(full_data=full_data,
+                                                                   working_data=[child],
+                                                                   parent=obj)
+        return obj
 
     @classmethod
     def subscribe(cls, session):
@@ -284,10 +310,21 @@ class BaseACIObject(object):
         """
         return self._check_attachment(item, 'detached')
 
-    def get_children(self):
+    def get_children(self, only_class=None):
         """
+        Get a list of the immediate child objects of this object.
+
+        :param only_class: Optional parameter that will be used to limit the\
+                           objects returned to only those belonging to the\
+                           class passed in this parameter.
         :returns: List of children objects.
         """
+        if only_class is not None:
+            resp = []
+            for child in self._children:
+                if isinstance(child, only_class):
+                    resp.append(child)
+            return resp
         return self._children
 
     def add_child(self, obj):

@@ -1204,6 +1204,14 @@ class TestLiveTenant(TestLiveAPIC):
             self.assertTrue(isinstance(tenant, Tenant))
             self.assertTrue(isinstance(tenant.name, str))
 
+    def test_get_deep_tenants(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get_deep(session)
+        self.assertTrue(len(tenants) > 0)
+        for tenant in tenants:
+            self.assertTrue(isinstance(tenant, Tenant))
+            self.assertTrue(isinstance(tenant.name, str))        
+
     def test_exists_tenant(self):
         session = self.login_to_apic()
         tenants = self.get_all_tenants()
