@@ -1274,21 +1274,24 @@ class Contract(BaseContract):
         contract_data = working_data[0]['vzBrCP']
         contract = Contract(str(contract_data['attributes']['name']),
                             parent)
-        if 'children' in contract_data:
-            for child in contract_data['children']:
-                if 'vzSubj' in child:
-                    subject = child['vzSubj']
-                    for subj_child in subject['children']:
-                        if 'vzRsSubjFiltAtt' in subj_child:
-                            filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
-                            filter_name = filter_attributes['rn'].split('rssubjFiltAtt-')[1]
-                            for filter in full_data[0]['fvTenant']['children']:
-                                if 'vzFilter' in filter:
-                                    match_name = filter['vzFilter']['attributes']['name']
-                                    if match_name == filter_name:
-                                        for entry in filter['vzFilter']['children']:
-                                            if 'vzEntry' in entry:
-                                                entry_obj = FilterEntry.create_from_apic_json(entry, contract)
+                            
+        if 'children' not in contract_data:
+            return
+            
+        for child in contract_data['children']:
+            if 'vzSubj' in child:
+                subject = child['vzSubj']
+                for subj_child in subject['children']:
+                    if 'vzRsSubjFiltAtt' in subj_child:
+                        filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
+                        filter_name = filter_attributes['rn'].split('rssubjFiltAtt-')[1]
+                        for filter in full_data[0]['fvTenant']['children']:
+                            if 'vzFilter' in filter:
+                                match_name = filter['vzFilter']['attributes']['name']
+                                if match_name == filter_name:
+                                    for entry in filter['vzFilter']['children']:
+                                        if 'vzEntry' in entry:
+                                            entry_obj = FilterEntry.create_from_apic_json(entry, contract)
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
