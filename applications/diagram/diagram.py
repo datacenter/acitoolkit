@@ -39,6 +39,15 @@ def bd_node(tn, bd):
     
 def sn_node(tn, bd, sn):
     return bd_node(tn, bd)+"/sn-"+sn.get_addr()
+    
+def app_node(tn, app):
+    return tn_node(tn)+"/app-"+app.name
+    
+def epg_node(tn, app, epg):
+    return app_node(tn, app)+"/epg-"+epg.name
+
+def ctrct_node(tn, ctrct):
+    return tn_node(tn)+"/ctrct-"+ctrct.name
 
 for tenant in tenants:
     print "Processing tenant "+tenant.name
@@ -53,10 +62,30 @@ for tenant in tenants:
         
         if bd.get_context():
             tncluster.add_edge(ctx_node(tenant,bd.get_context()), bd_node(tenant,bd))
+        else:
+            tncluster.add_node("_ctx-dummy-"+bd_node(tenant, bd), style="invis", label='Private Network', shape='circle')
+            tncluster.add_edge("_ctx-dummy-"+bd_node(tenant, bd), bd_node(tenant, bd), style="invis")
             
         for sn in bd.get_children(only_class=Subnet):
-            tncluster.add_node(sn_node(tenant, bd, sn), label = "Subnet\n"+sn.get_addr(), shape='box', style='filled', color='lightgray')
+            tncluster.add_node(sn_node(tenant, bd, sn), label = "Subnet\n"+sn.get_addr(), shape='box', style='dotted')
             tncluster.add_edge(bd_node(tenant, bd), sn_node(tenant, bd, sn))
+    for app in tenant.get_children(only_class=AppProfile):
+        # tncluster.add_node(app_node(tenant, app), label="Application Profile\n"+app.name)        
+        appcluster=tncluster.add_subgraph(name=app_node(tenant, app), label="Application Profile\n"+app.name)
+        
+        for epg in app.get_children(only_class=EPG):
+            # tncluster.add_node(epg_node(tenant, app, epg), label="EPG\n"+epg.name)
+            appcluster.add_node(epg_node(tenant, app, epg), label="EPG\n"+epg.name)
+            if epg.has_bd():
+                tncluster.add_edge(bd_node(tenant,epg.get_bd()), epg_node(tenant, app, epg), style='dotted')
+                
+            for pc in epg.get_all_provided():
+                appcluster.add_node(ctrct_node(tenant, pc), label="Contract\n"+pc.name, shape='box', style='filled', color='lightgray')
+                appcluster.add_edge(epg_node(tenant, app, epg), ctrct_node(tenant, pc))
+                
+            for cc in epg.get_all_consumed():
+                appcluster.add_node(ctrct_node(tenant, cc), label="Contract\n"+cc.name, shape='box', style='filled', color='lightgray')
+                appcluster.add_edge(ctrct_node(tenant, cc), epg_node(tenant, app, epg))
 
 if args.verbose:
     print "Finished loading the structure from APIC, here is the graph source (GraphViz DOT format):"
