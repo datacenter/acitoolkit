@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>egrTotal &mdash; acitoolkit 0.1 documentation</title>
+  <title>ingrStorm &mdash; acitoolkit 0.1 documentation</title>
   
 
   
@@ -30,8 +30,8 @@
   
     <link rel="top" title="acitoolkit 0.1 documentation" href="../index.html"/>
         <link rel="up" title="Statistics Detail" href="../statsdetail.html"/>
-        <link rel="next" title="ingrBytes" href="ingrBytes.html"/>
-        <link rel="prev" title="egrBytes" href="egrBytes.html"/> 
+        <link rel="next" title="ingrUnkPkts" href="ingrUnkPkts.html"/>
+        <link rel="prev" title="ingrUnkBytes" href="ingrUnkBytes.html"/> 
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -117,10 +117,10 @@
       
           <li><a href="../statsdetail.html">Statistics Detail</a> &raquo;</li>
       
-    <li>egrTotal</li>
+    <li>ingrStorm</li>
       <li class="wy-breadcrumbs-aside">
         
-          <a href="../_sources/stats/egrTotal.txt" rel="nofollow"> View page source</a>
+          <a href="../_sources/stats/ingrStorm.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -128,13 +128,13 @@
 </div>
           <div role="main">
             
-  <div class="section" id="egrtotal">
-<span id="egrtotal-label"></span><h1>egrTotal<a class="headerlink" href="#egrtotal" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="ingrstorm">
+<span id="ingrstorm-label"></span><h1>ingrStorm<a class="headerlink" href="#ingrstorm" title="Permalink to this headline">¶</a></h1>
 <table border="1" class="docutils">
 <colgroup>
-<col width="21%" />
+<col width="20%" />
 <col width="13%" />
-<col width="66%" />
+<col width="67%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Name</th>
@@ -146,10 +146,10 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>bytesAvg</td>
+<tr class="row-even"><td>dropBytesAvg</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress bytes average</strong></div>
+<div class="line"><strong>Ingress ave bytes dropped due to storm control</strong>.</div>
 <div class="line">This is the average value read by the counter</div>
 <div class="line">during the collection interval. Note that this</div>
 <div class="line">value resets to 0 at the beginning of each</div>
@@ -157,20 +157,20 @@
 </div>
 </td>
 </tr>
-<tr class="row-odd"><td>bytesCum</td>
+<tr class="row-odd"><td>dropBytesCum</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress bytes cumulative</strong>.</div>
+<div class="line"><strong>Ingress cum bytes dropped due to storm control</strong></div>
 <div class="line">The total sum of the values read. Note that this</div>
 <div class="line">value continues through each interval without</div>
 <div class="line">resetting to zero.</div>
 </div>
 </td>
 </tr>
-<tr class="row-even"><td>bytesMax</td>
+<tr class="row-even"><td>dropBytesMax</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress bytes maximum</strong>.</div>
+<div class="line"><strong>Ingress max bytes dropped due to storm control</strong>.</div>
 <div class="line">This is the largest value read by the counter</div>
 <div class="line">during the collection interval. This value is</div>
 <div class="line">only overwritten if the most current value is</div>
@@ -184,10 +184,10 @@
 </div>
 </td>
 </tr>
-<tr class="row-odd"><td>bytesMin</td>
+<tr class="row-odd"><td>dropBytesMin</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress bytes minimum</strong>.</div>
+<div class="line"><strong>Ingress min bytes dropped due to storm control</strong></div>
 <div class="line">This is the smallest value read by the counter</div>
 <div class="line">during the collection interval. This value is</div>
 <div class="line">only overwritten if the most current value is</div>
@@ -201,20 +201,21 @@
 </div>
 </td>
 </tr>
-<tr class="row-even"><td>bytesPer</td>
+<tr class="row-even"><td>dropBytesPer</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress bytes per interval</strong>.</div>
+<div class="line"><strong>Ingress bytes dropped per interval due to storm</strong></div>
+<div class="line"><strong>control</strong></div>
 <div class="line">The total sum of the values read during the</div>
 <div class="line">collection interval. Note that this value resets</div>
 <div class="line">to 0 at the beginning of each interval.</div>
 </div>
 </td>
 </tr>
-<tr class="row-odd"><td>bytesRate</td>
-<td>float</td>
+<tr class="row-odd"><td>dropBytesRate</td>
+<td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress byte rate</strong>.</div>
+<div class="line"><strong>Ingress byte drop rate due to storm control</strong></div>
 <div class="line">This is the rate of the counter during the</div>
 <div class="line">collection interval. The rate is calculated by</div>
 <div class="line">dividing the periodic value by the length of the</div>
@@ -224,76 +225,22 @@
 </div>
 </td>
 </tr>
-<tr class="row-even"><td>bytesRateAvg</td>
-<td>float</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress byte rate average</strong>.</div>
-<div class="line">This is the average value read by the counter</div>
-<div class="line">during the collection interval. This value resets</div>
-<div class="line">to 0 at the beginning of each interval and is in</div>
-<div class="line">bytes per second.</div>
-</div>
-</td>
-</tr>
-<tr class="row-odd"><td>bytesRateMax</td>
-<td>float</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress byte rate maximum</strong>.</div>
-<div class="line">This is the largest value read by the counter</div>
-<div class="line">during the collection interval. This value is</div>
-<div class="line">only overwritten if the most current value is</div>
-<div class="line">larger than the previous value. For example, if</div>
-<div class="line">the value of the first reading is 3 and the value</div>
-<div class="line">of the second reading is 4, the previous value is</div>
-<div class="line">overwritten with 4. If the third reading is</div>
-<div class="line">smaller than 4, the value remains at 4. Note that</div>
-<div class="line">this value resets to 0 at the beginning of each</div>
-<div class="line">interval. It is in bytes per second.</div>
-</div>
-</td>
-</tr>
-<tr class="row-even"><td>bytesRateMin</td>
-<td>float</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress byte rate minimum</strong>.</div>
-<div class="line">This is the smallest value read by the counter</div>
-<div class="line">during the collection interval. This value is</div>
-<div class="line">only overwritten if the most current value is</div>
-<div class="line">smaller than the previous value. For example, if</div>
-<div class="line">the value of the first reading is 3 and the value</div>
-<div class="line">of the second reading is 2, the previous value is</div>
-<div class="line">overwritten with 2. If the third reading is</div>
-<div class="line">larger than 2, the value remains at 2. Note that</div>
-<div class="line">this value resets to 0 at the beginning of each</div>
-<div class="line">interval. It is measured in bytes per second.</div>
-</div>
-</td>
-</tr>
-<tr class="row-odd"><td>pktsAvg</td>
+<tr class="row-even"><td>dropBytesRateAvg</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress packets average</strong>.</div>
+<div class="line"><strong>Ingress byte drop rate average due to storm</strong></div>
+<div class="line"><strong>control</strong></div>
 <div class="line">This is the average value read by the counter</div>
 <div class="line">during the collection interval. Note that this</div>
 <div class="line">value resets to 0 at the beginning of each</div>
-<div class="line">interval.</div>
+<div class="line">interval. This value is in bytes per second.</div>
 </div>
 </td>
 </tr>
-<tr class="row-even"><td>pktsCum</td>
+<tr class="row-odd"><td>dropBytesRateMax</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress packets cumulative</strong>.</div>
-<div class="line">The total sum of the values read. Note that this</div>
-<div class="line">value continues through each interval without</div>
-<div class="line">resetting to zero.</div>
-</div>
-</td>
-</tr>
-<tr class="row-odd"><td>pktsMax</td>
-<td>integer</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress packets maximum value read</strong>.</div>
+<div class="line"><strong>Ingress byte drop rate max due to storm control</strong></div>
 <div class="line">This is the largest value read by the counter</div>
 <div class="line">during the collection interval. This value is</div>
 <div class="line">only overwritten if the most current value is</div>
@@ -303,14 +250,14 @@
 <div class="line">overwritten with 4. If the third reading is</div>
 <div class="line">smaller than 4, the value remains at 4. Note that</div>
 <div class="line">this value resets to 0 at the beginning of each</div>
-<div class="line">interval.</div>
+<div class="line">interval. This value is in bytes per second.</div>
 </div>
 </td>
 </tr>
-<tr class="row-even"><td>pktsMin</td>
+<tr class="row-even"><td>dropBytesRateMin</td>
 <td>integer</td>
 <td><div class="first last line-block">
-<div class="line"><strong>Egress packets minimum value read</strong>.</div>
+<div class="line"><strong>Ingress byte drop rate min due to storm control</strong></div>
 <div class="line">This is the smallest value read by the counter</div>
 <div class="line">during the collection interval. This value is</div>
 <div class="line">only overwritten if the most current value is</div>
@@ -320,79 +267,11 @@
 <div class="line">overwritten with 2. If the third reading is</div>
 <div class="line">larger than 2, the value remains at 2. Note that</div>
 <div class="line">this value resets to 0 at the beginning of each</div>
-<div class="line">interval.</div>
+<div class="line">interval. This value is in bytes per second.</div>
 </div>
 </td>
 </tr>
-<tr class="row-odd"><td>pktsPer</td>
-<td>integer</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egres packets per interval</strong>.</div>
-<div class="line">The total sum of the values read during the</div>
-<div class="line">collection interval. Note that this value resets</div>
-<div class="line">to 0 at the beginning of each interval.</div>
-</div>
-</td>
-</tr>
-<tr class="row-even"><td>pktsRate</td>
-<td>float</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress packet rate</strong>.</div>
-<div class="line">This is the rate of the counter during the</div>
-<div class="line">collection interval. The rate is calculated by</div>
-<div class="line">dividing the periodic value by the length of the</div>
-<div class="line">collection interval in seconds. Note that this</div>
-<div class="line">value resets to 0 at the beginning of each</div>
-<div class="line">interval.</div>
-</div>
-</td>
-</tr>
-<tr class="row-odd"><td>pktsRateAvg</td>
-<td>float</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress packet rate average</strong>.</div>
-<div class="line">This is the average value read by the counter</div>
-<div class="line">during the collection interval. Note that this</div>
-<div class="line">value resets to 0 at the beginning of each</div>
-<div class="line">interval. It is measured in packets per second.</div>
-</div>
-</td>
-</tr>
-<tr class="row-even"><td>pktsRateMax</td>
-<td>float</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress packet rate maximum</strong>.</div>
-<div class="line">This is the largest value read by the counter</div>
-<div class="line">during the collection interval. This value is</div>
-<div class="line">only overwritten if the most current value is</div>
-<div class="line">larger than the previous value. For example, if</div>
-<div class="line">the value of the first reading is 3 and the value</div>
-<div class="line">of the second reading is 4, the previous value is</div>
-<div class="line">overwritten with 4. If the third reading is</div>
-<div class="line">smaller than 4, the value remains at 4. Note that</div>
-<div class="line">this value resets to 0 at the beginning of each</div>
-<div class="line">interval. It is measured in packets per second.</div>
-</div>
-</td>
-</tr>
-<tr class="row-odd"><td>pktsRateMin</td>
-<td>float</td>
-<td><div class="first last line-block">
-<div class="line"><strong>Egress packet rate minimum</strong>.</div>
-<div class="line">This is the smallest value read by the counter</div>
-<div class="line">during the collection interval. This value is</div>
-<div class="line">only overwritten if the most current value is</div>
-<div class="line">smaller than the previous value. For example, if</div>
-<div class="line">the value of the first reading is 3 and the value</div>
-<div class="line">of the second reading is 2, the previous value is</div>
-<div class="line">overwritten with 2. If the third reading is</div>
-<div class="line">larger than 2, the value remains at 2. Note that</div>
-<div class="line">this value resets to 0 at the beginning of each</div>
-<div class="line">interval. It is measured in packets per second.</div>
-</div>
-</td>
-</tr>
-<tr class="row-even"><td>intervalStart</td>
+<tr class="row-odd"><td>intervalStart</td>
 <td>time</td>
 <td><div class="first last line-block">
 <div class="line"><strong>Interval start time</strong>.</div>
@@ -400,7 +279,7 @@
 </div>
 </td>
 </tr>
-<tr class="row-odd"><td>intervalEnd</td>
+<tr class="row-even"><td>intervalEnd</td>
 <td>time</td>
 <td><div class="first last line-block">
 <div class="line"><strong>Interval end time</strong>.</div>
@@ -418,10 +297,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="ingrBytes.html" class="btn btn-neutral float-right" title="ingrBytes"/>Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="ingrUnkPkts.html" class="btn btn-neutral float-right" title="ingrUnkPkts"/>Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="egrBytes.html" class="btn btn-neutral" title="egrBytes"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="ingrUnkBytes.html" class="btn btn-neutral" title="ingrUnkBytes"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

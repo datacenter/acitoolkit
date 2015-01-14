@@ -1,0 +1,969 @@
+
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		
+                <title>ACI Endpoint Tracker</title>
+		<link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+		<link rel="stylesheet" type="text/css" href="//cdn.datatables.net/plug-ins/3cfcc339e89/integration/bootstrap/3/dataTables.bootstrap.css">
+
+		<script type="text/javascript" language="javascript" src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" language="javascript" src="//cdn.datatables.net/1.10.4/js/jquery.dataTables.min.js"></script>
+		<script type="text/javascript" language="javascript" src="//cdn.datatables.net/plug-ins/3cfcc339e89/integration/bootstrap/3/dataTables.bootstrap.js"></script>
+<script type="text/javascript" charset="utf-8">
+/* Custom filtering function which will search data in column four between two values */
+$.fn.dataTable.ext.search.push(
+    function( settings, data, dataIndex ) {
+        var time_min = $('#min');
+        var time_max = $('#max');
+        var date_min = $('#date_min');
+        var date_max = $('#date_max');
+        var timestart = data[6]
+
+        return true;
+    }
+);
+ 
+$(document).ready(function() {
+    var table = $('#example').DataTable();
+     
+    // Event listener to the two range filtering inputs to redraw on input
+    $('#date_min', '#date_max', '#min, #max').keyup( function() {
+        table.draw();
+    } );
+} );
+		</script>
+</head>
+                <h1 ALIGN=Center>ACI Endpoint Tracker</h1>
+
+	<body>
+		<div class="container">
+
+<table border="0" cellspacing="5" cellpadding="5">
+        <tbody>
+      </tbody></table>
+    </table>
+<table id="example" class="display" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>Mac</th>
+                <th>IP</th>
+                <th>Tenant</th>
+                <th>App</th>
+                <th>EPG</th>
+		        <th>Interface</th>
+	 	        <th>Time Start</th>
+		        <th>Time Stop</th>
+            </tr>
+        </thead>
+ 
+        <tfoot>
+            <tr>
+                <th>Mac</th>
+                <th>IP</th>
+                <th>Tenant</th>
+                <th>App</th>
+                <th>EPG</th>
+		<th>Interface</th>
+		<th>Time Start</th>
+		<th>Time Stop</th>
+            </tr>
+        </tfoot>
+ 
+        <tbody>
+<tr>
+<td>00:18:7b:65:8b</td>
+<td>10.10.106.193</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/27</td>
+<td>2014-12-26 10:49:58</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:e3:0b:5c:2b</td>
+<td>10.10.108.190</td>
+<td>cisco</td>
+<td>docs</td>
+<td>web</td>
+<td>eth 1/102/1/19</td>
+<td>2014-12-30 10:11:19</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:f4:61:60:58</td>
+<td>10.10.224.21</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/102/1/41</td>
+<td>2014-12-28 10:57:11</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:3f:5b:f2:20</td>
+<td>10.10.204.232</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/102/1/17</td>
+<td>2014-12-29 10:44:21</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:ea:3d:7d:7c</td>
+<td>10.10.234.249</td>
+<td>cisco</td>
+<td>employee</td>
+<td>employeedb</td>
+<td>eth 1/102/1/15</td>
+<td>2014-12-16 10:29:30</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:3d:88:ac:bf</td>
+<td>10.10.80.126</td>
+<td>cisco</td>
+<td>employee</td>
+<td>web</td>
+<td>eth 1/101/1/40</td>
+<td>2014-12-18 10:50:20</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:a9:3a:e8:db</td>
+<td>10.10.73.159</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/15</td>
+<td>2014-12-27 10:55:11</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:ba:d7:db:f3</td>
+<td>10.10.178.137</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/30</td>
+<td>2014-12-24 10:39:43</td>
+<td>2015-01-10 10:58:47</td>
+</tr>
+<tr>
+<td>00:a7:24:b7:3c</td>
+<td>10.10.1.89</td>
+<td>cisco</td>
+<td>employee</td>
+<td>employeedb</td>
+<td>eth 1/101/1/42</td>
+<td>2014-12-23 10:24:53</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:c5:f1:c9:b8</td>
+<td>10.10.129.62</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/25</td>
+<td>2014-12-22 10:47:38</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:b0:7f:72:49</td>
+<td>10.10.200.41</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/2</td>
+<td>2014-12-21 10:23:19</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:ee:a5:c2:45</td>
+<td>10.10.109.145</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/10</td>
+<td>2014-12-15 10:18:28</td>
+<td>2015-01-11 10:34:30</td>
+</tr>
+<tr>
+<td>00:2c:59:4b:83</td>
+<td>10.10.139.78</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/19</td>
+<td>2014-12-20 10:33:10</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:da:f4:67:99</td>
+<td>10.10.224.234</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/18</td>
+<td>2014-12-14 10:27:22</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:b7:68:d4:28</td>
+<td>10.10.83.51</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/14</td>
+<td>2014-12-17 10:37:27</td>
+<td>2015-01-10 10:38:49</td>
+</tr>
+<tr>
+<td>00:a3:13:27:0f</td>
+<td>10.10.40.217</td>
+<td>cisco</td>
+<td>docs</td>
+<td>storage</td>
+<td>eth 1/102/1/43</td>
+<td>2014-12-29 10:21:24</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:00:5e:92:9b</td>
+<td>10.10.210.174</td>
+<td>cisco</td>
+<td>orders</td>
+<td>app</td>
+<td>eth 1/102/1/6</td>
+<td>2014-12-14 10:50:35</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:a0:a9:c6:d8</td>
+<td>10.10.245.6</td>
+<td>cisco</td>
+<td>orders</td>
+<td>app</td>
+<td>eth 1/101/1/19</td>
+<td>2014-12-15 10:54:32</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:67:c7:fc:52</td>
+<td>10.10.142.30</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/9</td>
+<td>2014-12-16 10:30:48</td>
+<td>2015-01-10 10:33:56</td>
+</tr>
+<tr>
+<td>00:62:22:9a:27</td>
+<td>10.10.51.218</td>
+<td>cisco</td>
+<td>docs</td>
+<td>storage</td>
+<td>eth 1/101/1/44</td>
+<td>2014-12-22 10:54:12</td>
+<td>2015-01-10 10:38:57</td>
+</tr>
+<tr>
+<td>00:d0:a5:17:b0</td>
+<td>10.10.150.128</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/10</td>
+<td>2014-12-15 10:36:36</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:8d:25:c1:77</td>
+<td>10.10.24.205</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/12</td>
+<td>2014-12-28 10:45:51</td>
+<td>2015-01-12 10:36:49</td>
+</tr>
+<tr>
+<td>00:94:9f:53:51</td>
+<td>10.10.226.254</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/5</td>
+<td>2014-12-26 10:37:47</td>
+<td>2015-01-11 10:12:19</td>
+</tr>
+<tr>
+<td>00:94:cb:a4:5b</td>
+<td>10.10.227.143</td>
+<td>cisco</td>
+<td>employee</td>
+<td>web</td>
+<td>eth 1/101/1/2</td>
+<td>2014-12-22 10:11:28</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:76:3d:f1:4b</td>
+<td>10.10.232.78</td>
+<td>cisco</td>
+<td>docs</td>
+<td>storage</td>
+<td>eth 1/101/1/35</td>
+<td>2014-12-29 10:37:50</td>
+<td>2015-01-10 10:34:14</td>
+</tr>
+<tr>
+<td>00:57:5a:4e:0a</td>
+<td>10.10.188.12</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/22</td>
+<td>2014-12-20 10:16:29</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:3c:8c:45:4b</td>
+<td>10.10.109.4</td>
+<td>cisco</td>
+<td>orders</td>
+<td>db</td>
+<td>eth 1/101/1/41</td>
+<td>2014-12-30 10:13:17</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:ef:84:72:fa</td>
+<td>10.10.222.89</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/25</td>
+<td>2014-12-28 10:41:16</td>
+<td>2015-01-10 10:20:31</td>
+</tr>
+<tr>
+<td>00:8b:03:40:6c</td>
+<td>10.10.52.58</td>
+<td>cisco</td>
+<td>employee</td>
+<td>employeedb</td>
+<td>eth 1/101/1/28</td>
+<td>2014-12-16 10:23:50</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:ab:40:36:cc</td>
+<td>10.10.181.114</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/15</td>
+<td>2014-12-15 10:16:23</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:34:55:02:b6</td>
+<td>10.10.47.194</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/25</td>
+<td>2014-12-27 10:39:43</td>
+<td>2015-01-12 10:25:13</td>
+</tr>
+<tr>
+<td>00:ef:0f:4d:5a</td>
+<td>10.10.116.202</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/29</td>
+<td>2014-12-25 10:19:40</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:1f:5d:16:39</td>
+<td>10.10.54.3</td>
+<td>cisco</td>
+<td>employee</td>
+<td>web</td>
+<td>eth 1/101/1/17</td>
+<td>2014-12-18 10:41:28</td>
+<td>2015-01-12 10:53:15</td>
+</tr>
+<tr>
+<td>00:42:c5:db:9a</td>
+<td>10.10.86.178</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/18</td>
+<td>2014-12-19 10:33:40</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:4e:bf:1b:b9</td>
+<td>10.10.127.6</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/20</td>
+<td>2014-12-13 10:43:15</td>
+<td>2015-01-10 10:53:47</td>
+</tr>
+<tr>
+<td>00:d8:89:ab:ad</td>
+<td>10.10.84.217</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/44</td>
+<td>2014-12-12 10:48:19</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:ef:89:0c:5f</td>
+<td>10.10.94.8</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/4</td>
+<td>2014-12-12 10:44:55</td>
+<td>2015-01-12 10:24:45</td>
+</tr>
+<tr>
+<td>00:83:f1:3f:ad</td>
+<td>10.10.211.5</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/20</td>
+<td>2014-12-10 10:20:29</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:55:e1:51:d5</td>
+<td>10.10.146.127</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/7</td>
+<td>2014-12-14 10:14:22</td>
+<td>2015-01-11 10:52:50</td>
+</tr>
+<tr>
+<td>00:22:10:43:73</td>
+<td>10.10.187.47</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/29</td>
+<td>2014-12-25 10:33:55</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:2b:85:61:b2</td>
+<td>10.10.99.71</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/6</td>
+<td>2014-12-19 10:33:30</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:df:c0:3a:3a</td>
+<td>10.10.48.77</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/6</td>
+<td>2014-12-11 10:27:50</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:e5:c4:d4:57</td>
+<td>10.10.114.216</td>
+<td>cisco</td>
+<td>employee</td>
+<td>web</td>
+<td>eth 1/101/1/33</td>
+<td>2014-12-23 10:51:32</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:45:dc:ef:c5</td>
+<td>10.10.205.26</td>
+<td>cisco</td>
+<td>employee</td>
+<td>employeedb</td>
+<td>eth 1/101/1/38</td>
+<td>2014-12-23 10:11:21</td>
+<td>2015-01-11 10:30:35</td>
+</tr>
+<tr>
+<td>00:c1:f5:fa:a4</td>
+<td>10.10.9.112</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/35</td>
+<td>2014-12-12 10:40:18</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:30:b5:16:8b</td>
+<td>10.10.113.178</td>
+<td>cisco</td>
+<td>docs</td>
+<td>web</td>
+<td>eth 1/101/1/37</td>
+<td>2014-12-15 10:22:25</td>
+<td>2015-01-11 10:35:14</td>
+</tr>
+<tr>
+<td>00:da:0b:ee:df</td>
+<td>10.10.33.150</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/18</td>
+<td>2014-12-13 10:30:47</td>
+<td>2015-01-10 10:58:19</td>
+</tr>
+<tr>
+<td>00:a0:ef:59:cc</td>
+<td>10.10.125.231</td>
+<td>cisco</td>
+<td>orders</td>
+<td>app</td>
+<td>eth 1/101/1/18</td>
+<td>2014-12-19 10:57:15</td>
+<td>2015-01-12 10:29:32</td>
+</tr>
+<tr>
+<td>00:24:18:94:21</td>
+<td>10.10.120.191</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/30</td>
+<td>2014-12-29 10:43:14</td>
+<td>2015-01-11 10:39:40</td>
+</tr>
+<tr>
+<td>00:5a:c2:61:0a</td>
+<td>10.10.87.228</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/13</td>
+<td>2014-12-18 10:36:25</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:bc:68:a2:ff</td>
+<td>10.10.107.45</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/21</td>
+<td>2014-12-20 10:50:38</td>
+<td>2015-01-12 10:54:20</td>
+</tr>
+<tr>
+<td>00:23:82:b2:4d</td>
+<td>10.10.107.163</td>
+<td>cisco</td>
+<td>employee</td>
+<td>employeedb</td>
+<td>eth 1/101/1/37</td>
+<td>2014-12-26 10:38:17</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:05:82:20:48</td>
+<td>10.10.160.183</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/18</td>
+<td>2014-12-27 10:47:10</td>
+<td>2015-01-10 10:16:49</td>
+</tr>
+<tr>
+<td>00:fc:73:cc:68</td>
+<td>10.10.147.50</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/41</td>
+<td>2014-12-30 10:19:16</td>
+<td>2015-01-12 10:57:47</td>
+</tr>
+<tr>
+<td>00:58:1a:34:db</td>
+<td>10.10.203.31</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/13</td>
+<td>2014-12-23 10:46:49</td>
+<td>2015-01-10 10:20:45</td>
+</tr>
+<tr>
+<td>00:a0:1d:af:95</td>
+<td>10.10.87.0</td>
+<td>cisco</td>
+<td>docs</td>
+<td>web</td>
+<td>eth 1/101/1/1</td>
+<td>2014-12-26 10:27:33</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:23:66:a3:c8</td>
+<td>10.10.27.66</td>
+<td>cisco</td>
+<td>docs</td>
+<td>web</td>
+<td>eth 1/101/1/15</td>
+<td>2014-12-21 10:31:12</td>
+<td>2015-01-11 10:50:38</td>
+</tr>
+<tr>
+<td>00:a9:34:a2:ae</td>
+<td>10.10.144.36</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/46</td>
+<td>2014-12-30 10:18:34</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:3e:d5:0f:f7</td>
+<td>10.10.147.119</td>
+<td>cisco</td>
+<td>employee</td>
+<td>employeedb</td>
+<td>eth 1/101/1/40</td>
+<td>2014-12-17 10:31:37</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:cc:b2:a2:88</td>
+<td>10.10.99.87</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/27</td>
+<td>2014-12-20 10:24:29</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:6e:87:51:27</td>
+<td>10.10.145.161</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/29</td>
+<td>2014-12-16 10:54:53</td>
+<td>2015-01-12 10:23:28</td>
+</tr>
+<tr>
+<td>00:35:c0:91:e7</td>
+<td>10.10.170.226</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/2</td>
+<td>2014-12-25 10:20:55</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:3a:bb:e2:30</td>
+<td>10.10.179.62</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/26</td>
+<td>2014-12-16 10:35:26</td>
+<td>2015-01-11 10:40:11</td>
+</tr>
+<tr>
+<td>00:91:99:6c:c5</td>
+<td>10.10.167.149</td>
+<td>cisco</td>
+<td>docs</td>
+<td>storage</td>
+<td>eth 1/101/1/17</td>
+<td>2014-12-26 10:48:57</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:91:d5:0e:02</td>
+<td>10.10.193.158</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/22</td>
+<td>2014-12-30 10:54:42</td>
+<td>2015-01-10 10:54:16</td>
+</tr>
+<tr>
+<td>00:df:75:7e:6e</td>
+<td>10.10.250.141</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/35</td>
+<td>2014-12-20 10:41:45</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:09:94:0a:11</td>
+<td>10.10.3.137</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/43</td>
+<td>2014-12-16 10:11:54</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:14:06:08:ec</td>
+<td>10.10.100.163</td>
+<td>cisco</td>
+<td>orders</td>
+<td>web</td>
+<td>eth 1/101/1/18</td>
+<td>2014-12-19 10:50:39</td>
+<td>2015-01-12 10:22:36</td>
+</tr>
+<tr>
+<td>00:a7:81:a2:41</td>
+<td>10.10.90.228</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/30</td>
+<td>2014-12-25 10:10:56</td>
+<td>2015-01-11 10:27:54</td>
+</tr>
+<tr>
+<td>00:4c:21:f4:de</td>
+<td>10.10.200.90</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/22</td>
+<td>2014-12-28 10:14:10</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:1e:fc:dd:d0</td>
+<td>10.10.243.36</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/1</td>
+<td>2014-12-20 10:43:18</td>
+<td>2015-01-11 10:20:54</td>
+</tr>
+<tr>
+<td>00:b8:b8:7d:1a</td>
+<td>10.10.173.221</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/35</td>
+<td>2014-12-27 10:16:41</td>
+<td>2015-01-10 10:10:46</td>
+</tr>
+<tr>
+<td>00:48:8a:97:55</td>
+<td>10.10.43.202</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/14</td>
+<td>2014-12-19 10:50:29</td>
+<td>2015-01-12 10:57:54</td>
+</tr>
+<tr>
+<td>00:f5:df:80:26</td>
+<td>10.10.211.108</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/4</td>
+<td>2014-12-23 10:17:37</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:c2:02:6a:5e</td>
+<td>10.10.92.157</td>
+<td>cisco</td>
+<td>orders</td>
+<td>app</td>
+<td>eth 1/101/1/10</td>
+<td>2014-12-18 10:13:42</td>
+<td>2015-01-12 10:37:21</td>
+</tr>
+<tr>
+<td>00:14:42:e0:bc</td>
+<td>10.10.219.67</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/45</td>
+<td>2014-12-24 10:41:21</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:4b:8a:37:b5</td>
+<td>10.10.149.6</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/22</td>
+<td>2014-12-16 10:52:21</td>
+<td>2015-01-10 10:26:14</td>
+</tr>
+<tr>
+<td>00:00:67:29:bd</td>
+<td>10.10.151.103</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/18</td>
+<td>2014-12-24 10:55:33</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:5a:45:88:06</td>
+<td>10.10.118.93</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/13</td>
+<td>2014-12-21 10:25:53</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:22:e6:f6:8f</td>
+<td>10.10.177.235</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/27</td>
+<td>2014-12-28 10:52:56</td>
+<td>2015-01-11 10:10:48</td>
+</tr>
+<tr>
+<td>00:1f:21:3f:2e</td>
+<td>10.10.37.136</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/10</td>
+<td>2014-12-22 10:17:56</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:bf:9c:9d:75</td>
+<td>10.10.141.208</td>
+<td>partnerB</td>
+<td>email</td>
+<td>app</td>
+<td>eth 1/101/1/27</td>
+<td>2014-12-28 10:11:35</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:3d:f5:26:52</td>
+<td>10.10.122.41</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/2</td>
+<td>2014-12-13 10:46:49</td>
+<td>2015-01-10 10:43:40</td>
+</tr>
+<tr>
+<td>00:0d:4b:5c:33</td>
+<td>10.10.95.252</td>
+<td>cisco</td>
+<td>docs</td>
+<td>storage</td>
+<td>eth 1/101/1/22</td>
+<td>2014-12-14 10:51:58</td>
+<td>2015-01-12 10:42:52</td>
+</tr>
+<tr>
+<td>00:0f:79:85:46</td>
+<td>10.10.219.86</td>
+<td>partnerB</td>
+<td>email</td>
+<td>web</td>
+<td>eth 1/101/1/10</td>
+<td>2014-12-10 10:38:12</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:8c:67:18:f3</td>
+<td>10.10.57.158</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/11</td>
+<td>2014-12-19 10:28:55</td>
+<td>2015-01-10 10:24:55</td>
+</tr>
+<tr>
+<td>00:9d:ec:a9:a5</td>
+<td>10.10.244.172</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/29</td>
+<td>2014-12-30 10:46:27</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+<tr>
+<td>00:b3:23:2d:61</td>
+<td>10.10.46.113</td>
+<td>partnerA</td>
+<td>doc_repo</td>
+<td>db</td>
+<td>eth 1/101/1/23</td>
+<td>2014-12-30 10:25:55</td>
+<td>0000-00-00 00:00:00</td>
+</tr>
+        </tbody>
+    </table>
+			
+		</div>
+
+<script type="text/javascript">
+	// For demo to fit into DataTables site builder...
+	$('#example')
+		.removeClass( 'display' )
+		.addClass('table table-striped table-bordered');
+</script>
+	</body>
+</html>
+    

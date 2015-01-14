@@ -5,3 +5,4 @@ Applications
    :maxdepth: 2
 
    cableplan
+   endpointtracker

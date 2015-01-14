@@ -1,0 +1,574 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ACI Endpoint Tracker &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="Applications" href="applications.html"/>
+        <link rel="prev" title="Cableplan Application" href="cableplan.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitor_policy.html">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor_policy.html#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statsbody.html">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="applications.html">Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">ACI Endpoint Tracker</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="applications.html">Applications</a> &raquo;</li>
+      
+    <li>ACI Endpoint Tracker</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/endpointtracker.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="aci-endpoint-tracker">
+<h1>ACI Endpoint Tracker<a class="headerlink" href="#aci-endpoint-tracker" title="Permalink to this headline">¶</a></h1>
+<p>The ACI Endpoint Tracker application tracks all of the attachment,
+detachment, and movement of Endpoints on the ACI fabric.  It stores
+all of this activity in a database that allows administrators to
+examine and query the data to gain deep visibility into what is
+happening in the network.  The database also provides a foundation for
+visualization and querying tools.</p>
+<p>Some sample questions that can be answered with the ACI Endpoint Tracker:</p>
+<ul class="simple">
+<li>What are all of the current Endpoints on the network ?</li>
+<li>Where is a specific Endpoint ?</li>
+<li>What was connected to the network last Thursday
+between 3:30 and 4:00 ?</li>
+<li>What are all of the Endpoints belonging to a given Tenant ?</li>
+<li>What Endpoints are on this subnet ?</li>
+<li>What is the history of a given Endpoint (i.e. movement, etc.)?</li>
+</ul>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="acitoolkit">
+<h3>acitoolkit<a class="headerlink" href="#acitoolkit" title="Permalink to this headline">¶</a></h3>
+<p>This application uses the acitoolkit.  The installation steps for the
+acitoolkit can be found at <a class="reference external" href="http://datacenter.github.io/acitoolkit/">http://datacenter.github.io/acitoolkit/</a>.</p>
+</div>
+<div class="section" id="mysql-database">
+<h3>MySQL database<a class="headerlink" href="#mysql-database" title="Permalink to this headline">¶</a></h3>
+<p>The ACI Endpoint Tracker uses the open source MySQL database to store
+the Endpoint data.  MySQL is installed separately and the installation
+steps are dependent on the platform.  It is recommended that MySQL be
+installed in the same machine as the ACI Endpoint Tracker.</p>
+<p>MySQL installation instructions for most platforms can be found here:
+<a class="reference external" href="http://dev.mysql.com/doc/refman/5.7/en/installing.html">MySQL installation instructions</a>.</p>
+<p>For Ubuntu, the installation instructions can be found here:
+<a class="reference external" href="https://help.ubuntu.com/12.04/serverguide/mysql.html">Ubuntu MySQL installation instructions</a>.</p>
+<p>Once the above package is installed, you should verify that the
+MySQL database is running.  In Linux and Mac OS X, this can be done by
+entering the following command:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysqladmin -u root -p status
+</pre></div>
+</div>
+<p>If the database is running, the output should be similar to below:</p>
+<div class="highlight-python"><div class="highlight"><pre>Uptime: 358118  Threads: 3  Questions: 5767  Slow queries: 0
+Opens: 109  Flush tables: 1  Open tables: 61  Queries per second
+avg: 0.016
+</pre></div>
+</div>
+<p>If the database is not running, the output should be similar to
+below:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysqladmin: connect to server at &#39;localhost&#39; failed
+</pre></div>
+</div>
+</div>
+<div class="section" id="mysql-connector">
+<h3>MySQL Connector<a class="headerlink" href="#mysql-connector" title="Permalink to this headline">¶</a></h3>
+<p>In order for the ACI Endpoint Tracker to communicate with the MySQL
+database, the MySQL Connector/Python must be installed.  This is
+available for most platforms at
+<a class="reference external" href="http://dev.mysql.com/downloads/connector/python/">http://dev.mysql.com/downloads/connector/python/</a>.</p>
+</div>
+<div class="section" id="flask">
+<h3>Flask<a class="headerlink" href="#flask" title="Permalink to this headline">¶</a></h3>
+<p>Flask is required for the optional GUI frontend.  The installation
+steps for Flask can be found at <a class="reference external" href="http://flask.pocoo.org/">http://flask.pocoo.org/</a>.</p>
+</div>
+</div>
+<div class="section" id="usage">
+<span id="credentials"></span><h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p>The ACI Endpoint Tracker serves as a conduit between the APIC and the
+MySQL database. It requires login credentials to both, namely the
+username, password, and IP address or URL.</p>
+<p>The user can choose any <strong>one</strong> of 3 ways to specify the login
+credentials.  If multiple ways are used, they are taken in the
+following priority order:</p>
+<ol class="arabic">
+<li><p class="first"><strong>Command Line Arguments</strong></p>
+<p>The login credentials can be passed directly as command line
+arguments.  The command is shown below:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-endpoint-tracker.py [[ -u | --apicurl] &lt;apicurl&gt;]
+[[ -l | --apiclogin ] &lt;apicusername&gt;] [[ -p | --apicpassword ]
+&lt;apicpassword&gt;] [[ -i | --mysqlip ] &lt;mysqlip&gt; [[ -a
+| --mysqladminlogin ] &lt;mysqladminlogin] [[ -s | --mysqlpassword ]
+&lt;mysqlpassword&gt; ]
+</pre></div>
+</div>
+<p>where the parameters are as follows:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td rowspan="2">apicurl</td>
+<td rowspan="2">The URL used to communicate with the APIC.</td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2">apicusername</td>
+<td rowspan="2">The username used to login to the APIC.</td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2">apicpassword</td>
+<td rowspan="2">The password used to login to the APIC.</td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2">mysqlip</td>
+<td rowspan="2">The IP address of the MySQL DB host.</td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2">mysqladminlogin</td>
+<td rowspan="2">The username used to login to the MySQL DB</td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td rowspan="2">mysqlpassword</td>
+<td rowspan="2">The password used to login to the MySQL DB</td>
+</tr>
+<tr class="row-even"></tr>
+</tbody>
+</table>
+<p>An example would be the following:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-endpoint-tracker.py -u https://172.35.200.100 -l
+admin -p apicpassword -i 127.0.0.1 -a root -s mysqlpassword
+</pre></div>
+</div>
+</li>
+<li><p class="first"><strong>Environment Variables</strong></p>
+<p>The login credentials can be pulled from environment variables in
+operating systems such as Mac OS X and various Linux distributions.</p>
+<p>The environmental variables are as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">APIC_URL</span>
+<span class="n">APIC_LOGIN</span>
+<span class="n">APIC_PASSWORD</span>
+<span class="n">APIC_MYSQLIP</span>
+<span class="n">APIC_MYSQLLOGIN</span>
+<span class="n">APIC_MYSQLPASSWORD</span>
+</pre></div>
+</div>
+<p>These variables should be set to the correct value.  Setting the
+environment variable is OS dependent.  For example, in Mac OS X,
+environment variables can be set in your <tt class="docutils literal"><span class="pre">~/.bash_profile</span></tt> as
+follows:</p>
+<div class="highlight-python"><div class="highlight"><pre>export APIC_URL=https://172.35.200.100
+export APIC_LOGIN=admin
+export APIC_PASSWORD=apicpassword
+export APIC_MYSQLIP=127.0.0.1
+export APIC_MYSQLLOGIN=root
+export APIC_MYSQLPASSWORD=mysqlpassword
+</pre></div>
+</div>
+<p>If environmental variables are used to specify the credentials,
+then the following command will execute the ACI Endpoint Tracker.:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-endpoint-tracker.py
+</pre></div>
+</div>
+</li>
+<li><p class="first"><strong>Importing a credentials.py file</strong></p>
+<p>Alternatively, the login credentials can be pulled from a python
+file named <tt class="docutils literal"><span class="pre">credentials.py</span></tt>. In this file, it is assumed that
+the following variables will be set appropriately for your
+environment.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">APICURL</span> <span class="o">=</span> <span class="s">&#39;https://172.35.200.100&#39;</span>
+<span class="n">APICLOGIN</span> <span class="o">=</span> <span class="s">&#39;admin&#39;</span>
+<span class="n">APICPASSWORD</span> <span class="o">=</span> <span class="s">&#39;apicpassword&#39;</span>
+<span class="n">APICMYSQLIP</span> <span class="o">=</span> <span class="s">&#39;127.0.0.1&#39;</span>
+<span class="n">APICMYSQLLOGIN</span> <span class="o">=</span> <span class="s">&#39;root&#39;</span>
+<span class="n">APICMYSQLPASSWORD</span> <span class="o">=</span> <span class="s">&#39;mysqlpassword&#39;</span>
+</pre></div>
+</div>
+<p>If a credentials.py file is used to specify the credentials,
+then the following command will execute the ACI Endpoint Tracker.:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-endpoint-tracker.py
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="what-s-it-doing">
+<h2>What&#8217;s it doing ?<a class="headerlink" href="#what-s-it-doing" title="Permalink to this headline">¶</a></h2>
+<p>Once the ACI Endpoint Tracker is running, it will connect to the APIC
+and pull all of the existing static and dynamic endpoints that are
+currently connected to the fabric along with the relevant associated
+information such as:</p>
+<ul class="simple">
+<li>Tenant, Application Profile, and EPG membership</li>
+<li>Interface to which it is connected</li>
+<li>Timestamp of when it connected to the fabric</li>
+</ul>
+<p>This data is then inserted into a database called <tt class="docutils literal"><span class="pre">acitoolkit</span></tt> that
+the ACI Endpoint Tracker will create.  Within the database, it creates
+a single table called <tt class="docutils literal"><span class="pre">endpoints</span></tt> where all of the endpoint
+information will be inserted.</p>
+<p>Once all of this information is collected, the ACI Endpoint Tracker
+subscribes through the web socket interface to any updates to both
+static and dynamic endpoints.  When these updates such as endpoint
+attachment, detachment, or move occurs, the database will be
+immediately updated with the live data.</p>
+<p>Note that updates to the database will only occur when the ACI
+Endpoint Tracker is running.</p>
+</div>
+<div class="section" id="direct-database-query">
+<h2>Direct Database Query<a class="headerlink" href="#direct-database-query" title="Permalink to this headline">¶</a></h2>
+<p>Once the data is in the database, the MySQL client can be used to
+query the data directly.  Using this method, the full power of SQL can
+be used to provide deep insight into the network endpoint behavior.</p>
+<p>To connect to the MySQL database, you can execute the following
+command locally on the same host where the database is running.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">mysql</span> <span class="o">-</span><span class="n">u</span> <span class="o">&lt;</span><span class="n">mysqllogin</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span>
+</pre></div>
+</div>
+<p>The client will then prompt for the MySQL database password.  After
+successfully entering the password, the MySQL prompt will come up as
+shown in the screenshot below:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ mysql -u root -p
+Enter password:
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 145
+Server version: 5.6.22 MySQL Community Server (GPL)
+
+Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type &#39;help;&#39; or &#39;\h&#39; for help. Type &#39;\c&#39; to clear the current input statement.
+
+mysql&gt;
+</pre></div>
+</div>
+<p>At this point, the <tt class="docutils literal"><span class="pre">acitoolkit</span></tt> database should be available.  The
+available databases can be shown by entering the following command at
+the prompt.:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; show databases;
+</pre></div>
+</div>
+<p>A sample output is shown below.:</p>
+<div class="highlight-python"><div class="highlight"><pre>+--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| acitoolkit         |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+5 rows in set (0.00 sec)
+</pre></div>
+</div>
+<p>To switch to the <tt class="docutils literal"><span class="pre">acitoolkit</span></tt> database, enter the following
+command.:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; use acitoolkit;
+</pre></div>
+</div>
+<p>The endpoint data is stored in a single table called <tt class="docutils literal"><span class="pre">endpoints</span></tt>.
+You can then display all of the endpoint data by the following
+query (shown with a snippet of the output).:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select * from endpoints;
++-------------------+---------------+--------------+--------------+-------------+----------------+---------------------+---------------------+
+| mac               | ip            | tenant       | app          | epg         | interface      | timestart           | timestop            |
++-------------------+---------------+--------------+--------------+-------------+----------------+---------------------+---------------------+
+| 74:26:AC:76:80:5B | 192.168.1.133 | Tenant1      | Application1 | WEB         | VPC1           | 2014-12-09 19:08:27 | 0000-00-00 00:00:00 |
+| 00:50:56:94:D8:73 | 0.0.0.0       | Tenant1      | Application1 | WEB         | eth 1/102/1/12 | 2015-01-13 23:48:15 | 0000-00-00 00:00:00 |
+| 00:50:56:94:07:7E | 0.0.0.0       | Tenant1      | Application1 | WEB         | eth 1/103/1/11 | 2014-12-19 00:58:16 | 0000-00-00 00:00:00 |
+| 00:50:56:94:9A:1C | 192.168.0.5   | Tenant5      | Application1 | USER        | eth 1/102/1/12 | 2015-01-05 15:29:13 | 0000-00-00 00:00:00 |
+| 00:50:56:94:F3:CD | 0.0.0.0       | Tenant5      | Application1 | USER        | eth 1/102/1/12 | 2015-01-13 23:49:33 | 0000-00-00 00:00:00 |
+| 00:50:56:94:17:5E | 0.0.0.0       | Tenant5      | Application1 | WEB         | eth 1/102/1/12 | 2015-01-10 01:55:40 | 0000-00-00 00:00:00 |
+| 00:50:56:94:A9:B5 | 10.0.0.5      | Tenant5      | Application1 | WEB         | eth 1/102/1/12 | 2015-01-05 15:29:13 | 0000-00-00 00:00:00 |
+| 00:50:56:94:93:6F | 0.0.0.0       | Tenant5      | Application1 | WEB         | eth 1/102/1/12 | 2015-01-10 01:55:40 | 0000-00-00 00:00:00 |
+</pre></div>
+</div>
+<p>At this point, we can query the data using the SQL SELECT command.  If
+you haven&#8217;t used SQL before, you may want to spend some time learning
+some of the basic syntax related to the SQL SELECT command as it forms
+the basis for all queries in the database.</p>
+<p>Here are just a few example queries that are possible.</p>
+<p>Various fields can be used to filter the results.</p>
+<blockquote>
+<div><p><em>Show all of the endpoint information for a specific tenant</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select * from endpoints where tenant=&#39;cisco&#39;;
+</pre></div>
+</div>
+<p><em>Show all of the endpoints for a given EPG within a certain tenant</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select * from endpoints where tenant=&#39;cisco&#39; and epg=&#39;WEB&#39;;
+</pre></div>
+</div>
+<p><em>Show all of the endpoints that were on the network on 2014-12-25</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select * from endpoints where timestart &lt;= &#39;2014-12-25&#39;
+and timestop &gt; &#39;2014-12-24&#39;;
+</pre></div>
+</div>
+<p><em>Show all of the history (attach, detach, move) for a particular
+endpoint</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select * from endpoints where ip=&#39;10.1.1.1&#39; and
+tenant=&#39;cisco&#39;;
+</pre></div>
+</div>
+</div></blockquote>
+<p>Output can be limited to certain fields</p>
+<blockquote>
+<div><p><em>Show the current location of a given endpoint</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select interface from endpoints where ip=&#39;10.1.1.1&#39; and
+tenant=&#39;cisco&#39;;
+</pre></div>
+</div>
+</div></blockquote>
+<p>Unique fields can be shown using the <tt class="docutils literal"><span class="pre">distinct</span></tt> keyword.</p>
+<blockquote>
+<div><p><em>Show the EPGs with active endpoints on 2014-12-25</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select distinct tenant,app,epg from endpoints where
+timestart &lt;= &#39;2014-12-25&#39; and timestop &gt; &#39;2014-12-24&#39;;
+</pre></div>
+</div>
+</div></blockquote>
+<p>Counts can be provided for filtered data using the <tt class="docutils literal"><span class="pre">count</span></tt> keyword.</p>
+<blockquote>
+<div><p><em>Show the number of Endpoints active on 2014-12-25</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select count(*) from endpoints where timestart &lt;=
+&#39;2014-12-25&#39; and timestop &gt; &#39;2014-12-24&#39;;
+</pre></div>
+</div>
+</div></blockquote>
+<p>Wildcarding can be used with the <tt class="docutils literal"><span class="pre">%</span></tt> wildcard.</p>
+<blockquote>
+<div><p><em>Show the endpoints belonging to a given subnet</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre>mysql&gt; select * from endpoints where ip like &#39;10.10.%&#39;;
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="gui-frontend">
+<h2>GUI FrontEnd<a class="headerlink" href="#gui-frontend" title="Permalink to this headline">¶</a></h2>
+<p>In addition to the very powerful MySQL interface, there is also a
+GUI frontend that allows quick simple searching on the database using
+a web browser.  The GUI frontend leverages the <a class="reference external" href="http://www.datatables.net/">DataTables</a> package.</p>
+<div class="section" id="demo">
+<h3>Demo<a class="headerlink" href="#demo" title="Permalink to this headline">¶</a></h3>
+<p>The usage of this GUI should be fairly intuitive and a
+live demo with fake endpoint data can be found at the link below.
+Please give it a try, specifically the Search function to get a feel
+for how it works.</p>
+<p><a class="reference external" href="http://datacenter.github.io/acitoolkit/docsbuild/html/aci-endpoint-tracker-gui.html">ACI Endpoint Tracker GUI Demo</a></p>
+<p>For instance, to see all of the endpoints for tenant &#8216;cisco&#8217; simply
+type cisco in the Search box. To narrow the search further to the
+endpoints owned by tenant &#8216;cisco&#8217; on leaf 102, type &#8216;cisco 102&#8217; in the
+Search box.  Also, each column can be sorted by clicking on the arrows
+found in each of the column headers.</p>
+</div>
+<div class="section" id="id1">
+<h3>Usage<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>To use the GUI front end locally on your own database, you simply need
+to execute the <tt class="docutils literal"><span class="pre">aci-endpoint-tracker-gui.py</span></tt> file assuming you have
+installed the Flask package as mentioned in the <a class="reference internal" href="#installation">Installation</a>
+section.</p>
+<p>The GUI front end deals exclusively with the MySQL database and does
+not communicate with the APIC, so it only requires the MySQL
+credentials.  These can be passed in the same manner as described for the ACI
+Endpoint Tracker <a class="reference internal" href="#credentials">credentials</a>.</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-endpoint-tracker-gui.py -i 127.0.0.1 -a root -s
+mysqlpassword
+</pre></div>
+</div>
+<p>It should be noted that while the GUI does not communicate with the
+APIC, as long as the Endpoint Tracker is running, the database will
+contain the live data for the APIC.</p>
+</div>
+</div>
+<div class="section" id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<p>Copyright 2015 Cisco Systems, Inc.</p>
+<blockquote>
+<div><p>Licensed under the Apache License, Version 2.0 (the &#8220;License&#8221;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+<blockquote>
+<div><a class="reference external" href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></div></blockquote>
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &#8220;AS IS&#8221; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="cableplan.html" class="btn btn-neutral" title="Cableplan Application"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

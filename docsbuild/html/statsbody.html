@@ -87,6 +87,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="endpointtracker.html">ACI Endpoint Tracker</a></li>
 </ul>
 </li>
 </ul>
@@ -160,6 +161,7 @@ class and can be found as follows:</p>
 <li><a class="reference internal" href="stats/ingrDropPkts.html#ingrdroppkts-label"><em>ingrDropPkts</em></a></li>
 <li><a class="reference internal" href="stats/ingrUnkBytes.html#ingrunkbytes-label"><em>ingrUnkBytes</em></a></li>
 <li><a class="reference internal" href="stats/ingrUnkPkts.html#ingrunkpkts-label"><em>ingrUnkPkts</em></a></li>
+<li><a class="reference internal" href="stats/ingrStorm.html#ingrstorm-label"><em>ingrStorm</em></a></li>
 </ul>
 </div>
 <div class="section" id="accessing-stats">
@@ -223,6 +225,43 @@ a read of the stats from the APIC which are then stored in the
 <tt class="docutils literal"><span class="pre">interface.stats</span></tt> object.  After that, the <tt class="docutils literal"><span class="pre">interface.stats.retrieve()</span></tt>
 method will access those previously read counters.  The <tt class="docutils literal"><span class="pre">retrieve()</span></tt>
 method will not refresh the counters.</p>
+<div class="section" id="aci-show-interface-stats-py">
+<h3>aci-show-interface-stats.py<a class="headerlink" href="#aci-show-interface-stats-py" title="Permalink to this headline">¶</a></h3>
+<p>The interface stats can also be accessed via the simple python script
+<tt class="docutils literal"><span class="pre">aci-show-interface-stats.py</span></tt>.  This script has a couple of display
+options to customize the output.</p>
+<p>A simple run of the script will display each interface in the network
+and a couple of selected stats for each:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-show-interface-stats.py
+</pre></div>
+</div>
+<p>The default display is for the <tt class="docutils literal"><span class="pre">5min</span></tt> granularity and the current,
+i.e. 0, epoch.  An alternative granularity can be selected with the
+<tt class="docutils literal"><span class="pre">-granularity</span></tt> command line option.:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-show-interface-stats.py -granularity 1h
+</pre></div>
+</div>
+<p>The epoch can be specified with the <tt class="docutils literal"><span class="pre">-epoch</span></tt> option.:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-show-interface-stats.py -granularity 1h -epoch 3
+</pre></div>
+</div>
+<p>A specific interface can be specified with the <tt class="docutils literal"><span class="pre">-interface</span></tt> option.
+This might be useful
+if there are a large number of interfaces.:</p>
+<div class="highlight-python"><div class="highlight"><pre>python aci-show-interface-stats.py -g 1h -e 3 -interface 1/201/1/1
+</pre></div>
+</div>
+<p>Note that we are also showing the abbreviated form of the other
+command line options.  The above will show stats for pod 1, switch
+201, slot 1, port 1.</p>
+<p>If all of the stats for a given interface are desired, the <tt class="docutils literal"><span class="pre">-full</span></tt>
+option should be used.</p>
+<blockquote>
+<div>python aci-show-interface-stats.py -g 1h -e 3 -i 1/201/1/1 -full</div></blockquote>
+<p>This last option will show only those stats that have been collected
+according to the monitoring policy.  Also, note that this last option
+only works when the <tt class="docutils literal"><span class="pre">-interface</span></tt> option is also used.</p>
+</div>
 </div>
 <div class="section" id="granularity">
 <h2>Granularity<a class="headerlink" href="#granularity" title="Permalink to this headline">¶</a></h2>

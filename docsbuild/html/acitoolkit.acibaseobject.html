@@ -87,6 +87,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="endpointtracker.html">ACI Endpoint Tracker</a></li>
 </ul>
 </li>
 </ul>
@@ -282,16 +283,24 @@ specified class with the specified status.</p>
 
 <dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.get_children">
-<tt class="descname">get_children</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_children" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
+<tt class="descname">get_children</tt><big>(</big><em>only_class=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of the immediate child objects of this object.</p>
+<table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">List of children objects.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>only_class</strong> &#8211; Optional parameter that will be used to limit the                           objects returned to only those belonging to the                           class passed in this parameter.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of children objects.</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="classmethod">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.get_deep">
+<em class="property">classmethod </em><tt class="descname">get_deep</tt><big>(</big><em>full_data</em>, <em>working_data</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_deep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="classmethod">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.get_event">
