@@ -174,6 +174,8 @@ class AppProfile(BaseACIObject):
 
     @staticmethod
     def _get_name_from_dn(dn):
+        if '/LDevInst-' in dn:
+            return 'ServiceGraph'
         name = dn.split('/ap-')[1].split('/')[0]
         return name
 
@@ -448,6 +450,8 @@ class EPG(CommonEPG):
 
     @staticmethod
     def _get_name_from_dn(dn):
+        if '/LDevInst-' in dn:
+            return 'ServiceGraph'
         return dn.split('/epg-')[1].split('/')[0]
 
     # Bridge Domain references
@@ -2382,9 +2386,40 @@ class Endpoint(BaseACIObject):
         return None
 
     def _populate_from_attributes(self, attributes):
+        if 'mac' not in attributes:
+            return
         self.mac = str(attributes['mac'])
         self.ip = str(attributes['ip'])
         self.encap = str(attributes['encap'])
+
+    @classmethod
+    def get_event(cls, session):
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in cls._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0][class_name]['attributes']
+            status = str(attributes['status'])
+            dn = str(attributes['dn'])
+            parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
+            if status == 'created':
+                name = str(attributes['name'])
+            else:
+                name = cls._get_name_from_dn(dn)
+            obj = cls(name, parent=parent)
+            obj._populate_from_attributes(attributes)
+            obj.timestamp = str(attributes['modTs'])
+            if obj.mac is None:
+                obj.mac = name
+            if status == 'deleted':
+                obj.mark_as_deleted()
+            else:
+                obj = cls.get(session, name)[0]
+            return obj
 
     @staticmethod
     def _get(session, endpoint_name, interfaces, endpoints, apic_endpoint_class, endpoint_path):
@@ -2406,8 +2441,13 @@ class Endpoint(BaseACIObject):
             children = ep[apic_endpoint_class]['children']
             ep = ep[apic_endpoint_class]['attributes']
             tenant = Tenant(str(ep['dn']).split('/')[1][3:])
-            app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
-            epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
+            if '/LDevInst-' in str(ep['dn']):
+                unknown = '?' * 10
+                app_profile = AppProfile(unknown, tenant)
+                epg = EPG(unknown, app_profile)
+            else:
+                app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
+                epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
             endpoint = Endpoint(str(ep['name']), parent=epg)
             endpoint.mac = str(ep['mac'])
             endpoint.ip = str(ep['ip'])
