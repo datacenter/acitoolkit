@@ -17,9 +17,7 @@
 # Fill in with the APIC admin userid
 LOGIN = 'admin'
 # Fill in with the APIC admin password
-PASSWORD = 'ins3965!'
+PASSWORD = 'password'
 # Fill in with the APIC IP address
-#IPADDR = '172.23.102.91' # Fill in with the APIC IP address
-#IPADDR = '172.23.102.110'
-IPADDR = '172.31.216.100'
+IPADDR = '1.2.3.4'
 URL = 'https://' + IPADDR
