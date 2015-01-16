@@ -26,7 +26,7 @@ import mysql.connector
 def convert_timestamp_to_mysql(timestamp):
     (ts, remaining) = timestamp.split('T')
     ts = ts + ' '
-    ts = ts + remaining.split('+')[0]
+    ts = ts + remaining.split('+')[0].split('.')[0]
     return ts
     
 # Take login credentials from the command line if provided
