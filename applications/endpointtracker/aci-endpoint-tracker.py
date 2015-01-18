@@ -20,7 +20,7 @@ of the Endpoints.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-from aciendpointtrackerlib import get_login_info
+from aciendpointtrackerlib import get_login_info, verify_login_info
 import mysql.connector
 
 def convert_timestamp_to_mysql(timestamp):
@@ -34,6 +34,7 @@ def convert_timestamp_to_mysql(timestamp):
 description = 'Simple application that logs on to the APIC and displays all of the Endpoints.'
 parser = get_login_info(description)
 args = parser.parse_args()
+verify_login_info(args)
 
 # Login to APIC
 session = ACI.Session(args.apicurl, args.apiclogin, args.apicpassword)

@@ -20,7 +20,7 @@ command line, the bash environment variables are taken from the file ~/.profile.
 """
 import argparse
 import os
-
+import sys
 
 def set_default(key):
     if 'APIC_'+key.upper() in os.environ.keys():
@@ -44,6 +44,19 @@ DEFAULT_PASSWORD = set_default('apicpassword')
 DEFAULT_MYSQL_IP = set_default('mysqlip')
 DEFAULT_MYSQL_LOGIN = set_default('mysqllogin')
 DEFAULT_MYSQL_PASSWORD = set_default('mysqlpassword')
+
+def verify_login_info(args):
+    def error_msg(msg):
+        print '%s has not been provided (try --help for options)' % msg
+        sys.exit()
+    if args.apicurl == '':
+        error_msg('APIC URL')
+    if args.mysqlip == '':
+        error_msg('MYSQL IP')
+    if args.apiclogin == '':
+        error_msg('APIC LOGIN')
+    if args.mysqllogin == '':
+        error_msg('MYSQL LOGIN')
 
 def get_login_info(description='No description'):
 
