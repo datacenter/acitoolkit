@@ -1208,6 +1208,10 @@ class BaseContract(BaseACIObject):
         """
         return self._scope
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        return {}
+
     def get_json(self):
         """
         Returns json representation of the contract
@@ -1292,10 +1296,6 @@ class Contract(BaseContract):
                                     for entry in filter['vzFilter']['children']:
                                         if 'vzEntry' in entry:
                                             entry_obj = FilterEntry.create_from_apic_json(entry, contract)
-
-    @classmethod
-    def _get_toolkit_to_apic_classmap(cls):
-        return {}
 
     @classmethod
     def get(cls, session, tenant):
