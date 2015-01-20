@@ -45,8 +45,7 @@ if not resp.ok:
 
 # Create the MySQL database
 cnx = mysql.connector.connect(user=args.mysqllogin, password=args.mysqlpassword,
-                              host=args.mysqlip,
-                              database='acitoolkit')
+                              host=args.mysqlip)
 c = cnx.cursor()
 c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
 cnx.commit()
