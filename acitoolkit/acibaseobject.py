@@ -554,6 +554,8 @@ class BaseACIObject(object):
         """
         attributes = {}
         attributes['name'] = self.name
+        if self.descr:
+            attributes['descr'] = self.descr
         return attributes
 
     @classmethod
