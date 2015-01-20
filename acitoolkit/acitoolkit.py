@@ -1282,6 +1282,10 @@ class Contract(BaseContract):
         contract_data = working_data[0]['vzBrCP']
         contract = Contract(str(contract_data['attributes']['name']),
                             parent)
+                            
+        if 'children' not in contract_data:
+            return
+            
         for child in contract_data['children']:
             if 'vzSubj' in child:
                 subject = child['vzSubj']
