@@ -86,11 +86,16 @@ class Subscriber(threading.Thread):
             refresh_url = '/api/subscriptionRefresh.json?id=' + subscription_id
             resp = self._apic.get(refresh_url)
 
-    def _open_web_socket(self):
+    def _open_web_socket(self, useSecure=True):
         sslopt = {}
-        sslopt['cert_reqs'] = ssl.CERT_NONE
-        self._ws_url = 'wss://%s/socket%s' % (self._apic.ipaddr,
-                                              self._apic.token)
+        if useSecure:
+            sslopt['cert_reqs'] = ssl.CERT_NONE
+            self._ws_url = 'wss://%s/socket%s' % (self._apic.ipaddr,
+                                                  self._apic.token)
+        else:
+            self._ws_url = 'ws://%s/socket%s' % (self._apic.ipaddr,
+                                                 self._apic.token)
+
         kwargs = {}
         if self._ws is not None:
             if self._ws.connected:
@@ -135,7 +140,7 @@ class Subscriber(threading.Thread):
 
         if self._ws is not None:
             if not self._ws.connected:
-                self._open_web_socket()
+                self._open_web_socket('https://' in url)
 
         return self._send_subscription(url)
 
@@ -208,7 +213,7 @@ class Session(object):
         ret_data = json.loads(ret.text)['imdata'][0]
         timeout = ret_data['aaaLogin']['attributes']['refreshTimeoutSeconds']
         self.token = str(ret_data['aaaLogin']['attributes']['token'])
-        self.subscription_thread._open_web_socket()
+        self.subscription_thread._open_web_socket('https://' in self.api)
         timeout = int(timeout)
         if (timeout - TIMEOUT_GRACE_SECONDS) > 0:
             timeout = timeout - TIMEOUT_GRACE_SECONDS
