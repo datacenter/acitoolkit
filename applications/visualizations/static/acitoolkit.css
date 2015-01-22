@@ -1,0 +1,22 @@
+body {
+    font-family: verdana;
+    font-style: normal;
+    background-color: white;
+    margin-left: 40px;
+}
+h1 {
+  font-weight: bold;
+  color: SteelBlue;
+  font-size: 20px;
+  margin-left: 20px;
+}
+p {
+    text-indent: 50px;
+}
+
+a.hlink:link {color:SteelBlue;}
+a.hlink:visited {color:lightpurple;}
+a.hlink:hover {font-size:125%;}
+
+.tab { margin-left: 20px; }
+

@@ -20,13 +20,12 @@ of the Tenants.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'Simple application that logs on to the APIC and displays all of the Tenants.'
-parser = get_login_info()
-args = parser.parse_args()
+creds = ACI.Credentials('apic', description)
+args = creds.get()
 
 # Login to APIC
 session = ACI.Session(args.url, args.login, args.password)

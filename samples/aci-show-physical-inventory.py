@@ -16,7 +16,7 @@
 #
 
 from acitoolkit.aciphysobject import *
-from acisampleslib import get_login_info
+from acitoolkit.acitoolkit import Credentials
 
 def print_inventory(item):
     for child in item.get_children():
@@ -26,8 +26,8 @@ def print_inventory(item):
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables
 description = 'Simple application that logs on to the APIC and displays the physical inventory.'
-parser = get_login_info(description)
-args = parser.parse_args()
+creds = Credentials('apic', description)
+args = creds.get()
 
 # Login to APIC
 session = Session(args.url, args.login, args.password)

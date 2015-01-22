@@ -20,26 +20,25 @@ of the Interfaces.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'Simple application that logs on to the APIC and displays stats for all of the Interfaces.'
-parser = get_login_info(description)
-parser.add_argument('-i', '--interface',
-                    type=str, 
-                    help='Specify a particular interface node/pod/module/port e.g. 1/201/1/21')
-parser.add_argument('-e', '--epoch', type=int,
-                    default = 0,
-                    help='Show a particular epoch (default=0)')
-parser.add_argument('-g', '--granularity', type=str,
-                    default = '5min',
-                    help='Show a particular granularity (default="5min")')
-parser.add_argument('-f', '--full', action="store_true",
-                    help='Show full statistics - only available if interface is specified')
-parser.add_argument('-n', '--nonzero',action='store_true',
+creds = ACI.Credentials('apic', description)
+creds.add_argument('-i', '--interface',
+                   type=str, 
+                   help='Specify a particular interface node/pod/module/port e.g. 1/201/1/21')
+creds.add_argument('-e', '--epoch', type=int,
+                   default = 0,
+                   help='Show a particular epoch (default=0)')
+creds.add_argument('-g', '--granularity', type=str,
+                   default = '5min',
+                   help='Show a particular granularity (default="5min")')
+creds.add_argument('-f', '--full', action="store_true",
+                   help='Show full statistics - only available if interface is specified')
+creds.add_argument('-n', '--nonzero',action='store_true',
                     help='Show only interfaces where the counters are not zero. - only available if interface is NOT specified')
-args = parser.parse_args()
+args = creds.get()
 
 # Login to APIC
 session = ACI.Session(args.url, args.login, args.password)

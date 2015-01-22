@@ -20,23 +20,21 @@ of the Interfaces.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'Simple application that logs on to the APIC'\
     'and displays all of the monitoring policies.'
-parser = get_login_info(description)
-parser.add_argument('-f', '--flat', action="store_true",
+creds = ACI.Credentials('apic', description)
+creds.add_argument('-f', '--flat', action="store_true",
                     help='Show monitor policy flattened - recommended')
-parser.add_argument('-t', '--type', default="all",
+creds.add_argument('-t', '--type', default="all",
                     type=str, choices=['all', 'fabric', 'access'],
                     help='Show a particular monitor policy type (default:all)')
-parser.add_argument('-n', '--name', metavar='POLICYNAME',
+creds.add_argument('-n', '--name', metavar='POLICYNAME',
                     type=str,
                     help='Show all monitor policies whose name is POLICYNAME')
-
-args = parser.parse_args()
+args = creds.get()
 
 # Login to APIC
 session = ACI.Session(args.url, args.login, args.password)

@@ -20,7 +20,6 @@ of the Endpoints.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-from aciendpointtrackerlib import get_login_info, verify_login_info
 import mysql.connector
 
 def convert_timestamp_to_mysql(timestamp):
@@ -31,13 +30,14 @@ def convert_timestamp_to_mysql(timestamp):
     
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Endpoints.'
-parser = get_login_info(description)
-args = parser.parse_args()
-verify_login_info(args)
+description = ('Application that logs on to the APIC and tracks'
+               ' all of the Endpoints in a MySQL database.')
+creds = ACI.Credentials(qualifier=('apic', 'mysql'),
+                        description=description)
+args = creds.get()
 
 # Login to APIC
-session = ACI.Session(args.apicurl, args.apiclogin, args.apicpassword)
+session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
     print '%% Could not login to APIC'
@@ -45,8 +45,7 @@ if not resp.ok:
 
 # Create the MySQL database
 cnx = mysql.connector.connect(user=args.mysqllogin, password=args.mysqlpassword,
-                              host=args.mysqlip,
-                              database='acitoolkit')
+                              host=args.mysqlip)
 c = cnx.cursor()
 c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
 cnx.commit()

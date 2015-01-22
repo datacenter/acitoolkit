@@ -18,8 +18,6 @@
 It logs in to the APIC and will create the tenant.
 """
 import acitoolkit.acitoolkit as ACI
-from acisampleslib import get_login_info
-
 
 # Define static values to pass (edit these if you wish to set differently)
 
@@ -27,10 +25,10 @@ DEFAULT_TENANT_NAME = 'tenant_kit'
 
 # Get all the arguments
 description = 'It logs in to the APIC and will create the tenant.'
-parser = get_login_info(description)
-parser.add_argument('-t', '--tenant', help='The name of tenant', default=DEFAULT_TENANT_NAME)
-
-args = parser.parse_args()
+creds = ACI.Credentials('apic', description)
+creds.add_argument('-t', '--tenant', help='The name of tenant',
+                   default=DEFAULT_TENANT_NAME)
+args = creds.get()
 
 # Login to the APIC
 session = ACI.Session(args.url, args.login, args.password)

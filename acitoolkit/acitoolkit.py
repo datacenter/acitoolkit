@@ -18,6 +18,7 @@
 """
 from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
+from acitoolkitlib import Credentials
 # from aciphysobject import Linecard
 import json
 import logging
