@@ -20,17 +20,15 @@ of the Filters.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'An application that logs on to the APIC and displays all of the Filter Entries.'
-parser = get_login_info(description)
-parser.add_argument('-e', '--filter_entry', help='The name of Filter Entry', default=None)
-parser.add_argument('-c', '--contract', help='The name of contract', default=None)
-parser.add_argument('-t', '--tenant', help='The name of tenant', default=None)
-
-args = parser.parse_args()
+creds = ACI.Credentials('apic', description)
+creds.add_argument('-e', '--filter_entry', help='The name of Filter Entry', default=None)
+creds.add_argument('-c', '--contract', help='The name of contract', default=None)
+creds.add_argument('-t', '--tenant', help='The name of tenant', default=None)
+args = creds.get()
 
 # Login to APIC
 session = ACI.Session(args.url, args.login, args.password)

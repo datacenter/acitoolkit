@@ -20,13 +20,13 @@ of the Endpoints.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-from acisampleslib import get_login_info
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Endpoints.'
-parser = get_login_info(description)
-args = parser.parse_args()
+description = ('Simple application that logs on to the APIC'
+               ' and displays all of the Endpoints.')
+creds = ACI.Credentials('apic', description)
+args = creds.get()
 
 # Login to APIC
 session = ACI.Session(args.url, args.login, args.password)

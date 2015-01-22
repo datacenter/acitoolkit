@@ -1,8 +1,6 @@
 from flask import Flask
 import mysql.connector
-from aciendpointtrackerlib import get_login_info
-
-args = ''
+from acitoolkit.acitoolkit import Credentials
 
 def populate_data(mysql_ip, mysql_username, mysql_password):
     # Create the MySQL database
@@ -130,7 +128,7 @@ if __name__ == '__main__':
     # Take login credentials from the command line if provided
     # Otherwise, take them from your environment variables file ~/.profile
     description = 'Simple application that logs on to the APIC and displays all of the Endpoints.'
-    parser = get_login_info(description)
-    args = parser.parse_args()
+    creds = Credentials('mysql', description)
+    args = creds.get()
 
     app.run(debug=True)
