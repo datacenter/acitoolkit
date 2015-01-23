@@ -30,6 +30,7 @@
   
     <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
         <link rel="up" title="Applications" href="applications.html"/>
+        <link rel="next" title="Visualization Examples" href="visualizations.html"/>
         <link rel="prev" title="Cableplan Application" href="cableplan.html"/> 
 
   
@@ -87,6 +88,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="applications.html">Applications</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="">ACI Endpoint Tracker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations.html">Visualization Examples</a></li>
 </ul>
 </li>
 </ul>
@@ -203,8 +205,8 @@ following priority order:</p>
 <li><p class="first"><strong>Command Line Arguments</strong></p>
 <p>The login credentials can be passed directly as command line
 arguments.  The command is shown below:</p>
-<div class="highlight-python"><div class="highlight"><pre>python aci-endpoint-tracker.py [[ -u | --apicurl] &lt;apicurl&gt;]
-[[ -l | --apiclogin ] &lt;apicusername&gt;] [[ -p | --apicpassword ]
+<div class="highlight-python"><div class="highlight"><pre>python aci-endpoint-tracker.py [[ -u | --url] &lt;apicurl&gt;]
+[[ -l | --login ] &lt;apicusername&gt;] [[ -p | --password ]
 &lt;apicpassword&gt;] [[ -i | --mysqlip ] &lt;mysqlip&gt; [[ -a
 | --mysqladminlogin ] &lt;mysqladminlogin] [[ -s | --mysqlpassword ]
 &lt;mysqlpassword&gt; ]
@@ -284,12 +286,12 @@ then the following command will execute the ACI Endpoint Tracker.:</p>
 file named <tt class="docutils literal"><span class="pre">credentials.py</span></tt>. In this file, it is assumed that
 the following variables will be set appropriately for your
 environment.:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">APICURL</span> <span class="o">=</span> <span class="s">&#39;https://172.35.200.100&#39;</span>
-<span class="n">APICLOGIN</span> <span class="o">=</span> <span class="s">&#39;admin&#39;</span>
-<span class="n">APICPASSWORD</span> <span class="o">=</span> <span class="s">&#39;apicpassword&#39;</span>
-<span class="n">APICMYSQLIP</span> <span class="o">=</span> <span class="s">&#39;127.0.0.1&#39;</span>
-<span class="n">APICMYSQLLOGIN</span> <span class="o">=</span> <span class="s">&#39;root&#39;</span>
-<span class="n">APICMYSQLPASSWORD</span> <span class="o">=</span> <span class="s">&#39;mysqlpassword&#39;</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">URL</span> <span class="o">=</span> <span class="s">&#39;https://172.35.200.100&#39;</span>
+<span class="n">LOGIN</span> <span class="o">=</span> <span class="s">&#39;admin&#39;</span>
+<span class="n">PASSWORD</span> <span class="o">=</span> <span class="s">&#39;apicpassword&#39;</span>
+<span class="n">MYSQLIP</span> <span class="o">=</span> <span class="s">&#39;127.0.0.1&#39;</span>
+<span class="n">MYSQLLOGIN</span> <span class="o">=</span> <span class="s">&#39;root&#39;</span>
+<span class="n">MYSQLPASSWORD</span> <span class="o">=</span> <span class="s">&#39;mysqlpassword&#39;</span>
 </pre></div>
 </div>
 <p>If a credentials.py file is used to specify the credentials,
@@ -513,6 +515,8 @@ limitations under the License.</p>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="visualizations.html" class="btn btn-neutral float-right" title="Visualization Examples"/>Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="cableplan.html" class="btn btn-neutral" title="Cableplan Application"><span class="fa fa-arrow-circle-left"></span> Previous</a>

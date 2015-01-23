@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Search &mdash; acitoolkit 0.1 documentation</title>
+  <title>Visualization Examples &mdash; acitoolkit 0.1 documentation</title>
   
 
   
@@ -28,7 +28,9 @@
   
 
   
-    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/> 
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="Applications" href="applications.html"/>
+        <link rel="prev" title="ACI Endpoint Tracker" href="endpointtracker.html"/> 
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -44,7 +46,7 @@
       <div class="wy-side-nav-search">
         <a href="index.html" class="fa fa-home"> acitoolkit</a>
         <div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="#" method="get">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -55,7 +57,7 @@
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
         
         
-            <ul>
+            <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
@@ -82,10 +84,10 @@
 <li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="applications.html">Applications</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
 <li class="toctree-l2"><a class="reference internal" href="endpointtracker.html">ACI Endpoint Tracker</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualizations.html">Visualization Examples</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Visualization Examples</a></li>
 </ul>
 </li>
 </ul>
@@ -111,8 +113,12 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li></li>
+          <li><a href="applications.html">Applications</a> &raquo;</li>
+      
+    <li>Visualization Examples</li>
       <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/visualizations.txt" rel="nofollow"> View page source</a>
         
       </li>
   </ul>
@@ -120,22 +126,63 @@
 </div>
           <div role="main">
             
-  <noscript>
-  <div id="fallback" class="admonition warning">
-    <p class="last">
-      Please activate JavaScript to enable the search
-      functionality.
-    </p>
-  </div>
-  </noscript>
+  <div class="section" id="visualization-examples">
+<h1>Visualization Examples<a class="headerlink" href="#visualization-examples" title="Permalink to this headline">¶</a></h1>
+<p>This directory contains a number of visualization examples that can be
+used to display information collected using the <tt class="docutils literal"><span class="pre">acitoolkit</span></tt>.  Many of
+the examples are meant to run alongside the <tt class="docutils literal"><span class="pre">ACI</span> <span class="pre">Endpoint</span> <span class="pre">Tracker</span></tt>
+application and interact with the MySQL database that the <tt class="docutils literal"><span class="pre">ACI</span> <span class="pre">Endpoint</span>
+<span class="pre">Tracker</span></tt> populates.  Most of the visualization examples are interactive.</p>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>To run the visualizations, the python package <tt class="docutils literal"><span class="pre">Flask</span></tt> is required.
+This can be installed using <tt class="docutils literal"><span class="pre">pip</span></tt> as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install flask
+</pre></div>
+</div>
+<p>It is also recommended that the <tt class="docutils literal"><span class="pre">ACI</span> <span class="pre">Endpoint</span> <span class="pre">Tracker</span></tt> is installed.</p>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p>Run the visualizations as follows (supplying your own MySQL credentials):</p>
+<div class="highlight-python"><div class="highlight"><pre>python acitoolkit-visualizations.py --mysqlip 127.0.0.1 --mysqllogin root --mysqlpassword password
+</pre></div>
+</div>
+<p>Alternatively, you can create a <cite>credentials.py</cite> file in the same
+directory with the following:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">MYSQLIP</span><span class="o">=</span><span class="s">&#39;127.0.0.1&#39;</span>
+<span class="n">MYSQLLOGIN</span><span class="o">=</span><span class="s">&#39;root&#39;</span>
+<span class="n">MYSQLPASSWORD</span><span class="o">=</span><span class="s">&#39;password&#39;</span>
+</pre></div>
+</div>
+<p>If the <cite>credentials.py</cite> file is used, run the visualizations as
+follows:</p>
+<div class="highlight-python"><div class="highlight"><pre>python acitoolkit-visualizations.py
+</pre></div>
+</div>
+<p>Once the visualizations are running, you should see the following
+displayed:</p>
+<div class="highlight-python"><div class="highlight"><pre>* Running on http://127.0.0.1:5000/
+* Restarting with reloader
+</pre></div>
+</div>
+<p>Simply point your favorite web browser to the following URL and explore:</p>
+<div class="highlight-python"><div class="highlight"><pre>http://127.0.0.1:5000/
+</pre></div>
+</div>
+</div>
+</div>
 
-  
-  <div id="search-results">
-  
-  </div>
 
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="endpointtracker.html" class="btn btn-neutral" title="ACI Endpoint Tracker"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
@@ -171,7 +218,6 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="_static/searchtools.js"></script>
 
   
 
@@ -187,14 +233,7 @@
           SphinxRtdTheme.StickyNav.enable();
       });
   </script>
-  
-  <script type="text/javascript">
-    jQuery(function() { Search.loadIndex("searchindex.js"); });
-  </script>
-  
-  <script type="text/javascript" id="searchindexloader"></script>
    
-
 
 </body>
 </html>
