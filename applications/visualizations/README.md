@@ -1,1 +1,1 @@
-Documentation for this application can be found `here <http://datacenter.github.io/acitoolkit/docsbuild/html/visualizations.html>`_
+Documentation for this application can be found [here](http://datacenter.github.io/acitoolkit/docsbuild/html/visualizations.html)
