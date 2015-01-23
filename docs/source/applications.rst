@@ -6,3 +6,4 @@ Applications
 
    cableplan
    endpointtracker
+   visualizations
