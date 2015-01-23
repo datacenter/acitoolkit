@@ -1,9 +1,11 @@
 import flask
 import mysql.connector
 from acitoolkitvisualizationslib import *
+from acitoolkit.acitoolkitlib import Credentials
 
-MYSQL_USERID = 'root'
-MYSQL_PASSWORD = 'insieme'
+description = 'Simple set of visualization examples.'
+creds = Credentials(('mysql'), description)
+args = creds.get()
 
 app = flask.Flask(__name__)
 
@@ -17,7 +19,7 @@ def index():
 
 @app.route('/pie')
 def endpoint_tracker_pie():
-    regenerate_pie_data(MYSQL_USERID, MYSQL_PASSWORD, '127.0.0.1')
+    regenerate_pie_data(args.mysqllogin, args.mysqlpassword, args.mysqlip)
     return flask.render_template('endpoint-tracker-pie.html',
                                  filename='endpoint_tracker_pie.csv')
 
@@ -34,20 +36,20 @@ def endpoint_hierarchical():
 
 @app.route('/radial')
 def endpoint_radial():
-    regenerate_radial_data(MYSQL_USERID, MYSQL_PASSWORD, '127.0.0.1')
+    regenerate_radial_data(args.mysqllogin, args.mysqlpassword, args.mysqlip)
     return flask.render_template('endpoint-radial.html')
 
 
 @app.route('/sunburst')
 def endpoint_sunburst():
-    regenerate_sunburst_data(MYSQL_USERID, MYSQL_PASSWORD, '127.0.0.1')
+    regenerate_sunburst_data(args.mysqllogin, args.mysqlpassword, args.mysqlip)
     return flask.render_template('endpoint-sunburst.html')
 
 
 @app.route('/tree')
 def endpoint_epg_tree():
-    data = regenerate_endpoint_epg_tree(MYSQL_USERID, MYSQL_PASSWORD,
-                                        '127.0.0.1')
+    data = regenerate_endpoint_epg_tree(args.mysqllogin, args.mysqlpassword,
+                                        args.mysqlip)
     return flask.render_template('endpoint-tree.html', data=data)
 
 
