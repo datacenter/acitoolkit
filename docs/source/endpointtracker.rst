@@ -89,8 +89,8 @@ following priority order:
    The login credentials can be passed directly as command line
    arguments.  The command is shown below::
 
-     python aci-endpoint-tracker.py [[ -u | --apicurl] <apicurl>]
-     [[ -l | --apiclogin ] <apicusername>] [[ -p | --apicpassword ]
+     python aci-endpoint-tracker.py [[ -u | --url] <apicurl>]
+     [[ -l | --login ] <apicusername>] [[ -p | --password ]
      <apicpassword>] [[ -i | --mysqlip ] <mysqlip> [[ -a
      | --mysqladminlogin ] <mysqladminlogin] [[ -s | --mysqlpassword ]
      <mysqlpassword> ]
@@ -154,12 +154,12 @@ following priority order:
    the following variables will be set appropriately for your
    environment.::
 
-       APICURL = 'https://172.35.200.100'
-       APICLOGIN = 'admin'
-       APICPASSWORD = 'apicpassword'
-       APICMYSQLIP = '127.0.0.1'
-       APICMYSQLLOGIN = 'root'
-       APICMYSQLPASSWORD = 'mysqlpassword'
+       URL = 'https://172.35.200.100'
+       LOGIN = 'admin'
+       PASSWORD = 'apicpassword'
+       MYSQLIP = '127.0.0.1'
+       MYSQLLOGIN = 'root'
+       MYSQLPASSWORD = 'mysqlpassword'
 
    If a credentials.py file is used to specify the credentials,
    then the following command will execute the ACI Endpoint Tracker.::
