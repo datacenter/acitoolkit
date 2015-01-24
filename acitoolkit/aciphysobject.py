@@ -19,11 +19,12 @@
 from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
 from acitoolkit import Interface
+from acicounters import AtomicCountersOnGoing
 
 import json
 import logging
 import re
-
+import copy
 
 class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
@@ -620,22 +621,31 @@ class Powersupply(BaseACIPhysModule):
 
 class Pod(BaseACIPhysObject):
     """ Pod :  roughly equivalent to fabricPod """
-    def __init__(self, pod_id, parent=None):
+    def __init__(self, pod_id, attributes={}, parent=None):
         """ Initialize the basic object.  It will create the name of the pod and set the type
         before calling the base class __init__ method.  Typically the pod_id will be 1.
 
         :param pod_id: pod id string
+        :param attributes :
         :param parent: optional parent object
         """
         # check that parent is not a string
         if isinstance(parent, str):
             raise TypeError("Parent object can't be a string")
 
+        if not isinstance(attributes,dict) :
+            raise TypeError("Attributes must be a dictionary")
+        
+        self.attributes = copy.deepcopy(attributes)
         self.pod = str(pod_id)
         self.type = 'pod'
         self.name = 'pod-'+str(self.pod)
         logging.debug('Creating %s %s', self.__class__.__name__, self.pod)
         self._common_init(parent)
+
+        # add atomic counters
+        if 'dist_name' in self.attributes :
+            self.atomic = AtomicCountersOnGoing(self,self.attributes['dist_name'])
 
     @staticmethod
     def get(session):
@@ -646,16 +656,16 @@ class Pod(BaseACIPhysObject):
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
-        interface_query_url = ('/api/node/class/fabricPod.json?'
+        class_query_url = ('/api/node/class/fabricPod.json?'
                                'query-target=self')
         pods = []
-        ret = session.get(interface_query_url)
+        ret = session.get(class_query_url)
         pod_data = ret.json()['imdata']
         for apic_pod in pod_data:
-            dist_name = str(apic_pod['fabricPod']['attributes']['dn'])
-            pod_id = str(apic_pod['fabricPod']['attributes']['id'])
-            pod = Pod(pod_id)
-            pod._populate_from_attributes(apic_pod['fabricPod']['attributes'])
+            attributes = {}
+            attributes['dist_name'] = str(apic_pod['fabricPod']['attributes']['dn'])
+            attributes['pod_id'] = str(apic_pod['fabricPod']['attributes']['id'])
+            pod = Pod(attributes['pod_id'], attributes=attributes)
             pod._session = session
             pods.append(pod)
         return pods
@@ -1071,7 +1081,6 @@ class ENode(Node):
         """This routine will fill in various other attributes of the loose node
         """
         attrib = {}
-
         mo_query_url = '/api/mo/'+dn+'.json?query-target=children'
         ret = session.get(mo_query_url)
         node_data = ret.json()['imdata']
@@ -1082,8 +1091,13 @@ class ENode(Node):
                 name = dn.split('/')
                 pod = name[1].split('-')[1]
                 node = str(name[2].split('-')[1])
-                result = re.search('phys-\[(.+)\]', dn)
-                lldp_dn = 'topology/pod-' + pod + '/node-'+node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
+                if 'phys' in name[4] :
+                    result = re.search('phys-\[(.+)\]', dn)
+                    lldp_dn = 'topology/pod-' + pod + '/node-'+node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
+                else :
+                    agg_port_data = ENode._getDn(session,dn)
+                    port = agg_port_data[0]['pcAggrIf']['attributes']['lastBundleMbr'] 
+                    lldp_dn = 'topology/pod-' + pod + '/node-'+node + '/sys/lldp/inst/if-[' +port + ']/adj-1'
 
             if 'fabricProtLooseLink' in node:
                 dn = node['fabricProtLooseLink']['attributes']['portDn']
@@ -1099,7 +1113,6 @@ class ENode(Node):
                 lldp_dn = lldp_dn+port+']/adj-1'
 
         lldp_data = ENode._getDn(session, lldp_dn)
-
         attrib['ipAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtIp'])
         attrib['name'] = str(lldp_data[0]['lldpAdjEp']['attributes']['sysName'])
 
@@ -1332,129 +1345,3 @@ class Link(BaseACIPhysObject):
 
         return pod, link
 
-# class Stats():
-#    """Class for stat.
-#
-#    Will allow the set of counters to be configured by attribute name.
-#    Will allow the counters to be read from APIC.
-#    Will allow the counters to be cleared and uncleared.  When clearing the counters,
-#    the current values are read and then stored.  A get will return the difference between the
-#    values read from the APIC and the stored values.  An unclear will simply clear the values.
-#    Will allow the change in values to be retrieved.
-#    """
-#
-#    def __init__(self, session=None, counters=None):
-#        """When initializing the stats, a list of counters can be provided through the counters
-#        list. The counters structure is as follows: [(dn,[(attribute,name),...)...].  A counter
-#        will be created whose name is "name", i.e. it will be accessed by that name.  Its value
-#        will come from the APIC object indicated by "dn" and attribute "attribute".  The possibility
-#        to give an alternate name from the name of the attribute is that the same attribute name
-#        is used in different objects and the Stats object will essentiall flatten them.
-#
-#        :param session: Optional session of type Session.  If this parameter is not provided, all the
-#        counts will be zero.
-#        :param counters: optional list of counters to include in the stats
-#        """
-#        self._session = session
-#        self.counters = counters
-#        self.baseValue = {}
-#        self.lastValue = {}
-#        self.unclear()
-#
-#        for (dn,counts) in self.counters:
-#            for (attribute, name) in counts:
-#                self.baseValue[name] = 0
-#                self.lastValue[name] = 0
-#
-#    def unclear(self):
-#        """Will set the values that were set by the clear() method to zero so that
-#        a get() will return the raw values in the APIC.
-#        """
-#        for counter in self.baseValue:
-#            self.baseValue[counter] = 0
-#
-#    def get(self):
-#        """Will return a dictionary of the counter values.  Each value is
-#        calculated by reading from the APIC and subtracting the corresponding baseValue
-#
-#        :returns: dictionary of counter:value
-#        """
-#        result = {}
-#        for (dn, counts) in self.counters:
-#            if self.session:
-#                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
-#                ret = self.session.get(mo_query_url)
-#                data = ret.json()['imdata']
-#                if data:
-#                    for key in data[0]:
-#                        for (attribute, name) in counts:
-#                            rawCount = data[0][key]['attributes'][attribute]
-#                            result[name] = rawCount - self.baseValue[name]
-#                            self.lastValue[name] = rawCount
-#            else:
-#                for (attribute, name) in counts:
-#                    rawCount = 0
-#                    result[name] = rawCount - self.baseValue[name]
-#                    self.lastValue[name] = rawCount
-#
-#        return result
-#
-#    def clear(self):
-#        for (dn, counts) in self.counters:
-#            if self.session:
-#                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
-#                ret = self.session.get(mo_query_url)
-#                data = ret.json()['imdata']
-#                if data:
-#                    for key in data[0]:
-#                        for (attribute, name) in counts:
-#                            rawCount = data[0][key]['attributes'][attribute]
-#                            self.baseValue[name] = rawCount
-#                            self.lastValue[name] = rawCount
-#            else:
-#                for (attribute, name) in counts:
-#                    rawCount = 0
-#                    self.baseValue[name] = rawCount
-#                    self.lastValue[name] = rawCount
-#
-#
-#    def change(self):
-#        """Will return a dictionary of the counter value changes since they
-#        were last read by either this same method, the get() method, or a clear()
-#        method.  Each value is
-#        calculated by reading from the APIC and subtracting the corresponding lastValue
-#
-#        :returns: dictionary of counter:value
-#        """
-#        result = {}
-#        for (dn, counts) in self.counters:
-#            if self.session:
-#                mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
-#                ret = self.session.get(mo_query_url)
-#                data = ret.json()['imdata']
-#                if data:
-#                    for key in data[0]:
-#                        for (attribute, name) in counts:
-#                            rawCount = data[0][key]['attributes'][attribute]
-#                            result[name] = rawCount - self.lastValue[name]
-#                            self.lastValue[name] = rawCount
-#            else:
-#                for (attribute, name) in counts:
-#                    rawCount = 0
-#                    result[name] = rawCount - self.lastValue[name]
-#                    self.lastValue[name] = rawCount
-#
-#        return result
-#
-#    def addCounters(self, counters):
-#        """This routine will add counters to stats. The counters will be
-#        appended to any counters that already exist in the stats.
-#        The format of the counters parameter is [(dn,[(attribute,name),...)...].
-#        The dn indicates which managed object to get the counts from.  It is followed
-#        by a list of attribute, name pairs.  The attribute is the name of the attribute
-#        in the managed object to get the counter from.  The name is the name used to
-#        access the counters in the toolkit.
-#
-#        :params counters: list of counters to be added
-#        """
-#        self.counters.extend(counters)

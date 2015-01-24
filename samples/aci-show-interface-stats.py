@@ -36,6 +36,8 @@ creds.add_argument('-g', '--granularity', type=str,
                    help='Show a particular granularity (default="5min")')
 creds.add_argument('-f', '--full', action="store_true",
                    help='Show full statistics - only available if interface is specified')
+creds.add_argument('-n', '--nonzero',action='store_true',
+                    help='Show only interfaces where the counters are not zero. - only available if interface is NOT specified')
 args = creds.get()
 
 # Login to APIC
@@ -59,13 +61,17 @@ def show_stats_short() :
         interface.stats.get()
         
         rec = []
+        allzero = True
         for (counterFamily, counterName) in [('ingrTotal','pktsAvg'),('egrTotal','pktsAvg'),
                                 ('ingrTotal','pktsRateAvg'),('egrTotal','pktsRateAvg'),
                                 ('ingrTotal','bytesRateAvg'),('egrTotal','bytesRateAvg')] :
             
             rec.append(interface.stats.retrieve(counterFamily,args.granularity,args.epoch,counterName))
-            
-        print template.format(interface.name, *rec)
+            if interface.stats.retrieve(counterFamily,args.granularity,args.epoch,counterName) != 0 :
+                allzero = False
+                
+        if (args.nonzero and not allzero) or not args.nonzero :
+            print template.format(interface.name, *rec)
         
 def show_stats_long() :
     print 'Interface {0}/{1}/{2}/{3}  Granularity:{4} Epoch:{5}'.format(pod,node,module,port,args.granularity, args.epoch)
