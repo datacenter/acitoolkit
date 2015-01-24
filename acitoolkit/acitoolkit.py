@@ -2280,6 +2280,19 @@ class PortChannel(BaseInterface):
 
         return path
 
+    @staticmethod
+    def get_url(fmt='json'):
+        """
+        Get the URLs used to push the configuration to the APIC
+        if no format parameter is specified, the format will be 'json'
+        otherwise it will return '/api/mo/uni.' with the format string
+        appended.
+        :param fmt: optional format string, default is 'json'
+        :returns: URL string
+        """
+        return ('/api/mo/uni/fabric.' + fmt,
+                '/api/mo/uni.' + fmt)
+
     def get_json(self):
         """
         Returns json representation of the PortChannel
@@ -2295,12 +2308,20 @@ class PortChannel(BaseInterface):
         for interface in self._interfaces:
             node_profile, accport_selector = interface.get_port_channel_selector_json(self.name)
             infra['infraInfra']['children'].append(node_profile)
+            if self.is_deleted():
+                for hports in accport_selector['infraAccPortP']['children']:
+                    if 'infraHPortS' in hports:
+                        for child in hports['infraHPortS']['children']:
+                            if 'infraRsAccBaseGrp' in child:
+                                child['infraRsAccBaseGrp']['attributes']['status'] = 'deleted'
             infra['infraInfra']['children'].append(accport_selector)
         # Add the actual port-channel
         accbndlgrp = {'infraAccBndlGrp':
                       {'attributes':
                        {'name': self.name, 'lagT': pc_mode},
                        'children': []}}
+        if self.is_deleted():
+            accbndlgrp['infraAccBndlGrp']['attributes']['status'] = 'deleted'
         infrafuncp = {'infraFuncP': {'attributes': {},
                                      'children': [accbndlgrp]}}
         infra['infraInfra']['children'].append(infrafuncp)

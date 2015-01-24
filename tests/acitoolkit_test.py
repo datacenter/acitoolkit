@@ -1108,6 +1108,12 @@ class TestPortChannel(unittest.TestCase):
         pc = self.create_pc()
         nodes = pc._get_nodes()
 
+    def test_delete_vpc(self):
+        pc = self.create_pc()
+        pc.mark_as_deleted()
+        fabric, infra = pc.get_json()
+        fabric_url, infra_url = pc.get_url()
+
 
 class TestContext(unittest.TestCase):
     def test_get_json(self):
