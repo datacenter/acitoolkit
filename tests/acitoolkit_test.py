@@ -857,6 +857,26 @@ class TestEPG(unittest.TestCase):
         self.assertFalse(epg.has_bd())
         self.assertFalse(epg.get_bd() == bd)
 
+    def test_tag_add(self):
+        tenant, app, epg = self.create_epg()
+        self.assertFalse(epg.has_tags())
+        epg.add_tag('secure')
+        epg.add_tag('normal')
+        self.assertTrue(epg.has_tags())
+        self.assertTrue(epg.get_tags() == ['secure', 'normal'])
+        self.assertTrue(epg.has_tag('secure'))
+
+    def test_tag_remove(self):
+        tenant, app, epg = self.create_epg()
+        self.assertFalse(epg.has_tags())
+        epg.add_tag('secure')
+        epg.add_tag('normal')
+        self.assertTrue(epg.has_tags())
+        epg.remove_tag('secure')
+        self.assertFalse(epg.has_tag('secure'))
+        epg.remove_tag('normal')
+        self.assertFalse(epg.has_tags())
+
     def test_epg_provide(self):
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)

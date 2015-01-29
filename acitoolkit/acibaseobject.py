@@ -92,6 +92,7 @@ class BaseACIObject(object):
         self._children = []
         self._relations = []
         self._attachments = []
+        self._tags = []
         self._parent = parent
         self.descr = None
         self.subscribe = self._instance_subscribe
@@ -135,6 +136,21 @@ class BaseACIObject(object):
         for child in self.get_children():
             child._extract_relationships(data)
 
+    def has_tag(self, tag):
+        return tag in self.get_tags()
+
+    def has_tags(self):
+        return len(self.get_tags()) > 0
+
+    def get_tags(self):
+        return self._tags
+
+    def add_tag(self, tag):
+        self.get_tags().append(tag)
+
+    def remove_tag(self, tag):
+        self.get_tags().remove(tag)
+
     @classmethod
     def _get_parent_from_dn(cls, dn):
         parent_class = cls._get_parent_class()
@@ -158,6 +174,8 @@ class BaseACIObject(object):
                             for apic_class in child:
                                 class_map = cls._get_toolkit_to_apic_classmap()
                                 if apic_class not in class_map:
+                                    if apic_class == 'tagInst':
+                                        obj._tags.append(str(child[apic_class]['attributes']['name']))
                                     continue
                                 else:
                                     class_map[apic_class].get_deep(full_data=full_data,
@@ -516,6 +534,9 @@ class BaseACIObject(object):
             attributes = {}
         children_json = []
         for child in children:
+            children_json.append(child)
+        for tag in self._tags:
+            child = {'tagInst':{'attributes': {'name': tag}}}
             children_json.append(child)
         if get_children:
             for child in self._children:
