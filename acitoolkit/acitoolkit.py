@@ -642,24 +642,24 @@ class OutsideEPG(CommonEPG):
         children = []
         context = {"l3extRsEctx":{"attributes":{"tnFvCtxName":"Ohio-Demo-ctx1"},"children":[]}}
         children.append(context)
-        text = {'l3extInstP': {'attributes': {'name': self.name},
-                                       'children': []}}
-
         for interface in self.get_interfaces():
 
             if hasattr(interface, 'is_ospf'):
                 ospf_if = interface
 
-                text['ospfExtP'] =  {'attributes': {'areaId': ospf_if.area_id},
+                text = {'ospfExtP': {'attributes': {'areaId': ospf_if.area_id},
                                      'children': []}
-
+                        }
                 children.append(text)
+
             elif hasattr(interface,'is_bgp'):
                 bgp_if = interface
-                text['bgpExtP'] = {"attributes":{}}
+                text = {"bgpExtP":{"attributes":{}}}
                 children.append(text)
 
 
+            text = {'l3extInstP': {'attributes': {'name': self.name},
+                                       'children': []}}
             for network in interface.networks:
                 subnet = {'l3extSubnet': {'attributes': {'ip': network},
                                           'children': []}}
