@@ -642,22 +642,24 @@ class OutsideEPG(CommonEPG):
         children = []
         context = {"l3extRsEctx":{"attributes":{"tnFvCtxName":"Ohio-Demo-ctx1"},"children":[]}}
         children.append(context)
+        text = {'l3extInstP': {'attributes': {'name': self.name},
+                                       'children': []}}
+
         for interface in self.get_interfaces():
 
             if hasattr(interface, 'is_ospf'):
                 ospf_if = interface
 
-                text = {'ospfExtP': {'attributes': {'areaId': ospf_if.area_id},
+                text['ospfExtP'] =  {'attributes': {'areaId': ospf_if.area_id},
                                      'children': []}
-                        }
+
                 children.append(text)
             elif hasattr(interface,'is_bgp'):
                 bgp_if = interface
-                text = {"bgpExtP":{"attributes":{}}}
+                text['bgpExtP'] = {"attributes":{}}
                 children.append(text)
 
-                text = {'l3extInstP': {'attributes': {'name': self.name},
-                                       'children': []}}
+
             for network in interface.networks:
                 subnet = {'l3extSubnet': {'attributes': {'ip': network},
                                           'children': []}}
@@ -850,21 +852,19 @@ class BGPSession(BaseACIObject):
     Creates an BGP router interface that can be attached to a L3 interface.
     This interface defines the BGP AS, authentication, etc.
     """
-    def __init__(self, name, rtr_id=None,peer_ip=None,asnumber=None):
+    def __init__(self, name, router_id=None,peer_ip=None,node_id=None):
         """
-        :param name:  String containing the name of this OSPFInterface object.
-        :param asnumber: String containing the OSPF area id of this interface.\
+        :param name:  String containing the name of this BGPSession object.
+        :param router_id: String containint the IPv4 router-id
+        :param peer_ip: String containing the IP address of the BGP peer\
                         Default is None.
+        :param node_id: String Containing the node-id (e.g. '101')
         """
         super(BGPSession, self).__init__(name)
-        self.myasnumber = asnumber
         self.peer_ip = peer_ip
-        self.rtr_id = rtr_id
-        self.node_id = None
-        self.options = 'send-ext-com'
-        self.auth_key = None
-        self.auth_type = None
-        self.auth_keyid = None
+        self.router_id = router_id
+        self.node_id = node_id
+        self.options = ''
         self.networks = []
 
     def is_interface(self):
@@ -890,7 +890,7 @@ class BGPSession(BaseACIObject):
         :returns: json dictionary of OSPFInterface
         """
 
-        bgpextp = {"bgpExtP": {"attributes": {"status":"created"}}}
+        bgpextp = {"bgpExtP": {"attributes": {}}}
         bgpPeerP = {'bgpPeerP': {
                                 'attributes': {
                                     'addr': self.peer_ip,
@@ -901,7 +901,7 @@ class BGPSession(BaseACIObject):
 
         RsNode = { "l3extRsNodeL3OutAtt": {
                                 "attributes": {
-                                    "rtrId": self.rtr_id,
+                                    "rtrId": self.router_id,
                                     "tDn": "topology/pod-1/node-%s" % self.node_id
                                 }
                             }

@@ -1144,6 +1144,31 @@ class TestContext(unittest.TestCase):
         self.assertEqual(context_json['fvCtx']['attributes']['pcEnfPref'],
                          'unenforced')
 
+class TestBGP(unittest.TestCase):
+    def test_bgp_router(self):
+        tenant = Tenant('Ohio-Demo')
+        context = Context('Ohio-Demo-ctx1', tenant)
+        outside = OutsideEPG('out-1', tenant)
+        phyif = Interface('eth', '1', '101', '1', '46')
+        phyif.speed='1G'
+        l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+        l2if.attach(phyif)
+        l3if = L3Interface('l3if')
+        l3if.set_l3if_type('l3-port')
+        l3if.set_addr('1.1.1.2/30')
+        l3if.add_context(context)
+        l3if.attach(l2if)
+        bgpif = BGPSession('test', peer_ip='1.1.1.1', node_id='101')
+        bgpif.router_id='172.1.1.1'
+        bgpif.attach(l3if)
+        bgpif.options = 'send-ext-com'
+        bgpif.networks.append('0.0.0.0/0')
+        contract1 = Contract('icmp')
+        outside.provide(contract1)
+        outside.add_context(context)
+        outside.consume(contract1)
+        outside.attach(bgpif)
+        bgp_json = outside.get_json()
 
 class TestOspf(unittest.TestCase):
     def test_ospf_router_port(self):
@@ -1816,6 +1841,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestPortChannel))
     offline.addTest(unittest.makeSuite(TestContext))
     offline.addTest(unittest.makeSuite(TestOspf))
+    offline.addTest(unittest.makeSuite(TestBGP))
     offline.addTest(unittest.makeSuite(TestEndpoint))
 
     full = unittest.TestSuite([live, offline])
