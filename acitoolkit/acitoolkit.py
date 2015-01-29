@@ -608,7 +608,8 @@ class OutsideEPG(CommonEPG):
         :param parent: Instance of the Tenant class representing\
                        the tenant owning this OutsideEPG.
         """
-        self.context = None
+        self.context_name = None
+
         if not isinstance(parent, Tenant):
             raise TypeError('Parent is not set to Tenant')
         super(OutsideEPG, self).__init__(epg_name, parent)
@@ -631,6 +632,7 @@ class OutsideEPG(CommonEPG):
         """
         if self.has_context():
             self.remove_context()
+        self.context_name = context.name
         self._add_relation(context)
 
     def get_json(self):
@@ -640,7 +642,7 @@ class OutsideEPG(CommonEPG):
         :returns: json dictionary of OutsideEPG
         """
         children = []
-        context = {"l3extRsEctx":{"attributes":{"tnFvCtxName":"Ohio-Demo-ctx1"},"children":[]}}
+        context = {"l3extRsEctx": {"attributes": {"tnFvCtxName": self.context_name}, "children": []}}
         children.append(context)
         for interface in self.get_interfaces():
 
