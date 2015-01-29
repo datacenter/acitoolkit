@@ -671,8 +671,6 @@ class OutsideEPG(CommonEPG):
                     text['l3extInstP']['children'].append(contract)
                 children.append(text)
 
-
-
         for interface in self.get_interfaces():
             text = interface.get_json()
             children.append(text)

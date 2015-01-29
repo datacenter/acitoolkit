@@ -1146,8 +1146,8 @@ class TestContext(unittest.TestCase):
 
 class TestBGP(unittest.TestCase):
     def test_bgp_router(self):
-        tenant = Tenant('Ohio-Demo')
-        context = Context('Ohio-Demo-ctx1', tenant)
+        tenant = Tenant('bgp-tenant')
+        context = Context('bgp-test', tenant)
         outside = OutsideEPG('out-1', tenant)
         phyif = Interface('eth', '1', '101', '1', '46')
         phyif.speed='1G'
