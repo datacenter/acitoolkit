@@ -22,12 +22,13 @@ import sys
 import acitoolkit.acitoolkit as ACI
 import mysql.connector
 
+
 def convert_timestamp_to_mysql(timestamp):
     (ts, remaining) = timestamp.split('T')
     ts = ts + ' '
     ts = ts + remaining.split('+')[0].split('.')[0]
     return ts
-    
+
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = ('Application that logs on to the APIC and tracks'
@@ -44,7 +45,8 @@ if not resp.ok:
     sys.exit(0)
 
 # Create the MySQL database
-cnx = mysql.connector.connect(user=args.mysqllogin, password=args.mysqlpassword,
+cnx = mysql.connector.connect(user=args.mysqllogin,
+                              password=args.mysqlpassword,
                               host=args.mysqlip)
 c = cnx.cursor()
 c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
@@ -67,12 +69,12 @@ for ep in endpoints:
     epg = ep.get_parent()
     app_profile = epg.get_parent()
     tenant = app_profile.get_parent()
-    c.execute("""INSERT INTO endpoints (mac, ip, tenant, app, epg, interface, timestart)
+    data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
+            ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
+    c.execute("""INSERT INTO endpoints (mac, ip, tenant,
+                 app, epg, interface, timestart)
                  VALUES ('%s', '%s', '%s', '%s',
-                 '%s', '%s', '%s')""" % (ep.mac, ep.ip,
-                                         tenant.name, app_profile.name,
-                                         epg.name, ep.if_name,
-                                         convert_timestamp_to_mysql(ep.timestamp)))
+                 '%s', '%s', '%s')""" % data)
     cnx.commit()
 
 # Subscribe to live updates and update the database
@@ -85,18 +87,26 @@ while True:
         tenant = app_profile.get_parent()
         if ep.is_deleted():
             ep.if_name = None
+            data = (convert_timestamp_to_mysql(ep.timestamp),
+                    ep.mac,
+                    tenant.name)
             update_cmd = """UPDATE endpoints SET timestop='%s'
                             WHERE mac='%s' AND tenant='%s' AND
-                            timestop='0000-00-00 00:00:00'""" % (convert_timestamp_to_mysql(ep.timestamp),
-                                                                 ep.mac,
-                                                                 tenant.name)
+                            timestop='0000-00-00 00:00:00'""" % data
             c.execute(update_cmd)
         else:
-            insert_cmd = """INSERT INTO endpoints (mac, ip, tenant, app, epg, interface, timestart)
-                            VALUES ('%s', '%s', '%s', '%s',
-                                    '%s', '%s', '%s')""" % (ep.mac, ep.ip,
-                                                            tenant.name, app_profile.name,
-                                                            epg.name, ep.if_name,
-                                                            convert_timestamp_to_mysql(ep.timestamp))
-            c.execute(insert_cmd)
+            data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
+                    ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
+            insert_data = "'%s', '%s', '%s', '%s', '%s', '%s', '%s'" % data
+            query_data = ("mac='%s', ip='%s', tenant='%s', "
+                          "app='%s', epg='%s', interface='%s', "
+                          "timestart='%s'" % data).replace(',', ' AND')
+            select_cmd = "SELECT COUNT(*) FROM endpoints WHERE %s" % query_data
+            c.execute(select_cmd)
+            for (count) in c:
+                if not count[0]:
+                    insert_cmd = """INSERT INTO endpoints (mac, ip, tenant, app,
+                                    epg, interface, timestart)
+                                    VALUES (%s)""" % insert_data
+                    c.execute(insert_cmd)
         cnx.commit()

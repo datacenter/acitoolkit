@@ -642,7 +642,8 @@ class OutsideEPG(CommonEPG):
         :returns: json dictionary of OutsideEPG
         """
         children = []
-        context = {"l3extRsEctx": {"attributes": {"tnFvCtxName": self.context_name}, "children": []}}
+        context = {'l3extRsEctx': {'attributes': {'tnFvCtxName': self.context_name},
+                                   'children': []}}
         children.append(context)
         for interface in self.get_interfaces():
 
@@ -654,14 +655,13 @@ class OutsideEPG(CommonEPG):
                         }
                 children.append(text)
 
-            elif hasattr(interface,'is_bgp'):
+            elif hasattr(interface, 'is_bgp'):
                 bgp_if = interface
-                text = {"bgpExtP":{"attributes":{}}}
+                text = {"bgpExtP": {"attributes": {}}}
                 children.append(text)
 
-
             text = {'l3extInstP': {'attributes': {'name': self.name},
-                                       'children': []}}
+                                   'children': []}}
             for network in interface.networks:
                 subnet = {'l3extSubnet': {'attributes': {'ip': network},
                                           'children': []}}
@@ -852,7 +852,7 @@ class BGPSession(BaseACIObject):
     Creates an BGP router interface that can be attached to a L3 interface.
     This interface defines the BGP AS, authentication, etc.
     """
-    def __init__(self, name, router_id=None,peer_ip=None,node_id=None):
+    def __init__(self, name, router_id=None, peer_ip=None, node_id=None):
         """
         :param name:  String containing the name of this BGPSession object.
         :param router_id: String containint the IPv4 router-id
@@ -890,32 +890,22 @@ class BGPSession(BaseACIObject):
         :returns: json dictionary of OSPFInterface
         """
 
-        bgpextp = {"bgpExtP": {"attributes": {}}}
-        bgpPeerP = {'bgpPeerP': {
-                                'attributes': {
-                                    'addr': self.peer_ip,
-                                    'ctrl': self.options,
-                                    "descr": "",
-                                    'name': "",
-                                }}}
+        bgpextp = {'bgpExtP': {'attributes': {}}}
+        bgpPeerP = {'bgpPeerP': {'attributes': {'addr': self.peer_ip,
+                                                'ctrl': self.options,
+                                                'descr': '',
+                                                'name': '', }}}
 
-        RsNode = { "l3extRsNodeL3OutAtt": {
-                                "attributes": {
-                                    "rtrId": self.router_id,
-                                    "tDn": "topology/pod-1/node-%s" % self.node_id
-                                }
-                            }
-                        },
+        RsNode = {"l3extRsNodeL3OutAtt": {"attributes": {"rtrId": self.router_id,
+                                                         "tDn": "topology/pod-1/node-%s" % self.node_id}}},
         text = [self.get_interfaces()[0].get_json()]
         text = {'l3extLIfP': {'attributes': {'name': self.name},
                               'children': text}}
 
         text = {'l3extLNodeP': {'attributes': {'name': self.name},
-                                'children': [RsNode,bgpPeerP,text]}}
+                                'children': [RsNode, bgpPeerP, text]}}
 
         return text
-
-
 
 
 class OSPFRouter(BaseACIObject):
@@ -1390,10 +1380,10 @@ class Contract(BaseContract):
         contract_data = working_data[0]['vzBrCP']
         contract = Contract(str(contract_data['attributes']['name']),
                             parent)
-                            
+
         if 'children' not in contract_data:
             return
-            
+
         for child in contract_data['children']:
             if 'vzSubj' in child:
                 subject = child['vzSubj']
@@ -2540,7 +2530,7 @@ class Endpoint(BaseACIObject):
             dn = str(attributes['dn'])
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
             if status == 'created':
-                name = str(attributes['name'])
+                name = str(attributes['mac'])
             else:
                 name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)
@@ -2562,7 +2552,7 @@ class Endpoint(BaseACIObject):
                                   '&rsp-subtree=full' % apic_endpoint_class)
         else:
             endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
-                                  '&query-target-filter=eq(%s.name,"%s")'
+                                  '&query-target-filter=eq(%s.mac,"%s")'
                                   '&rsp-subtree=full' % (apic_endpoint_class,
                                                          apic_endpoint_class,
                                                          endpoint_name))
