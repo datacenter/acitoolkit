@@ -608,9 +608,32 @@ class OutsideEPG(CommonEPG):
         :param parent: Instance of the Tenant class representing\
                        the tenant owning this OutsideEPG.
         """
+        self.context_name = None
+
         if not isinstance(parent, Tenant):
             raise TypeError('Parent is not set to Tenant')
         super(OutsideEPG, self).__init__(epg_name, parent)
+
+    def has_context(self):
+        """
+        Check if the context has been assigned
+
+        :returns: True or False. True if a Context has been assigned to this\
+                  L3Interface.
+        """
+        return self._has_any_relation(Context)
+
+    def add_context(self, context):
+        """
+        Add context to the EPG
+
+        :param context: Instance of Context class to assign to this\
+                        L3Interface.
+        """
+        if self.has_context():
+            self.remove_context()
+        self.context_name = context.name
+        self._add_relation(context)
 
     def get_json(self):
         """
@@ -619,22 +642,35 @@ class OutsideEPG(CommonEPG):
         :returns: json dictionary of OutsideEPG
         """
         children = []
+        context = {"l3extRsEctx": {"attributes": {"tnFvCtxName": self.context_name}, "children": []}}
+        children.append(context)
         for interface in self.get_interfaces():
-            if interface.is_ospf():
+
+            if hasattr(interface, 'is_ospf'):
                 ospf_if = interface
+
                 text = {'ospfExtP': {'attributes': {'areaId': ospf_if.area_id},
-                                     'children': []}}
+                                     'children': []}
+                        }
                 children.append(text)
-                text = {'l3extInstP': {'attributes': {'name': self.name},
+
+            elif hasattr(interface,'is_bgp'):
+                bgp_if = interface
+                text = {"bgpExtP":{"attributes":{}}}
+                children.append(text)
+
+
+            text = {'l3extInstP': {'attributes': {'name': self.name},
                                        'children': []}}
-                for network in ospf_if.networks:
-                    subnet = {'l3extSubnet': {'attributes': {'ip': network},
-                                              'children': []}}
-                    contracts = super(OutsideEPG, self)._get_common_json()
-                    text['l3extInstP']['children'].append(subnet)
-                    for contract in contracts:
-                        text['l3extInstP']['children'].append(contract)
+            for network in interface.networks:
+                subnet = {'l3extSubnet': {'attributes': {'ip': network},
+                                          'children': []}}
+                contracts = super(OutsideEPG, self)._get_common_json()
+                text['l3extInstP']['children'].append(subnet)
+                for contract in contracts:
+                    text['l3extInstP']['children'].append(contract)
                 children.append(text)
+
         for interface in self.get_interfaces():
             text = interface.get_json()
             children.append(text)
@@ -809,6 +845,77 @@ class OSPFInterface(BaseACIObject):
         text = {'l3extLNodeP': {'attributes': {'name': self.name},
                                 'children': [text]}}
         return text
+
+
+class BGPSession(BaseACIObject):
+    """
+    Creates an BGP router interface that can be attached to a L3 interface.
+    This interface defines the BGP AS, authentication, etc.
+    """
+    def __init__(self, name, router_id=None,peer_ip=None,node_id=None):
+        """
+        :param name:  String containing the name of this BGPSession object.
+        :param router_id: String containint the IPv4 router-id
+        :param peer_ip: String containing the IP address of the BGP peer\
+                        Default is None.
+        :param node_id: String Containing the node-id (e.g. '101')
+        """
+        super(BGPSession, self).__init__(name)
+        self.peer_ip = peer_ip
+        self.router_id = router_id
+        self.node_id = node_id
+        self.options = ''
+        self.networks = []
+
+    def is_interface(self):
+        """
+        Returns whether this instance is considered an interface.
+
+        :returns: True
+        """
+        return True
+
+    @staticmethod
+    def is_bgp():
+        """
+        :returns: True if this interface is an OSPF interface.  In the case\
+                  of BGPSession instances, this is always True.
+        """
+        return True
+
+    def get_json(self):
+        """
+        Returns json representation of BGPSession
+
+        :returns: json dictionary of OSPFInterface
+        """
+
+        bgpextp = {"bgpExtP": {"attributes": {}}}
+        bgpPeerP = {'bgpPeerP': {
+                                'attributes': {
+                                    'addr': self.peer_ip,
+                                    'ctrl': self.options,
+                                    "descr": "",
+                                    'name': "",
+                                }}}
+
+        RsNode = { "l3extRsNodeL3OutAtt": {
+                                "attributes": {
+                                    "rtrId": self.router_id,
+                                    "tDn": "topology/pod-1/node-%s" % self.node_id
+                                }
+                            }
+                        },
+        text = [self.get_interfaces()[0].get_json()]
+        text = {'l3extLIfP': {'attributes': {'name': self.name},
+                              'children': text}}
+
+        text = {'l3extLNodeP': {'attributes': {'name': self.name},
+                                'children': [RsNode,bgpPeerP,text]}}
+
+        return text
+
+
 
 
 class OSPFRouter(BaseACIObject):
