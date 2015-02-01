@@ -692,6 +692,7 @@ class L3Interface(BaseACIObject):
         super(L3Interface, self).__init__(name)
         self._addr = None
         self._l3if_type = None
+        self._mtu = 'inherit'
 
     def is_interface(self):
         """
@@ -719,6 +720,23 @@ class L3Interface(BaseACIObject):
                      notation.
         """
         self._addr = addr
+
+    def get_mtu(self):
+        """
+        Get the MTU of this interface
+
+        :returns: MTU of the interface
+        """
+        return self._mtu
+
+    def set_mtu(self, mtu):
+        """
+        Set the L3 MTU of this interface
+
+        :param mtu: String containing MTU
+
+        """
+        self._mtu = mtu
 
     def get_l3if_type(self):
         """
@@ -789,8 +807,145 @@ class L3Interface(BaseACIObject):
                                       self.get_interfaces()[0].encap_id),
                   'ifInstT': self.get_l3if_type(),
                   'addr': self.get_addr(),
+                  'mtu': self.get_mtu(),
                   'tDn': self.get_interfaces()[0]._get_path()},
                  'children': []}}
+        return text
+
+
+class OSPFInterfacePolicy(BaseACIObject):
+    """
+    Represents the interface settings of an OSPF interface
+    """
+    def __init__(self, name, parent=None):
+        """
+        param name: String containing the name of this OSPF interface policy
+        param parent: Instance of the Tenant class representing the tenant owning this OSPF interface policy
+        """
+
+        self.name = name
+        self.parent = parent
+
+        # Initialize default values
+        self.network_type = 'bcast'
+        self.cost = None
+        self.priority = None
+        self.hello_interval = None
+        self.dead_interval = None
+        self.retrans_interval = None
+        self.transmit_delay = None
+
+        if not isinstance(parent, Tenant):
+            raise TypeError('Parent is not set to Tenant')
+        super(OSPFInterfacePolicy, self).__init__(name, parent)
+
+    def _generate_attributes(self):
+        """Gets the attributes used in generating the JSON for the object
+        """
+        attributes = dict()
+        attributes['name'] = self.name
+        if self.descr:
+            attributes['descr'] = self.descr
+        if self.network_type:
+            attributes['nwT'] = self.network_type
+        if self.cost:
+            attributes['cost'] = self.cost
+        if self.priority:
+            attributes['priority'] = self.priority
+        if self.hello_interval:
+            attributes['helloIntvl'] = self.hello_interval
+        if self.dead_interval:
+            attributes['deadIntvl'] = self.dead_interval
+        if self.retrans_interval:
+            attributes['rexmitIntvl'] = self.retrans_interval
+        if self.transmit_delay:
+            attributes['xmitDelay'] = self.transmit_delay
+        return attributes
+
+    def get_nw_type(self):
+        """
+        Get the nw-type of this interface ospf policy
+        :returns: string of the network type for this policy
+        """
+        return self.network_type
+
+    def set_nw_type(self, network_type):
+        """
+        sets the L3 nw_type with some validation
+
+        :param network_type: string of bcast or p2p
+
+        """
+        valid_types = ['bcast','p2p']
+        if network_type not in valid_types:
+            raise ValueError('Invalid Network Type - %s' % network_type)
+        else:
+            self.network_type = network_type
+
+
+
+    def get_json(self):
+        """
+        Returns json representation of OSPFRouter
+
+        :returns: json dictionary of OSPFIRouter
+        """
+        attr = self._generate_attributes()
+        text = {"ospfIfPol":{"attributes": attr }}
+        return text
+
+
+class OSPFRouter(BaseACIObject):
+    """
+    Represents the global settings of the OSPF Router
+    """
+    def __init__(self, name):
+        """
+        :param name:  String containing the name of this OSPFRouter object.
+        """
+        super(OSPFRouter, self).__init__(name)
+        self._router_id = None
+        self._node = None
+        self._pod = '1'
+
+    def set_router_id(self, rid):
+        """
+        Sets the router id of the object
+        :param rid: String containing the router id
+
+        """
+        self._router_id = rid
+
+    def get_router_id(self):
+        """
+        :returns string containing the Router ID
+        """
+        return self._router_id
+
+    def set_node_id(self, node):
+        """
+        Sets the router id of the object
+        :param node: String containing the node id
+
+        """
+        self._node = node
+
+    def get_node_id(self):
+        """
+        :returns string containing the Node ID
+        """
+        return self._node
+
+    def get_json(self):
+        """
+        Returns json representation of OSPFRouter
+
+        :returns: json dictionary of OSPFIRouter
+        """
+        text = {"l3extRsNodeL3OutAtt":{
+                                    "attributes":{
+                                        "rtrId": self._router_id,
+                                        "tDn":"topology/pod-%s/node-%s" %(self._pod, self._node)}}}
         return text
 
 
@@ -799,7 +954,7 @@ class OSPFInterface(BaseACIObject):
     Creates an OSPF router interface that can be attached to a L3 interface.
     This interface defines the OSPF area, authentication, etc.
     """
-    def __init__(self, name, area_id=None):
+    def __init__(self, name, router=None, area_id=None):
         """
         :param name:  String containing the name of this OSPFInterface object.
         :param area_id: String containing the OSPF area id of this interface.\
@@ -807,6 +962,8 @@ class OSPFInterface(BaseACIObject):
         """
         super(OSPFInterface, self).__init__(name)
         self.area_id = area_id
+        self.router = router
+        self.int_policy_name = None
         self.auth_key = None
         self.auth_type = None
         self.auth_keyid = None
@@ -815,7 +972,6 @@ class OSPFInterface(BaseACIObject):
     def is_interface(self):
         """
         Returns whether this instance is considered an interface.
-
         :returns: True
         """
         return True
@@ -831,19 +987,26 @@ class OSPFInterface(BaseACIObject):
     def get_json(self):
         """
         Returns json representation of OSPFInterface
-
         :returns: json dictionary of OSPFInterface
         """
-        text = {'ospfIfP': {'attributes': {'authKey': self.auth_key,
-                                           'authKeyId': self.auth_keyid,
-                                           'authType': self.auth_type,
-                                           'name': self.name},
-                            'children': []}}
+        children = []
+        if self.int_policy_name:
+            policy = {'ospfRsIfPol': {'attributes': {'tnOspfIfPolName': self.int_policy_name}}}
+            children.append(policy)
+
+        text = {'ospfIfP': {'attributes': {'name': self.name},
+                            'children': children}}
+        if self.auth_key:
+            text['ospfIfP']['attributes']['authKey'] = self.auth_key
+            text['ospfIfP']['attributes']['authKeyId'] = self.auth_keyid
+            text['ospfIfP']['attributes']['authType'] = self.auth_type
+
         text = [text, self.get_interfaces()[0].get_json()]
         text = {'l3extLIfP': {'attributes': {'name': self.name},
-                              'children': text}}
+                              'children': text},
+        }
         text = {'l3extLNodeP': {'attributes': {'name': self.name},
-                                'children': [text]}}
+                                'children': [text,self.router.get_json()]}}
         return text
 
 
@@ -906,19 +1069,6 @@ class BGPSession(BaseACIObject):
                                 'children': [RsNode, bgpPeerP, text]}}
 
         return text
-
-
-class OSPFRouter(BaseACIObject):
-    """
-    Represents the global settings of the OSPF Router
-    """
-    def __init__(self, name):
-        """
-        :param name:  String containing the name of this OSPFRouter object.
-        """
-        super(OSPFRouter, self).__init__(name)
-        self._router_id = None
-        self._node = None
 
 
 class BridgeDomain(BaseACIObject):
