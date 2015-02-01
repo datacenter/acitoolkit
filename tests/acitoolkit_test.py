@@ -1206,7 +1206,7 @@ class TestOspf(unittest.TestCase):
         ospfif = OSPFInterface('ospfif-1', '2')
         ospfif.auth_key = 'd667d47acc18e6b'
         ospfif.auth_keyid = '1'
-        ospfif.auth_type = '2'
+        ospfif.auth_type = 'simple'
         ospfif.networks.append('55.5.5.0/24')
         ospfif.attach(l3if)
         contract1 = Contract('contract-1')
@@ -1214,7 +1214,6 @@ class TestOspf(unittest.TestCase):
         contract2 = Contract('contract-2')
         outside.consume(contract2)
         outside.attach(ospfif)
-        ospf_json = outside.get_json()
 
     def test_ospf_router(self):
         rtr = OSPFRouter('rtr-1')
@@ -1665,6 +1664,7 @@ class TestApic(unittest.TestCase):
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
+
         # Create a Context and assign to the tenant
         context = Context('ctx1', tenant)
 
@@ -1691,12 +1691,16 @@ class TestApic(unittest.TestCase):
         l3_intf.attach(l2_intf)
 
         # Create an OSPF Router
+        rtr = OSPFRouter('rtr-1')
+        rtr.set_router_id('23.23.23.23')
+        rtr.set_node_id('101')
 
         # Create an OSPF Interface and connect to the L3 Interface
-        ospfif = OSPFInterface('ospfif-1', '2')
+        ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='2')
         ospfif.auth_key = 'd667d47acc18e6b'
         ospfif.auth_keyid = '1'
-        ospfif.auth_type = '2'
+        ospfif.auth_type = 'simple'
+
         ospfif.networks.append('55.5.5.0/24')
         ospfif.attach(l3_intf)
 
@@ -1704,6 +1708,7 @@ class TestApic(unittest.TestCase):
         self.assertRaises(TypeError, OutsideEPG, 'out-1', 'tenant')
         outside = OutsideEPG('out-1', tenant)
         outside.attach(ospfif)
+        outside.add_context(context)
 
         # Create a contract and provide from the Outside EPG
         contract1 = Contract('contract-1', tenant)
@@ -1829,6 +1834,89 @@ class TestLiveContracts(TestLiveAPIC):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
+@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
+class TestLiveOSPF(TestLiveAPIC):
+
+        def test_no_auth(self):
+            tenant = Tenant('cisco')
+            context = Context('cisco-ctx1', tenant)
+            outside = OutsideEPG('out-1', tenant)
+            outside.add_context(context)
+            phyif = Interface('eth', '1', '101', '1', '46')
+            phyif.speed='1G'
+            l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+            l2if.attach(phyif)
+            l3if = L3Interface('l3if')
+            l3if.set_l3if_type('l3-port')
+            l3if.set_mtu('1500')
+            l3if.set_addr('1.1.1.2/30')
+            l3if.add_context(context)
+            l3if.attach(l2if)
+            rtr = OSPFRouter('rtr-1')
+            rtr.set_router_id('23.23.23.23')
+            rtr.set_node_id('101')
+            ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='1')
+            ospfif.set_nw_type('p2p')
+            tenant.attach(ospfif)
+            ospfif.networks.append('55.5.5.0/24')
+            ospfif.attach(l3if)
+            contract1 = Contract('contract-1')
+            outside.provide(contract1)
+            contract2 = Contract('contract-2')
+            outside.consume(contract2)
+            outside.attach(ospfif)
+            session = self.login_to_apic()
+            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            self.assertTrue(resp.ok)
+
+            # Cleanup
+            tenant.mark_as_deleted()
+            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            self.assertTrue(resp.ok)
+
+        def test_authenticated(self):
+            tenant = Tenant('cisco')
+            context = Context('cisco-ctx1', tenant)
+            outside = OutsideEPG('out-1', tenant)
+            outside.add_context(context)
+            phyif = Interface('eth', '1', '101', '1', '46')
+            phyif.speed='1G'
+            l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+            l2if.attach(phyif)
+            l3if = L3Interface('l3if')
+            l3if.set_l3if_type('l3-port')
+            l3if.set_mtu('1500')
+            l3if.set_addr('1.1.1.2/30')
+            l3if.add_context(context)
+            l3if.attach(l2if)
+            rtr = OSPFRouter('rtr-1')
+            rtr.set_router_id('23.23.23.23')
+            rtr.set_node_id('101')
+            ospfif = OSPFInterface('ospfif-1', rtr, '1')
+            ospfif.auth_key = 'password'
+            ospfif.auth_keyid = '1'
+            ospfif.auth_type = 'simple'
+            ospfif.set_nw_type('p2p')
+            tenant.attach(ospfif)
+            ospfif.networks.append('55.5.5.0/24')
+            ospfif.attach(l3if)
+            contract1 = Contract('contract-1')
+            outside.provide(contract1)
+            contract2 = Contract('contract-2')
+            outside.consume(contract2)
+            outside.attach(ospfif)
+
+            session = self.login_to_apic()
+            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            self.assertTrue(resp.ok)
+
+            # Cleanup
+            tenant.mark_as_deleted()
+            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            self.assertTrue(resp.ok)
+
+
+
 if __name__ == '__main__':
 
     live = unittest.TestSuite()
@@ -1842,6 +1930,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
+    live.addTest(unittest.makeSuite(TestLiveOSPF))
 
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestBaseRelation))

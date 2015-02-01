@@ -609,7 +609,6 @@ class OutsideEPG(CommonEPG):
                        the tenant owning this OutsideEPG.
         """
         self.context_name = None
-
         if not isinstance(parent, Tenant):
             raise TypeError('Parent is not set to Tenant')
         super(OutsideEPG, self).__init__(epg_name, parent)
@@ -623,6 +622,13 @@ class OutsideEPG(CommonEPG):
         """
         return self._has_any_relation(Context)
 
+    def remove_context(self):
+        """
+        Remove context from the EPG
+        """
+        self._remove_all_relation(Context)
+
+
     def add_context(self, context):
         """
         Add context to the EPG
@@ -635,12 +641,14 @@ class OutsideEPG(CommonEPG):
         self.context_name = context.name
         self._add_relation(context)
 
+
     def get_json(self):
         """
-        Returns json representation of OutsideEPG
+        Returns json representation of OutsideEPG. Pushes at the tenant level to account for protocol policies
 
-        :returns: json dictionary of OutsideEPG
+        :returns: list of items to attach to Tenant
         """
+        items = []
         children = []
         context = {"l3extRsEctx": {"attributes": {"tnFvCtxName": self.context_name}, "children": []}}
         children.append(context)
@@ -648,7 +656,8 @@ class OutsideEPG(CommonEPG):
 
             if hasattr(interface, 'is_ospf'):
                 ospf_if = interface
-
+                interface.set_ospf_int_pol()
+                items.append( ospf_if.get_ospf_int_pol())
                 text = {'ospfExtP': {'attributes': {'areaId': ospf_if.area_id},
                                      'children': []}
                         }
@@ -675,10 +684,10 @@ class OutsideEPG(CommonEPG):
             text = interface.get_json()
             children.append(text)
         attr = self._generate_attributes()
-        return super(OutsideEPG, self).get_json('l3extOut',
+        items.append(super(OutsideEPG, self).get_json('l3extOut',
                                                 attributes=attr,
-                                                children=children)
-
+                                                children=children))
+        return items
 
 class L3Interface(BaseACIObject):
     """
@@ -692,6 +701,7 @@ class L3Interface(BaseACIObject):
         super(L3Interface, self).__init__(name)
         self._addr = None
         self._l3if_type = None
+        self._mtu = 'inherit'
 
     def is_interface(self):
         """
@@ -728,6 +738,23 @@ class L3Interface(BaseACIObject):
                   'l3-port', and 'ext-svi'
         """
         return self._l3if_type
+
+    def get_mtu(self):
+        """
+        Get the MTU of this interface
+
+        :returns: MTU of the interface
+        """
+        return self._mtu
+
+    def set_mtu(self, mtu):
+        """
+        Set the L3 MTU of this interface
+
+        :param mtu: String containing MTU
+
+        """
+        self._mtu = mtu
 
     def set_l3if_type(self, l3if_type):
         """
@@ -789,17 +816,17 @@ class L3Interface(BaseACIObject):
                                       self.get_interfaces()[0].encap_id),
                   'ifInstT': self.get_l3if_type(),
                   'addr': self.get_addr(),
+                  'mtu' : self.get_mtu(),
                   'tDn': self.get_interfaces()[0]._get_path()},
                  'children': []}}
         return text
-
 
 class OSPFInterface(BaseACIObject):
     """
     Creates an OSPF router interface that can be attached to a L3 interface.
     This interface defines the OSPF area, authentication, etc.
     """
-    def __init__(self, name, area_id=None):
+    def __init__(self, name, router, area_id=None):
         """
         :param name:  String containing the name of this OSPFInterface object.
         :param area_id: String containing the OSPF area id of this interface.\
@@ -810,7 +837,10 @@ class OSPFInterface(BaseACIObject):
         self.auth_key = None
         self.auth_type = None
         self.auth_keyid = None
+        self.ospf_int_pol = None
+        self.network_type = 'bcast'
         self.networks = []
+        self.router = router
 
     def is_interface(self):
         """
@@ -820,13 +850,57 @@ class OSPFInterface(BaseACIObject):
         """
         return True
 
+    def set_nw_type(self,network_type):
+        """
+        Sets the Network Type for the OSPF interface
+        :param network_type: String  containing network type from valid options are p2p or broadcast
+        :raises: ValueError if ospf network type is not valid
+        """
+        if network_type in ['bcast','p2p']:
+            self.network_type == network_type
+        else:
+            raise ValueError('network_type must be "bcast" or "p2p"')
+
+    def _get_nw_type(self):
+        """
+        Returns string containing network type
+        :return: string containing network type
+        """
+        return self.network_type
+
     @staticmethod
-    def is_ospf():
+    def is_ospf(self):
         """
         :returns: True if this interface is an OSPF interface.  In the case\
                   of OSPFInterface instances, this is always True.
         """
         return True
+
+    def validate_auth_config(self):
+        """
+        Validates that an OSPF authentication configuration is valid
+        :return: True if the OSPF authentication configuration is valid
+        :raises: AttributeError if configuration is invalid
+        """
+        if (self.auth_keyid is not None) and (self.auth_key is not None) and (self.auth_type is not None):
+            return True
+        else:
+            raise ValueError('Invalid OSPF Auth Config')
+
+    def set_ospf_int_pol(self):
+        """
+        Returns JSON representation of interface policy
+        :return: JSON
+        """
+        self.ospf_int_pol = {"ospfIfPol": {'attributes': {
+                                        'name': self.name,
+                                        'nwT': self.network_type
+                                        }
+                                    }
+                      }
+
+    def get_ospf_int_pol(self):
+        return self.ospf_int_pol
 
     def get_json(self):
         """
@@ -834,18 +908,26 @@ class OSPFInterface(BaseACIObject):
 
         :returns: json dictionary of OSPFInterface
         """
-        text = {'ospfIfP': {'attributes': {'authKey': self.auth_key,
-                                           'authKeyId': self.auth_keyid,
-                                           'authType': self.auth_type,
-                                           'name': self.name},
-                            'children': []}}
-        text = [text, self.get_interfaces()[0].get_json()]
+        int_dict = {
+            'ospfIfP': {'attributes': {
+                                'name': self.name},
+                        'children': [{'ospfRsIfPol' : {
+                                          'attributes': {
+                                               'tnOspfIfPolName': self.name}}}]}
+            }
+
+        if self.auth_type is not None:
+            if self.validate_auth_config():
+                int_dict['ospfIfP']['attributes']['authKey'] = self.auth_key
+                int_dict['ospfIfP']['attributes']['authKeyId'] = self.auth_keyid
+                int_dict['ospfIfP']['attributes']['authType'] = self.auth_type
+
+        text = [int_dict, self.get_interfaces()[0].get_json()]
         text = {'l3extLIfP': {'attributes': {'name': self.name},
                               'children': text}}
         text = {'l3extLNodeP': {'attributes': {'name': self.name},
-                                'children': [text]}}
+                                'children': [text,self.router.get_json()]}}
         return text
-
 
 class BGPSession(BaseACIObject):
     """
@@ -878,7 +960,7 @@ class BGPSession(BaseACIObject):
     @staticmethod
     def is_bgp():
         """
-        :returns: True if this interface is an OSPF interface.  In the case\
+        :returns: True if this interface is an BGP interface.  In the case\
                   of BGPSession instances, this is always True.
         """
         return True
@@ -887,7 +969,7 @@ class BGPSession(BaseACIObject):
         """
         Returns json representation of BGPSession
 
-        :returns: json dictionary of OSPFInterface
+        :returns: json dictionary of BGP Interface
         """
 
         bgpextp = {"bgpExtP": {"attributes": {}}}
@@ -915,9 +997,6 @@ class BGPSession(BaseACIObject):
 
         return text
 
-
-
-
 class OSPFRouter(BaseACIObject):
     """
     Represents the global settings of the OSPF Router
@@ -929,7 +1008,47 @@ class OSPFRouter(BaseACIObject):
         super(OSPFRouter, self).__init__(name)
         self._router_id = None
         self._node = None
+        self._pod = '1'
 
+    def set_router_id(self, rid):
+        """
+        Sets the router id of the object
+        :param rid: String containing the router id
+
+        """
+        self._router_id = rid
+
+    def get_router_id(self):
+        """
+        :returns string containing the Router ID
+        """
+        return self._router_id
+
+    def set_node_id(self, node):
+        """
+        Sets the router id of the object
+        :param node: String containing the node id
+
+        """
+        self._node = node
+
+    def get_node_id(self):
+        """
+        :returns string containing the Node ID
+        """
+        return self._node
+
+    def get_json(self):
+        """
+        Returns json representation of OSPFRouter
+
+        :returns: json dictionary of OSPFIRouter
+        """
+        text = {"l3extRsNodeL3OutAtt":{
+                                    "attributes":{
+                                        "rtrId": self._router_id,
+                                        "tDn":"topology/pod-%s/node-%s" %(self._pod, self._node)}}}
+        return text
 
 class BridgeDomain(BaseACIObject):
     """
@@ -1390,10 +1509,10 @@ class Contract(BaseContract):
         contract_data = working_data[0]['vzBrCP']
         contract = Contract(str(contract_data['attributes']['name']),
                             parent)
-                            
+
         if 'children' not in contract_data:
             return
-            
+
         for child in contract_data['children']:
             if 'vzSubj' in child:
                 subject = child['vzSubj']
@@ -3220,7 +3339,7 @@ class CollectionPolicy(BaseMonitorClass):
         Note that the "none" value is a string, not the Python None.  When the retention period is set to "none" there will be no
         historical stats kept.  However, assuming collection is enabled, stats will be kept for the current time period.
 
-        If the retention period is set to "inherited", the value will be inherited from the less specific policy directly above this one.
+        If the retention period is set to "inherited", the value will be inherited from the less specific policy Classirectly above this one.
         The same applies to the adminState value.  It can be 'disabled', 'enabled', or 'inherited'.  If 'disabled', the current scope of
         counters are not gathered.  If enabled, they are gathered.  If 'inherited', it will be according to the next higher scope.
 
