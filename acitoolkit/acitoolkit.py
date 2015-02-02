@@ -226,6 +226,7 @@ class L2Interface(BaseACIObject):
                              " 'vxlan', or 'nvgre'")
         self.encap_type = encap_type
         self.encap_id = encap_id
+        self.encap_mode = None
 
     def is_interface(self):
         """
@@ -556,6 +557,8 @@ class EPG(CommonEPG):
             text = {'fvRsPathAtt': {'attributes':
                                     {'encap': encap_text,
                                      'tDn': interface._get_path()}}}
+            if interface.encap_mode:
+                text['fvRsPathAtt']['attributes']['mode'] = interface.encap_mode
             children.append(text)
 
             for ep in interface.get_all_attachments(Endpoint):
