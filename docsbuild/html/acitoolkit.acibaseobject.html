@@ -166,6 +166,21 @@ Functions may be overwritten by inheriting classes.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.add_tag">
+<tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.add_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
+classify objects.  More than 1 tag can be assigned to an object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag to assign to this object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.attach">
 <tt class="descname">attach</tt><big>(</big><em>item</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.attach" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attach the object to the other object.</p>
@@ -301,12 +316,33 @@ specified class with the specified status.</p>
 <dl class="classmethod">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.get_deep">
 <em class="property">classmethod </em><tt class="descname">get_deep</tt><big>(</big><em>full_data</em>, <em>working_data</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_deep" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Gets all instances of this class from the APIC and gets all of the
+children as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="classmethod">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.get_event">
 <em class="property">classmethod </em><tt class="descname">get_event</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_event" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Gets the event that is pending for this class.  Events are
+returned in the form of objects.  Objects that have been deleted
+are marked as such.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; the instance of Session used for APIC communication</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.get_interfaces">
@@ -364,6 +400,20 @@ Object Model.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.get_tags">
+<tt class="descname">get_tags</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.get_tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the tags assigned to this object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">List of tag strings</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.has_attachment">
 <tt class="descname">has_attachment</tt><big>(</big><em>item</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_attachment" title="Permalink to this definition">¶</a></dt>
 <dd><p>Indicates whether this object is attached to the item/
@@ -396,7 +446,49 @@ Object Model.</p>
 <dl class="classmethod">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.has_events">
 <em class="property">classmethod </em><tt class="descname">has_events</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_events" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check for pending events from the APIC that pertain to instances
+of this class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; the instance of Session used for APIC communication</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True if there are events pending.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.has_tag">
+<tt class="descname">has_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks whether this object has a particular tag assigned.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.has_tags">
+<tt class="descname">has_tags</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.has_tags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks whether this object has any tags assigned at all.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has at least one                   tag assigned.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.info">
@@ -496,15 +588,49 @@ to be set to deleted.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="acitoolkit.acibaseobject.BaseACIObject.remove_tag">
+<tt class="descname">remove_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.remove_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a particular tag from being assigned to this object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag to assign to this object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="classmethod">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.subscribe">
 <em class="property">classmethod </em><tt class="descname">subscribe</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.subscribe" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Subscribe to events from the APIC that pertain to instances of this
+class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; the instance of Session used for APIC communication</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="classmethod">
 <dt id="acitoolkit.acibaseobject.BaseACIObject.unsubscribe">
 <em class="property">classmethod </em><tt class="descname">unsubscribe</tt><big>(</big><em>session</em><big>)</big><a class="headerlink" href="#acitoolkit.acibaseobject.BaseACIObject.unsubscribe" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Unsubscribe for events from the APIC that pertain to instances of this
+class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>session</strong> &#8211; the instance of Session used for APIC communication</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 

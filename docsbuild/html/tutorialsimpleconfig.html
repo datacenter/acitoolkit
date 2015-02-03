@@ -66,10 +66,19 @@
 <li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="monitor_policy.html">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor_policy.html#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="reference internal" href="tutorial.html">Tutorial</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="">Building a Simple Tenant Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statsbody.html">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
@@ -78,6 +87,8 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="endpointtracker.html">ACI Endpoint Tracker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations.html">Visualization Examples</a></li>
 </ul>
 </li>
 </ul>
@@ -132,8 +143,8 @@ within the <tt class="docutils literal"><span class="pre">/samples/</span></tt> 
 <div class="section" id="imports">
 <h3><cite>Imports</cite><a class="headerlink" href="#imports" title="Permalink to this headline">¶</a></h3>
 <p>The first part of the tutorial program consists of the <tt class="docutils literal"><span class="pre">import</span></tt>
-statements.  The acitoolkit module from the acitoolkit package is
-imported as is the credentials.py file.</p>
+statements.  The <tt class="docutils literal"><span class="pre">acitoolkit</span></tt> module from the acitoolkit package is
+imported as is the <tt class="docutils literal"><span class="pre">credentials.py</span></tt> file.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">acitoolkit.acitoolkit</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">credentials</span> <span class="kn">import</span> <span class="o">*</span>
 </pre></div>
@@ -142,8 +153,8 @@ imported as is the credentials.py file.</p>
 access to all of the acitoolkit configuration.</p>
 <p>The <tt class="docutils literal"><span class="pre">credentials.py</span></tt> file contains the login credentials for the
 APIC and is shown in its entirety below.  It contains the following
-variables: <tt class="docutils literal"><span class="pre">LOGIN</span></tt>, <tt class="docutils literal"><span class="pre">PASSWORD</span></tt>, and <tt class="docutils literal"><span class="pre">IPADDR</span></tt>.  These variables
-should be modified to the settings of your particular APIC.</p>
+variables: <tt class="docutils literal"><span class="pre">LOGIN</span></tt>, <tt class="docutils literal"><span class="pre">PASSWORD</span></tt>, <tt class="docutils literal"><span class="pre">URL</span></tt>, and <tt class="docutils literal"><span class="pre">IPADDR</span></tt>.  These
+variables should be modified to the settings of your particular APIC.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">LOGIN</span> <span class="o">=</span> <span class="s">&#39;admin&#39;</span>
 <span class="n">PASSWORD</span> <span class="o">=</span> <span class="s">&#39;password&#39;</span>
 <span class="n">IPADDR</span> <span class="o">=</span> <span class="s">&#39;10.1.1.1&#39;</span>

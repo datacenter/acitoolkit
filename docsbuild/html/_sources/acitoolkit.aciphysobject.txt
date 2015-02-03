@@ -6,6 +6,7 @@ API Reference
 
 .. automodule:: acitoolkit.aciphysobject
     :members:
+    :inherited-members:
     :undoc-members:
     :show-inheritance:
 
@@ -13,7 +14,7 @@ Future Work
 --------------------
 Future work items to be added to aciphysobject include:
 
-* Add an events sub-oject.  This would work similarly to the stats
+* Add an events sub-object.  This would work similarly to the stats
   object.
 
 * Add a top level object called Topology that would have Pod as its

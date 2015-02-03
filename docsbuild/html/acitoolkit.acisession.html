@@ -134,33 +134,6 @@
 <p>This module contains the Session class that controls communication
 with the APIC.</p>
 <dl class="class">
-<dt id="acitoolkit.acisession.EventHandler">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acisession.</tt><tt class="descname">EventHandler</tt><big>(</big><em>subscriber</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.EventHandler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">threading.Thread</span></tt></p>
-<dl class="method">
-<dt id="acitoolkit.acisession.EventHandler.exit">
-<tt class="descname">exit</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acisession.EventHandler.exit" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="acitoolkit.acisession.EventHandler.run">
-<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acisession.EventHandler.run" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="acitoolkit.acisession.Login">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acisession.</tt><tt class="descname">Login</tt><big>(</big><em>apic</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Login" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">threading.Thread</span></tt></p>
-<dl class="method">
-<dt id="acitoolkit.acisession.Login.run">
-<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Login.run" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="acitoolkit.acisession.Session">
 <em class="property">class </em><tt class="descclassname">acitoolkit.acisession.</tt><tt class="descname">Session</tt><big>(</big><em>url</em>, <em>uid</em>, <em>pwd</em>, <em>verify_ssl=False</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Session" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
@@ -249,42 +222,6 @@ This class is responsible for all communication with the APIC.</p>
 <dl class="method">
 <dt id="acitoolkit.acisession.Session.unsubscribe">
 <tt class="descname">unsubscribe</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Session.unsubscribe" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="acitoolkit.acisession.Subscriber">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acisession.</tt><tt class="descname">Subscriber</tt><big>(</big><em>apic</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Subscriber" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">threading.Thread</span></tt></p>
-<dl class="method">
-<dt id="acitoolkit.acisession.Subscriber.get_event">
-<tt class="descname">get_event</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Subscriber.get_event" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="acitoolkit.acisession.Subscriber.has_events">
-<tt class="descname">has_events</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Subscriber.has_events" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="acitoolkit.acisession.Subscriber.refresh_subscriptions">
-<tt class="descname">refresh_subscriptions</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Subscriber.refresh_subscriptions" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="acitoolkit.acisession.Subscriber.run">
-<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Subscriber.run" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="acitoolkit.acisession.Subscriber.subscribe">
-<tt class="descname">subscribe</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Subscriber.subscribe" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="acitoolkit.acisession.Subscriber.unsubscribe">
-<tt class="descname">unsubscribe</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Subscriber.unsubscribe" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
