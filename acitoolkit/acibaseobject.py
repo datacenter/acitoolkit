@@ -137,18 +137,46 @@ class BaseACIObject(object):
             child._extract_relationships(data)
 
     def has_tag(self, tag):
+        """
+        Checks whether this object has a particular tag assigned.
+
+        :param tag: string containing the tag
+        :returns: True or False.  True indicates the object has this tag assigned.
+        """
         return tag in self.get_tags()
 
     def has_tags(self):
+        """
+        Checks whether this object has any tags assigned at all.
+
+        :returns: True or False.  True indicates the object has at least one \
+                  tag assigned.
+        """
         return len(self.get_tags()) > 0
 
     def get_tags(self):
+        """
+        Get the tags assigned to this object.
+
+        :returns: List of tag strings
+        """
         return self._tags
 
     def add_tag(self, tag):
+        """
+        Assign this object a particular tag.  Tags are strings that can be used to
+        classify objects.  More than 1 tag can be assigned to an object.
+
+        :param tag: string containing the tag to assign to this object
+        """
         self.get_tags().append(tag)
 
     def remove_tag(self, tag):
+        """
+        Remove a particular tag from being assigned to this object.
+
+        :param tag: string containing the tag to assign to this object
+        """
         self.get_tags().remove(tag)
 
     @classmethod
@@ -164,6 +192,12 @@ class BaseACIObject(object):
 
     @classmethod
     def get_deep(cls, full_data, working_data, parent=None):
+        """
+        Gets all instances of this class from the APIC and gets all of the
+        children as well.
+
+        :param full_data:
+        """
         for item in working_data:
             for key in item:
                 if key in cls._get_apic_classes():
@@ -185,6 +219,12 @@ class BaseACIObject(object):
 
     @classmethod
     def subscribe(cls, session):
+        """
+        Subscribe to events from the APIC that pertain to instances of this
+        class.
+
+        :param session:  the instance of Session used for APIC communication
+        """
         urls = cls._get_subscription_urls()
         for url in urls:
             resp = session.subscribe(url)
@@ -195,6 +235,13 @@ class BaseACIObject(object):
 
     @classmethod
     def get_event(cls, session):
+        """
+        Gets the event that is pending for this class.  Events are
+        returned in the form of objects.  Objects that have been deleted
+        are marked as such.
+
+        :param session:  the instance of Session used for APIC communication
+        """
         urls = cls._get_subscription_urls()
         for url in urls:
             if not session.has_events(url):
@@ -219,6 +266,13 @@ class BaseACIObject(object):
 
     @classmethod
     def has_events(cls, session):
+        """
+        Check for pending events from the APIC that pertain to instances
+        of this class.
+
+        :param session:  the instance of Session used for APIC communication
+        :returns: True or False.  True if there are events pending.
+        """
         urls = cls._get_subscription_urls()
         for url in urls:
             if session.has_events(url):
@@ -232,6 +286,12 @@ class BaseACIObject(object):
 
     @classmethod
     def unsubscribe(cls, session):
+        """
+        Unsubscribe for events from the APIC that pertain to instances of this
+        class.
+
+        :param session:  the instance of Session used for APIC communication
+        """
         for class_name in cls._get_apic_classes():
             url = '/api/class/%s.json?subscription=yes' % class_name
             session.unsubscribe(url)

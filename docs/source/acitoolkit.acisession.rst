@@ -2,6 +2,9 @@ acisession module
 =================
 
 .. automodule:: acitoolkit.acisession
-    :members:
-    :undoc-members:
-    :show-inheritance:
+
+    .. autoclass:: Session
+        :members:
+        :inherited-members:	   
+        :undoc-members:
+        :show-inheritance:

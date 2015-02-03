@@ -626,7 +626,7 @@ class Pod(BaseACIPhysObject):
         before calling the base class __init__ method.  Typically the pod_id will be 1.
 
         :param pod_id: pod id string
-        :param attributes :
+        :param attributes:
         :param parent: optional parent object
         """
         # check that parent is not a string
