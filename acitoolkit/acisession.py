@@ -31,6 +31,9 @@ TIMEOUT_GRACE_SECONDS = 10
 
 
 class Login(threading.Thread):
+    """
+    Login thread responsible for refreshing the APIC login before timeout.
+    """
     def __init__(self, apic):
         threading.Thread.__init__(self)
         self._apic = apic
@@ -39,17 +42,24 @@ class Login(threading.Thread):
     def run(self):
         while True:
             time.sleep(self._login_timeout)
-            resp = self._apic._send_login()
+            self._apic._send_login()
             self._apic.subscription_thread._resubscribe()
 
 
 class EventHandler(threading.Thread):
+    """
+    Thread responsible for websocket communication.
+    Receives events through the websocket and places them into a Queue
+    """
     def __init__(self, subscriber):
         threading.Thread.__init__(self)
         self.subscriber = subscriber
         self._exit = False
 
     def exit(self):
+        """
+        Indicate that the thread should exit.
+        """
         self._exit = True
 
     def run(self):
@@ -64,6 +74,12 @@ class EventHandler(threading.Thread):
 
 
 class Subscriber(threading.Thread):
+    """
+    Thread responsible for event subscriptions.
+    Issues subscriptions, creates the websocket, and refreshes the
+    subscriptions before timer expiry.  It also reissues the
+    subscriptions when the APIC login is refreshed.
+    """
     def __init__(self, apic):
         threading.Thread.__init__(self)
         self._apic = apic
@@ -75,12 +91,20 @@ class Subscriber(threading.Thread):
         self._events = {}
 
     def _send_subscription(self, url):
+        """
+        Send the subscription for the specified URL.
+
+        :param url: URL string to issue the subscription
+        """
         resp = self._apic.get(url)
         subscription_id = json.loads(resp.text)['subscriptionId']
         self._subscriptions[url] = subscription_id
         return resp
 
     def refresh_subscriptions(self):
+        """
+        Refresh all of the subscriptions.
+        """
         for subscription in self._subscriptions:
             subscription_id = self._subscriptions[subscription]
             refresh_url = '/api/subscriptionRefresh.json?id=' + subscription_id
@@ -235,15 +259,42 @@ class Session(object):
         return resp
 
     def subscribe(self, url):
+        """
+        Subscribe to events for a particular URL.  Used internally by the
+        class and instance subscriptions.
+
+        :param url:  URL string to issue subscription
+        """
         self.subscription_thread.subscribe(url)
 
     def has_events(self, url):
+        """
+        Check if there are events for a particular URL.  Used internally by the
+        class and instance subscriptions.
+
+        :param url:  URL string belonging to subscription
+        :returns: True or False. True if there is an event for this subscription.
+        """
         return self.subscription_thread.has_events(url)
 
     def get_event(self, url):
+        """
+        Get an event for a particular URL.  Used internally by the
+        class and instance subscriptions.
+
+        :param url:  URL string belonging to subscription
+        :returns: Object belonging to the instance or class that the
+                  subscription was made.
+        """
         return self.subscription_thread.get_event(url)
 
     def unsubscribe(self, url):
+        """
+        Unsubscribe from events for a particular URL.  Used internally by the
+        class and instance subscriptions.
+
+        :param url:  URL string to remove issue subscription
+        """
         self.subscription_thread.unsubscribe(url)
 
     def push_to_apic(self, url, data):

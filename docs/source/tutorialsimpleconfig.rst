@@ -15,8 +15,8 @@ Configuration Object Definition
 `Imports`
 ~~~~~~~~~
 The first part of the tutorial program consists of the ``import``
-statements.  The acitoolkit module from the acitoolkit package is
-imported as is the credentials.py file.
+statements.  The ``acitoolkit`` module from the acitoolkit package is
+imported as is the ``credentials.py`` file.
 
 .. code-block:: python
 
@@ -28,8 +28,8 @@ access to all of the acitoolkit configuration.
 
 The ``credentials.py`` file contains the login credentials for the
 APIC and is shown in its entirety below.  It contains the following
-variables: ``LOGIN``, ``PASSWORD``, and ``IPADDR``.  These variables
-should be modified to the settings of your particular APIC.
+variables: ``LOGIN``, ``PASSWORD``, ``URL``, and ``IPADDR``.  These
+variables should be modified to the settings of your particular APIC.
 
 .. code-block:: python
 
