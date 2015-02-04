@@ -55,7 +55,7 @@ class TestPod(unittest.TestCase) :
         #check differnt types
         pod2 = Node(pod_id, '2', 'Leaf1',role='leaf')
         self.assertNotEqual(pod1, pod2)
-    def test_pod_name(self) :
+    def test_pod_str_name(self) :
         pod_id = '2'
         pod = Pod(pod_id)
         self.assertEqual(str(pod),'pod-'+pod_id)
