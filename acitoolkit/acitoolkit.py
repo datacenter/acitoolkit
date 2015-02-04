@@ -77,13 +77,11 @@ class Tenant(BaseACIObject):
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
-        return {
-            'fvAp': AppProfile,
-            'fvBD': BridgeDomain,
-            'fvCtx': Context,
-            'vzBrCP': Contract,
-            'vzTaboo': Taboo,
-            }
+        return {'fvAp': AppProfile,
+                'fvBD': BridgeDomain,
+                'fvCtx': Context,
+                'vzBrCP': Contract,
+                'vzTaboo': Taboo, }
 
     @classmethod
     def get_deep(cls, session, names=[]):
@@ -172,9 +170,7 @@ class AppProfile(BaseACIObject):
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
-        return {
-            'fvAEPg': EPG,
-            }
+        return {'fvAEPg': EPG, }
 
     @staticmethod
     def _get_parent_class():
@@ -448,10 +444,8 @@ class EPG(CommonEPG):
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
-        return {
-            'fvCEp': Endpoint,
-            'fvStCEp': Endpoint,
-            }
+        return {'fvCEp': Endpoint,
+                'fvStCEp': Endpoint, }
 
     @staticmethod
     def _get_parent_class():
@@ -890,13 +884,11 @@ class OSPFInterfacePolicy(BaseACIObject):
         :param network_type: string of bcast or p2p
 
         """
-        valid_types = ['bcast','p2p']
+        valid_types = ['bcast', 'p2p']
         if network_type not in valid_types:
             raise ValueError('Invalid Network Type - %s' % network_type)
         else:
             self.network_type = network_type
-
-
 
     def get_json(self):
         """
@@ -905,7 +897,7 @@ class OSPFInterfacePolicy(BaseACIObject):
         :returns: json dictionary of OSPFIRouter
         """
         attr = self._generate_attributes()
-        text = {"ospfIfPol":{"attributes": attr }}
+        text = {"ospfIfPol": {"attributes": attr}}
         return text
 
 
@@ -956,10 +948,8 @@ class OSPFRouter(BaseACIObject):
 
         :returns: json dictionary of OSPFIRouter
         """
-        text = {"l3extRsNodeL3OutAtt":{
-                                    "attributes":{
-                                        "rtrId": self._router_id,
-                                        "tDn":"topology/pod-%s/node-%s" %(self._pod, self._node)}}}
+        text = {"l3extRsNodeL3OutAtt": {"attributes": {"rtrId": self._router_id,
+                                                       "tDn": "topology/pod-%s/node-%s" % (self._pod, self._node)}}}
         return text
 
 
@@ -1017,10 +1007,9 @@ class OSPFInterface(BaseACIObject):
 
         text = [text, self.get_interfaces()[0].get_json()]
         text = {'l3extLIfP': {'attributes': {'name': self.name},
-                              'children': text},
-        }
+                              'children': text}, }
         text = {'l3extLNodeP': {'attributes': {'name': self.name},
-                                'children': [text,self.router.get_json()]}}
+                                'children': [text, self.router.get_json()]}}
         return text
 
 
@@ -1108,9 +1097,7 @@ class BridgeDomain(BaseACIObject):
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
-        return {
-            'fvSubnet': Subnet,
-            }
+        return {'fvSubnet': Subnet, }
 
     @staticmethod
     def _get_parent_class():
@@ -1842,7 +1829,7 @@ class Interface(BaseInterface):
         self._lldp_config = None
         self.type = 'interface'
         self.attributes['type'] = 'interface'
-        self.id = interface_type+module+'/'+port
+        self.id = interface_type + module + '/' + port
 
         self._parent = parent
         if parent:
@@ -2187,8 +2174,8 @@ class Interface(BaseInterface):
 
         if port:
             dist_name = 'topology/pod-{0}/node-{1}/sys/phys-[eth{2}/{3}]'.format(pod_parent, node, module, port)
-            interface_query_url = ('/api/mo/'+dist_name+'.json?query-target=self')
-            eth_query_url = ('/api/mo/'+dist_name+'/phys.json?query-target=self')
+            interface_query_url = ('/api/mo/' + dist_name + '.json?query-target=self')
+            eth_query_url = ('/api/mo/' + dist_name + '/phys.json?query-target=self')
         else:
             interface_query_url = ('/api/node/class/l1PhysIf.json?query-target='
                                    'self')
@@ -2234,7 +2221,7 @@ class Interface(BaseInterface):
             attributes['node'] = node
             attributes['module'] = module
             attributes['port'] = port
-            attributes['operSt'] = ethDataDict[dist_name+'/phys']['operSt']
+            attributes['operSt'] = ethDataDict[dist_name + '/phys']['operSt']
             interface_obj = Interface(interface_type, pod, node, module, port, parent=None, session=session, attributes=attributes)
             interface_obj.porttype = porttype
             interface_obj.adminstatus = adminstatus
@@ -2311,7 +2298,7 @@ class InterfaceStats():
         if not session:
             session = self._parent._session
 
-        mo_query_url = '/api/mo/'+self._interfaceDn+'.json?query-target=self&rsp-subtree-include=stats'
+        mo_query_url = '/api/mo/' + self._interfaceDn + '.json?query-target=self&rsp-subtree-include=stats'
 
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
@@ -2325,7 +2312,7 @@ class InterfaceStats():
                         if re.search('^C', counterAttr['rn']):
                             period = 0
                         else:
-                            period = int(counterAttr['index'])+1
+                            period = int(counterAttr['index']) + 1
 
                         if 'EgrTotal' in count:
                             countName = 'egrTotal'
@@ -2805,9 +2792,9 @@ class NetworkPool(BaseACIObject):
             fvnsEncapInstP_string = 'fvnsVlanInstP'
         elif self.encap_type == 'vxlan':
             fvnsEncapInstP_string = 'fvnsVxlanInstP'
-        fvnsEncapInstP = {fvnsEncapInstP_string:  {'attributes': {'name': self.name,
-                                                                  'allocMode': self.mode},
-                                                   'children': [fvnsEncapBlk]}}
+        fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': {'name': self.name,
+                                                                 'allocMode': self.mode},
+                                                  'children': [fvnsEncapBlk]}}
         infra = {'infraInfra': {'attributes': {},
                                 'children': [fvnsEncapInstP]}}
         return infra
@@ -3105,7 +3092,7 @@ class MonitorPolicy(BaseMonitorClass):
 
     @staticmethod
     def _getClass(session, aciClass):
-        class_query_url = '/api/node/class/'+aciClass+'.json?query-target=self'
+        class_query_url = '/api/node/class/' + aciClass + '.json?query-target=self'
         ret = session.get(class_query_url)
         data = ret.json()['imdata']
         return data
@@ -3160,7 +3147,7 @@ class MonitorPolicy(BaseMonitorClass):
     @classmethod
     def _getChildren(cls, session, dn):
         result = []
-        mo_query_url = '/api/mo/'+dn+'.json?query-target=children'
+        mo_query_url = '/api/mo/' + dn + '.json?query-target=children'
         ret = session.get(mo_query_url)
         mo_data = ret.json()['imdata']
         for node in mo_data:
@@ -3172,7 +3159,7 @@ class MonitorPolicy(BaseMonitorClass):
         """
         Return print string.
         """
-        return self.policyType+':'+self.name
+        return self.policyType + ':' + self.name
 
     def flat(self, target='l1PhysIf'):
         """

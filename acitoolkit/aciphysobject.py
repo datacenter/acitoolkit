@@ -26,6 +26,7 @@ import logging
 import re
 import copy
 
+
 class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
     """
@@ -206,7 +207,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.node = str(node)
         self.slot = str(slot)
         logging.debug('Creating %s %s', self.__class__.__name__,
-                      'pod-'+self.pod+'/node-'+self.node+'/slot-'+self.slot)
+                      'pod-' + self.pod + '/node-' + self.node + '/slot-' + self.slot)
         self._common_init(parent)
 
     def get_slot(self):
@@ -255,7 +256,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
-        interface_query_url = ('/api/node/class/'+apic_class+'.json?'
+        interface_query_url = ('/api/node/class/' + apic_class + '.json?'
                                'query-target=self')
         cards = []
         ret = session.get(interface_query_url)
@@ -308,8 +309,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
 
         :returns: firmware, bios
         """
-
-        mo_query_url = '/api/mo/'+dist_name+'/running.json?query-target=self'
+        mo_query_url = '/api/mo/' + dist_name + '/running.json?query-target=self'
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
         if node_data:
@@ -340,7 +340,7 @@ class Systemcontroller(BaseACIPhysModule):
         :param parent: optional parent object
 
         """
-        self.name = 'SysC-'+'/'.join([pod, node, slot])
+        self.name = 'SysC-' + '/'.join([pod, node, slot])
         self.type = 'systemctrlcard'
         super(Systemcontroller, self).__init__(pod, node, slot, parent)
 
@@ -386,7 +386,7 @@ class Systemcontroller(BaseACIPhysModule):
         name = dn.split('/')
         new_dist_name = '/'.join(name[0:4])
 
-        mo_query_url = '/api/mo/'+new_dist_name+'/ctrlrfwstatuscont/ctrlrrunning.json?query-target=self'
+        mo_query_url = '/api/mo/' + new_dist_name + '/ctrlrfwstatuscont/ctrlrrunning.json?query-target=self'
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
 
@@ -445,7 +445,7 @@ class Linecard(BaseACIPhysModule):
             pod = arg0
             node = arg1
 
-        self.name = 'Lc-'+'/'.join([str(pod), str(node), str(slot_id)])
+        self.name = 'Lc-' + '/'.join([str(pod), str(node), str(slot_id)])
         self.type = 'linecard'
         super(Linecard, self).__init__(pod, node, slot_id, parent)
 
@@ -496,7 +496,7 @@ class Supervisorcard(BaseACIPhysModule):
             :param slot: slot id
             :param parent: optional parent object
         """
-        self.name = 'SupC-'+'/'.join([pod, node, slot])
+        self.name = 'SupC-' + '/'.join([pod, node, slot])
         self.type = 'supervisor'
         super(Supervisorcard, self).__init__(pod, node, slot, parent)
 
@@ -525,7 +525,7 @@ class Fantray(BaseACIPhysModule):
         :param slot: slot id
         :param parent: optional parent object
         """
-        self.name = 'Fan-'+'/'.join([pod, node, slot])
+        self.name = 'Fan-' + '/'.join([pod, node, slot])
         self.type = 'fantray'
         super(Fantray, self).__init__(pod, node, slot, parent)
 
@@ -575,7 +575,7 @@ class Powersupply(BaseACIPhysModule):
         :param slot: slot id
         :param parent: optional parent object
         """
-        self.name = 'PS-'+'/'.join([pod, node, slot])
+        self.name = 'PS-' + '/'.join([pod, node, slot])
         self.type = 'powersupply'
         super(Powersupply, self).__init__(pod, node, slot, parent)
 
@@ -633,19 +633,19 @@ class Pod(BaseACIPhysObject):
         if isinstance(parent, str):
             raise TypeError("Parent object can't be a string")
 
-        if not isinstance(attributes,dict) :
+        if not isinstance(attributes, dict):
             raise TypeError("Attributes must be a dictionary")
-        
+
         self.attributes = copy.deepcopy(attributes)
         self.pod = str(pod_id)
         self.type = 'pod'
-        self.name = 'pod-'+str(self.pod)
+        self.name = 'pod-' + str(self.pod)
         logging.debug('Creating %s %s', self.__class__.__name__, self.pod)
         self._common_init(parent)
 
         # add atomic counters
-        if 'dist_name' in self.attributes :
-            self.atomic = AtomicCountersOnGoing(self,self.attributes['dist_name'])
+        if 'dist_name' in self.attributes:
+            self.atomic = AtomicCountersOnGoing(self, self.attributes['dist_name'])
 
     @staticmethod
     def get(session):
@@ -657,7 +657,7 @@ class Pod(BaseACIPhysObject):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
         class_query_url = ('/api/node/class/fabricPod.json?'
-                               'query-target=self')
+                           'query-target=self')
         pods = []
         ret = session.get(class_query_url)
         pod_data = ret.json()['imdata']
@@ -699,7 +699,7 @@ class Pod(BaseACIPhysObject):
         return self.pod == other.pod
 
     def __str__(self):
-        return 'pod-'+str(self.pod)
+        return 'pod-' + str(self.pod)
 
 
 class Node(BaseACIPhysObject):
@@ -743,7 +743,7 @@ class Node(BaseACIPhysObject):
         self.operStQual = None
         self.descr = None
 
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+str(self.pod)+'/node-'+str(self.node))
+        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' + str(self.pod) + '/node-' + str(self.node))
         self._common_init(parent)
 
     def get_role(self):
@@ -774,9 +774,9 @@ class Node(BaseACIPhysObject):
         """Retrieves the name of the node from the name attribute of the fabricNode object"""
 
         name = dn.split('/')
-        fabricNode_dn = name[0]+'/'+name[1]+'/'+name[2]
+        fabricNode_dn = name[0] + '/' + name[1] + '/' + name[2]
 
-        mo_query_url = '/api/mo/'+fabricNode_dn+'.json?query-target=self'
+        mo_query_url = '/api/mo/' + fabricNode_dn + '.json?query-target=self'
         ret = session.get(mo_query_url)
         node_data = ret.json()['imdata']
 
@@ -841,7 +841,7 @@ class Node(BaseACIPhysObject):
     def _get_topSystem_info(self):
         """ will read in topSystem object to get more information about Node"""
 
-        mo_query_url = '/api/mo/'+self.dn+'/sys.json?query-target=self'
+        mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=self'
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
 
@@ -851,7 +851,7 @@ class Node(BaseACIPhysObject):
             self.state = str(node_data[0]['topSystem']['attributes']['state'])
             self.mode = str(node_data[0]['topSystem']['attributes']['mode'])  # standalone, cluster, or unspecified
             # now get eqptCh for even more info
-            mo_query_url = '/api/mo/'+self.dn+'/sys/ch.json?query-target=self'
+            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
             ret = self._session.get(mo_query_url)
             node_data = ret.json()['imdata']
 
@@ -954,7 +954,7 @@ class ENode(Node):
         if self.attributes.get('role') not in valid_roles:
             raise ValueError("role must be one of " + str(valid_roles) + ' found ' + self.attributes.get('role'))
 
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-'+str(self.attributes.get('pod'))+'/node-'+str(self.attributes.get('id')))
+        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' + str(self.attributes.get('pod')) + '/node-' + str(self.attributes.get('id')))
         self._common_init(self._parent)
 
     def _common_init(self, parent):
@@ -1064,14 +1064,14 @@ class ENode(Node):
 
     @staticmethod
     def _getDn(session, dn):
-        mo_query_url = '/api/mo/'+dn+'.json?query-target=self'
+        mo_query_url = '/api/mo/' + dn + '.json?query-target=self'
         ret = session.get(mo_query_url)
         node_data = ret.json()['imdata']
         return node_data
 
     @staticmethod
     def _getDnChildren(session, dn):
-        mo_query_url = '/api/mo/'+dn+'.json?query-target=children'
+        mo_query_url = '/api/mo/' + dn + '.json?query-target=children'
         ret = session.get(mo_query_url)
         node_data = ret.json()['imdata']
         return node_data
@@ -1081,7 +1081,7 @@ class ENode(Node):
         """This routine will fill in various other attributes of the loose node
         """
         attrib = {}
-        mo_query_url = '/api/mo/'+dn+'.json?query-target=children'
+        mo_query_url = '/api/mo/' + dn + '.json?query-target=children'
         ret = session.get(mo_query_url)
         node_data = ret.json()['imdata']
 
@@ -1091,26 +1091,26 @@ class ENode(Node):
                 name = dn.split('/')
                 pod = name[1].split('-')[1]
                 node = str(name[2].split('-')[1])
-                if 'phys' in name[4] :
+                if 'phys' in name[4]:
                     result = re.search('phys-\[(.+)\]', dn)
-                    lldp_dn = 'topology/pod-' + pod + '/node-'+node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
-                else :
-                    agg_port_data = ENode._getDn(session,dn)
-                    port = agg_port_data[0]['pcAggrIf']['attributes']['lastBundleMbr'] 
-                    lldp_dn = 'topology/pod-' + pod + '/node-'+node + '/sys/lldp/inst/if-[' +port + ']/adj-1'
+                    lldp_dn = 'topology/pod-' + pod + '/node-' + node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
+                else:
+                    agg_port_data = ENode._getDn(session, dn)
+                    port = agg_port_data[0]['pcAggrIf']['attributes']['lastBundleMbr']
+                    lldp_dn = 'topology/pod-' + pod + '/node-' + node + '/sys/lldp/inst/if-[' + port + ']/adj-1'
 
             if 'fabricProtLooseLink' in node:
                 dn = node['fabricProtLooseLink']['attributes']['portDn']
                 name = dn.split('/')
                 pod = name[1].split('-')[1]
                 node = str(name[2].split('-')[1])
-                lldp_dn = 'topology/pod-'+pod+'/node-'+node + '/sys/lldp/inst/if-['
+                lldp_dn = 'topology/pod-' + pod + '/node-' + node + '/sys/lldp/inst/if-['
                 if dn:
                     link = ENode._getDnChildren(session, dn)
                     for child in link:
                         if 'pcRsMbrIfs' in child:
                             port = child['pcRsMbrIfs']['attributes']['tSKey']
-                lldp_dn = lldp_dn+port+']/adj-1'
+                lldp_dn = lldp_dn + port + ']/adj-1'
 
         lldp_data = ENode._getDn(session, lldp_dn)
         attrib['ipAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtIp'])
@@ -1344,4 +1344,3 @@ class Link(BaseACIPhysObject):
         link = str(name[2].split('-')[1])
 
         return pod, link
-

@@ -24,6 +24,7 @@ import json
 import logging
 import re
 
+
 class AtomicCountersOnGoing():
     """
     This class defines on-going atomic counters, a.k.a. TEP-to-TEP atomic
@@ -43,7 +44,7 @@ class AtomicCountersOnGoing():
     stored in epoch 0.  These stats are zeroed at the beginning of the
     time interval and are updated at a smaller time interval depending
     on the granularity.
-    
+
     Historical statistics have epochs that are greater than 0.  The
     number of historical stats to keep is determined by the monitoring
     policy and may be specifc to a particular counter family.
@@ -59,10 +60,6 @@ class AtomicCountersOnGoing():
     For each counter family/granularity/period there are several
     counter values retained.  The best way to see a list of these
     counters is to print the keys of the dictionary.
-    
-
-
-
     """
     def __init__(self, parent, nodeDn):
         self._parent = parent
@@ -81,24 +78,24 @@ class AtomicCountersOnGoing():
         if not session:
             session = self._parent._session
         self._session = session
-        
+
         query_url = ('/api/node/class/fabricPath.json?'
-                               'query-target=self')
+                     'query-target=self')
         ret = self._session.get(query_url)
         data = ret.json()['imdata']
-        if data :
-            for path in data :
-                path_key = (str(path['fabricPath']['attributes']['n1']),str(path['fabricPath']['attributes']['n2']))
+        if data:
+            for path in data:
+                path_key = (str(path['fabricPath']['attributes']['n1']), str(path['fabricPath']['attributes']['n2']))
                 result[path_key] = self._get_path(path['fabricPath']['attributes']['dn'])
         return result
-    
+
     def _get_path(self, dn):
         """
         Will get the path counters
         """
         result = {}
-        
-        mo_query_url = '/api/mo/'+dn+'.json?query-target=self&rsp-subtree-include=stats'
+
+        mo_query_url = '/api/mo/' + dn + '.json?query-target=self&rsp-subtree-include=stats'
 
         ret = self._session.get(mo_query_url)
         data = ret.json()['imdata']
@@ -113,8 +110,7 @@ class AtomicCountersOnGoing():
                         if re.search('^C', counterAttr['rn']):
                             period = 0
                         else:
-                            period = int(counterAttr['index'])+1
-
+                            period = int(counterAttr['index']) + 1
 
                         if 'TxRx' in count:
                             countName = 'txrx'
@@ -132,25 +128,24 @@ class AtomicCountersOnGoing():
                         if period not in result[countName][granularity]:
                             result[countName][granularity][period] = {}
 
-                            
                         if countName in ['txrx']:
-                            for attrName in ['rxPktAvg','rxPktCum', 'rxPktMax','rxPktMin','rxPktPer',
-                                             'txPktAvg','txPktCum', 'txPktMax','txPktMin','txPktPer'] :
+                            for attrName in ['rxPktAvg', 'rxPktCum', 'rxPktMax', 'rxPktMin', 'rxPktPer',
+                                             'txPktAvg', 'txPktCum', 'txPktMax', 'txPktMin', 'txPktPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                                
-                            for attrName in ['rxPktRate','txPktRate'] :
+
+                            for attrName in ['rxPktRate', 'txPktRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         elif countName in ['dropexcess']:
-                            for attrName in ['dropPktAvg','dropPktCum', 'dropPktMax','dropPktMin','dropPktPer',
-                                             'excessPktAvg','excessPktCum', 'excessPktMax','excessPktMin','excessPktPer'] :
+                            for attrName in ['dropPktAvg', 'dropPktCum', 'dropPktMax', 'dropPktMin', 'dropPktPer',
+                                             'excessPktAvg', 'excessPktCum', 'excessPktMax', 'excessPktMin', 'excessPktPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['dropPktRate', 'excessPktRate'] :
+                            for attrName in ['dropPktRate', 'excessPktRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         else:
                             print 'Found unsupported counter', countName, granularity, period
-                            
+
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
@@ -180,7 +175,7 @@ class AtomicCountersOnGoing():
         if countName in ['intervalEnd', 'intervalStart']:
             result = None
 
-        elif countName in ['rxPktRate', 'txPktRate','dropPktRate','excessPktRate']:
+        elif countName in ['rxPktRate', 'txPktRate', 'dropPktRate', 'excessPktRate']:
             result = 0.0
         else:
             result = 0
@@ -197,12 +192,11 @@ class AtomicCountersOnGoing():
         return result
 
 
-
-class AtomicCounter(object) :
+class AtomicCounter(object):
     """
     Class for basic atomic counter
     """
-    def __init__(self) :
+    def __init__(self):
         """
         """
         self.bytes_p = 0
@@ -217,14 +211,15 @@ class AtomicCounter(object) :
 
         self.time_start = 0
         self.time_last = 0
-        
-class AtomicPath(object) :
+
+
+class AtomicPath(object):
     """
     Class for the atomic counter path.
     It has the counts, the local port and remote port information
 
     """
-    def __init__(self) :
+    def __init__(self):
         """
         Initialize to None.
 
@@ -236,17 +231,18 @@ class AtomicPath(object) :
         self.count = AtomicCounter()
         self.local_port_id = None
         self.remote_port_id = None
-        
-class AtomicNode(object) :
+
+
+class AtomicNode(object):
     """
     Class for the atomic counter for a remote node.
     It has the counts and an array of AtomicPath classes
     that hold the path specific information.  The
     AtomiPath array is indexed by the node ID of the
-    Spine the path goes through. 
+    Spine the path goes through.
 
     """
-    def __init__(self) :
+    def __init__(self):
         """
         Initialize to None.
 
@@ -258,5 +254,3 @@ class AtomicNode(object) :
         self.count = AtomicCounter()
         self.local_port_id = None
         self.remote_port_id = None
-        
-        

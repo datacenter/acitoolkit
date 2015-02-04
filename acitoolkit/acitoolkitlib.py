@@ -40,7 +40,7 @@ class Credentials(object):
     def __init__(self, qualifier='apic', description=''):
         def set_default(key):
             if 'APIC_' + key.upper() in os.environ.keys():
-                return os.environ['APIC_'+key.upper()]
+                return os.environ['APIC_' + key.upper()]
             else:
                 try:
                     import credentials
