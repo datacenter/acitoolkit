@@ -195,9 +195,9 @@ class TestLink(unittest.TestCase) :
         self.assertEqual(interface1, link1.get_port1())
         self.assertEqual(interface2, link1.get_port2())
         
-class TestModule() :
+class CheckModule() :
     @staticmethod
-    def test_module(self, mod_class, modNamePrefix, modType) :
+    def check_module(self, mod_class, modNamePrefix, modType) :
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -216,7 +216,7 @@ class TestModule() :
         self.assertEqual(mod._session, None)
 
     @staticmethod
-    def test_mod_parent(self,mod_class) :
+    def check_mod_parent(self,mod_class) :
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -235,7 +235,7 @@ class TestModule() :
         self.assertRaises(TypeError, mod_class,mod_pod, mod_node, mod_slot, mod1)
         
     @staticmethod
-    def test_mod_instance(self, mod_class) :
+    def check_mod_instance(self, mod_class) :
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -243,7 +243,7 @@ class TestModule() :
         self.assertIsInstance(mod, mod_class)
 
     @staticmethod
-    def test_mod_get_json(self, mod_class) :
+    def check_mod_get_json(self, mod_class) :
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -251,7 +251,7 @@ class TestModule() :
         self.assertEqual(mod.get_json(), None)
         
     @staticmethod
-    def test_mod_get_url(self, mod_class) :
+    def check_mod_get_url(self, mod_class) :
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -261,47 +261,47 @@ class TestModule() :
 class TestFan(unittest.TestCase) :
     def test_fan(self) :
         mod_class = Fantray
-        TestModule.test_module(self,mod_class, 'Fan', 'fantray')
-        TestModule.test_mod_parent(self, mod_class)
-        TestModule.test_mod_instance(self, mod_class)
-        TestModule.test_mod_get_url(self, mod_class)
-        TestModule.test_mod_get_json(self, mod_class)
+        CheckModule.check_module(self,mod_class, 'Fan', 'fantray')
+        CheckModule.check_mod_parent(self, mod_class)
+        CheckModule.check_mod_instance(self, mod_class)
+        CheckModule.check_mod_get_url(self, mod_class)
+        CheckModule.check_mod_get_json(self, mod_class)
         
 class TestPowerSupply(unittest.TestCase) :
     def test_powerSupply(self) :
         mod_class = Powersupply
-        TestModule.test_module(self,mod_class, 'PS', 'powersupply')
-        TestModule.test_mod_parent(self, mod_class)
-        TestModule.test_mod_instance(self, mod_class)
-        TestModule.test_mod_get_url(self, mod_class)
-        TestModule.test_mod_get_json(self, mod_class)
+        CheckModule.check_module(self,mod_class, 'PS', 'powersupply')
+        CheckModule.check_mod_parent(self, mod_class)
+        CheckModule.check_mod_instance(self, mod_class)
+        CheckModule.check_mod_get_url(self, mod_class)
+        CheckModule.check_mod_get_json(self, mod_class)
 
 class TestLinecard(unittest.TestCase) :
     def test_lineCard(self) :
         mod_class = Linecard
-        TestModule.test_module(self,mod_class, 'Lc', 'linecard')
-        TestModule.test_mod_parent(self, mod_class)
-        TestModule.test_mod_instance(self, mod_class)
-        TestModule.test_mod_get_url(self, mod_class)
-        TestModule.test_mod_get_json(self, mod_class)
+        CheckModule.check_module(self,mod_class, 'Lc', 'linecard')
+        CheckModule.check_mod_parent(self, mod_class)
+        CheckModule.check_mod_instance(self, mod_class)
+        CheckModule.check_mod_get_url(self, mod_class)
+        CheckModule.check_mod_get_json(self, mod_class)
 
 class TestSupervisor(unittest.TestCase) :
     def test_supervisor(self) :
         mod_class = Supervisorcard
-        TestModule.test_module(self,mod_class, 'SupC', 'supervisor')
-        TestModule.test_mod_parent(self, mod_class)
-        TestModule.test_mod_instance(self, mod_class)
-        TestModule.test_mod_get_url(self, mod_class)
-        TestModule.test_mod_get_json(self, mod_class)
+        CheckModule.check_module(self,mod_class, 'SupC', 'supervisor')
+        CheckModule.check_mod_parent(self, mod_class)
+        CheckModule.check_mod_instance(self, mod_class)
+        CheckModule.check_mod_get_url(self, mod_class)
+        CheckModule.check_mod_get_json(self, mod_class)
 
 class TestSystemcontroller(unittest.TestCase) :
     def test_systemController(self) :
         mod_class = Systemcontroller
-        TestModule.test_module(self,mod_class, 'SysC', 'systemctrlcard')
-        TestModule.test_mod_parent(self, mod_class)
-        TestModule.test_mod_instance(self, mod_class)
-        TestModule.test_mod_get_url(self, mod_class)
-        TestModule.test_mod_get_json(self, mod_class)
+        CheckModule.check_module(self,mod_class, 'SysC', 'systemctrlcard')
+        CheckModule.check_mod_parent(self, mod_class)
+        CheckModule.check_mod_instance(self, mod_class)
+        CheckModule.check_mod_get_url(self, mod_class)
+        CheckModule.check_mod_get_json(self, mod_class)
 
 class TestExternalNode(unittest.TestCase) :
     def test_eNode(self) :
