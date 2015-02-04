@@ -64,6 +64,17 @@ class Tenant(BaseACIObject):
         return super(Tenant, self).get_json(self._get_apic_classes()[0],
                                             attributes=attr)
 
+    def push_to_apic(self, session):
+        """
+        Push the appropriate configuration to the APIC for this Tenant.
+        All of the subobject configuration will also be pushed.
+
+        :param session: the instance of Session used for APIC communication
+        :returns: Requests Response code
+        """
+        resp = session.push_to_apic(self.get_url(),
+                                    self.get_json())
+
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
         return {
