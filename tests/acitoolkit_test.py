@@ -23,7 +23,6 @@ from credentials import *
 import sys
 import time
 
-LIVE_TEST = True
 MAX_RANDOM_STRING_SIZE = 20
 
 
@@ -1164,13 +1163,14 @@ class TestContext(unittest.TestCase):
         self.assertEqual(context_json['fvCtx']['attributes']['pcEnfPref'],
                          'unenforced')
 
+
 class TestBGP(unittest.TestCase):
     def test_bgp_router(self):
         tenant = Tenant('bgp-tenant')
         context = Context('bgp-test', tenant)
         outside = OutsideEPG('out-1', tenant)
         phyif = Interface('eth', '1', '101', '1', '46')
-        phyif.speed='1G'
+        phyif.speed = '1G'
         l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
         l2if.attach(phyif)
         l3if = L3Interface('l3if')
@@ -1179,7 +1179,7 @@ class TestBGP(unittest.TestCase):
         l3if.add_context(context)
         l3if.attach(l2if)
         bgpif = BGPSession('test', peer_ip='1.1.1.1', node_id='101')
-        bgpif.router_id='172.1.1.1'
+        bgpif.router_id = '172.1.1.1'
         bgpif.attach(l3if)
         bgpif.options = 'send-ext-com'
         bgpif.networks.append('0.0.0.0/0')
@@ -1189,6 +1189,7 @@ class TestBGP(unittest.TestCase):
         outside.consume(contract1)
         outside.attach(bgpif)
         bgp_json = outside.get_json()
+
 
 class TestOspf(unittest.TestCase):
     def test_ospf_router_port(self):
@@ -1221,9 +1222,6 @@ class TestOspf(unittest.TestCase):
         ospf_json = outside.get_json()
 
 
-
-
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -1235,7 +1233,6 @@ class TestLiveAPIC(unittest.TestCase):
         return session
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveTenant(TestLiveAPIC):
     def get_all_tenants(self):
         session = self.login_to_apic()
@@ -1264,7 +1261,7 @@ class TestLiveTenant(TestLiveAPIC):
         self.assertTrue(len(tenants) > 0)
         for tenant in tenants:
             self.assertTrue(isinstance(tenant, Tenant))
-            self.assertTrue(isinstance(tenant.name, str))        
+            self.assertTrue(isinstance(tenant.name, str))
 
     def test_exists_tenant(self):
         session = self.login_to_apic()
@@ -1317,7 +1314,6 @@ class TestLiveTenant(TestLiveAPIC):
         self.assertTrue(new_tenant.name not in names)
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveSubscription(TestLiveAPIC):
     def test_create_class_subscription(self):
         session = self.login_to_apic()
@@ -1394,7 +1390,6 @@ class TestLiveSubscription(TestLiveAPIC):
         session.subscription_thread._resubscribe()
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveInterface(TestLiveAPIC):
     def test_get_all_interfaces(self):
         session = self.login_to_apic()
@@ -1408,7 +1403,6 @@ class TestLiveInterface(TestLiveAPIC):
             self.assertTrue(isinstance(path, str))
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLivePortChannel(TestLiveAPIC):
     def test_get_all_portchannels(self):
         session = self.login_to_apic()
@@ -1420,7 +1414,6 @@ class TestLivePortChannel(TestLiveAPIC):
             self.assertTrue(isinstance(pc_as_a_string, str))
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAppProfile(TestLiveAPIC):
     def test_invalid_app(self):
         session = self.login_to_apic()
@@ -1430,7 +1423,6 @@ class TestLiveAppProfile(TestLiveAPIC):
         session = self.login_to_apic()
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveEPG(TestLiveAPIC):
     def test_get_epgs(self):
         session = self.login_to_apic()
@@ -1443,7 +1435,6 @@ class TestLiveEPG(TestLiveAPIC):
                     self.assertTrue(isinstance(epg, EPG))
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveEndpoint(unittest.TestCase):
     def test_get_bad_session(self):
         bad_session = 'BAD SESSION'
@@ -1458,7 +1449,6 @@ class TestLiveEndpoint(unittest.TestCase):
         endpoints = Endpoint.get(session)
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestApic(unittest.TestCase):
     def base_test_setup(self):
         # Login to APIC
@@ -1727,7 +1717,6 @@ class TestApic(unittest.TestCase):
         self.base_test_teardown(session, tenant)
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveContracts(TestLiveAPIC):
     def get_2_entries(self, contract):
         entry1 = FilterEntry('entry1',
@@ -1835,6 +1824,7 @@ class TestLiveContracts(TestLiveAPIC):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
+
 class TestLiveOSPF(TestLiveAPIC):
 
         def test_no_auth(self):
@@ -1843,7 +1833,7 @@ class TestLiveOSPF(TestLiveAPIC):
             outside = OutsideEPG('out-1', tenant)
             outside.add_context(context)
             phyif = Interface('eth', '1', '101', '1', '46')
-            phyif.speed='1G'
+            phyif.speed = '1G'
             l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
             l2if.attach(phyif)
             l3if = L3Interface('l3if')
@@ -1868,12 +1858,14 @@ class TestLiveOSPF(TestLiveAPIC):
             outside.consume(contract2)
             outside.attach(ospfif)
             session = self.login_to_apic()
-            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            resp = session.push_to_apic(tenant.get_url(),
+                                        data=tenant.get_json())
             self.assertTrue(resp.ok)
 
             # Cleanup
             tenant.mark_as_deleted()
-            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            resp = session.push_to_apic(tenant.get_url(),
+                                        data=tenant.get_json())
             self.assertTrue(resp.ok)
 
         def test_authenticated(self):
@@ -1882,7 +1874,7 @@ class TestLiveOSPF(TestLiveAPIC):
             outside = OutsideEPG('out-1', tenant)
             outside.add_context(context)
             phyif = Interface('eth', '1', '101', '1', '46')
-            phyif.speed='1G'
+            phyif.speed = '1G'
             l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
             l2if.attach(phyif)
             l3if = L3Interface('l3if')
@@ -1911,12 +1903,14 @@ class TestLiveOSPF(TestLiveAPIC):
             outside.attach(ospfif)
 
             session = self.login_to_apic()
-            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            resp = session.push_to_apic(tenant.get_url(),
+                                        data=tenant.get_json())
             self.assertTrue(resp.ok)
 
             # Cleanup
             tenant.mark_as_deleted()
-            resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+            resp = session.push_to_apic(tenant.get_url(),
+                                        data=tenant.get_json())
             self.assertTrue(resp.ok)
 
 
