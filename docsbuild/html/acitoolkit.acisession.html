@@ -89,6 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
 <li class="toctree-l2"><a class="reference internal" href="endpointtracker.html">ACI Endpoint Tracker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="visualizations.html">Visualization Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acilint.html">acilint</a></li>
 </ul>
 </li>
 </ul>
@@ -172,12 +173,37 @@ This class is responsible for all communication with the APIC.</p>
 <dl class="method">
 <dt id="acitoolkit.acisession.Session.get_event">
 <tt class="descname">get_event</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Session.get_event" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get an event for a particular URL.  Used internally by the
+class and instance subscriptions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>url</strong> &#8211; URL string belonging to subscription</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Object belonging to the instance or class that the
+subscription was made.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acisession.Session.has_events">
 <tt class="descname">has_events</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Session.has_events" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if there are events for a particular URL.  Used internally by the
+class and instance subscriptions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>url</strong> &#8211; URL string belonging to subscription</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False. True if there is an event for this subscription.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acisession.Session.login">
@@ -217,12 +243,32 @@ This class is responsible for all communication with the APIC.</p>
 <dl class="method">
 <dt id="acitoolkit.acisession.Session.subscribe">
 <tt class="descname">subscribe</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Session.subscribe" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Subscribe to events for a particular URL.  Used internally by the
+class and instance subscriptions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>url</strong> &#8211; URL string to issue subscription</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="acitoolkit.acisession.Session.unsubscribe">
 <tt class="descname">unsubscribe</tt><big>(</big><em>url</em><big>)</big><a class="headerlink" href="#acitoolkit.acisession.Session.unsubscribe" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Unsubscribe from events for a particular URL.  Used internally by the
+class and instance subscriptions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>url</strong> &#8211; URL string to remove issue subscription</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 

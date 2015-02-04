@@ -7,3 +7,4 @@ Applications
    cableplan
    endpointtracker
    visualizations
+   acilint

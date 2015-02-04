@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ACI Lint &mdash; acitoolkit 0.1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="acitoolkit 0.1 documentation" href="index.html"/>
+        <link rel="up" title="Applications" href="applications.html"/>
+        <link rel="prev" title="Visualization Examples" href="visualizations.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="index.html" class="fa fa-home"> acitoolkit</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+        
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectmodel.html">Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#application-topology">Application Topology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#interface-object-model">Interface Object Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="objectmodel.html#physical-topology">Physical Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitor_policy.html">Monitor Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="monitor_policy.html#policy-resolution">Policy Resolution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsetup.html">Setting up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialsimpleconfig.html">Building a Simple Tenant Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="subscriptions.html">Getting APIC objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statsbody.html">Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statsdetail.html">Statistics Detail</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="acitoolkit.html">acitoolkit package</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="applications.html">Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="endpointtracker.html">ACI Endpoint Tracker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizations.html">Visualization Examples</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">ACI Lint</a></li>
+</ul>
+</li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">acitoolkit</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="applications.html">Applications</a> &raquo;</li>
+      
+    <li>ACI Lint</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/acilint.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            
+  <div class="section" id="aci-lint">
+<h1>ACI Lint<a class="headerlink" href="#aci-lint" title="Permalink to this headline">¶</a></h1>
+<p><tt class="docutils literal"><span class="pre">acilint</span></tt> is a static analysis tool for Cisco ACI fabrics.  Some
+example use cases for such a tool include the following:</p>
+<ul>
+<li><p class="first">Configuration Analysis</p>
+<blockquote>
+<div><p>In this purpose, it can be used to examine the APIC configuration
+and determine whether any of the configuration could be possibly problematic or
+suspicious.  It examines the configuration much like static code
+analysis tools such as the original <em>lint</em> checker did for
+software development in <em>C</em> or <em>pylint</em> for <em>Python</em>.  It
+generates <strong>Warnings</strong> and <strong>Errors</strong> that give indications that
+the configuration should be examined.  Often these Warnings are
+not problems, but incomplete or stale configuration that is not
+currently in use.</p>
+</div></blockquote>
+</li>
+<li><p class="first">Compliance, Governance, and Auditing</p>
+<blockquote>
+<div><p>In this purpose, it can be used to determine whether the
+configuration meets higher level goverance and compliance rules.
+These rules are similar to <em>lint</em> style rules but exploit the APIC
+ability to provide additional classification tags on objects. Tags
+provide a simple and flexible way to classify any APIC object in
+one or more user-defined groups.</p>
+<p>For example, EPGs can be tagged as secure and non-secure.  A
+compliance rule can be defined that specifies that secure EPGs
+cannot consume a contract from a non-secure EPG.  Upon violation
+of this rule, a <strong>warning</strong> or an <strong>error</strong> can be raised.</p>
+</div></blockquote>
+</li>
+</ul>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p><tt class="docutils literal"><span class="pre">acilint</span></tt> collects the configuration directly from the APIC and thus
+needs the proper credentials.  These can be passed via the command
+line arguments, a <tt class="docutils literal"><span class="pre">credentials.py</span></tt> file, environment variables, or if none of
+these, the user will be directly queried.</p>
+<p>The following example shows how to run using the command line
+arguments for credentials:</p>
+<div class="highlight-python"><div class="highlight"><pre>python acilint.py -l admin -p password -u https://1.2.3.4
+</pre></div>
+</div>
+<p>where <tt class="docutils literal"><span class="pre">admin</span></tt> is the APIC login username, <tt class="docutils literal"><span class="pre">password</span></tt> is the APIC
+password, and <tt class="docutils literal"><span class="pre">https://1.2.3.4</span></tt> is the URL used to login to the
+APIC.</p>
+<div class="section" id="customization">
+<h3>Customization<a class="headerlink" href="#customization" title="Permalink to this headline">¶</a></h3>
+<p>By default, all checks will be performed.  However, like many static
+code analysis tools, <tt class="docutils literal"><span class="pre">acilint</span></tt> is customizable and only the desired
+warnings and errors can be issued.</p>
+<p>To customize <tt class="docutils literal"><span class="pre">acilint</span></tt>, generate a configuration file with the
+following command:</p>
+<div class="highlight-python"><div class="highlight"><pre>python acilint.py --generateconfigfile acilint.cfg
+</pre></div>
+</div>
+<p>or even shorter:</p>
+<div class="highlight-python"><div class="highlight"><pre>python acilint.py -g acilint.cfg
+</pre></div>
+</div>
+<p>where <tt class="docutils literal"><span class="pre">acilint.cfg</span></tt> is the filename you wish to create.</p>
+<p>The generated configuration file will contain a list of all of the
+current checks being performed.</p>
+<p>An example config file is shown below:</p>
+<div class="highlight-python"><div class="highlight"><pre># acilint configuration file
+# Remove or comment out any warnings or errors that you no longer wish to see
+ error_001
+ error_002
+ warning_001
+ warning_002
+ warning_003
+</pre></div>
+</div>
+<p>To remove checks, either:</p>
+<ul class="simple">
+<li>Delete the line containing the check, or</li>
+<li>Comment it out by prepending a <tt class="docutils literal"><span class="pre">#</span></tt> in front of the check</li>
+</ul>
+</div>
+</div>
+<div class="section" id="errors-and-warnings">
+<h2>Errors and Warnings<a class="headerlink" href="#errors-and-warnings" title="Permalink to this headline">¶</a></h2>
+<p>The following list of Errors and Warnings are performed by
+<tt class="docutils literal"><span class="pre">acilint</span></tt>.  Since <tt class="docutils literal"><span class="pre">acilint</span></tt> is written on top of the
+<tt class="docutils literal"><span class="pre">acitoolkit</span></tt> package, the checks are limited to the functionality
+exposed by that package.  However as the <tt class="docutils literal"><span class="pre">acitoolkit</span></tt> expands, so
+shall <tt class="docutils literal"><span class="pre">acilint</span></tt>.</p>
+<div class="section" id="warnings">
+<h3>Warnings<a class="headerlink" href="#warnings" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>warning_001</td>
+<td>Tenant has no app profile</td>
+</tr>
+<tr class="row-even"><td>warning_002</td>
+<td>Tenant has no context</td>
+</tr>
+<tr class="row-odd"><td>warning_003</td>
+<td>AppProfile has no EPGs</td>
+</tr>
+<tr class="row-even"><td>warning_004</td>
+<td>Context has no BridgeDomain</td>
+</tr>
+<tr class="row-odd"><td>warning_005</td>
+<td>BridgeDomain has no EPGs assigned</td>
+</tr>
+<tr class="row-even"><td>warning_006</td>
+<td>Contract is not provided at all</td>
+</tr>
+<tr class="row-odd"><td>warning_007</td>
+<td>Contract is not consumed at all</td>
+</tr>
+<tr class="row-even"><td>warning_008</td>
+<td>EPG providing contracts but in a Context
+with no enforcement</td>
+</tr>
+<tr class="row-odd"><td>warning_009</td>
+<td>Tenant has no context</td>
+</tr>
+<tr class="row-even"><td>warning_010</td>
+<td>EPG providing contract but consuming EPG is
+in a different context</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="errors">
+<h3>Errors<a class="headerlink" href="#errors" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>error_001</td>
+<td>Tenant has no context</td>
+</tr>
+<tr class="row-even"><td>error_002</td>
+<td>EPG has no BD assigned</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="critical">
+<h3>Critical<a class="headerlink" href="#critical" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="77%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>critical_001</td>
+<td>Compliance check example</td>
+</tr>
+</tbody>
+</table>
+<p>critical_001 is a compliance check example that will perform the
+following:</p>
+<ul class="simple">
+<li>Ensure that all of the EPGs in the system have been classified as
+<em>secure</em> and <em>nonsecure</em> using the tagging capability provided by
+the <tt class="docutils literal"><span class="pre">acitoolkit</span></tt>.</li>
+<li>Ensures that none of the <em>secure</em> EPGs can communicate with the
+<em>nonsecure</em> EPGs by checking that no contract provided by <em>secure</em>
+EPGs is consumed by <em>nonsecure</em> EPGs.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="developing-checks">
+<h2>Developing Checks<a class="headerlink" href="#developing-checks" title="Permalink to this headline">¶</a></h2>
+<p>Additional checks can be added through new methods on the <tt class="docutils literal"><span class="pre">Checker</span></tt>
+class.  If the method begins with <tt class="docutils literal"><span class="pre">warning_</span></tt> or <tt class="docutils literal"><span class="pre">error_</span></tt> or
+<tt class="docutils literal"><span class="pre">critical_</span></tt>, it will automatically be executed as part of the
+<tt class="docutils literal"><span class="pre">acilint</span></tt> execution.  The new checks will also automatically inherit
+the customization capability through the usage of the configuration
+file.  Some familiarity with the <tt class="docutils literal"><span class="pre">acitoolkit</span></tt> object model is
+necessary to write additional checks.</p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="visualizations.html" class="btn btn-neutral" title="Visualization Examples"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Cisco Systems, Inc..
+    </p>
+  </div>
+
+  <a href="https://github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
