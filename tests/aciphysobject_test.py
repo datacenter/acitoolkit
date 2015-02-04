@@ -19,7 +19,7 @@ from acitoolkit.acitoolkit import *
 from acitoolkit.aciphysobject import *
 import sys
 import unittest
-LIVE_TEST = True
+
 
 class TestPod(unittest.TestCase) :
     def test_pod_id(self) :
@@ -347,7 +347,6 @@ class TestExternalNode(unittest.TestCase) :
         self.assertEqual(node._session, session)
         
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -359,7 +358,6 @@ class TestLiveAPIC(unittest.TestCase):
         return session
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLivePod(TestLiveAPIC):
     def get_all_pods(self):
         session = self.login_to_apic()
