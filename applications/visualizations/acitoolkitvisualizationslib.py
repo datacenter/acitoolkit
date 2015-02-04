@@ -145,7 +145,7 @@ def regenerate_endpoint_epg_tree(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
     def get_data_from_db():
         cnx = mysql.connector.connect(user=MYSQL_USERID,
                                       password=MYSQL_PASSWORD,
-                                      host='127.0.0.1')
+                                      host=MYSQL_IP)
         c = cnx.cursor()
         c.execute('USE acitoolkit;')
         c.execute("SELECT DISTINCT(tenant) FROM endpoints;")
