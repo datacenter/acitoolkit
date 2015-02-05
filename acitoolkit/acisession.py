@@ -22,7 +22,7 @@ import requests
 import threading
 import time
 from websocket import create_connection
-import websocket
+# import websocket
 from Queue import Queue
 import ssl
 
@@ -108,11 +108,17 @@ class Subscriber(threading.Thread):
         for subscription in self._subscriptions:
             subscription_id = self._subscriptions[subscription]
             refresh_url = '/api/subscriptionRefresh.json?id=' + subscription_id
-            resp = self._apic.get(refresh_url)
+            self._apic.get(refresh_url)
 
-    def _open_web_socket(self, useSecure=True):
+    def _open_web_socket(self, use_secure=True):
+        """
+        Opens the web socket connection with the APIC.
+
+        :param use_secure: Boolean indicating whether the web socket
+                           should be secure.  Default is True.
+        """
         sslopt = {}
-        if useSecure:
+        if use_secure:
             sslopt['cert_reqs'] = ssl.CERT_NONE
             self._ws_url = 'wss://%s/socket%s' % (self._apic.ipaddr,
                                                   self._apic.token)
@@ -131,6 +137,12 @@ class Subscriber(threading.Thread):
         self.event_handler_thread.start()
 
     def _resubscribe(self):
+        """
+        Reissue the subscriptions.
+        Used to when the APIC login timeout occurs and a new subscription
+        must be issued instead of simply a refresh.  Not meant to be called
+        directly by end user applications.
+        """
         self._process_event_q()
         urls = []
         for url in self._subscriptions:
@@ -158,6 +170,12 @@ class Subscriber(threading.Thread):
             self._events[url].append(event)
 
     def subscribe(self, url):
+        """
+        Subscribe to a particular APIC URL.  Used internally by the
+        Class and Instance subscriptions.
+
+        :param url: URL string to send as a subscription
+        """
         # Check if already subscribed.  If so, skip
         if url in self._subscriptions:
             return
@@ -169,6 +187,12 @@ class Subscriber(threading.Thread):
         return self._send_subscription(url)
 
     def has_events(self, url):
+        """
+        Check if a particular APIC URL subscription has any events.
+        Used internally by the Class and Instance subscriptions.
+
+        :param url: URL string to check for pending events
+        """
         self._process_event_q()
         if url not in self._events:
             return False
@@ -176,12 +200,24 @@ class Subscriber(threading.Thread):
         return result
 
     def get_event(self, url):
+        """
+        Get an event for a particular APIC URL subscription.
+        Used internally by the Class and Instance subscriptions.
+
+        :param url: URL string to get pending event
+        """
         if url not in self._events:
             raise ValueError
         event = self._events[url].pop(0)
         return event
 
     def unsubscribe(self, url):
+        """
+        Unsubscribe from a particular APIC URL.  Used internally by the
+        Class and Instance subscriptions.
+
+        :param url: URL string to unsubscribe
+        """
         if url not in self._subscriptions:
             return
         del self._subscriptions[url]
@@ -273,7 +309,7 @@ class Session(object):
         class and instance subscriptions.
 
         :param url:  URL string belonging to subscription
-        :returns: True or False. True if there is an event for this subscription.
+        :returns: True or False. True if an event exists for this subscription.
         """
         return self.subscription_thread.has_events(url)
 
