@@ -1021,7 +1021,7 @@ class BGPSession(BaseACIObject):
     def __init__(self, name, router_id=None, peer_ip=None, node_id=None):
         """
         :param name:  String containing the name of this BGPSession object.
-        :param router_id: String containint the IPv4 router-id
+        :param router_id: String containing the IPv4 router-id
         :param peer_ip: String containing the IP address of the BGP peer\
                         Default is None.
         :param node_id: String Containing the node-id (e.g. '101')
@@ -1044,7 +1044,7 @@ class BGPSession(BaseACIObject):
     @staticmethod
     def is_bgp():
         """
-        :returns: True if this interface is an OSPF interface.  In the case\
+        :returns: True if this interface is an BGP interface.  In the case\
                   of BGPSession instances, this is always True.
         """
         return True
@@ -1053,7 +1053,7 @@ class BGPSession(BaseACIObject):
         """
         Returns json representation of BGPSession
 
-        :returns: json dictionary of OSPFInterface
+        :returns: json dictionary of BGP Session
         """
 
         bgpextp = {'bgpExtP': {'attributes': {}}}
