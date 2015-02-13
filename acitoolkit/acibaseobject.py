@@ -105,34 +105,87 @@ class BaseACIObject(object):
 
     @classmethod
     def _get_subscription_urls(cls):
+        """
+        Gets the set of URLs used to subscribe to class changes
+        in the APIC.
+
+        :returns: Set of URL strings
+        """
         resp = []
         for class_name in cls._get_apic_classes():
             resp.append('/api/class/%s.json?subscription=yes' % class_name)
         return resp
 
     def _get_instance_subscription_urls(self):
+        """
+        Gets the set of URLs used to subscribe to instance changes
+        in the APIC.
+
+        :returns: Set of URL strings
+        """
         raise NotImplementedError
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by the acitoolkit class.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: list of strings containing APIC class names
+        """
         raise NotImplementedError
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
         raise NotImplementedError
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
         raise NotImplementedError
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Parse the name out of a dn string.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing name
+        """
         raise NotImplementedError
 
     def _extract_attributes(self, attributes):
+        """
+        Used internally by get_deep to populate the attributes
+        Will be overridden when necessary
+
+        :param attributes: data to extract attributes from
+        """
         pass
 
     def _extract_relationships(self, data):
+        """
+        Used internally by get_deep to populate the relationships
+        Will be overridden when necessary.  The default implementation
+        is here.
+
+        :param data: data to extract relationships from
+        """
         for child in self.get_children():
             child._extract_relationships(data)
 
@@ -141,7 +194,8 @@ class BaseACIObject(object):
         Checks whether this object has a particular tag assigned.
 
         :param tag: string containing the tag
-        :returns: True or False.  True indicates the object has this tag assigned.
+        :returns: True or False.  True indicates the object has this\
+                  tag assigned.
         """
         return tag in self.get_tags()
 
@@ -164,8 +218,9 @@ class BaseACIObject(object):
 
     def add_tag(self, tag):
         """
-        Assign this object a particular tag.  Tags are strings that can be used to
-        classify objects.  More than 1 tag can be assigned to an object.
+        Assign this object a particular tag.  Tags are strings that can be
+        used to classify objects.  More than 1 tag can be assigned to an
+        object.
 
         :param tag: string containing the tag to assign to this object
         """
@@ -181,6 +236,11 @@ class BaseACIObject(object):
 
     @classmethod
     def _get_parent_from_dn(cls, dn):
+        """
+        Derive the parent object using a dn
+
+        :param dn: String containing a distinguished name of an object
+        """
         parent_class = cls._get_parent_class()
         if parent_class is None:
             return None
@@ -197,6 +257,8 @@ class BaseACIObject(object):
         children as well.
 
         :param full_data:
+        :param working_data:
+        :param parent:
         """
         for item in working_data:
             for key in item:
@@ -280,6 +342,9 @@ class BaseACIObject(object):
         return False
 
     def _instance_subscribe(self, session):
+        """
+        not yet fully implemented
+        """
         url = self._get_instance_subscription_url()
         resp = session.subscribe(url)
         return resp
@@ -297,7 +362,9 @@ class BaseACIObject(object):
             session.unsubscribe(url)
 
     def _instance_unsubscribe(self):
-        # instance unsubscribe
+        """
+        _instance_unsubscribe: to be implemented
+        """
         pass
 
     def mark_as_deleted(self):
@@ -337,6 +404,12 @@ class BaseACIObject(object):
         item._attachments.append(BaseRelation(self, 'attached'))
 
     def _check_relation(self, item, status):
+        """
+        Internal function to return whether a relation exists to the
+        specified item with the given status.
+
+        :returns: True or False, True indicates the relation exists.
+        """
         check = BaseRelation(item, status)
         return check in self._relations
 
@@ -371,6 +444,12 @@ class BaseACIObject(object):
             item._attachments.append(BaseRelation(self, 'detached'))
 
     def _check_attachment(self, item, status):
+        """
+        Internal function to return whether an attachment exists to the
+        specified item with the given status.
+
+        :returns: True or False, True indicates the attachment exists.
+        """
         check = BaseRelation(item, status)
         return check in self._attachments
 
@@ -443,6 +522,7 @@ class BaseACIObject(object):
 
         :param deep: True or False.  Default is False.
         """
+        assert(deep is True or deep is False)
         return None
 
     def get_parent(self):
@@ -533,6 +613,14 @@ class BaseACIObject(object):
 
     def _get_all_relations_by_class(self, relations, attached_class,
                                     status='attached'):
+        """
+        Internal function to get relations or attachments for a given class.
+
+        :param relations: list of relations or attachments
+        :param attached_class:  The class that is the subject of the search.
+        :param status:  Valid values are 'attached' and 'detached'.\
+                        Default is 'attached'.
+        """
         resp = []
         for relation in relations:
             same_class = isinstance(relation.item, attached_class)

@@ -152,6 +152,10 @@ class Subscriber(threading.Thread):
             self.subscribe(url)
 
     def _process_event_q(self):
+        """
+        Put the event into correct bucket based on URLs that have been
+        subscribed.
+        """
         if self._event_q.empty():
             return
 
@@ -264,6 +268,10 @@ class Session(object):
         self.subscription_thread.start()
 
     def _send_login(self):
+        """
+        Send the actual login request to the APIC and open the web
+        socket interface.
+        """
         login_url = self.api + '/api/aaaLogin.json'
         name_pwd = {'aaaUser': {'attributes': {'name': self.uid,
                                                'pwd': self.pwd}}}

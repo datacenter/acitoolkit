@@ -27,17 +27,22 @@ MAX_RANDOM_STRING_SIZE = 20
 
 
 def random_string(size):
-    """Generates a random string of a certain specified size
-    RETURNS: String
+    """
+    Generates a random string of a certain specified size.
+
+    :param size: Integer indicating size of string
+    :returns: String of random characters
     """
     return ''.join(random.choice(string.ascii_uppercase +
                                  string.digits) for _ in range(size))
 
-
 def random_size_string():
-    """Generates a random string between 1 and
-       MAX_RANDOM_STRING_SIZE characters
-    RETURNS: String
+    """
+    Generates a random string between 1 and MAX_RANDOM_STRING_SIZE
+    characters
+
+    :returns: String of random characters between 1 and\
+              MAX_RANDOM_STRING_SIZE characters.
     """
     return random_string(random.randint(1, MAX_RANDOM_STRING_SIZE))
 
