@@ -91,6 +91,9 @@ class Credentials(object):
     def add_argument(self, *args, **kwargs):
         self._parser.add_argument(*args, **kwargs)
 
+    def add_mutually_exclusive_group(self, *args, **kwargs):
+        return self._parser.add_mutually_exclusive_group(*args, **kwargs)
+
     def verify(self):
         if 'apic' in self._qualifier:
             if self._args.login is None:
