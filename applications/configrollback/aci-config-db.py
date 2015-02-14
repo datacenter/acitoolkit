@@ -89,7 +89,7 @@ class ConfigDB(object):
         print '=' * underline
         for item in items:
             print item
-        
+
     def print_versions(self):
         title = 'Versions'
         versions = self.get_versions()
@@ -141,7 +141,7 @@ class ConfigDB(object):
                             print key, child_idx, child_key
                             print current[key]['children'][child_idx][child_key]['attributes']['name']
                             current[key]['children'][child_idx][child_key]['attributes']['status'] = 'deleted'
-                            
+
                 old_child_idx = 0
                 for child in range(0, len(current[key]['children'])):
                     child_key = current[key]['children'][child].keys()[0]
@@ -154,12 +154,8 @@ class ConfigDB(object):
                     old_child_idx = old_child_idx + 1
             else:
                 current[key]['attributes']['status'] = 'deleted'
-                
+
     def check_versions(self, filename, current_version, old_version):
-        #old_version = self.repo.git.show(old + ':' + filename)
-        #current_version = self.repo.git.show(current + ':' + filename)
-        #current_version = self.ordered(json.loads(current))
-        #old_version = self.ordered(json.loads(old))        
         current_version = self.ordered(current_version)
         old_version = self.ordered(old_version)
 
@@ -171,7 +167,7 @@ class ConfigDB(object):
             url = self._get_url_for_file(filename)
             self.session.push_to_apic(url, current_version)
             return False
-        
+
     def rollback(self, version, filenames=None):
         if version not in self.get_versions():
             raise ValueError('Version not found')
@@ -186,7 +182,7 @@ class ConfigDB(object):
             # Get the rollback version from the repo
             old_version = self.repo.git.show(version + ':' + filename)
             old_version = json.loads(old_version)
-            
+
             # Push it to the APIC
             url = self._get_url_for_file(filename)
             self.session.push_to_apic(url, old_version)
@@ -199,8 +195,8 @@ class ConfigDB(object):
             # Look for any remaining differences
             # If differences exist, it is new config and will be removed.
             self.check_versions(filename, current_version, old_version)
-            
-    
+
+
 if __name__ == "__main__":
     # Get all the arguments
     description = 'Configuration Snapshot and Rollback tool for APIC.'
@@ -210,15 +206,18 @@ if __name__ == "__main__":
                           help='Take a snapshot of the APIC configuration')
     commands.add_argument('-ls', '--list-snapshots', action='store_true',
                           help='List all of the available snapshots')
-    help_txt = 'List all of the available configuration files.' 
+    help_txt = 'List all of the available configuration files.'
     commands.add_argument('-lc', '--list-configfiles', action='store_true',
                           help=help_txt)
     help_txt = ('Rollback the configuration to the specified version.'
                 ' Optionally only for certain configuration files.')
-    commands.add_argument('--rollback', nargs='+', metavar=('VERSION', 'CONFIGFILE'),
+    commands.add_argument('--rollback', nargs='+',
+                          metavar=('VERSION', 'CONFIGFILE'),
                           help=help_txt)
-    help_txt = 'Show the contents of a particular configfile from a particular snaphot version.'
-    commands.add_argument('--show', nargs=2, metavar=('VERSION', 'CONFIGFILE'),
+    help_txt = ('Show the contents of a particular configfile'
+                ' from a particular snaphot version.')
+    commands.add_argument('--show', nargs=2,
+                          metavar=('VERSION', 'CONFIGFILE'),
                           help=help_txt)
     args = creds.get()
 
