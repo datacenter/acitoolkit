@@ -20,7 +20,6 @@ from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
 from acitoolkitlib import Credentials
 # from aciphysobject import Linecard
-import json
 import logging
 import re
 import copy
@@ -34,12 +33,22 @@ class Tenant(BaseACIObject):
     """
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append('fvTenant')
         return resp
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
         return None
 
     def _get_instance_subscription_url(self):
@@ -74,9 +83,15 @@ class Tenant(BaseACIObject):
         """
         resp = session.push_to_apic(self.get_url(),
                                     self.get_json())
+        return resp
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
         return {'fvAp': AppProfile,
                 'fvBD': BridgeDomain,
                 'fvCtx': Context,
@@ -164,16 +179,31 @@ class AppProfile(BaseACIObject):
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append('fvAp')
         return resp
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
         return {'fvAEPg': EPG, }
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
         return Tenant
 
     @staticmethod
@@ -438,17 +468,32 @@ class EPG(CommonEPG):
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append('fvAEPg')
         return resp
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
         return {'fvCEp': Endpoint,
                 'fvStCEp': Endpoint, }
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
         return AppProfile
 
     @staticmethod
@@ -1091,16 +1136,31 @@ class BridgeDomain(BaseACIObject):
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append('fvBD')
         return resp
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
         return {'fvSubnet': Subnet, }
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
         return Tenant
 
     @staticmethod
@@ -1263,6 +1323,11 @@ class Subnet(BaseACIObject):
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append('fvSubnet')
         return resp
@@ -1340,16 +1405,31 @@ class Context(BaseACIObject):
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append('fvCtx')
         return resp
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
         return {}
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
         return Tenant
 
     @staticmethod
@@ -1415,12 +1495,16 @@ class Context(BaseACIObject):
 
 class BaseContract(BaseACIObject):
     """ BaseContract :  Base class for Contracts and Taboos """
-    def __init__(self, contract_name, contract_type='vzBrCP', parent=None):
+    def __init__(self, contract_name, parent=None):
         super(BaseContract, self).__init__(contract_name, parent)
         self._scope = 'context'
 
     @staticmethod
     def _get_contract_code():
+        """
+        Returns the APIC class name for this contract.
+        Meant to be overridden by inheriting classes.
+        """
         raise NotImplementedError
 
     @staticmethod
@@ -1433,12 +1517,22 @@ class BaseContract(BaseACIObject):
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append(cls._get_contract_code())
         return resp
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
         return Tenant
 
     def set_scope(self, scope):
@@ -1459,6 +1553,11 @@ class BaseContract(BaseACIObject):
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
         return {}
 
     def get_json(self):
@@ -1498,10 +1597,15 @@ class BaseContract(BaseACIObject):
 class Contract(BaseContract):
     """ Contract :  Class for Contracts """
     def __init__(self, contract_name, parent=None):
-        super(Contract, self).__init__(contract_name, 'vzBrCP', parent)
+        super(Contract, self).__init__(contract_name, parent)
 
     @staticmethod
     def _get_contract_code():
+        """
+        Returns the APIC class name for this type of contract.
+
+        :returns: String containing APIC class name for this type of contract.
+        """
         return 'vzBrCP'
 
     @staticmethod
@@ -1561,11 +1665,15 @@ class Contract(BaseContract):
 class Taboo(BaseContract):
     """ Taboo :  Class for Taboos """
     def __init__(self, contract_name, parent=None):
-        super(Taboo, self).__init__(contract_name, self._get_contract_code(),
-                                    parent)
+        super(Taboo, self).__init__(contract_name, parent)
 
     @staticmethod
     def _get_contract_code():
+        """
+        Returns the APIC class name for this type of contract.
+
+        :returns: String containing APIC class name for this type of contract.
+        """
         return 'vzTaboo'
 
     @staticmethod
@@ -1692,7 +1800,6 @@ class FilterEntry(BaseACIObject):
             dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
             tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
             tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
-            names = ()
             if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class)-1:] == dn.split('/')[3][5:] and dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
                 name = str(object_data[apic_class]['attributes']['tRn'][4:])
                 if name[:len(parent.name)] == parent.name and name[len(parent.name):] != '':
@@ -1741,7 +1848,6 @@ class FilterEntry(BaseACIObject):
             dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
             tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
             tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
-            names = ()
             if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class)-1:] == dn.split('/')[3][5:] and dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
                 name = str(object_data[apic_class]['attributes']['tRn'][4:])
                 if name[:len(parent.name)] == parent.name and name[len(parent.name):] != '':
@@ -2302,7 +2408,6 @@ class InterfaceStats():
 
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
-        noCounts = False
         if data:
             if 'children' in data[0]['l1PhysIf']:
                 children = data[0]['l1PhysIf']['children']
@@ -2413,10 +2518,6 @@ class InterfaceStats():
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
-            else:
-                noCounts = True
-        else:
-            noCounts = True
         # store the result to be accessed by the retrieve method
         self.result = result
         return result
@@ -2628,6 +2729,11 @@ class Endpoint(BaseACIObject):
 
     @classmethod
     def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
         resp = []
         resp.append('fvCEp')
         resp.append('fvStCEp')
@@ -2635,10 +2741,20 @@ class Endpoint(BaseACIObject):
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
         return {}
 
     @staticmethod
     def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
         return EPG
 
     @staticmethod

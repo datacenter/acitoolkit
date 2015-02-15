@@ -22,6 +22,7 @@ import random
 from credentials import *
 import sys
 import time
+import json
 
 MAX_RANDOM_STRING_SIZE = 20
 
@@ -35,6 +36,7 @@ def random_string(size):
     """
     return ''.join(random.choice(string.ascii_uppercase +
                                  string.digits) for _ in range(size))
+
 
 def random_size_string():
     """
