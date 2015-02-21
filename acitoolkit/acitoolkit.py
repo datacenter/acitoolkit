@@ -704,8 +704,7 @@ class OutsideEPG(CommonEPG):
                 ospf_if = interface
 
                 text = {'ospfExtP': {'attributes': {'areaId': ospf_if.area_id},
-                                     'children': []}
-                        }
+                                     'children': []}}
                 children.append(text)
 
             elif hasattr(interface, 'is_bgp'):
@@ -873,7 +872,8 @@ class OSPFInterfacePolicy(BaseACIObject):
     def __init__(self, name, parent=None):
         """
         param name: String containing the name of this OSPF interface policy
-        param parent: Instance of the Tenant class representing the tenant owning this OSPF interface policy
+        param parent: Instance of the Tenant class representing the tenant\
+                      owning this OSPF interface policy
         """
 
         self.name = name
@@ -993,8 +993,9 @@ class OSPFRouter(BaseACIObject):
 
         :returns: json dictionary of OSPFIRouter
         """
+        dn_name = "topology/pod-%s/node-%s" % (self._pod, self._node)
         text = {"l3extRsNodeL3OutAtt": {"attributes": {"rtrId": self._router_id,
-                                                       "tDn": "topology/pod-%s/node-%s" % (self._pod, self._node)}}}
+                                                       "tDn": dn_name}}}
         return text
 
 
@@ -1816,46 +1817,6 @@ class FilterEntry(BaseACIObject):
                     parent=parent)
         entry._extract_attributes(attributes)
         return entry
-
-    @classmethod
-    def get_deep(cls, session, parent=None, tenant=None):
-        """
-        To get all of acitoolkit style Filter Entries APIC class.
-
-        :param session:  the instance of Session used for APIC communication
-        :param parent:  Object to assign as the parent to the created objects.
-        :param tenant:  Tenant object to assign the created objects.
-        """
-
-        apic_class = 'vzRsSubjFiltAtt'
-
-        if isinstance(tenant, str):
-            raise TypeError
-        logging.debug('%s.get called', cls.__name__)
-        if tenant is None:
-            tenant_url = ''
-        else:
-            tenant_url = '/tn-%s' % tenant.name
-            if parent is not None:
-                tenant_url = tenant_url + parent._get_url_extension()
-        query_url = ('/api/mo/uni%s.json?query-target=subtree&'
-                     'target-subtree-class=%s' % (tenant_url, apic_class))
-        ret = session.get(query_url)
-        data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
-        resp = []
-        for object_data in data:
-            dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
-            tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
-            tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
-            if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class)-1:] == dn.split('/')[3][5:] and dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
-                name = str(object_data[apic_class]['attributes']['tRn'][4:])
-                if name[:len(parent.name)] == parent.name and name[len(parent.name):] != '':
-                    obj = cls(name[len(parent.name):], parent)
-                    attribute_data = object_data[apic_class]['attributes']
-                    obj._populate_from_attributes(attribute_data)
-                    resp.append(obj)
-        return resp
 
 
 class BaseInterface(BaseACIObject):
@@ -3443,8 +3404,9 @@ class MonitorStats(BaseMonitorClass):
         self.name = ''
         self._parent.add_stats(self)
         self.collection_policy = {}
-        # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
-        # or the policy is written to the APIC.
+        # assume that it has not been written to APIC.  This is cleared if
+        # the policy is just loaded from APIC or the policy is written to
+        # the APIC.
         self.modified = True
 
     def __str__(self):
@@ -3453,66 +3415,99 @@ class MonitorStats(BaseMonitorClass):
 
 class CollectionPolicy(BaseMonitorClass):
     """
-    This class is a child of a MonitorPolicy object, MonitorTarget object or a MonitorStats object.  It is where the statistics collection
-    policy is actually specified.  It applies to all of the statistics that are at the scope level of the parent object,
-    i.e. all, specific to a target, or specific to a statistics family.  What is specified in the CollectionPolicy is the
-    time granularity of the collection and how much history to retain.  For example, the granularity might be 5 minutes (5min)
-    or 1 hour (1h).  How much history to retain is similarly specified.  For example you might specify that it be kept for 10 days (10d)
-    or 2 years (2year).
+    This class is a child of a MonitorPolicy object, MonitorTarget object or
+    a MonitorStats object.  It is where the statistics collection policy is
+    actually specified.  It applies to all of the statistics that are at the
+    scope level of the parent object,
+    i.e. all, specific to a target, or specific to a statistics family.  What
+    is specified in the CollectionPolicy is the time granularity of the
+    collection and how much history to retain.  For example, the granularity
+    might be 5 minutes (5min) or 1 hour (1h).  How much history to retain is
+    similarly specified.  For example you might specify that it be kept for
+    10 days (10d) or 2 years (2year).
 
-    If the CollectionPolicy is a child of a MonitorStats object, it can optionally have children that specify the policy
-    for raising threshold alarms on the fields in the stats family specified in the MonitorStats object.  This has yet to be
-    implemented.
+    If the CollectionPolicy is a child of a MonitorStats object, it can
+    optionally have children that specify the policy for raising threshold
+    alarms on the fields in the stats family specified in the MonitorStats
+    object.  This has yet to be implemented.
 
-    This object is roughly the same as the statsColl and statsHierColl objects in the APIC.
+    This object is roughly the same as the statsColl and statsHierColl objects
+    in the APIC.
     """
-    granularityEnum = ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year']  # this must be in order from small to large
+    # this must be in order from small to large
+    granularityEnum = ['5min', '15min', '1h', '1d',
+                       '1w', '1mo', '1qtr', '1year']
     retentionEnum = ['none', 'inherited', '5min', '15min', '1h', '1d',
                      '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year']
 
     def __init__(self, parent, granularity, retention, adminState='enabled'):
         """
-        The CollectionPolicy must always be initialized with a parent object of type MonitorPolicy, MonitorTarget or MonitorStats.
-        The granularity must also be specifically specified.  The retention period can be specified, set to "none", or set to "inherited".
-        Note that the "none" value is a string, not the Python None.  When the retention period is set to "none" there will be no
-        historical stats kept.  However, assuming collection is enabled, stats will be kept for the current time period.
+        The CollectionPolicy must always be initialized with a parent object of
+        type MonitorPolicy, MonitorTarget or MonitorStats. The granularity must
+        also be specifically specified.  The retention period can be specified,
+        set to "none", or set to "inherited".
+        Note that the "none" value is a string, not the Python None.  When the
+        retention period is set to "none" there will be no historical stats
+        kept. However, assuming collection is enabled, stats will be kept for
+        the current time period.
 
-        If the retention period is set to "inherited", the value will be inherited from the less specific policy directly above this one.
-        The same applies to the adminState value.  It can be 'disabled', 'enabled', or 'inherited'.  If 'disabled', the current scope of
-        counters are not gathered.  If enabled, they are gathered.  If 'inherited', it will be according to the next higher scope.
+        If the retention period is set to "inherited", the value will be
+        inherited from the less specific policy directly above this one. The
+        same applies to the adminState value.  It can be 'disabled', 'enabled',
+        or 'inherited'.  If 'disabled', the current scope of counters are not
+        gathered.  If enabled, they are gathered.  If 'inherited', it will be
+        according to the next higher scope.
 
-        Having the 'inherited' option on the retention and administrative status allows these items independently controlled at the current
-        stats granularity.  For example, you can specify that ingress unknown packets are gathered every 15 minutes by setting
-        adding a collection policy that specifies a 15 minutes granularity and an adminState of 'enabled' under a MonitorStats object that
-        sets the scope to be ingress unknown packets.  This might override a higher level policy that disabled collection at a 15 minute
-        interval.   However, you can set the retention in that same object to be "inherited" so that this specific policy does not
-        change the retention behavior from that of the higher, less specific, policy.
+        Having the 'inherited' option on the retention and administrative
+        status allows these items independently controlled at the current
+        stats granularity.  For example, you can specify that ingress unknown
+        packets are gathered every 15 minutes by setting adding a collection
+        policy that specifies a 15 minutes granularity and an adminState of
+        'enabled' under a MonitorStats object that sets the scope to be ingress
+        unknown packets.  This might override a higher level policy that
+        disabled collection at a 15 minute interval.   However, you can set the
+        retention in that same object to be "inherited" so that this specific
+        policy does not change the retention behavior from that of the higher,
+        less specific, policy.
 
-        When the CollectionPolicy is a child at the top level, i.e. of the MonitorPolicy, the 'inherited' option is not allowed
-        because there is no higher level policy to inherit from.  If this were to happen, 'inherited' will be treated as
-        'enabled'.
+        When the CollectionPolicy is a child at the top level, i.e. of the
+        MonitorPolicy, the 'inherited' option is not allowed because there
+        is no higher level policy to inherit from.  If this were to happen,
+        'inherited' will be treated as 'enabled'.
 
-       :param parent: Parent object that this collection policy should be applied to.
-                       This must be an object of type MonitorStats, MonitorTarget, or MonitorPolicy.
-       :param granularity:  String specifying the time collection interval or granularity of this policy.  Possible values are:
-                       ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', '1year'].
-       :param retention: String specifying how much history to retain the collected statistics for.  The retention will be for
-                       time units of the granularity specified.  Possible values are ['none', 'inherited', '5min', '15min', '1h',
-                       '1d', '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'].
-       :param adminState:  Administrative status.  String to specify whether stats should be collected at the specified
-                       granularity.  Possible values are ['enabled', 'disabled', 'inherited'].  The default if not
-                       specified is 'enabled'.
+       :param parent: Parent object that this collection policy should be
+                      applied to. This must be an object of type MonitorStats,
+                      MonitorTarget, or MonitorPolicy.
+       :param granularity:  String specifying the time collection interval or
+                            granularity of this policy.  Possible values are:
+                            ['5min', '15min', '1h', '1d', '1w', '1mo', '1qtr',
+                            '1year'].
+       :param retention: String specifying how much history to retain the
+                         collected statistics for.  The retention will be for
+                         time units of the granularity specified.  Possible
+                         values are ['none', 'inherited', '5min', '15min',
+                         '1h', '1d', '1w', '10d', '1mo', '1qtr', '1year',
+                         '2year', '3year'].
+       :param adminState:  Administrative status.  String to specify whether
+                           stats should be collected at the specified
+                           granularity.  Possible values are ['enabled',
+                           'disabled', 'inherited'].  The default if not
+                           specified is 'enabled'.
         """
         adminStateEnum = ['enabled', 'disabled', 'inherited']
 
         if type(parent) not in [MonitorStats, MonitorTarget, MonitorPolicy]:
-            raise TypeError('Parent of collection policy must be one of MonitorStats, MonitorTarget, or MonitorPolicy')
+            raise TypeError(('Parent of collection policy must be one of '
+                             'MonitorStats, MonitorTarget, or MonitorPolicy'))
         if granularity not in CollectionPolicy.granularityEnum:
-            raise ValueError('granularity must be one of:', granularityEnum)
+            raise ValueError('granularity must be one of:',
+                             CollectionPolicy.granularityEnum)
         if retention not in CollectionPolicy.retentionEnum:
-            raise ValueError('retention must be one of:', retentionEnum)
+            raise ValueError('retention must be one of:',
+                             CollectionPolicy.retentionEnum)
         if adminState not in adminStateEnum:
-            raise ValueError('adminState must be one of:', adminStateEnum)
+            raise ValueError('adminState must be one of:',
+                             CollectionPolicy.adminStateEnum)
 
         self._parent = parent
         self.granularity = granularity
@@ -3522,8 +3517,9 @@ class CollectionPolicy(BaseMonitorClass):
         self._children = []
 
         self._parent.add_collection_policy(self)
-        # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
-        # or the policy is written to the APIC.
+        # assume that it has not been written to APIC.  This is cleared if
+        # the policy is just loaded from APIC or the policy is written to
+        # the APIC.
         self.modified = True
 
     def __str__(self):
@@ -3533,9 +3529,11 @@ class CollectionPolicy(BaseMonitorClass):
         """
         Sets the administrative status.
 
-        :param adminState:  Administrative status.  String to specify whether stats should be collected at the specified
-                       granularity.  Possible values are ['enabled', 'disabled', 'inherited'].  The default if not
-                       specified is 'enabled'.
+        :param adminState:  Administrative status.  String to specify whether
+                            stats should be collected at the specified
+                            granularity.  Possible values are ['enabled',
+                            'disabled', 'inherited'].  The default if not
+                            specified is 'enabled'.
         """
         if self.adminState != adminState:
             self.modified = True
@@ -3546,11 +3544,13 @@ class CollectionPolicy(BaseMonitorClass):
         """
         Sets the retention period.
 
-       :param retention: String specifying how much history to retain the collected statistics for.  The retention will be for
-                       time units of the granularity specified.  Possible values are ['none', 'inherited', '5min', '15min', '1h',
-                       '1d', '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'].
+       :param retention: String specifying how much history to retain the
+                         collected statistics for.  The retention will be for
+                         time units of the granularity specified.  Possible
+                         values are ['none', 'inherited', '5min', '15min',
+                         '1h', '1d', '1w', '10d', '1mo', '1qtr', '1year',
+                         '2year', '3year'].
         """
-
         if self.retention != retention:
             self.modified = True
 
