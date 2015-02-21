@@ -1782,21 +1782,21 @@ class TestApic(unittest.TestCase):
         (session, tenant, app, epg) = self.base_test_setup()
 
         # Create the port channel
-        intf1 = Interface('eth', '1', '101', '1', '38')
-        intf2 = Interface('eth', '1', '101', '1', '39')
-        intf3 = Interface('eth', '1', '102', '1', '38')
-        intf4 = Interface('eth', '1', '102', '1', '39')
+        intf1 = Interface('eth', '1', '105', '1', '38')
+        intf2 = Interface('eth', '1', '105', '1', '39')
+        intf3 = Interface('eth', '1', '106', '1', '38')
+        intf4 = Interface('eth', '1', '106', '1', '39')
         pc = PortChannel('pc1')
         pc.attach(intf1)
         pc.attach(intf2)
         pc.attach(intf3)
         pc.attach(intf4)
         (fabric, infra) = pc.get_json()
-        expected = ('{"fabricProtPol": {"attributes": {"name": "vpc101"}, '
+        expected = ('{"fabricProtPol": {"attributes": {"name": "vpc105"}, '
                     '"children": [{"fabricExplicitGEp": {"attributes": '
-                    '{"name": "vpc101", "id": "101"}, "children": [{'
-                    '"fabricNodePEp": {"attributes": {"id": "101"}}}, '
-                    '{"fabricNodePEp": {"attributes": {"id": "102"}}}]}}]}}')
+                    '{"name": "vpc105", "id": "105"}, "children": [{'
+                    '"fabricNodePEp": {"attributes": {"id": "105"}}}, '
+                    '{"fabricNodePEp": {"attributes": {"id": "106"}}}]}}]}}')
         self.assertTrue(json.dumps(fabric) == expected)
         if fabric is not None:
             resp = session.push_to_apic('/api/mo/uni/fabric.json', data=fabric)
