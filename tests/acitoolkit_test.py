@@ -53,37 +53,64 @@ class TestBaseRelation(unittest.TestCase):
     """Tests on the BaseRelation class.  These do not communicate with the APIC
     """
     def create_relation(self, status='attached'):
+        """
+        Creates a base relation
+        """
         tenant = Tenant('test')
         relation = BaseRelation(tenant, status)
         return tenant, relation
 
     def create_attached_relation(self):
+        """
+        Creates an attached base relation
+        """
         return self.create_relation('attached')
 
     def create_detached_relation(self):
+        """
+        Creates a detached base relation
+        """
         return self.create_relation('detached')
 
     def test_create_with_valid_status_attached(self):
+        """
+        Creates an attached relation
+        """
         tenant, relation = self.create_attached_relation()
         self.assertTrue(relation is not None)
 
     def test_create_with_valid_status_detached(self):
+        """
+        Creates a detached relation
+        """
         tenant, relation = self.create_detached_relation()
         self.assertTrue(relation is not None)
 
     def test_create_invalid(self):
+        """
+        Creates an invalid relation status
+        """
         tenant = Tenant('test')
         self.assertRaises(ValueError, BaseRelation, tenant, 'something else')
 
     def test_is_attached(self):
+        """
+        Test is_attached
+        """
         tenant, relation = self.create_attached_relation()
         self.assertTrue(relation.is_attached())
 
     def test_is_detached(self):
+        """
+        Test is_detached
+        """
         tenant, relation = self.create_detached_relation()
         self.assertTrue(relation.is_detached())
 
     def test_set_detached(self):
+        """
+        Test set_as_detached
+        """
         tenant, relation = self.create_attached_relation()
         self.assertTrue(relation.is_attached())
         relation.set_as_detached()
@@ -151,53 +178,101 @@ class TestBaseACIObject(unittest.TestCase):
 
 
 class TestTenant(unittest.TestCase):
+    """
+    Tenant class tests.  These do not communicate with APIC
+    """
     def test_create(self):
+        """
+        Tenant creation
+        """
         tenant = Tenant('tenant')
         self.assertNotEqual(tenant, None)
 
     def test_json(self):
+        """
+        Tenant get_json
+        """
         tenant = Tenant('tenant')
         self.assertTrue(type(tenant.get_json()) == dict)
 
     def test_get_parent_class(self):
+        """
+        Ensure class has the correct parent class
+        """
         self.assertEquals(Tenant._get_parent_class(), None)
 
     def test_get_name_from_dn(self):
+        """
+        Ensure gives the correct name from a dn for a Tenant
+        """
         dn = 'uni/tn-test'
         self.assertEquals(Tenant._get_name_from_dn(dn), 'test')
 
 
 class TestAppProfile(unittest.TestCase):
+    """
+    AppProfile class tests.  These do not communicate with APIC
+    """
     def test_create(self):
+        """
+        AppProfile creation
+        """
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         self.assertNotEqual(app, None)
 
     def test_invalid_create_no_parent(self):
+        """
+        Test invalid AppProfile creation by passing no parent class
+        """
         self.assertRaises(TypeError, AppProfile, 'app', None)
 
     def test_invalid_create_parent_as_string(self):
+        """
+        Test invalid AppProfile creation by passing string as the
+        parent class
+        """
         self.assertRaises(TypeError, AppProfile, 'app', 'tenant')
 
     def test_invalid_create_no_name(self):
+        """
+        Test invalid AppProfile creation by passing no name
+        """
         self.assertRaises(TypeError, AppProfile, None, Tenant('tenant'))
 
     def test_invalid_create_not_string_name(self):
+        """
+        Test invalid AppProfile creation by passing non-string as name
+        """
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, AppProfile, tenant, tenant)
 
     def test_get_parent_class(self):
+        """
+        Test AppProfile._get_parent_class returns Tenant class
+        """
         self.assertEquals(AppProfile._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
+        """
+        Test AppProfile._get_parent_dn returns correct dn of the
+        parent
+        """
         dn = 'uni/tn-tenant/ap-test'
         self.assertEquals(AppProfile._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
+        """
+        Test that AppProfile._get_name_from_dn returns the name
+        derived from the dn provided
+        """
         dn = 'uni/tn-tenant/ap-test'
         self.assertEquals(AppProfile._get_name_from_dn(dn), 'test')
 
     def test_delete(self):
+        """
+        Test AppProfile deletion
+        """
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         self.assertFalse(app.is_deleted())
@@ -205,18 +280,27 @@ class TestAppProfile(unittest.TestCase):
         self.assertTrue(app.is_deleted())
 
     def test_eq(self):
+        """
+        Test AppProfile __eq__ function
+        """
         tenant = Tenant('tenant')
         app1 = AppProfile('app', tenant)
         app2 = AppProfile('app', tenant)
         self.assertEqual(app1, app2)
 
     def test_not_eq_different_name(self):
+        """
+        Test AppProfile not equal due to different name
+        """
         tenant = Tenant('tenant')
         app1 = AppProfile('app1', tenant)
         app2 = AppProfile('app2', tenant)
         self.assertNotEqual(app1, app2)
 
     def test_not_eq_different_parent(self):
+        """
+        Test AppProfile not equal due to different parent
+        """
         tenant1 = Tenant('tenant1')
         tenant2 = Tenant('tenant2')
         app1 = AppProfile('app', tenant1)
@@ -224,18 +308,26 @@ class TestAppProfile(unittest.TestCase):
         self.assertNotEqual(app1, app2)
 
     def test_json(self):
+        """
+        Test AppProfile get_json returns something json-like
+        """
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         self.assertTrue(type(app.get_json()) == dict)
 
 
 class TestBridgeDomain(unittest.TestCase):
+    """
+    Test the BridgeDomain class
+    """
     def create_bd(self):
+        """ Create a BridgeDomain """
         tenant = Tenant('tenant')
         bd = BridgeDomain('bd', tenant)
         return tenant, bd
 
     def create_bd_with_subnet(self):
+        """ Create a BridgeDomain with a subnet """
         tenant, bd = self.create_bd()
         sub1 = Subnet('sub1', bd)
         sub1.set_addr('1.1.1.1/24')
@@ -243,40 +335,74 @@ class TestBridgeDomain(unittest.TestCase):
         return bd, sub1
 
     def test_valid_create(self):
+        """
+        Test basic BridgeDomain creation
+        """
         tenant, bd = self.create_bd()
         self.assertNotEqual(bd, None)
 
     def test_invalid_create_no_parent(self):
+        """
+        Test invalid BridgeDomain creation due to no parent provided
+        """
         self.assertRaises(TypeError, BridgeDomain, 'bd', None)
 
     def test_invalid_create_parent_as_string(self):
+        """
+        Test invalid BridgeDomain creation due to parent passed
+        as a string
+        """
         self.assertRaises(TypeError, BridgeDomain, 'bd', 'tenant')
 
     def test_invalid_create_no_name(self):
+        """
+        Test invalid BridgeDomain creation due to no name given
+        """
         self.assertRaises(TypeError, BridgeDomain, None, Tenant('tenant'))
 
     def test_invalid_create_not_string_name(self):
+        """
+        Test invalid BridgeDomain creation due name not given as
+        a string.
+        """
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, BridgeDomain, tenant, tenant)
 
     def test_get_parent_class(self):
+        """
+        Test that BridgeDomain._get_parent_class returns Tenant class
+        """
         self.assertEquals(BridgeDomain._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
+        """
+        Test BridgeDomain._get_parent_dn returns correct dn of the
+        parent
+        """
         dn = 'uni/tn-tenant/BD-test'
         self.assertEquals(BridgeDomain._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
+        """
+        Test that BridgeDomain._get_name_from_dn returns the name
+        derived from the dn provided
+        """
         dn = 'uni/tn-tenant/BD-test'
         self.assertEquals(BridgeDomain._get_name_from_dn(dn), 'test')
 
     def test_valid_delete(self):
+        """
+        Test BridgeDomain instance deletion
+        """
         tenant, bd = self.create_bd()
         self.assertFalse(bd.is_deleted())
         bd.mark_as_deleted()
         self.assertTrue(bd.is_deleted())
 
     def test_add_valid_subnet(self):
+        """
+        Test adding a subnet to the BD
+        """
         # Add a single subnet to the BD
         bd, sub1 = self.create_bd_with_subnet()
         # Verify that the subnet is there
@@ -286,6 +412,9 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd.has_subnet(sub1))
 
     def test_add_2_valid_subnets(self):
+        """
+        Test adding 2 subnets to the BD
+        """
         bd, sub1 = self.create_bd_with_subnet()
 
         # Add a second subnet to the BD
@@ -300,16 +429,25 @@ class TestBridgeDomain(unittest.TestCase):
         return bd, sub1, sub2
 
     def test_add_subnet_wrong_type(self):
+        """
+        Test that the subnet must be correct type
+        """
         tenant, bd = self.create_bd()
         self.assertRaises(TypeError, bd.add_subnet, 'sub1')
 
     def test_add_subnet_no_addr(self):
+        """
+        Test that the subnet added must have an address
+        """
         tenant, bd = self.create_bd()
         sub1 = Subnet('sub1', bd)
         self.assertRaises(ValueError, bd.add_subnet, sub1)
         self.assertRaises(ValueError, bd.get_json)
 
     def test_add_subnet_wrong_parent(self):
+        """
+        Test that creating a subnet with an invalid parent
+        """
         tenant, bd = self.create_bd()
         self.assertRaises(TypeError, Subnet, 'sub1', tenant)
 
@@ -998,23 +1136,99 @@ class TestOutsideEPG(unittest.TestCase):
 
 
 class TestEndpoint(unittest.TestCase):
+    """
+    Test Static Endpoints.
+    These tests do not communicate with the APIC
+    """
+    def create_tenant_with_ep(self, tenant_name, app_name,
+                              epg_name, ep_name, interface=None):
+        """
+        Create a tenant with an EP.  Optionally attach to the given
+        interface
+        """
+        tenant = Tenant(tenant_name)
+        app = AppProfile(app_name, tenant)
+        epg = EPG(epg_name, app)
+        ep = Endpoint(ep_name, epg)
+        if interface is not None:
+            epg.attach(interface)
+            ep.attach(interface)
+        return tenant
+
+    def verify_json(self, data, deleted=False):
+        """
+        Check that the JSON is correct for an Endpoint.
+        Setting deleted will check the status is set to deleted
+        """
+        app = data['fvTenant']['children'][0]['fvAp']
+        epg = app['children'][0]['fvAEPg']
+        interface = 'topology/pod-1/paths-1/pathep-[eth1/1]'
+        mac = '00-11-22-33-44-55'
+        children_checked = 0
+        for child in epg['children']:
+            if 'fvRsPathAtt' in child:
+                dn_attr = child['fvRsPathAtt']['attributes']['tDn']
+                self.assertTrue(dn_attr == interface)
+                children_checked = children_checked + 1
+            if 'fvStCEp' in child:
+                ep_child = child['fvStCEp']['children'][0]
+                ep_attributes = child['fvStCEp']['attributes']
+                ep_name = ep_attributes['name']
+                if deleted:
+                    status = ep_attributes['status']
+                    self.assertTrue(status == 'deleted')
+                self.assertTrue(ep_name == mac)
+                children_checked = children_checked + 1
+                self.assertTrue('fvRsStCEpToPathEp' in ep_child)
+                if_attr = ep_child['fvRsStCEpToPathEp']['attributes']
+                child_interface = if_attr['tDn']
+                self.assertTrue(child_interface == interface)
+        self.assertTrue(children_checked >= 2)
+
     def test_create(self):
-        tenant = Tenant('tenant')
-        app = AppProfile('app', tenant)
-        epg = EPG('epg', app)
-        ep = Endpoint('00-11-22-33-44-55', epg)
+        """
+        Create a basic static endpoint without attaching
+        to an interface
+        """
+        tenant = self.create_tenant_with_ep('tenant', 'app', 'epg',
+                                            '00-11-22-33-44-55')
         tenant.get_json()
 
     def test_create_on_interface(self):
-        tenant = Tenant('tenant')
-        app = AppProfile('app', tenant)
-        epg = EPG('epg', app)
-        ep = Endpoint('00-11-22-33-44-55', epg)
+        """
+        Create a basic static endpoint and attach
+        to an interface.  Verify the JSON afterwards
+        """
         interface = Interface('eth', '1', '1', '1', '1')
         vlan_interface = L2Interface('vlan5', 'vlan', '5')
         vlan_interface.attach(interface)
-        epg.attach(vlan_interface)
-        ep.attach(vlan_interface)
+        tenant = self.create_tenant_with_ep('tenant', 'app', 'epg',
+                                            '00-11-22-33-44-55',
+                                            vlan_interface)
+        data = tenant.get_json()
+
+        # Verify the JSON is correct
+        self.verify_json(data)
+
+    def test_delete_from_interface(self):
+        """
+        Create a basic static endpoint and attach
+        to an interface and then delete it.
+        Verify the JSON afterwards
+        """
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_interface = L2Interface('vlan5', 'vlan', '5')
+        vlan_interface.attach(interface)
+        tenant = self.create_tenant_with_ep('tenant', 'app', 'epg',
+                                            '00-11-22-33-44-55',
+                                            vlan_interface)
+        app = tenant.get_children(AppProfile)[0]
+        epg = app.get_children(EPG)[0]
+        ep = epg.get_children(Endpoint)[0]
+        ep.mark_as_deleted()
+
+        data = tenant.get_json()
+        self.verify_json(data, True)
 
 
 class TestJson(unittest.TestCase):
