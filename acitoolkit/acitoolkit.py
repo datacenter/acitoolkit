@@ -683,6 +683,7 @@ class OutsideEPG(CommonEPG):
         :param context: Instance of Context class to assign to this\
                         L3Interface.
         """
+        assert isinstance(context, Context)
         if self.has_context():
             self.remove_context()
         self.context_name = context.name
@@ -819,6 +820,7 @@ class L3Interface(BaseACIObject):
         :param context: Instance of Context class to assign to this\
                         L3Interface.
         """
+        assert isinstance(context, Context)
         if self.has_context():
             self.remove_context()
         self._add_relation(context)
@@ -1215,6 +1217,7 @@ class BridgeDomain(BaseACIObject):
 
         :param context: Context to assign this BridgeDomain
         """
+        assert isinstance(context, Context)
         self._add_relation(context)
 
     def remove_context(self):

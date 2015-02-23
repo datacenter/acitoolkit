@@ -99,7 +99,8 @@ class TestNode(unittest.TestCase):
         node = Node(node_pod, node_node, node_name, role=node_role)
         self.assertEqual(node.role, node_role)
         node_role = 'bogus'
-        self.assertRaises(ValueError, Node, node_pod, node_node, node_name, node_role)
+        self.assertRaises(ValueError, Node, node_pod, node_node,
+                          node_name, node_role)
 
     def test_node_type(self):
         node = Node('1', '2', 'Leaf1', role='leaf')
@@ -165,7 +166,8 @@ class TestLink(unittest.TestCase):
         port2 = '7'
         link = '101'
 
-        link1 = Link(pod.pod, link, node1, slot1, port1, node2, slot2, port2, pod)
+        link1 = Link(pod.pod, link, node1, slot1, port1,
+                     node2, slot2, port2, pod)
         self.assertEqual(link1.pod, pod.pod)
         self.assertEqual(link1.link, link)
         self.assertEqual(link1.node1, node1)
@@ -191,10 +193,15 @@ class TestLink(unittest.TestCase):
         node2 = Node(pod_id, node2_id, 'Leaf', 'leaf', pod)
         linecard1 = Linecard(slot1_id, node1)
         linecard2 = Linecard(slot2_id, node2)
-        interface1 = Interface(interface_type='eth', pod=pod_id, node=node1_id, module=slot1_id, port=port1_id, parent=linecard1)
+        interface1 = Interface(interface_type='eth', pod=pod_id,
+                               node=node1_id, module=slot1_id,
+                               port=port1_id, parent=linecard1)
         inf = linecard1.get_children()
-        interface2 = Interface(interface_type='eth', pod=pod_id, node=node2_id, module=slot2_id, port=port2_id, parent=linecard2)
-        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id, node2_id, slot2_id, port2_id, pod)
+        interface2 = Interface(interface_type='eth', pod=pod_id,
+                               node=node2_id, module=slot2_id,
+                               port=port2_id, parent=linecard2)
+        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id,
+                     node2_id, slot2_id, port2_id, pod)
         self.assertEqual(node1, link1.get_node1())
         self.assertEqual(node2, link1.get_node2())
         self.assertEqual(linecard1, link1.get_slot1())
@@ -240,7 +247,8 @@ class CheckModule():
         self.assertEqual(node.get_children(mod_class), [mod2, mod3])
 
         # test illegal parent type
-        self.assertRaises(TypeError, mod_class, mod_pod, mod_node, mod_slot, mod1)
+        self.assertRaises(TypeError, mod_class, mod_pod, mod_node,
+                          mod_slot, mod1)
 
     @staticmethod
     def check_mod_instance(self, mod_class):
@@ -542,7 +550,8 @@ class TestLivePod(TestLiveAPIC):
             if node.get_role() == 'controller' and node.fabricSt != 'inactive':
                 controller = node
 
-        self.assertEqual(len(node_roles ^ set(['controller', 'spine', 'leaf'])), 0)
+        self.assertEqual(len(node_roles ^ set(['controller',
+                                               'spine', 'leaf'])), 0)
 
         modules = spine.get_children()
         module_types = set()
@@ -551,7 +560,10 @@ class TestLivePod(TestLiveAPIC):
             if module.get_type() == 'linecard':
                 linecard = module
 
-        self.assertEqual(len(module_types ^ set(['linecard', 'supervisor', 'powersupply', 'fantray'])), 0)
+        self.assertEqual(len(module_types ^ set(['linecard',
+                                                 'supervisor',
+                                                 'powersupply',
+                                                 'fantray'])), 0)
 
         interfaces = linecard.get_children()
         for interface in interfaces:
@@ -563,7 +575,8 @@ class TestLivePod(TestLiveAPIC):
         module_types = set()
         for module in modules:
             module_types.add(module.get_type())
-        self.assertEqual(len(module_types ^ set(['systemctrlcard', 'fantray'])), 0)
+        self.assertEqual(len(module_types ^ set(['systemctrlcard',
+                                                 'fantray'])), 0)
 
         links = pod.get_children(Link)
         for link in links:
@@ -605,7 +618,8 @@ class TestLivePod(TestLiveAPIC):
                 self.assertIsInstance(enode.attributes.get('ipAddress'), str)
                 self.assertIsInstance(enode.attributes.get('id'), str)
                 self.assertEqual(enode.attributes.get('pod'), None)
-            self.assertIn(enode.attributes.get('role'), ['physicalSwitch', 'virtualSwitch'])
+            self.assertIn(enode.attributes.get('role'), ['physicalSwitch',
+                                                         'virtualSwitch'])
 
 
 class TestFind(unittest.TestCase):
@@ -626,10 +640,15 @@ class TestFind(unittest.TestCase):
         linecard2 = Linecard(slot2_id, node2)
         linecard1.serial = 'SerialNumber1'
         linecard2.serial = 'SerialNumber2'
-        interface1 = Interface(interface_type='eth', pod=pod_id, node=node1_id, module=slot1_id, port=port1_id, parent=linecard1)
+        interface1 = Interface(interface_type='eth', pod=pod_id,
+                               node=node1_id, module=slot1_id,
+                               port=port1_id, parent=linecard1)
         inf = linecard1.get_children()
-        interface2 = Interface(interface_type='eth', pod=pod_id, node=node2_id, module=slot2_id, port=port2_id, parent=linecard2)
-        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id, node2_id, slot2_id, port2_id, pod)
+        interface2 = Interface(interface_type='eth', pod=pod_id,
+                               node=node2_id, module=slot2_id,
+                               port=port2_id, parent=linecard2)
+        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id,
+                     node2_id, slot2_id, port2_id, pod)
 
         so = Search()
         so.node = node2_id

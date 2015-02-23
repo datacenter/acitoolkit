@@ -330,7 +330,17 @@ class BridgeDomainConfigSubMode(SubMode):
                     return self.get_completions(text, ['name'])
 
     def do_context(self, args):
-        pass
+        context = Context(args, self.tenant)
+        if self.negative:
+            print ('Bridgedomain to Context assignment cannot be deleted,'
+                   ' only reassigned to another Context')
+            return
+        else:
+            self.bridgedomain.add_context(context)
+        resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                      self.tenant.get_json())
+        if not resp.ok:
+            error_message(resp)
 
     def complete_context(self, text, line, begidx, endidx):
 
