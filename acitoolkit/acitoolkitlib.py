@@ -83,6 +83,16 @@ class Credentials(object):
                                       default=DEFAULT_MYSQL_PASSWORD,
                                       help='MySQL login password.')
 
+    def _get_from_user(self, prompt):
+        try:
+            resp = raw_input(prompt)
+        except NameError:
+            resp = input(prompt)
+        return resp
+
+    def _get_password(self, prompt):
+        return getpass.getpass(prompt)
+            
     def get(self):
         self._args = self._parser.parse_args()
         self.verify()
@@ -97,27 +107,15 @@ class Credentials(object):
     def verify(self):
         if 'apic' in self._qualifier:
             if self._args.login is None:
-                try:
-                    self._args.login = raw_input('APIC login username: ')
-                except NameError:
-                    self._args.login = input('APIC login username: ')
+                self._args.login = self._get_from_user('APIC login username: ')
             if self._args.url is None:
-                try:
-                    self._args.url = raw_input('APIC URL: ')
-                except NameError:
-                    self._args.url = input('APIC URL: ')
+                self._args.url = self._get_from_user('APIC URL: ')
             if self._args.password is None:
-                self._args.password = getpass.getpass('APIC Password: ')
+                self._args.password = self._get_password('APIC Password: ')
         if 'mysql' in self._qualifier:
             if self._args.mysqlip is None:
-                try:
-                    self._args.mysqlip = raw_input('MySQL IP address: ')
-                except NameError:
-                    self._args.mysqlip = input('MySQL IP address: ')
+                self._args.mysqlip = self._get_from_user('MySQL IP address: ')
             if self._args.mysqllogin is None:
-                try:
-                    self._args.mysqllogin = raw_input('MySQL login username: ')
-                except NameError:
-                    self._args.mysqllogin = input('MySQL login username: ')
+                self._args.mysqllogin = self._get_from_user('MySQL login username: ')
             if self._args.mysqlpassword is None:
-                self._args.mysqlpassword = getpass.getpass('MySQL Password: ')
+                self._args.mysqlpassword = self._get_password('MySQL Password: ')
