@@ -113,8 +113,6 @@ Warnings
 |warning_008 |EPG providing contracts but in a Context    |
 |            |with no enforcement                         |
 +------------+--------------------------------------------+
-|warning_009 |Tenant has no context                       |
-+------------+--------------------------------------------+
 |warning_010 |EPG providing contract but consuming EPG is |
 |            |in a different context                      |
 +------------+--------------------------------------------+
@@ -123,7 +121,7 @@ Errors
 ~~~~~~
 
 +------------+--------------------------------------------+
-|error_001   |Tenant has no context                       |
+|error_001   |BridgeDomain has no context                 |
 +------------+--------------------------------------------+
 |error_002   |EPG has no BD assigned                      |
 +------------+--------------------------------------------+

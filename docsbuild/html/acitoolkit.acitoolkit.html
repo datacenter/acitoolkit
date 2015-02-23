@@ -89,7 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="cableplan.html">Cableplan Application</a></li>
 <li class="toctree-l2"><a class="reference internal" href="endpointtracker.html">ACI Endpoint Tracker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="visualizations.html">Visualization Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acilint.html">acilint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acilint.html">ACI Lint</a></li>
 </ul>
 </li>
 </ul>
@@ -170,8 +170,9 @@ equivalent to the fvAp class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.AppProfile.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.AppProfile.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -324,7 +325,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -462,7 +468,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -638,7 +644,7 @@ This interface defines the BGP AS, authentication, etc.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>name</strong> &#8211; String containing the name of this BGPSession object.</li>
-<li><strong>router_id</strong> &#8211; String containint the IPv4 router-id</li>
+<li><strong>router_id</strong> &#8211; String containing the IPv4 router-id</li>
 <li><strong>peer_ip</strong> &#8211; String containing the IP address of the BGP peer                        Default is None.</li>
 <li><strong>node_id</strong> &#8211; String Containing the node-id (e.g. &#8216;101&#8217;)</li>
 </ul>
@@ -663,8 +669,9 @@ This interface defines the BGP AS, authentication, etc.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.BGPSession.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BGPSession.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -817,7 +824,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -865,7 +877,7 @@ L3Interface, etc.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of OSPFInterface</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">json dictionary of BGP Session</td>
 </tr>
 </tbody>
 </table>
@@ -955,7 +967,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -1017,7 +1029,7 @@ of this class.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if this interface is an OSPF interface.  In the case                  of BGPSession instances, this is always True.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if this interface is an BGP interface.  In the case                  of BGPSession instances, this is always True.</td>
 </tr>
 </tbody>
 </table>
@@ -1134,7 +1146,7 @@ class.</p>
 
 <dl class="class">
 <dt id="acitoolkit.acitoolkit.BaseContract">
-<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">BaseContract</tt><big>(</big><em>contract_name</em>, <em>contract_type='vzBrCP'</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseContract" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">BaseContract</tt><big>(</big><em>contract_name</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseContract" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
 <p>BaseContract :  Base class for Contracts and Taboos</p>
 <dl class="method">
@@ -1154,8 +1166,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.BaseContract.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseContract.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1308,7 +1321,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -1454,7 +1472,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -1662,8 +1680,9 @@ classes.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.BaseInterface.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BaseInterface.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1816,7 +1835,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -1974,7 +1998,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -2340,8 +2364,9 @@ in the &#8216;MonitorTarget.scope&#8217; attribute of the object.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.BridgeDomain.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.BridgeDomain.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2508,7 +2533,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -2688,7 +2718,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -2876,33 +2906,52 @@ class.</p>
 <dt id="acitoolkit.acitoolkit.CollectionPolicy">
 <em class="property">class </em><tt class="descclassname">acitoolkit.acitoolkit.</tt><tt class="descname">CollectionPolicy</tt><big>(</big><em>parent</em>, <em>granularity</em>, <em>retention</em>, <em>adminState='enabled'</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.CollectionPolicy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#acitoolkit.acitoolkit.BaseMonitorClass" title="acitoolkit.acitoolkit.BaseMonitorClass"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acitoolkit.BaseMonitorClass</span></tt></a></p>
-<p>This class is a child of a MonitorPolicy object, MonitorTarget object or a MonitorStats object.  It is where the statistics collection
-policy is actually specified.  It applies to all of the statistics that are at the scope level of the parent object,
-i.e. all, specific to a target, or specific to a statistics family.  What is specified in the CollectionPolicy is the
-time granularity of the collection and how much history to retain.  For example, the granularity might be 5 minutes (5min)
-or 1 hour (1h).  How much history to retain is similarly specified.  For example you might specify that it be kept for 10 days (10d)
-or 2 years (2year).</p>
-<p>If the CollectionPolicy is a child of a MonitorStats object, it can optionally have children that specify the policy
-for raising threshold alarms on the fields in the stats family specified in the MonitorStats object.  This has yet to be
-implemented.</p>
-<p>This object is roughly the same as the statsColl and statsHierColl objects in the APIC.</p>
+<p>This class is a child of a MonitorPolicy object, MonitorTarget object or
+a MonitorStats object.  It is where the statistics collection policy is
+actually specified.  It applies to all of the statistics that are at the
+scope level of the parent object,
+i.e. all, specific to a target, or specific to a statistics family.  What
+is specified in the CollectionPolicy is the time granularity of the
+collection and how much history to retain.  For example, the granularity
+might be 5 minutes (5min) or 1 hour (1h).  How much history to retain is
+similarly specified.  For example you might specify that it be kept for
+10 days (10d) or 2 years (2year).</p>
+<p>If the CollectionPolicy is a child of a MonitorStats object, it can
+optionally have children that specify the policy for raising threshold
+alarms on the fields in the stats family specified in the MonitorStats
+object.  This has yet to be implemented.</p>
+<p>This object is roughly the same as the statsColl and statsHierColl objects
+in the APIC.</p>
 <dl class="docutils">
-<dt>The CollectionPolicy must always be initialized with a parent object of type MonitorPolicy, MonitorTarget or MonitorStats.</dt>
-<dd><p class="first">The granularity must also be specifically specified.  The retention period can be specified, set to &#8220;none&#8221;, or set to &#8220;inherited&#8221;.
-Note that the &#8220;none&#8221; value is a string, not the Python None.  When the retention period is set to &#8220;none&#8221; there will be no
-historical stats kept.  However, assuming collection is enabled, stats will be kept for the current time period.</p>
-<p>If the retention period is set to &#8220;inherited&#8221;, the value will be inherited from the less specific policy directly above this one.
-The same applies to the adminState value.  It can be &#8216;disabled&#8217;, &#8216;enabled&#8217;, or &#8216;inherited&#8217;.  If &#8216;disabled&#8217;, the current scope of
-counters are not gathered.  If enabled, they are gathered.  If &#8216;inherited&#8217;, it will be according to the next higher scope.</p>
-<p>Having the &#8216;inherited&#8217; option on the retention and administrative status allows these items independently controlled at the current
-stats granularity.  For example, you can specify that ingress unknown packets are gathered every 15 minutes by setting
-adding a collection policy that specifies a 15 minutes granularity and an adminState of &#8216;enabled&#8217; under a MonitorStats object that
-sets the scope to be ingress unknown packets.  This might override a higher level policy that disabled collection at a 15 minute
-interval.   However, you can set the retention in that same object to be &#8220;inherited&#8221; so that this specific policy does not
-change the retention behavior from that of the higher, less specific, policy.</p>
-<p class="last">When the CollectionPolicy is a child at the top level, i.e. of the MonitorPolicy, the &#8216;inherited&#8217; option is not allowed
-because there is no higher level policy to inherit from.  If this were to happen, &#8216;inherited&#8217; will be treated as
-&#8216;enabled&#8217;.</p>
+<dt>The CollectionPolicy must always be initialized with a parent object of</dt>
+<dd><p class="first">type MonitorPolicy, MonitorTarget or MonitorStats. The granularity must
+also be specifically specified.  The retention period can be specified,
+set to &#8220;none&#8221;, or set to &#8220;inherited&#8221;.
+Note that the &#8220;none&#8221; value is a string, not the Python None.  When the
+retention period is set to &#8220;none&#8221; there will be no historical stats
+kept. However, assuming collection is enabled, stats will be kept for
+the current time period.</p>
+<p>If the retention period is set to &#8220;inherited&#8221;, the value will be
+inherited from the less specific policy directly above this one. The
+same applies to the adminState value.  It can be &#8216;disabled&#8217;, &#8216;enabled&#8217;,
+or &#8216;inherited&#8217;.  If &#8216;disabled&#8217;, the current scope of counters are not
+gathered.  If enabled, they are gathered.  If &#8216;inherited&#8217;, it will be
+according to the next higher scope.</p>
+<p>Having the &#8216;inherited&#8217; option on the retention and administrative
+status allows these items independently controlled at the current
+stats granularity.  For example, you can specify that ingress unknown
+packets are gathered every 15 minutes by setting adding a collection
+policy that specifies a 15 minutes granularity and an adminState of
+&#8216;enabled&#8217; under a MonitorStats object that sets the scope to be ingress
+unknown packets.  This might override a higher level policy that
+disabled collection at a 15 minute interval.   However, you can set the
+retention in that same object to be &#8220;inherited&#8221; so that this specific
+policy does not change the retention behavior from that of the higher,
+less specific, policy.</p>
+<p class="last">When the CollectionPolicy is a child at the top level, i.e. of the
+MonitorPolicy, the &#8216;inherited&#8217; option is not allowed because there
+is no higher level policy to inherit from.  If this were to happen,
+&#8216;inherited&#8217; will be treated as &#8216;enabled&#8217;.</p>
 </dd>
 </dl>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2910,15 +2959,23 @@ because there is no higher level policy to inherit from.  If this were to happen
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>parent</strong> &#8211; Parent object that this collection policy should be applied to.
-This must be an object of type MonitorStats, MonitorTarget, or MonitorPolicy.</li>
-<li><strong>granularity</strong> &#8211; String specifying the time collection interval or granularity of this policy.  Possible values are:
-[&#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;].</li>
-<li><strong>retention</strong> &#8211; String specifying how much history to retain the collected statistics for.  The retention will be for
-time units of the granularity specified.  Possible values are [&#8216;none&#8217;, &#8216;inherited&#8217;, &#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;,
-&#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;, &#8216;2year&#8217;, &#8216;3year&#8217;].</li>
-<li><strong>adminState</strong> &#8211; Administrative status.  String to specify whether stats should be collected at the specified
-granularity.  Possible values are [&#8216;enabled&#8217;, &#8216;disabled&#8217;, &#8216;inherited&#8217;].  The default if not
+<li><strong>parent</strong> &#8211; Parent object that this collection policy should be
+applied to. This must be an object of type MonitorStats,
+MonitorTarget, or MonitorPolicy.</li>
+<li><strong>granularity</strong> &#8211; String specifying the time collection interval or
+granularity of this policy.  Possible values are:
+[&#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;,
+&#8216;1year&#8217;].</li>
+<li><strong>retention</strong> &#8211; String specifying how much history to retain the
+collected statistics for.  The retention will be for
+time units of the granularity specified.  Possible
+values are [&#8216;none&#8217;, &#8216;inherited&#8217;, &#8216;5min&#8217;, &#8216;15min&#8217;,
+&#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;,
+&#8216;2year&#8217;, &#8216;3year&#8217;].</li>
+<li><strong>adminState</strong> &#8211; Administrative status.  String to specify whether
+stats should be collected at the specified
+granularity.  Possible values are [&#8216;enabled&#8217;,
+&#8216;disabled&#8217;, &#8216;inherited&#8217;].  The default if not
 specified is &#8216;enabled&#8217;.</li>
 </ul>
 </td>
@@ -3046,8 +3103,10 @@ in the &#8216;MonitorTarget.scope&#8217; attribute of the object.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>adminState</strong> &#8211; Administrative status.  String to specify whether stats should be collected at the specified
-granularity.  Possible values are [&#8216;enabled&#8217;, &#8216;disabled&#8217;, &#8216;inherited&#8217;].  The default if not
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>adminState</strong> &#8211; Administrative status.  String to specify whether
+stats should be collected at the specified
+granularity.  Possible values are [&#8216;enabled&#8217;,
+&#8216;disabled&#8217;, &#8216;inherited&#8217;].  The default if not
 specified is &#8216;enabled&#8217;.</td>
 </tr>
 </tbody>
@@ -3093,9 +3152,12 @@ specified is &#8216;enabled&#8217;.</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>retention</strong> &#8211; String specifying how much history to retain the collected statistics for.  The retention will be for
-time units of the granularity specified.  Possible values are [&#8216;none&#8217;, &#8216;inherited&#8217;, &#8216;5min&#8217;, &#8216;15min&#8217;, &#8216;1h&#8217;,
-&#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;, &#8216;2year&#8217;, &#8216;3year&#8217;].</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>retention</strong> &#8211; String specifying how much history to retain the
+collected statistics for.  The retention will be for
+time units of the granularity specified.  Possible
+values are [&#8216;none&#8217;, &#8216;inherited&#8217;, &#8216;5min&#8217;, &#8216;15min&#8217;,
+&#8216;1h&#8217;, &#8216;1d&#8217;, &#8216;1w&#8217;, &#8216;10d&#8217;, &#8216;1mo&#8217;, &#8216;1qtr&#8217;, &#8216;1year&#8217;,
+&#8216;2year&#8217;, &#8216;3year&#8217;].</td>
 </tr>
 </tbody>
 </table>
@@ -3138,8 +3200,9 @@ Not meant to be instantiated directly</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.CommonEPG.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.CommonEPG.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -3402,7 +3465,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -3553,7 +3621,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -3767,8 +3835,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Context.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Context.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -3935,7 +4004,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -4073,7 +4147,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -4273,8 +4347,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Contract.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Contract.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -4548,7 +4623,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -4772,8 +4847,9 @@ an error will occur.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.EPG.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.EPG.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -5051,7 +5127,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -5206,7 +5287,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -5414,8 +5495,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Endpoint.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Endpoint.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -5553,7 +5635,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -5671,7 +5758,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -5877,8 +5964,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.FilterEntry.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.FilterEntry.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -6027,16 +6115,17 @@ specified class with the specified status.</p>
 
 <dl class="classmethod">
 <dt id="acitoolkit.acitoolkit.FilterEntry.get_deep">
-<em class="property">classmethod </em><tt class="descname">get_deep</tt><big>(</big><em>session</em>, <em>parent=None</em>, <em>tenant=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.FilterEntry.get_deep" title="Permalink to this definition">¶</a></dt>
-<dd><p>To get all of acitoolkit style Filter Entries APIC class.</p>
+<em class="property">classmethod </em><tt class="descname">get_deep</tt><big>(</big><em>full_data</em>, <em>working_data</em>, <em>parent=None</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.FilterEntry.get_deep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets all instances of this class from the APIC and gets all of the
+children as well.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>session</strong> &#8211; the instance of Session used for APIC communication</li>
-<li><strong>parent</strong> &#8211; Object to assign as the parent to the created objects.</li>
-<li><strong>tenant</strong> &#8211; Tenant object to assign the created objects.</li>
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
 </ul>
 </td>
 </tr>
@@ -6176,7 +6265,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -6362,8 +6451,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Interface.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Interface.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -6547,7 +6637,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -6703,7 +6798,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -7047,8 +7142,9 @@ time granularity.</li>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.L2Interface.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.L2Interface.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -7201,7 +7297,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -7380,7 +7481,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -7589,8 +7690,9 @@ This interface defines the L3 address i.e. IPv4</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.L3Interface.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.L3Interface.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -7772,7 +7874,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -7952,7 +8059,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -8751,8 +8858,9 @@ in the &#8216;MonitorTarget.scope&#8217; attribute of the object.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.NetworkPool.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.NetworkPool.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -8905,7 +9013,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -9034,7 +9147,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -9233,8 +9346,9 @@ This interface defines the OSPF area, authentication, etc.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.OSPFInterface.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.OSPFInterface.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -9387,7 +9501,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -9518,7 +9637,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -9694,7 +9813,7 @@ class.</p>
 <dd><p>Bases: <a class="reference internal" href="acitoolkit.acibaseobject.html#acitoolkit.acibaseobject.BaseACIObject" title="acitoolkit.acibaseobject.BaseACIObject"><tt class="xref py py-class docutils literal"><span class="pre">acitoolkit.acibaseobject.BaseACIObject</span></tt></a></p>
 <p>Represents the interface settings of an OSPF interface</p>
 <p>param name: String containing the name of this OSPF interface policy
-param parent: Instance of the Tenant class representing the tenant owning this OSPF interface policy</p>
+param parent: Instance of the Tenant class representing the tenant                      owning this OSPF interface policy</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.OSPFInterfacePolicy.add_child">
 <tt class="descname">add_child</tt><big>(</big><em>obj</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.OSPFInterfacePolicy.add_child" title="Permalink to this definition">¶</a></dt>
@@ -9712,8 +9831,9 @@ param parent: Instance of the Tenant class representing the tenant owning this O
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.OSPFInterfacePolicy.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.OSPFInterfacePolicy.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -9866,7 +9986,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -10011,7 +10136,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -10219,8 +10344,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.OSPFRouter.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.OSPFRouter.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -10373,7 +10499,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -10523,7 +10654,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -10749,8 +10880,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.OutsideEPG.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.OutsideEPG.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -11013,7 +11145,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -11168,7 +11305,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -11370,8 +11507,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.PortChannel.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.PortChannel.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -11492,7 +11630,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -11652,7 +11795,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -11838,8 +11981,9 @@ in the object hierarchy at and below where the find is invoked.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Search.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Search.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -11992,7 +12136,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -12140,7 +12289,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -12338,8 +12487,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Subnet.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Subnet.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -12508,7 +12658,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -12646,7 +12801,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -12846,8 +13001,9 @@ class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Taboo.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Taboo.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -13000,7 +13156,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -13146,7 +13307,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -13355,8 +13516,9 @@ the fvTenant class.</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.Tenant.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.Tenant.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -13672,7 +13834,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -13876,8 +14038,9 @@ Virtual Machine Manager (such as VMware vCenter)</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.VMM.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.VMM.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -14014,7 +14177,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -14143,7 +14311,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
@@ -14330,8 +14498,9 @@ Machine Manager</p>
 <dl class="method">
 <dt id="acitoolkit.acitoolkit.VMMCredentials.add_tag">
 <tt class="descname">add_tag</tt><big>(</big><em>tag</em><big>)</big><a class="headerlink" href="#acitoolkit.acitoolkit.VMMCredentials.add_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign this object a particular tag.  Tags are strings that can be used to
-classify objects.  More than 1 tag can be assigned to an object.</p>
+<dd><p>Assign this object a particular tag.  Tags are strings that can be
+used to classify objects.  More than 1 tag can be assigned to an
+object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -14484,7 +14653,12 @@ children as well.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_data</strong> &#8211; </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_data</strong> &#8211; </li>
+<li><strong>working_data</strong> &#8211; </li>
+<li><strong>parent</strong> &#8211; </li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -14613,7 +14787,7 @@ of this class.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag</strong> &#8211; string containing the tag</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this tag assigned.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False.  True indicates the object has this                  tag assigned.</td>
 </tr>
 </tbody>
 </table>
