@@ -37,8 +37,16 @@ import getpass
 
 
 class Credentials(object):
+    """
+    Main class to derive the credentials from the user
+    """
     def __init__(self, qualifier='apic', description=''):
         def set_default(key):
+            """
+            Check for the following:
+             - environmental variables
+             - credentials.py file
+            """
             if 'APIC_' + key.upper() in os.environ.keys():
                 return os.environ['APIC_' + key.upper()]
             else:
@@ -55,6 +63,7 @@ class Credentials(object):
         if isinstance(qualifier, str):
             qualifier = (qualifier)
         self._qualifier = qualifier
+        self._args = None
         self._parser = argparse.ArgumentParser(description=description)
         if 'apic' in qualifier:
             DEFAULT_URL = set_default('url')
@@ -83,28 +92,54 @@ class Credentials(object):
                                       default=DEFAULT_MYSQL_PASSWORD,
                                       help='MySQL login password.')
 
-    def _get_from_user(self, prompt):
+    @staticmethod
+    def _get_from_user(prompt):
+        """
+        Get the input from the user through interactive prompt.
+        Use raw_input or input based on the Python version.
+        """
         try:
             resp = raw_input(prompt)
         except NameError:
             resp = input(prompt)
         return resp
 
-    def _get_password(self, prompt):
+    @staticmethod
+    def _get_password(prompt):
+        """
+        Get the password from the user through interactive prompt.
+        Using this will ensure that the password is not displayed as
+        it is typed.
+        """
         return getpass.getpass(prompt)
-            
+
     def get(self):
+        """
+        Get the arguments and verify them
+        """
         self._args = self._parser.parse_args()
         self.verify()
         return self._args
 
     def add_argument(self, *args, **kwargs):
+        """
+        Pass through function to allow the underlying parser to be
+        extended.
+        """
         self._parser.add_argument(*args, **kwargs)
 
     def add_mutually_exclusive_group(self, *args, **kwargs):
+        """
+        Pass through function to allow the underlying parser to be
+        extended.
+        """
         return self._parser.add_mutually_exclusive_group(*args, **kwargs)
 
     def verify(self):
+        """
+        Verify that the arguments have been passed in some way.  If not,
+        ask the user through interactive prompt.
+        """
         if 'apic' in self._qualifier:
             if self._args.login is None:
                 self._args.login = self._get_from_user('APIC login username: ')
@@ -116,6 +151,8 @@ class Credentials(object):
             if self._args.mysqlip is None:
                 self._args.mysqlip = self._get_from_user('MySQL IP address: ')
             if self._args.mysqllogin is None:
-                self._args.mysqllogin = self._get_from_user('MySQL login username: ')
+                prompt = 'MySQL login username: '
+                self._args.mysqllogin = self._get_from_user(prompt)
             if self._args.mysqlpassword is None:
-                self._args.mysqlpassword = self._get_password('MySQL Password: ')
+                prompt = 'MySQL Password: '
+                self._args.mysqlpassword = self._get_password(prompt)

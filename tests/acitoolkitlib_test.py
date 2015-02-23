@@ -57,15 +57,7 @@ class TestCredentials(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    live = unittest.TestSuite()
-
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestCredentials))
 
-    full = unittest.TestSuite([live, offline])
-
-    # Add tests to this suite while developing the tests
-    # This allows only these tests to be run
-    develop = unittest.TestSuite()
-
-    unittest.main(defaultTest='offline')
+    unittest.main()
