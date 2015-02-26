@@ -2690,6 +2690,7 @@ class Endpoint(BaseACIObject):
         self.mac = None
         self.ip = None
         self.encap = None
+        self.if_name = None
 
     @classmethod
     def _get_apic_classes(cls):
