@@ -65,12 +65,15 @@ class AtomicCountersOnGoing():
 
     def get(self, session=None):
         """
-        Retrieve the count dictionary.  This method will read in all the counters and return them as a dictionary.
+        Retrieve the count dictionary.  This method will read in all the
+        counters and return them as a dictionary.
 
-        :param session: Session to use when accessing the APIC.  If
-        not specified, it will use the session of the parent.
+        :param session: Session to use when accessing the APIC.  If not\
+                        specified, it will use the session of the parent.
 
-        :returns:  Dictionary of counters. Format is {<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}
+        :returns:  Dictionary of counters.
+                   Format is:
+                   {<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}
         """
         result = {}
         if not session:
@@ -83,7 +86,8 @@ class AtomicCountersOnGoing():
         data = ret.json()['imdata']
         if data:
             for path in data:
-                path_key = (str(path['fabricPath']['attributes']['n1']), str(path['fabricPath']['attributes']['n2']))
+                path_key = (str(path['fabricPath']['attributes']['n1']),
+                            str(path['fabricPath']['attributes']['n2']))
                 result[path_key] = self._get_path(path['fabricPath']['attributes']['dn'])
         return result
 
@@ -93,7 +97,9 @@ class AtomicCountersOnGoing():
         """
         result = {}
 
-        mo_query_url = '/api/mo/' + dn + '.json?query-target=self&rsp-subtree-include=stats'
+        prefix = '/api/mo/'
+        suffix = '.json?query-target=self&rsp-subtree-include=stats'
+        mo_query_url = prefix + dn + suffix
 
         ret = self._session.get(mo_query_url)
         data = ret.json()['imdata']
@@ -151,24 +157,31 @@ class AtomicCountersOnGoing():
 
     def retrieve(self, node1, node2, countFamily, granularity, period, countName):
         """
-        This will return the requested count from the atomic counters that were loaded with
-        the previous get().  It will return 0 for counts that don't exist or None
-        for time stamps that don't exist.
+        This will return the requested count from the atomic counters that
+        were loaded with the previous get().  It will return 0 for counts that
+        don't exist or None for time stamps that don't exist.
 
-        Note that this method will not access the APIC, it will only work on data that was previously loaded with a get().
+        Note that this method will not access the APIC, it will only work on
+        data that was previously loaded with a get().
 
-       :param node1 : The first node in a node path.  This is a node id, not a node name.
-       :param node2 : The second node in a node path.  This is a node id, not a node name.
+       :param node1 : The first node in a node path.  This is a node id, not
+                      a node name.
+       :param node2 : The second node in a node path.  This is a node id, not
+                      a node name.
        :param countFamily: The counter family string - 'txrx' or 'dropexcess'
-       :param granularity: String specifying the counter time granularity.  Possible values are: '5min', '15min',
-                            '1h', '1d', '1w', '1mo', '1qtr', and '1year'
-       :param period: Integer of time period to get the counter from.  Period 0 is the current period. Period 1 is the previous
-                            time granularity.
-       :param countName: Name of the actual counter.  Examples are 'unicastPer', 'unicastRate', etc.  Counter names are unique per counter family.
+       :param granularity: String specifying the counter time granularity.
+                           Possible values are: '5min', '15min', '1h', '1d',
+                           '1w', '1mo', '1qtr', and '1year'
+       :param period: Integer of time period to get the counter from.
+                      Period 0 is the current period. Period 1 is the previous
+                      time granularity.
+       :param countName: Name of the actual counter.  Examples are
+                         'unicastPer', 'unicastRate', etc.  Counter names are
+                         unique per counter family.
 
-       :returns:  integer, float or None.  If the counter is not present, it will return 0.
+       :returns:  integer, float or None.  If the counter is not present, it
+                  will return 0.
         """
-
         # initialize result to a miss
         if countName in ['intervalEnd', 'intervalStart']:
             result = None
@@ -245,14 +258,16 @@ class AtomicNode(object):
         Initialize to None.
 
         attributes are:
-            count : instance of AtomicCounter class. This is where the node counts are.
-            path : array of AtomicPath class, indexed by the node ID of the spine
-                   each path flows through
+            count : instance of AtomicCounter class.
+                    This is where the node counts are.
+            path : array of AtomicPath class, indexed by the node ID
+                   of the spine each path flows through
         """
         self.count = AtomicCounter()
         self.local_port_id = None
         self.remote_port_id = None
-        
+
+
 class InterfaceStats():
     """
     This class defines interface statistics.  It will provide methods to
@@ -261,21 +276,25 @@ class InterfaceStats():
 
     stats= {<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}
 
-    stats are gathered and summed up in time intervals or granularities. For each granularity there are a set of time periods
-    identified by the <period> field.  The current stats are stored in period 0.  These stats are zeroed at the beginning of the
-    time interval and are updated at a smaller time interval depending on the granularity.  Historical statistics have periods that are
-    greater than 0.  The number of historical stats to keep is determined by the monitoring policy and may be specifc to a particular counter
-    family.
+    stats are gathered and summed up in time intervals or granularities.
+    For each granularity there are a set of time periods identified by
+    the <period> field.  The current stats are stored in period 0.  These
+    stats are zeroed at the beginning of the time interval and are updated
+    at a smaller time interval depending on the granularity.  Historical
+    statistics have periods that are greater than 0.  The number of historical
+    stats to keep is determined by the monitoring policy and may be specific
+    to a particular counter family.
 
-    The counter families are as follows: 'egrTotal', 'egrBytes','egrPkts','egrDropPkts', 'ingrBytes','ingrPkts',
-    'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes','ingrUnkPkts', 'ingrStorm'.
+    The counter families are as follows: 'egrTotal', 'egrBytes', 'egrPkts',
+    'egrDropPkts', 'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts',
+    'ingrUnkBytes','ingrUnkPkts', 'ingrStorm'.
 
-    The granularities are: '5min', '15min', '1h', '1d', '1w', '1mo', '1qtr', and '1year'.
+    The granularities are: '5min', '15min', '1h', '1d', '1w', '1mo',
+    '1qtr', and '1year'.
 
-    For each counter family/granularity/period there are several counter values retained.  The best way to see a list of these
-    counters is to print the keys of the dictionary.
-
-
+    For each counter family/granularity/period there are several counter
+    values retained.  The best way to see a list of these counters is to
+    print the keys of the dictionary.
     """
     def __init__(self, parent, interfaceDn):
         self._parent = parent
@@ -342,7 +361,8 @@ class InterfaceStats():
         
     def get(self, session=None, period=None):
         """
-        Retrieve the count dictionary.  This method will read in all the counters and return them as a dictionary.
+        Retrieve the count dictionary.  This method will read in all the
+        counters and return them as a dictionary.
 
         :param session: Session to use when accessing the APIC
         :param period: Epoch or period to retrieve - all are retrieved if this is not specified
@@ -487,32 +507,41 @@ class InterfaceStats():
     def retrieve(self, countFamily, granularity, period, countName):
         """
         This will return the requested count from stats that were loaded with
-        the previous get().  It will return 0 for counts that don't exist or None
-        for time stamps that don't exist.
+        the previous get().  It will return 0 for counts that don't exist or
+        None for time stamps that don't exist.
 
-        Note that this method will not access the APIC, it will only work on data that was previously loaded with a get().
+        Note that this method will not access the APIC, it will only work on
+        data that was previously loaded with a get().
 
-       :param countFamily: The counter family string.  Examples are 'egrTotal', 'ingrDropPkts, etc.
-       :param granularity: String specifying the counter time granularity.  Possible values are: '5min', '15min',
-                            '1h', '1d', '1w', '1mo', '1qtr', and '1year'
-       :param period: Integer of time period to get the counter from.  Period 0 is the current period. Period 1 is the previous
-                            time granularity.
-       :param countName: Name of the actual counter.  Examples are 'unicastPer', 'unicastRate', etc.  Counter names are unique per counter family.
+       :param countFamily: The counter family string.  Examples are
+                           'egrTotal', 'ingrDropPkts, etc.
+       :param granularity: String specifying the counter time granularity.
+                           Possible values are: '5min', '15min', '1h', '1d',\
+                           '1w', '1mo', '1qtr', and '1year'
+       :param period: Integer of time period to get the counter from.
+                      Period 0 is the current period. Period 1 is the\
+                      previous time granularity.
+       :param countName: Name of the actual counter.  Examples are
+                         'unicastPer', 'unicastRate', etc.  Counter
+                         names are unique per counter family.
 
-       :returns:  integer, float or None.  If the counter is not present, it will return 0.
+       :returns:  integer, float or None.  If the counter is not present,
+                  it will return 0.
         """
 
         # initialize result to a miss
         if countName in ['intervalEnd', 'intervalStart']:
             result = None
 
-        elif countName in ['pktsRate', 'pktsRateAvg', 'pktsRateMax', 'pktsRateMin',
-                           'bytesRate', 'bytesRateAvg', 'bytesRateMax', 'bytesRateMin',
-                           'floodRate', 'unicastRate', 'unclassifiedRate'
-                           'afdWredRate', 'bufferRate', 'errorRate',
-                           'forwardingRate', 'lbRate',
-                           'multicastRate', 'multicastRateAvg', 'multicastRateMax', 'multicastRateMin',
-                           'dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax', 'dropBytesRateMin']:
+        elif countName in ['pktsRate', 'pktsRateAvg', 'pktsRateMax',
+                           'pktsRateMin', 'bytesRate', 'bytesRateAvg',
+                           'bytesRateMax', 'bytesRateMin', 'floodRate',
+                           'unicastRate', 'unclassifiedRate', 'afdWredRate',
+                           'bufferRate', 'errorRate', 'forwardingRate',
+                           'lbRate', 'multicastRate', 'multicastRateAvg',
+                           'multicastRateMax', 'multicastRateMin',
+                           'dropBytesRate', 'dropBytesRateAvg',
+                           'dropBytesRateMax', 'dropBytesRateMin']:
             result = 0.0
         else:
             result = 0
@@ -527,5 +556,3 @@ class InterfaceStats():
                         result = self.result[countFamily][granularity][period][countName]
 
         return result
-
-
