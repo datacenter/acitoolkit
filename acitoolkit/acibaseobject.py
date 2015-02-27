@@ -169,6 +169,14 @@ class BaseACIObject(object):
         """
         raise NotImplementedError
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {}
+
     def _extract_attributes(self, attributes):
         """
         Used internally by get_deep to populate the attributes
