@@ -280,27 +280,101 @@ class InterfaceStats():
     def __init__(self, parent, interfaceDn):
         self._parent = parent
         self._interfaceDn = interfaceDn
+        
+    @classmethod
+    def get_all_ports(cls, session, period=None) :
+        """
+        This method will get all the interface stats for all of the interfaces and return it as a dictionary indexed by the interface id.
+        This method is optimized to minimize the traffic to and from the APIC and is intended to typically be used with the period specified
+        so that only the necessary stats are pulled.  Note that it will pull the stats for ALL the interfaces.  This may have latency
+        implications.
 
-    def get(self, session=None):
+        :param session: Session to use when accessing the APIC
+        :param period: Epoch or period to retrieve - all are retrieved if this is not specified
+
+        :returns:  Dictionary of counters. Format is {<interface_id>{<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}}
+        
+        """
+        #request stats
+        #for each port
+        #   parse port id
+        #   process stats
+        #   save stats per port id
+
+        if period :
+            if (period < 1) :
+                raise ValueError('Counter epoch/period value of 0 not yet implemented')
+            mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
+        else :
+            mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist'
+            
+        ret = session.get(mo_query_url)
+        data = ret.json()['imdata']
+
+        result = {}
+        for interface in data :
+            if 'children' in interface['l1PhysIf'] :
+                port_id = cls._parseDn2PortId(interface['l1PhysIf']['attributes']['dn'])
+                port_stats = InterfaceStats._process_data(interface)
+                result[port_id] = port_stats
+        return result
+    
+
+    @classmethod
+    def _parseDn2PortId(cls,dn) :
+        """
+        This will parse the dn and return a port_id string.
+
+        Handles DNs that look like the following:
+        topology/pod-1/node-103/sys/phys-[eth1/12]
+        and returns 1/103/1/12.
+        """
+        name = dn.split('/')
+        pod = name[1].split('-')[1]
+        node = name[2].split('-')[1]
+        module = name[4].split('[')[1]
+        interface_type = module[:3]
+        module = module[3:]
+        port = name[5].split(']')[0]
+
+        return '{0}/{1}/{2}/{3}'.format(pod, node, module, port)
+        
+        
+    def get(self, session=None, period=None):
         """
         Retrieve the count dictionary.  This method will read in all the counters and return them as a dictionary.
 
         :param session: Session to use when accessing the APIC
-
+        :param period: Epoch or period to retrieve - all are retrieved if this is not specified
 
         :returns:  Dictionary of counters. Format is {<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}
         """
         result = {}
         if not session:
             session = self._parent._session
-
-        mo_query_url = '/api/mo/' + self._interfaceDn + '.json?query-target=self&rsp-subtree-include=stats'
-
+        
+        if period :
+            if (period < 1) :
+                raise ValueError('Counter epoch value of 0 not yet implemented')
+                
+            mo_query_url = '/api/mo/' + self._interfaceDn + '.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
+        else :
+            mo_query_url = '/api/mo/' + self._interfaceDn + '.json?query-target=self&rsp-subtree-include=stats'
+        
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
+
+        result = InterfaceStats._process_data(data[0])
+        # store the result to be accessed by the retrieve method
+        self.result = result
+        return result
+    
+    @staticmethod
+    def _process_data(data) :
+        result = {}
         if data:
-            if 'children' in data[0]['l1PhysIf']:
-                children = data[0]['l1PhysIf']['children']
+            if 'children' in data['l1PhysIf']:
+                children = data['l1PhysIf']['children']
                 for grandchildren in children:
                     for count in grandchildren:
                         counterAttr = grandchildren[count]['attributes']
@@ -408,8 +482,6 @@ class InterfaceStats():
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
-        # store the result to be accessed by the retrieve method
-        self.result = result
         return result
 
     def retrieve(self, countFamily, granularity, period, countName):
