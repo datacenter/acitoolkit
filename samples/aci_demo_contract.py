@@ -58,10 +58,10 @@ web_epg.consume(contract)
 session = Session(URL, LOGIN, PASSWORD)
 session.login()
 # Cleanup (uncomment the next line to delete the config)
-#tenant.mark_as_deleted()
+# tenant.mark_as_deleted()
 resp = tenant.push_to_apic(session)
 
-# Print what was sent 
+# Print what was sent
 print 'Pushed the following JSON to the APIC'
 print 'URL:', tenant.get_url()
 print 'JSON:', tenant.get_json()

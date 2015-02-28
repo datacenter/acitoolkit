@@ -30,7 +30,7 @@ context = Context('ctx1', tenant)
 outside = OutsideEPG('out-1', tenant)
 outside.add_context(context)
 phyif = Interface('eth', '1', '101', '1', '46')
-phyif.speed='1G'
+phyif.speed = '1G'
 l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
 l2if.attach(phyif)
 l3if = L3Interface('l3if')
@@ -58,13 +58,10 @@ contract2 = Contract('contract-2')
 outside.consume(contract2)
 outside.attach(ospfif)
 
-
-
 print tenant.get_json()
 resp = session.push_to_apic(tenant.get_url(),
                             tenant.get_json())
 
 if not resp.ok:
-   print '%% Error: Could not push configuration to APIC'
-   print resp.text
-
+    print '%% Error: Could not push configuration to APIC'
+    print resp.text

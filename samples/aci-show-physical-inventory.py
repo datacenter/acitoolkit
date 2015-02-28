@@ -18,6 +18,7 @@
 from acitoolkit.aciphysobject import *
 from acitoolkit.acitoolkit import Credentials
 
+
 def print_inventory(item):
     for child in item.get_children():
         print_inventory(child)
@@ -25,7 +26,8 @@ def print_inventory(item):
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables
-description = 'Simple application that logs on to the APIC and displays the physical inventory.'
+description = ('Simple application that logs on to the APIC and displays'
+               ' the physical inventory.')
 creds = Credentials('apic', description)
 args = creds.get()
 
@@ -37,11 +39,10 @@ if not resp.ok:
     sys.exit(0)
 
 # Print the inventory of each Pod
-pods = Pod.get(session) 
+pods = Pod.get(session)
 for pod in pods:
     pod.populate_children(deep=True)
     pod_name = 'Pod: %s' % pod.name
     print pod_name
     print '=' * len(pod_name)
     print_inventory(pod)
-    
