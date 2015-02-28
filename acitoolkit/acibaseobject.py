@@ -692,7 +692,7 @@ class BaseACIObject(object):
         for child in children:
             children_json.append(child)
         for tag in self._tags:
-            child = {'tagInst':{'attributes': {'name': tag}}}
+            child = {'tagInst': {'attributes': {'name': tag}}}
             children_json.append(child)
         if get_children:
             for child in self._children:
