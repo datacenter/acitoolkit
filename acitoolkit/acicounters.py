@@ -299,9 +299,9 @@ class InterfaceStats():
     def __init__(self, parent, interfaceDn):
         self._parent = parent
         self._interfaceDn = interfaceDn
-        
+
     @classmethod
-    def get_all_ports(cls, session, period=None) :
+    def get_all_ports(cls, session, period=None):
         """
         This method will get all the interface stats for all of the interfaces and return it as a dictionary indexed by the interface id.
         This method is optimized to minimize the traffic to and from the APIC and is intended to typically be used with the period specified
@@ -312,7 +312,6 @@ class InterfaceStats():
         :param period: Epoch or period to retrieve - all are retrieved if this is not specified
 
         :returns:  Dictionary of counters. Format is {<interface_id>{<counterFamily>:{<granularity>:{<period>:{<counter>:value}}}}}
-        
         """
         #request stats
         #for each port
@@ -320,8 +319,8 @@ class InterfaceStats():
         #   process stats
         #   save stats per port id
 
-        if period :
-            if (period < 1) :
+        if period:
+            if (period < 1):
                 raise ValueError('Counter epoch/period value of 0 not yet implemented')
             mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
         else :
