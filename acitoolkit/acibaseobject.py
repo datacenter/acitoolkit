@@ -169,6 +169,14 @@ class BaseACIObject(object):
         """
         raise NotImplementedError
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {}
+
     def _extract_attributes(self, attributes):
         """
         Used internally by get_deep to populate the attributes
@@ -684,7 +692,7 @@ class BaseACIObject(object):
         for child in children:
             children_json.append(child)
         for tag in self._tags:
-            child = {'tagInst':{'attributes': {'name': tag}}}
+            child = {'tagInst': {'attributes': {'name': tag}}}
             children_json.append(child)
         if get_children:
             for child in self._children:

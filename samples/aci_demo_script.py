@@ -16,6 +16,7 @@
 from acitoolkit.acitoolkit import *
 from credentials import *
 
+
 def send_to_apic(tenant):
     # Login to APIC and push the config
     session = Session(URL, LOGIN, PASSWORD, False)
@@ -41,8 +42,8 @@ app = AppProfile('sap', tenant)
 epg = EPG('sapepg', app)
 
 # Attach the EPG to 2 interfaces using VLAN 5 as the encap
-if1 = Interface('eth','1','101','1','62')
-if2 = Interface('eth','1','101','1','63')
+if1 = Interface('eth', '1', '101', '1', '62')
+if2 = Interface('eth', '1', '101', '1', '63')
 vlan5_on_if1 = L2Interface('vlan5_on_if1', 'vlan', '5')
 vlan5_on_if2 = L2Interface('vlan5_on_if2', 'vlan', '5')
 vlan5_on_if1.attach(if1)
@@ -57,7 +58,5 @@ print 'JSON:', tenant.get_json()
 send_to_apic(tenant)
 
 # Clean up
-#tenant.mark_as_deleted()
-#send_to_apic(tenant)
-
-
+# tenant.mark_as_deleted()
+# send_to_apic(tenant)

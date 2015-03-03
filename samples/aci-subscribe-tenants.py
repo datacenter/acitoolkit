@@ -26,7 +26,11 @@ import acitoolkit.acitoolkit as ACI
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application using event subscription for the Tenant class. When run, this application will log into the APIC and subscribe to events on the Tenant class.  If a new tenant is created, the event will be printed on the screen.  Likewise, if an existing tenant is deleted.'
+description = ('Simple application using event subscription for the Tenant'
+               ' class. When run, this application will log into the APIC '
+               'and subscribe to events on the Tenant class.  If a new tenant'
+               ' is created, the event will be printed on the screen.  '
+               'Likewise, if an existing tenant is deleted.')
 creds = ACI.Credentials('apic', description)
 args = creds.get()
 
@@ -46,4 +50,3 @@ while True:
             print 'Tenant', tenant.name, 'has been deleted.'
         else:
             print 'Tenant', tenant.name, 'has been created or modified.'
-    

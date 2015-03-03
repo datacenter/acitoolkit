@@ -30,7 +30,7 @@ tenant = Tenant('cisco')
 context = Context('ctx1', tenant)
 outside = OutsideEPG('out-1', tenant)
 phyif = Interface('eth', '1', '101', '1', '46')
-phyif.speed='1G'
+phyif.speed = '1G'
 l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
 l2if.attach(phyif)
 l3if = L3Interface('l3if')
@@ -39,7 +39,7 @@ l3if.set_addr('1.1.1.2/30')
 l3if.add_context(context)
 l3if.attach(l2if)
 bgpif = BGPSession('test', peer_ip='1.1.1.1', node_id='101')
-bgpif.router_id='172.1.1.1'
+bgpif.router_id = '172.1.1.1'
 bgpif.attach(l3if)
 bgpif.options = 'send-ext-com'
 bgpif.networks.append('0.0.0.0/0')
@@ -54,6 +54,5 @@ resp = session.push_to_apic(tenant.get_url(),
                             tenant.get_json())
 
 if not resp.ok:
-   print '%% Error: Could not push configuration to APIC'
-   print resp.text
-
+    print '%% Error: Could not push configuration to APIC'
+    print resp.text

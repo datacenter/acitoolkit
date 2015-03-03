@@ -50,7 +50,7 @@ to_apic = {
     'application': 'applicationB'
 }
 
-# Specify the github account where you want to store your configuration file at.
+# Specify the github account where you want to store your configuration file.
 github_info = {
     # The github account your json file stored to.
     'git_account': 'github_account',
@@ -63,4 +63,3 @@ github_info = {
     # branch of repo:
     'branch': 'master'
 }
-
