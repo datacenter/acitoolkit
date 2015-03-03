@@ -20,8 +20,9 @@ from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
 from acitoolkitlib import Credentials
 from acicounters import InterfaceStats
+import aciphysobject as ACI_PHYS
 
-# from aciphysobject import Linecard
+#from aciphysobject import Linecard
 import logging
 import re
 import copy
@@ -2245,7 +2246,13 @@ class Interface(BaseInterface):
             if not isinstance(pod_parent, str):
                 raise ValueError(('When specifying a specific port, the pod '
                                   'must be identified by a string'))
-
+            parent = None
+        else :
+            #if not isinstance(pod_parent, Linecard) :
+            #    raise ValueError('Interface parent must be a linecard object')
+            
+            parent = pod_parent
+            
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
@@ -2310,6 +2317,8 @@ class Interface(BaseInterface):
 
             if not isinstance(pod_parent, str) and pod_parent:
                 if interface_obj.pod == pod_parent.pod and interface_obj.node == pod_parent.node and interface_obj.module == pod_parent.slot:
+                    interface_obj._parent = pod_parent
+                    interface_obj._parent.add_child(interface_obj)
                     resp.append(interface_obj)
             else:
                 resp.append(interface_obj)
@@ -2336,8 +2345,26 @@ class Interface(BaseInterface):
 
             return True
         return False
+    def get_adjacent_port(self) :
+        """
+        This will return the port ID of the port at the other end of the link.
 
+        For Access ports, it will only have a result if it is connected to
+        a controller node.
 
+        If no link is found, then the result will be None.  That does not mean
+        that nothing is connected, just that a fabric link is not connected.
+
+        :returns : Port ID string  
+        """
+        result = None
+
+        links = ACI_PHYS.Link.get(self._session,'1',self.attributes['node'])
+        for link in links :
+            if link.port1==self.attributes['port'] :
+                return link.get_port_id2()
+        return result
+    
 class PortChannel(BaseInterface):
     """
     This class defines a port channel interface.
