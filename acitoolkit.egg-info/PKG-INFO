@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: acitoolkit
+Version: 0.1
+Summary: This library allows basic Cisco ACI APIC configuration.
+Home-page: http://github.com/datacenter/acitoolkit/
+Author: Cisco Systems, Inc.
+Author-email: acitoolkit@cisco.com
+License: http://www.apache.org/licenses/LICENSE-2.0
+Description: UNKNOWN
+Platform: UNKNOWN
