@@ -740,7 +740,8 @@ class Node(BaseACIPhysObject):
         self.operSt = None
         self.operStQual = None
         self.descr = None
-
+        self.model = None
+        
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' + str(self.pod) + '/node-' + str(self.node))
         self._common_init(parent)
 
@@ -766,19 +767,6 @@ class Node(BaseACIPhysObject):
         pod = name[1].split('-')[1]
         node = name[2].split('-')[1]
         return pod, node
-
-    @staticmethod
-    def _get_name(session, dn):
-        """Retrieves the name of the node from the name attribute of the fabricNode object"""
-
-        name = dn.split('/')
-        fabricNode_dn = name[0] + '/' + name[1] + '/' + name[2]
-
-        mo_query_url = '/api/mo/' + fabricNode_dn + '.json?query-target=self'
-        ret = session.get(mo_query_url)
-        node_data = ret.json()['imdata']
-
-        return str(node_data[0]['fabricNode']['attributes']['name'])
 
     @staticmethod
     def get(session, parent=None):
@@ -906,7 +894,12 @@ class Node(BaseACIPhysObject):
 
         :returns: chassis type of node of type str
         """
-        fields = re.split('-', self.get_model())
+        model = self.get_model()
+        if model :
+            fields = re.split('-', self.get_model())
+        else :
+            fields = []
+            
         if len(fields) > 0:
             chassisType = fields[0].lower()
         else:
@@ -932,11 +925,6 @@ class ENode(Node):
         if self._session:
             if not isinstance(self._session, Session):
                 raise TypeError("session must be of type Session")
-
-        # check that name is a string
-        if self.attributes['name']:
-            if not isinstance(self.attributes['name'], str):
-                raise TypeError("Name must be a string")
 
         # check that parent is not a string
         if isinstance(parent, str):
@@ -1173,7 +1161,7 @@ class Link(BaseACIPhysObject):
 
         :param session: APIC session
         :param parent_pod: Optional parent Pod object or identifier string.
-        :param node: Optional node number string
+        :param node_id: Optional node number string
          
         :returns: list of links
         """
@@ -1231,7 +1219,8 @@ class Link(BaseACIPhysObject):
         """ populate various additional attributes """
 
         self.linkstate = attributes['linkState']
-
+        self.linkstatus = attributes['status']
+        
     def __str__(self):
         text = 'n%s/s%s/p%s-n%s/s%s/p%s' % (self.node1, self.slot1, self.port1, self.node2, self.slot2, self.port2)
         return text
@@ -1244,13 +1233,6 @@ class Link(BaseACIPhysObject):
         if type(self) is not type(other):
             return False
         return (self.pod == other.pod) and (self.node1 == other.node1) and (self.slot1 == other.slot1) and (self.port1 == other.port1)
-
-    def get_linkstatus(self):
-        """Gets the link status
-
-        :returns: link status string
-        """
-        return self.linkstatus
 
     def get_node1(self):
         """Returns the Node object that corresponds to the first node of the link.  The Node must be a child of
