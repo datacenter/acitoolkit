@@ -32,6 +32,11 @@ Option B:
 
 If you don't have git, [download a zip copy of the repository](https://github.com/datacenter/acitoolkit/archive/master.zip) and extract.
 
+Option C:
+
+The latest build of this project is also available as a Docker image from Docker Hub
+
+    docker pull dockercisco/acitoolkit 
 
 ## Installing
 
