@@ -16,13 +16,11 @@
 """ACI Toolkit module for physical objects
 """
 
-from acibaseobject import BaseACIObject, BaseRelation
+from acibaseobject import BaseACIObject
 from acisession import Session
-#from acitoolkit import Interface
 import acitoolkit as ACI
 from acicounters import AtomicCountersOnGoing
 
-import json
 import logging
 import re
 import copy
@@ -32,6 +30,9 @@ class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
     """
     def _common_init(self, parent):
+        """
+        Common init used for all physical objects
+        """
         self._deleted = False
         self._parent = parent
         self._children = []
@@ -41,6 +42,9 @@ class BaseACIPhysObject(BaseACIObject):
             self._parent.add_child(self)
 
     def _delete_redundant_policy(self, infra, policy_type):
+        """
+        Removes redundant policies
+        """
         policies = []
         for idx, child in enumerate(infra['infraInfra']['children']):
             if policy_type in child:
@@ -52,6 +56,9 @@ class BaseACIPhysObject(BaseACIObject):
         return infra
 
     def _combine_json(self, data, other):
+        """
+        Combines the json
+        """
         if len(data) == 0:
             return other
         if len(other) == 0:
@@ -75,7 +82,8 @@ class BaseACIPhysObject(BaseACIObject):
                     first_occur = idx
                 else:
                     for other_child in child['infraFuncP']['children']:
-                        infra['infraInfra']['children'][first_occur]['infraFuncP']['children'].append(other_child)
+                        infra['infraInfra']['children'][first_occur]\
+                            ['infraFuncP']['children'].append(other_child)
                     del infra['infraInfra']['children'][idx]
         return(phys_domain, fabric, infra)
 
@@ -207,6 +215,17 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.pod = str(pod)
         self.node = str(node)
         self.slot = str(slot)
+        self.serial = None
+        self.model = None
+        self.dn = None
+        self.descr = None
+        self.bios = None
+        self.firmware = None
+
+        self._apic_class = None
+        self.dn = None
+        self._session = None
+
         logging.debug('Creating %s %s', self.__class__.__name__,
                       'pod-' + self.pod + '/node-' + self.node + '/slot-' + self.slot)
         self._common_init(parent)
@@ -224,7 +243,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """
         if type(self) is not type(other):
             return False
-        return (self.pod == other.pod) and (self.node == other.node) and (self.slot == other.slot) and (self.type == other.type)
+        return (self.pod == other.pod) and (self.node == other.node) and \
+            (self.slot == other.slot) and (self.type == other.type)
 
     @staticmethod
     def _parse_dn(dn):
@@ -269,7 +289,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
             card._session = session
             card._apic_class = apic_class
             card._populate_from_attributes(apic_obj[apic_class]['attributes'])
-            card._additional_populate_from_attributes(
+            card._more_populate_from_attributes(
                 apic_obj[apic_class]['attributes'])
             (card.firmware, card.bios) = card._get_firmware(dist_name)
             card.node = node_id
@@ -296,7 +316,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.dn = str(attributes['dn'])
         self.descr = str(attributes['descr'])
 
-    def _additional_populate_from_attributes(self, attributes):
+    def _more_populate_from_attributes(self, attributes):
         """Fills in an object with the additional attributes.
            Overridden by inheriting classes to provide the specific attributes
            when getting objects from the APIC.
@@ -332,7 +352,8 @@ class Systemcontroller(BaseACIPhysModule):
     """ class of the motherboard of the APIC controller node   """
 
     def __init__(self, pod, node, slot, parent=None):
-        """ Initialize the basic object.  It will create the name of the Systemcontroller and set the type
+        """ Initialize the basic object.  It will create the name
+        of the Systemcontroller and set the type
         before calling the base class __init__ method.
 
         :param pod: pod id
@@ -347,11 +368,14 @@ class Systemcontroller(BaseACIPhysModule):
 
     @classmethod
     def get(cls, session, parent=None):
-        """Gets all of the System controllers from the APIC. This information comes from
+        """Gets all of the System controllers from the APIC.
+        This information comes from
         the APIC 'eqptBoard' class.
 
-        If parent is specified, it will only get system controllers that are
-        children of the the parent.  The system controlles will also be added as children to the parent Node.
+        If parent is specified, it will only get system
+        controllers that are children of the the parent.
+        The system controlles will also be added as children
+        to the parent Node.
 
         :param session: APIC session
         :param parent: parent Node
@@ -377,8 +401,10 @@ class Systemcontroller(BaseACIPhysModule):
         return pod, node, slot
 
     def _get_firmware(self, dn):
-        """Gets the firmware version of the System controller from the firmwareCtrlrRunning attribute of the
-        ctrlrrunning object under the ctrlrfwstatuscont object.  It will set the bios to None.
+        """Gets the firmware version of the System controller
+        from the firmwareCtrlrRunning attribute of the
+        ctrlrrunning object under the ctrlrfwstatuscont object.
+        It will set the bios to None.
 
         :param dn: dn of node
 
@@ -387,7 +413,8 @@ class Systemcontroller(BaseACIPhysModule):
         name = dn.split('/')
         new_dist_name = '/'.join(name[0:4])
 
-        mo_query_url = '/api/mo/' + new_dist_name + '/ctrlrfwstatuscont/ctrlrrunning.json?query-target=self'
+        mo_query_url = '/api/mo/' + new_dist_name + \
+            '/ctrlrfwstatuscont/ctrlrrunning.json?query-target=self'
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
 
@@ -399,22 +426,25 @@ class Systemcontroller(BaseACIPhysModule):
         bios = None
         return (firmware, bios)
 
-    def _additional_populate_from_attributes(self, attributes):
+    def _more_populate_from_attributes(self, attributes):
         """Fills in the System controller with additional attributes.
         """
         self.type = str(attributes['type'])
 
         # I think this is a bug fix to the APIC controller.  The type should be set correctly.
         if self.type == 'unknown':
-                self.type = 'systemctrlcard'
+            self.type = 'systemctrlcard'
 
 
 class Linecard(BaseACIPhysModule):
     """ class for a linecard of a switch   """
     def __init__(self, arg0=None, arg1=None, slot=None, parent=None):
-        """Initialize the basic object.  It will create the name of the linecard and set the type
-        before calling the base class __init__ method.  If arg1 is an instance of a Node, then pod,
-        and node are derived from the Node and the slot_id is from arg0.  If arg1 is not a Node, then arg0
+        """Initialize the basic object.  It will create the
+        name of the linecard and set the type
+        before calling the base class __init__ method.
+        If arg1 is an instance of a Node, then pod,
+        and node are derived from the Node and the slot_id
+        is from arg0.  If arg1 is not a Node, then arg0
         is the pod, arg1 is the node id, and slot is the slot_id
 
         In other words, this Linecard object can either be initialized by
@@ -452,8 +482,10 @@ class Linecard(BaseACIPhysModule):
 
     @classmethod
     def get(cls, session, parent=None):
-        """Gets all of the linecards from the APIC.  If parent is specified, it will only get linecards that are
-        children of the the parent.  The linecards will also be added as children to the parent Node.
+        """Gets all of the linecards from the APIC.  If parent is
+        specified, it will only get linecards that are
+        children of the the parent.  The linecards will also
+        be added as children to the parent Node.
 
         The lincard object is derived mostly from the APIC 'eqptLC' class.
 
@@ -473,8 +505,10 @@ class Linecard(BaseACIPhysModule):
 
         :returns: None
         """
-        interfaces = []
-        interfaces = ACI.Interface.get(self._session, self)
+
+        # The following will add the interfaces to the linecard
+        ACI.Interface.get(self._session, self)
+        
         if deep:
             for child in self._children:
                 child.populate_children(deep=True)
@@ -500,10 +534,13 @@ class Supervisorcard(BaseACIPhysModule):
 
     @classmethod
     def get(cls, session, parent=None):
-        """Gets all of the supervisor cards from the APIC.  If parent is specified, it will only get the supervisor card that is
-        a child of the the parent Node.  The supervisor will also be added as a child to the parent Node.
+        """Gets all of the supervisor cards from the APIC.
+        If parent is specified, it will only get the
+        supervisor card that is a child of the the parent Node.
+        The supervisor will also be added as a child to the parent Node.
 
-        The Supervisorcard object is derived mostly from the APIC 'eqptSupC' class.
+        The Supervisorcard object is derived mostly from the
+        APIC 'eqptSupC' class.
 
         :param session: APIC session
         :param parent: optional parent switch of class Node
@@ -516,7 +553,8 @@ class Supervisorcard(BaseACIPhysModule):
 class Fantray(BaseACIPhysModule):
     """Class for the fan tray of a node"""
     def __init__(self, pod, node, slot, parent=None):
-        """ Initialize the basic object.  It will create the name of the fan tray and set the type
+        """ Initialize the basic object.  It will create
+        the name of the fan tray and set the type
         before calling the base class __init__ method
         :param pod: pod id
         :param node: node id
@@ -525,12 +563,16 @@ class Fantray(BaseACIPhysModule):
         """
         self.name = 'Fan-' + '/'.join([pod, node, slot])
         self.type = 'fantray'
+        self.status = None
         super(Fantray, self).__init__(pod, node, slot, parent)
+
 
     @classmethod
     def get(cls, session, parent=None):
-        """Gets all of the fantrays from the APIC.  If parent is specified, it will only get fantrays that are
-        children of the the parent.  The fantrays will also be added as children to the parent Node.
+        """Gets all of the fantrays from the APIC.  If parent
+        is specified, it will only get fantrays that are
+        children of the the parent.  The fantrays will
+        also be added as children to the parent Node.
 
         The fantray object is derived mostly from the APIC 'eqptFt' class.
 
@@ -541,7 +583,7 @@ class Fantray(BaseACIPhysModule):
         """
         return cls.get_obj(session, 'eqptFt', parent)
 
-    def _additional_populate_from_attributes(self, attributes):
+    def _more_populate_from_attributes(self, attributes):
         """Fills in an object with additional attributes.
          """
         self.status = str(attributes['operSt'])
@@ -552,11 +594,14 @@ class Fantray(BaseACIPhysModule):
         return (None, None)
 
     def populate_children(self, deep=False):
-        """Populates all of the children of the fantray.  Since the fantray has no children,
+        """Populates all of the children of the fantray.
+        Since the fantray has no children,
         this will return none.
 
-        :param deep: boolean that when true will cause the entire sub-tree to be populated\
-            when false, only the immediate children are populated
+        :param deep: boolean that when true will cause the
+                     entire sub-tree to be populated
+                     when false, only the immediate
+                     children are populated
 
         :returns: None
         """
@@ -566,7 +611,8 @@ class Fantray(BaseACIPhysModule):
 class Powersupply(BaseACIPhysModule):
     """ class for a power supply in a node   """
     def __init__(self, pod, node, slot, parent=None):
-        """ Initialize the basic object.  It will create the name of the powersupply and set the type
+        """ Initialize the basic object.  It will create
+        the name of the powersupply and set the type
         before calling the base class __init__ method
         :param pod: pod id
         :param node: node id
@@ -575,12 +621,18 @@ class Powersupply(BaseACIPhysModule):
         """
         self.name = 'PS-' + '/'.join([pod, node, slot])
         self.type = 'powersupply'
+        self.status = None
+        self.voltage_source = None
+        self.fan_status = None
         super(Powersupply, self).__init__(pod, node, slot, parent)
+
 
     @classmethod
     def get(cls, session, parent=None):
-        """Gets all of the power supplies from the APIC.  If parent is specified, it will only get power supplies that are
-        children of the the parent.  The power supplies will also be added as children to the parent Node.
+        """Gets all of the power supplies from the APIC.
+        If parent is specified, it will only get power supplies that are
+        children of the the parent.  The power supplies
+        will also be added as children to the parent Node.
 
         The Powersupply object is derived mostly from the APIC 'eqptPsu' class.
 
@@ -591,7 +643,7 @@ class Powersupply(BaseACIPhysModule):
         """
         return cls.get_obj(session, 'eqptPsu', parent)
 
-    def _additional_populate_from_attributes(self, attributes):
+    def _more_populate_from_attributes(self, attributes):
         """Fills in an object with additional desired attributes.
         """
         self.status = str(attributes['operSt'])
@@ -606,11 +658,14 @@ class Powersupply(BaseACIPhysModule):
         return (None, None)
 
     def populate_children(self, deep=False):
-        """Populates all of the children of the power supply.  Since the power supply has no children,
+        """Populates all of the children of the power supply.
+        Since the power supply has no children,
         this will return none.
 
-        :param deep: boolean that when true will cause the entire sub-tree to be populated\
-            when false, only the immediate children are populated
+        :param deep: boolean that when true will cause the
+                     entire sub-tree to be populated
+                     when false, only the immediate
+                     children are populated
 
         :returns: None
         """
@@ -619,9 +674,11 @@ class Powersupply(BaseACIPhysModule):
 
 class Pod(BaseACIPhysObject):
     """ Pod :  roughly equivalent to fabricPod """
-    def __init__(self, pod_id, attributes={}, parent=None):
-        """ Initialize the basic object.  It will create the name of the pod and set the type
-        before calling the base class __init__ method.  Typically the pod_id will be 1.
+    def __init__(self, pod_id, attributes=None, parent=None):
+        """ Initialize the basic object.  It will
+        create the name of the pod and set the type
+        before calling the base class __init__ method.
+        Typically the pod_id will be 1.
 
         :param pod_id: pod id string
         :param attributes:
@@ -631,13 +688,18 @@ class Pod(BaseACIPhysObject):
         if isinstance(parent, str):
             raise TypeError("Parent object can't be a string")
 
-        if not isinstance(attributes, dict):
-            raise TypeError("Attributes must be a dictionary")
+        if attributes :
+            if not isinstance(attributes, dict):
+                raise TypeError("Attributes must be a dictionary")
 
-        self.attributes = copy.deepcopy(attributes)
+        if attributes:
+            self.attributes = copy.deepcopy(attributes)
+        else:
+            self.attributes = {}
         self.pod = str(pod_id)
         self.type = 'pod'
         self.name = 'pod-' + str(self.pod)
+        self._session = None
         logging.debug('Creating %s %s', self.__class__.__name__, self.pod)
         self._common_init(parent)
 
@@ -650,7 +712,9 @@ class Pod(BaseACIPhysObject):
         """Gets all of the Pods from the APIC.  Generally there will be only one.
 
         :param session: APIC session
-        :returns: list of Pods.  Note that this will be a list even though there typically will only be one item in the list.
+        :returns: list of Pods.  Note that this will be a
+                  list even though there typically
+                  will only be one item in the list.
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
@@ -676,8 +740,10 @@ class Pod(BaseACIPhysObject):
 
         This method returns nothing.
 
-        :param deep: boolean that when true will cause the entire sub-tree to be populated\
-            when false, only the immediate children are populated
+        :param deep: boolean that when true will cause the
+                     entire sub-tree to be populated
+                     when false, only the immediate
+                     children are populated
 
         :returns: None
         """
@@ -707,7 +773,8 @@ class Node(BaseACIPhysObject):
         :param pod: String representation of the pod number
         :param node: String representation of the node number
         :param name: Name of the node
-        :param role: Role of the node.  Valid roles are None, 'spine', 'leaf', 'controller', 'loosenode'
+        :param role: Role of the node.  Valid roles are None,
+                     'spine', 'leaf', 'controller', 'loosenode'
         :param parent: Parent pod object of the node.
         """
 
@@ -741,8 +808,12 @@ class Node(BaseACIPhysObject):
         self.operStQual = None
         self.descr = None
         self.model = None
-        
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' + str(self.pod) + '/node-' + str(self.node))
+        self.dn = None
+        self.vendor = None
+        self.serial = None
+
+        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' +
+                      str(self.pod) + '/node-' + str(self.node))
         self._common_init(parent)
 
     def get_role(self):
@@ -797,7 +868,7 @@ class Node(BaseACIPhysObject):
             node = Node(pod, node_id, node_name, node_role)
             node._session = session
             node._populate_from_attributes(apic_node['fabricNode']['attributes'])
-            node._get_topSystem_info()
+            node._get_topsystem_info()
             if parent:
 
                 if node.pod == parent.pod:
@@ -813,7 +884,10 @@ class Node(BaseACIPhysObject):
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
-        return (self.pod == other.pod) and (self.node == other.node) and (self.name == other.name) and (self.role == other.role)
+        return (self.pod == other.pod) and \
+            (self.node == other.node) and \
+            (self.name == other.name) and \
+            (self.role == other.role)
 
     def _populate_from_attributes(self, attributes):
         """Fills in an object with the desired attributes.
@@ -824,7 +898,7 @@ class Node(BaseACIPhysObject):
         self.vendor = attributes['vendor']
         self.fabricSt = attributes['fabricSt']
 
-    def _get_topSystem_info(self):
+    def _get_topsystem_info(self):
         """ will read in topSystem object to get more information about Node"""
 
         mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=self'
@@ -835,7 +909,7 @@ class Node(BaseACIPhysObject):
             self.ipAddress = str(node_data[0]['topSystem']['attributes']['address'])
             self.macAddress = str(node_data[0]['topSystem']['attributes']['fabricMAC'])
             self.state = str(node_data[0]['topSystem']['attributes']['state'])
-            self.mode = str(node_data[0]['topSystem']['attributes']['mode'])  # standalone, cluster, or unspecified
+            self.mode = str(node_data[0]['topSystem']['attributes']['mode'])
             # now get eqptCh for even more info
             mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
             ret = self._session.get(mo_query_url)
@@ -847,10 +921,12 @@ class Node(BaseACIPhysObject):
                 self.descr = str(node_data[0]['eqptCh']['attributes']['descr'])
 
     def populate_children(self, deep=False):
-        """Will populate all of the children modules such as linecards, fantrays and powersupplies, of the node.
+        """Will populate all of the children modules such as
+        linecards, fantrays and powersupplies, of the node.
 
-        :param deep: boolean that when true will cause the entire sub-tree to be populated\
-            when false, only the immediate children are populated
+        :param deep: boolean that when true will cause the entire
+                     sub-tree to be populated when false, only the
+                     immediate children are populated
 
         :returns: None
         """
@@ -888,32 +964,38 @@ class Node(BaseACIPhysObject):
 
         return self.model
 
-    def get_chassisType(self):
-        """Returns the chassis type of this node.  The chassis type is derived from the model number.
-        This is a chassis type that is compatible with Cisco's Cable Plan XML.
+    def get_chassis_type(self):
+        """Returns the chassis type of this node.  The chassis
+        type is derived from the model number.
+        This is a chassis type that is compatible with
+        Cisco's Cable Plan XML.
 
         :returns: chassis type of node of type str
         """
         model = self.get_model()
-        if model :
+        if model:
             fields = re.split('-', self.get_model())
-        else :
-            fields = []
-            
-        if len(fields) > 0:
-            chassisType = fields[0].lower()
         else:
-            chassisType = None
-        return chassisType
+            fields = []
+
+        if len(fields) > 0:
+            chassis_type = fields[0].lower()
+        else:
+            chassis_type = None
+        return chassis_type
 
 
 class ENode(Node):
-    """External Node.  This class is for switch nodes that are connected to the pod, but are not
-    ACI nodes, i.e. are not under control of the APIC.  Examples would be external layer 2 switches,
+    """External Node.  This class is for switch nodes that are
+    connected to the pod, but are not
+    ACI nodes, i.e. are not under control of the APIC.
+    Examples would be external layer 2 switches,
     external routers, or hypervisor based switches.
 
-    This class will look as much as possible like the Node class recognizing that not as much information
-    is available to the APIC about them as is available about ACI nodes.  Nearly all of the information used
+    This class will look as much as possible like the Node
+    class recognizing that not as much information
+    is available to the APIC about them as is available
+    about ACI nodes.  Nearly all of the information used
     to create this class comes from LLDP.
     """
     def __init__(self, attributes, session=None, parent=None):
@@ -938,9 +1020,11 @@ class ENode(Node):
         # check that role is valid
         valid_roles = [None, 'physicalSwitch', 'virtualSwitch']
         if self.attributes.get('role') not in valid_roles:
-            raise ValueError("role must be one of " + str(valid_roles) + ' found ' + self.attributes.get('role'))
+            raise ValueError("role must be one of " + str(valid_roles) \
+                              + ' found ' + self.attributes.get('role'))
 
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' + str(self.attributes.get('pod')) + '/node-' + str(self.attributes.get('id')))
+        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' +
+                      str(self.attributes.get('pod')) + '/node-' + str(self.attributes.get('id')))
         self._common_init(self._parent)
 
     def _common_init(self, parent):
@@ -976,13 +1060,13 @@ class ENode(Node):
         return self.attributes.get('role')
 
     @staticmethod
-    def _getPhysicalSwitches(session, parent):
+    def _get_physical_switches(session, parent):
         """Look for loose nodes and build an object for each one.
         """
 
-        if parent:
-            if not isinstance(parent, Topology):
-                raise TypeError('An instance of Topology class is required')
+        # if parent:
+        #     if not isinstance(parent, Topology):
+        #         raise TypeError('An instance of Topology class is required')
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
         lnode_query_url = ('/api/node/class/fabricLooseNode.json?'
@@ -999,17 +1083,18 @@ class ENode(Node):
             node_attrib['role'] = 'physicalSwitch'
             node_attrib['pod'] = None
             node_attrib['status'] = str(apic_node['fabricLooseNode']['attributes']['status'])
-            node_attrib['operIssues'] = str(apic_node['fabricLooseNode']['attributes']['operIssues'])
+            node_attrib['operIssues'] = str(apic_node['fabricLooseNode']
+                                            ['attributes']['operIssues'])
             node_attrib['dn'] = str(apic_node['fabricLooseNode']['attributes']['dn'])
             node_attrib['fabricSt'] = 'external'
             node_attrib['descr'] = str(apic_node['fabricLooseNode']['attributes']['sysDesc'])
-            node_attrib.update(ENode._getSystem_info(session, node_attrib['dn']))
+            node_attrib.update(ENode._get_system_info(session, node_attrib['dn']))
             node = ENode(attributes=node_attrib, session=session, parent=parent)
             lnodes.append(node)
         return lnodes
 
     @staticmethod
-    def _getVirtualSwitches(session, parent):
+    def _get_virtual_switches(session, parent):
         """will find virtual switch nodes and return a list of such objects.
         """
 
@@ -1044,26 +1129,33 @@ class ENode(Node):
         :param parent: optional parent object of type Topology
         :returns: list of ENodes
         """
-        enodes = ENode._getPhysicalSwitches(session, parent)
-        enodes.extend(ENode._getVirtualSwitches(session, parent))
+        enodes = ENode._get_physical_switches(session, parent)
+        enodes.extend(ENode._get_virtual_switches(session, parent))
         return enodes
 
     @staticmethod
-    def _getDn(session, dn):
+    def _get_dn(session, dn):
+        """
+        Will get the object that dn refers to.
+        """
         mo_query_url = '/api/mo/' + dn + '.json?query-target=self'
         ret = session.get(mo_query_url)
         node_data = ret.json()['imdata']
         return node_data
 
     @staticmethod
-    def _getDnChildren(session, dn):
+    def _get_dn_children(session, dn):
+        """
+        Will get the children of the specified dn
+        """
+
         mo_query_url = '/api/mo/' + dn + '.json?query-target=children'
         ret = session.get(mo_query_url)
         node_data = ret.json()['imdata']
         return node_data
 
     @staticmethod
-    def _getSystem_info(session, dn):
+    def _get_system_info(session, dn):
         """This routine will fill in various other attributes of the loose node
         """
         attrib = {}
@@ -1079,11 +1171,13 @@ class ENode(Node):
                 node = str(name[2].split('-')[1])
                 if 'phys' in name[4]:
                     result = re.search('phys-\[(.+)\]', dn)
-                    lldp_dn = 'topology/pod-' + pod + '/node-' + node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
+                    lldp_dn = 'topology/pod-' + pod + '/node-' + \
+                        node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
                 else:
-                    agg_port_data = ENode._getDn(session, dn)
+                    agg_port_data = ENode._get_dn(session, dn)
                     port = agg_port_data[0]['pcAggrIf']['attributes']['lastBundleMbr']
-                    lldp_dn = 'topology/pod-' + pod + '/node-' + node + '/sys/lldp/inst/if-[' + port + ']/adj-1'
+                    lldp_dn = 'topology/pod-' + pod + '/node-' + \
+                        node + '/sys/lldp/inst/if-[' + port + ']/adj-1'
 
             if 'fabricProtLooseLink' in node:
                 dn = node['fabricProtLooseLink']['attributes']['portDn']
@@ -1092,18 +1186,18 @@ class ENode(Node):
                 node = str(name[2].split('-')[1])
                 lldp_dn = 'topology/pod-' + pod + '/node-' + node + '/sys/lldp/inst/if-['
                 if dn:
-                    link = ENode._getDnChildren(session, dn)
+                    link = ENode._get_dn_children(session, dn)
                     for child in link:
                         if 'pcRsMbrIfs' in child:
                             port = child['pcRsMbrIfs']['attributes']['tSKey']
                 lldp_dn = lldp_dn + port + ']/adj-1'
 
-        lldp_data = ENode._getDn(session, lldp_dn)
+        lldp_data = ENode._get_dn(session, lldp_dn)
         attrib['ipAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtIp'])
         attrib['name'] = str(lldp_data[0]['lldpAdjEp']['attributes']['sysName'])
 
-        chassisIdT = lldp_data[0]['lldpAdjEp']['attributes']['chassisIdT']
-        if chassisIdT == 'mac':
+        chassis_id_t = lldp_data[0]['lldpAdjEp']['attributes']['chassisIdT']
+        if chassis_id_t == 'mac':
             attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['chassisIdV'])
         else:
             attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtPortMac'])
@@ -1113,7 +1207,8 @@ class ENode(Node):
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
-        return (self.attributes.get('name') == other.attributes.get('name')) and (self.attributes.get('role') == other.attributes.get('role'))
+        return (self.attributes.get('name') == other.attributes.get('name')) and \
+            (self.attributes.get('role') == other.attributes.get('role'))
 
 
 class Link(BaseACIPhysObject):
@@ -1138,6 +1233,7 @@ class Link(BaseACIPhysObject):
         self.slot2 = slot2
         self.port2 = port2
         self.linkstate = None
+        self.linkstatus = None
         self.pod = pod
         self.link = link
         self.descr = None
@@ -1147,7 +1243,8 @@ class Link(BaseACIPhysObject):
 
         self.type = 'link'
         self._session = None
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-%s link-%s' % (self.pod, self.link))
+        logging.debug('Creating %s %s', self.__class__.__name__,
+                      'pod-%s link-%s' % (self.pod, self.link))
         self._common_init(parent)
 
     @staticmethod
@@ -1156,13 +1253,14 @@ class Link(BaseACIPhysObject):
         only links of that pod will be retrieved. If the parent_pod is a Pod object
         then the links will be added as children of that pod.
 
-        If node is specified, then only links of that originate at the specific node will be returned.
+        If node is specified, then only links of that originate
+        at the specific node will be returned.
         If node is specified, pod must be specified.
 
         :param session: APIC session
         :param parent_pod: Optional parent Pod object or identifier string.
         :param node_id: Optional node number string
-         
+
         :returns: list of links
         """
         pod_id = None
@@ -1170,24 +1268,24 @@ class Link(BaseACIPhysObject):
             if not isinstance(parent_pod, Pod) and not isinstance(parent_pod, str):
                 raise TypeError('An instance of Pod class or a pod number string is required')
 
-            if isinstance(parent_pod, Pod) :
+            if isinstance(parent_pod, Pod):
                 pod_id = parent_pod.pod
-            else :
+            else:
                 pod_id = parent_pod
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
-        if not parent_pod :
+        if not parent_pod:
             interface_query_url = ('/api/node/class/fabricLink.json?'
-                                'query-target=self')
+                                   'query-target=self')
         elif pod_id:
-            if node_id :
+            if node_id:
                 interface_query_url = ('/api/node/class/fabricLink.json?'
-                                    'query-target=self&query-target-filter=eq(fabricLink.n1,"'+node_id+'")')
-            else :
+                                       'query-target=self&query-target-filter=eq(fabricLink.n1,"'
+                                       + node_id + '")')
+            else:
                 interface_query_url = ('/api/node/class/fabricLink.json?'
-                                    'query-target=self')
-                
+                                       'query-target=self')
         links = []
         ret = session.get(interface_query_url)
         link_data = ret.json()['imdata']
@@ -1205,7 +1303,7 @@ class Link(BaseACIPhysObject):
             link._populate_from_attributes(apic_link['fabricLink']['attributes'])
             if pod_id:
                 if link.pod == pod_id:
-                    if isinstance(parent_pod, Pod) :
+                    if isinstance(parent_pod, Pod):
                         link._parent = parent_pod
                         if link._parent.has_child(link):
                             link._parent.remove_child(link)
@@ -1220,24 +1318,30 @@ class Link(BaseACIPhysObject):
 
         self.linkstate = attributes['linkState']
         self.linkstatus = attributes['status']
-        
+
     def __str__(self):
-        text = 'n%s/s%s/p%s-n%s/s%s/p%s' % (self.node1, self.slot1, self.port1, self.node2, self.slot2, self.port2)
+        text = 'n%s/s%s/p%s-n%s/s%s/p%s' % (self.node1, self.slot1,
+                                            self.port1, self.node2, self.slot2, self.port2)
         return text
 
     def __eq__(self, other):
-        """ Two links are considered equal if their class type is the same and the end points match.  The link ids are not
+        """ Two links are considered equal if their class type is the
+        same and the end points match.  The link ids are not
         checked.
         """
 
         if type(self) is not type(other):
             return False
-        return (self.pod == other.pod) and (self.node1 == other.node1) and (self.slot1 == other.slot1) and (self.port1 == other.port1)
+        return (self.pod == other.pod) and (self.node1 == other.node1) \
+            and (self.slot1 == other.slot1) and (self.port1 == other.port1)
 
     def get_node1(self):
-        """Returns the Node object that corresponds to the first node of the link.  The Node must be a child of
-        the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
-        most easily be done by populating the entire physical heirarchy from the Pod down.
+        """Returns the Node object that corresponds to the first
+        node of the link.  The Node must be a child of
+        the Pod that this link is a member of, i.e. it
+        must already have been read from the APIC.  This can
+        most easily be done by populating the entire
+        physical heirarchy from the Pod down.
 
         :returns: Node object at first end of link
         """
@@ -1251,9 +1355,12 @@ class Link(BaseACIPhysObject):
                 return node
 
     def get_node2(self):
-        """Returns the Node object that corresponds to the second node of the link.  The Node must be a child of
-        the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
-        most easily be done by populating the entire physical heirarchy from the Pod down.
+        """Returns the Node object that corresponds to the
+        second node of the link.  The Node must be a child of
+        the Pod that this link is a member of, i.e. it must
+        already have been read from the APIC.  This can
+        most easily be done by populating the entire physical
+        heirarchy from the Pod down.
 
         :returns: Node object at second end of link
         """
@@ -1266,11 +1373,14 @@ class Link(BaseACIPhysObject):
             if node.node == self.node2:
                 return node
         return None
-    
+
     def get_slot1(self):
-        """Returns the Linecard object that corresponds to the first slot of the link.  The Linecard must be a child of
-        the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
-        most easily be done by populating the entire physical heirarchy from the Pod down.
+        """Returns the Linecard object that corresponds to the
+        first slot of the link.  The Linecard must be a child of
+        the Node in the Pod that this link is a member of,
+        i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical
+        heirarchy from the Pod down.
 
         :returns: Linecard object at first end of link
         """
@@ -1278,17 +1388,20 @@ class Link(BaseACIPhysObject):
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
         node = self.get_node1()
-        if node :
+        if node:
             linecards = node.get_children(Linecard)
             for linecard in linecards:
                 if linecard.slot == self.slot1:
                     return linecard
         return None
-    
+
     def get_slot2(self):
-        """Returns the Linecard object that corresponds to the second slot of the link.  The Linecard must be a child of
-        the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
-        most easily be done by populating the entire physical heirarchy from the Pod down.
+        """Returns the Linecard object that corresponds to the
+         second slot of the link.  The Linecard must be a child of
+        the Node in the Pod that this link is a member of,
+        i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical
+        heirarchy from the Pod down.
 
         :returns: Linecard object at second end of link
         """
@@ -1296,17 +1409,20 @@ class Link(BaseACIPhysObject):
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
         node = self.get_node2()
-        if node :
+        if node:
             linecards = node.get_children(Linecard)
             for linecard in linecards:
                 if linecard.slot == self.slot2:
                     return linecard
         return None
-    
+
     def get_port1(self):
-        """Returns the Linecard object that corresponds to the first port of the link.  The port must be a child of
-        the Linecard in the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
-        most easily be done by populating the entire physical heirarchy from the Pod down.
+        """Returns the Linecard object that corresponds to the
+        first port of the link.  The port must be a child of
+        the Linecard in the Node in the Pod that this link is a
+        member of, i.e. it must already have been read from the APIC.  This can
+        most easily be done by populating the entire physical
+        heirarchy from the Pod down.
 
         :returns: Interface object at first end of link
         """
@@ -1314,19 +1430,19 @@ class Link(BaseACIPhysObject):
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
         linecard = self.get_slot1()
-        if linecard :
+        if linecard:
             interfaces = linecard.get_children(ACI.Interface)
             for interface in interfaces:
                 if interface.port == self.port1:
                     return interface
         return None
-    
+
     def get_port2(self):
         """
-        Returns the Linecard object that corresponds to the second port of\
-        the link. The port must be a child of the Linecard in the Node in\
-        the Pod that this link is a member of, i.e. it must already have been\
-        read from the APIC.  This can most easily be done by populating the\
+        Returns the Linecard object that corresponds to the second port of
+        the link. The port must be a child of the Linecard in the Node in
+        the Pod that this link is a member of, i.e. it must already have been
+        read from the APIC.  This can most easily be done by populating the
         entire physical heirarchy from the Pod down.
 
         :returns: Interface object at second end of link
@@ -1335,13 +1451,14 @@ class Link(BaseACIPhysObject):
             raise TypeError(("Parent pod must be specified in "
                              "order to get node"))
         linecard = self.get_slot2()
-        if linecard :
+        if linecard:
             interfaces = linecard.get_children(ACI.Interface)
             for interface in interfaces:
                 if interface.port == self.port2:
                     return interface
         return None
-    def get_port_id1(self) :
+
+    def get_port_id1(self):
         """
         Returns the port ID of the first end of the link in the
         format pod/node/slot/port
@@ -1349,8 +1466,8 @@ class Link(BaseACIPhysObject):
         :returns: port ID string
         """
         return '{0}/{1}/{2}/{3}'.format(self.pod, self.node1, self.slot1, self.port1)
-    
-    def get_port_id2(self) :
+
+    def get_port_id2(self):
         """
         Returns the port ID of the second end of the link in the
         format pod/node/slot/port
@@ -1358,7 +1475,7 @@ class Link(BaseACIPhysObject):
         :returns: port ID string
         """
         return '{0}/{1}/{2}/{3}'.format(self.pod, self.node2, self.slot2, self.port2)
-    
+
     @staticmethod
     def _parse_dn(dn):
         """Parses the pod and link number from a
