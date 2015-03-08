@@ -129,8 +129,8 @@ class SubMode(Cmd):
                 print interface
         elif words[0] == 'port-channel':
             portchannels = PortChannel.get(self.apic)
-            print 'Port Channel'
-            print '------------'
+            print('Port Channel')
+            print('------------')
             for pc in portchannels:
                 print pc
         elif words[0] == 'app':
@@ -381,7 +381,7 @@ class ContextConfigSubMode(SubMode):
         if not resp.ok:
             error_message(resp)
         else:
-            print 'push configuration to APIC'
+            print('push configuration to APIC')
 
     def do_getjson(self, args):
         print self.context.get_json()
@@ -403,13 +403,13 @@ class InterfaceConfigSubMode(SubMode):
         """
         num_args = len(args.split())
         if num_args == 0:
-            print '%% epg called with no epg-name'
+            print('%% epg called with no epg-name')
             return
         if self.tenant is None:
-            print '%% epg requires switchto tenant'
+            print('%% epg requires switchto tenant')
             return
         if self.negative:
-            print 'Removing epg from interface'
+            print('Removing epg from interface')
             raise NotImplementedError
         else:
             args = args.split()
@@ -421,15 +421,15 @@ class InterfaceConfigSubMode(SubMode):
                 encap_type = args[1]
                 encap_id = args[2]
             except:
-                print '%% Improper encap specified'
+                print('%% Improper encap specified')
                 return
             try:
                 (app_name, epg_name) = args[0].split('/')
             except:
-                print '%% epg called with misformed name.'
-                print '%% Proper format is epg <app-name>/<epg-name>'
+                print('%% epg called with misformed name.')
+                print('%% Proper format is epg <app-name>/<epg-name>')
                 return
-            print 'Adding epg to interface'
+            print('Adding epg to interface')
             app = AppProfile(app_name, self.tenant)
             epg = EPG(epg_name, app)
             l2if_name = '%s-%s-%s' % (self.intf.name, encap_type, encap_id)
@@ -487,7 +487,7 @@ class InterfaceConfigSubMode(SubMode):
     def do_shutdown(self, args):
         num_args = len(args.split())
         if num_args:
-            print '%% shutdown takes no arguments'
+            print('%% shutdown takes no arguments')
             return
         if self.negative:
             self.intf.adminstatus = 'up'
@@ -513,8 +513,8 @@ class InterfaceConfigSubMode(SubMode):
         """
         num_args = len(args.split())
         if num_args != 1:
-            print '%% speed called with invalid format'
-            print '%% Proper format is speed <speed-value>'
+            print('%% speed called with invalid format')
+            print('%% Proper format is speed <speed-value>')
             return
         speed = args.upper()
         if speed not in ('100M', '1G', '10G', '40G'):
