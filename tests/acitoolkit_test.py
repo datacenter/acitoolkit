@@ -1463,18 +1463,18 @@ class TestOspf(unittest.TestCase):
         outside.attach(ospfif)
         ospf_json = outside.get_json()
 
-class TestMonitorPolicy(unittest.TestCase):
-    """
-    Tests the monitoriing policy
-    """
-    def test_create(self):
-        m_policy = MonitorPolicy('fabric','policy-name')
-        self.assertEqual(m_policy.name,'policy-name')
-        self.assertEqual(m_policy.policyType,'fabric')
-        m_policy.set_name('policy-name-2')
-        self.assertEqual(m_policy.name,'policy-name-2')
-        m_policy.set_description('Policy description string')
-        self.assertEqual(m_policy.description,'Policy description string')
+# class TestMonitorPolicy(unittest.TestCase):
+#    """
+#    Tests the monitoriing policy
+#    """
+#    def test_create(self):
+#        m_policy = MonitorPolicy('fabric','policy-name')
+#        self.assertEqual(m_policy.name,'policy-name')
+#        self.assertEqual(m_policy.policyType,'fabric')
+#        m_policy.set_name('policy-name-2')
+#        self.assertEqual(m_policy.name,'policy-name-2')
+#        m_policy.set_description('Policy description string')
+#        self.assertEqual(m_policy.description,'Policy description string')
     
     
 class TestLiveAPIC(unittest.TestCase):
