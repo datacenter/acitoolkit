@@ -18,7 +18,8 @@
 
 from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
-from acitoolkit import Interface
+#from acitoolkit import Interface
+import acitoolkit as ACI
 from acicounters import AtomicCountersOnGoing
 
 import json
@@ -472,11 +473,8 @@ class Linecard(BaseACIPhysModule):
 
         :returns: None
         """
-
-        interfaces = Interface.get(self._session, self)
-        for interface in interfaces:
-            self.add_child(interface)
-
+        interfaces = []
+        interfaces = ACI.Interface.get(self._session, self)
         if deep:
             for child in self._children:
                 child.populate_children(deep=True)
@@ -742,7 +740,8 @@ class Node(BaseACIPhysObject):
         self.operSt = None
         self.operStQual = None
         self.descr = None
-
+        self.model = None
+        
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' + str(self.pod) + '/node-' + str(self.node))
         self._common_init(parent)
 
@@ -768,19 +767,6 @@ class Node(BaseACIPhysObject):
         pod = name[1].split('-')[1]
         node = name[2].split('-')[1]
         return pod, node
-
-    @staticmethod
-    def _get_name(session, dn):
-        """Retrieves the name of the node from the name attribute of the fabricNode object"""
-
-        name = dn.split('/')
-        fabricNode_dn = name[0] + '/' + name[1] + '/' + name[2]
-
-        mo_query_url = '/api/mo/' + fabricNode_dn + '.json?query-target=self'
-        ret = session.get(mo_query_url)
-        node_data = ret.json()['imdata']
-
-        return str(node_data[0]['fabricNode']['attributes']['name'])
 
     @staticmethod
     def get(session, parent=None):
@@ -908,7 +894,12 @@ class Node(BaseACIPhysObject):
 
         :returns: chassis type of node of type str
         """
-        fields = re.split('-', self.get_model())
+        model = self.get_model()
+        if model :
+            fields = re.split('-', self.get_model())
+        else :
+            fields = []
+            
         if len(fields) > 0:
             chassisType = fields[0].lower()
         else:
@@ -934,11 +925,6 @@ class ENode(Node):
         if self._session:
             if not isinstance(self._session, Session):
                 raise TypeError("session must be of type Session")
-
-        # check that name is a string
-        if self.attributes['name']:
-            if not isinstance(self.attributes['name'], str):
-                raise TypeError("Name must be a string")
 
         # check that parent is not a string
         if isinstance(parent, str):
@@ -1165,22 +1151,43 @@ class Link(BaseACIPhysObject):
         self._common_init(parent)
 
     @staticmethod
-    def get(session, parent=None):
-        """Gets all of the Links from the APIC.  If the parent pod is specified,
-        only links of that pod will be retrieved.
+    def get(session, parent_pod=None, node_id=None):
+        """Gets all of the Links from the APIC.  If the parent_pod is specified,
+        only links of that pod will be retrieved. If the parent_pod is a Pod object
+        then the links will be added as children of that pod.
+
+        If node is specified, then only links of that originate at the specific node will be returned.
+        If node is specified, pod must be specified.
 
         :param session: APIC session
-        :param parent: Optional parent Pod object
+        :param parent_pod: Optional parent Pod object or identifier string.
+        :param node_id: Optional node number string
+         
         :returns: list of links
         """
-        if parent:
-            if not isinstance(parent, Pod):
-                raise TypeError('An instance of Pod class is required')
+        pod_id = None
+        if parent_pod:
+            if not isinstance(parent_pod, Pod) and not isinstance(parent_pod, str):
+                raise TypeError('An instance of Pod class or a pod number string is required')
+
+            if isinstance(parent_pod, Pod) :
+                pod_id = parent_pod.pod
+            else :
+                pod_id = parent_pod
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
-        interface_query_url = ('/api/node/class/fabricLink.json?'
-                               'query-target=self')
+        if not parent_pod :
+            interface_query_url = ('/api/node/class/fabricLink.json?'
+                                'query-target=self')
+        elif pod_id:
+            if node_id :
+                interface_query_url = ('/api/node/class/fabricLink.json?'
+                                    'query-target=self&query-target-filter=eq(fabricLink.n1,"'+node_id+'")')
+            else :
+                interface_query_url = ('/api/node/class/fabricLink.json?'
+                                    'query-target=self')
+                
         links = []
         ret = session.get(interface_query_url)
         link_data = ret.json()['imdata']
@@ -1196,12 +1203,13 @@ class Link(BaseACIPhysObject):
             link = Link(pod, link, link_n1, link_s1, link_p1, link_n2, link_s2, link_p2)
             link._session = session
             link._populate_from_attributes(apic_link['fabricLink']['attributes'])
-            if parent:
-                if link.pod == parent.pod:
-                    link._parent = parent
-                    if parent.has_child(link):
-                        parent.remove_child(link)
-                    parent.add_child(link)
+            if pod_id:
+                if link.pod == pod_id:
+                    if isinstance(parent_pod, Pod) :
+                        link._parent = parent_pod
+                        if link._parent.has_child(link):
+                            link._parent.remove_child(link)
+                        link._parent.add_child(link)
                     links.append(link)
             else:
                 links.append(link)
@@ -1211,7 +1219,8 @@ class Link(BaseACIPhysObject):
         """ populate various additional attributes """
 
         self.linkstate = attributes['linkState']
-
+        self.linkstatus = attributes['status']
+        
     def __str__(self):
         text = 'n%s/s%s/p%s-n%s/s%s/p%s' % (self.node1, self.slot1, self.port1, self.node2, self.slot2, self.port2)
         return text
@@ -1224,13 +1233,6 @@ class Link(BaseACIPhysObject):
         if type(self) is not type(other):
             return False
         return (self.pod == other.pod) and (self.node1 == other.node1) and (self.slot1 == other.slot1) and (self.port1 == other.port1)
-
-    def get_linkstatus(self):
-        """Gets the link status
-
-        :returns: link status string
-        """
-        return self.linkstatus
 
     def get_node1(self):
         """Returns the Node object that corresponds to the first node of the link.  The Node must be a child of
@@ -1263,7 +1265,8 @@ class Link(BaseACIPhysObject):
         for node in nodes:
             if node.node == self.node2:
                 return node
-
+        return None
+    
     def get_slot1(self):
         """Returns the Linecard object that corresponds to the first slot of the link.  The Linecard must be a child of
         the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
@@ -1275,11 +1278,13 @@ class Link(BaseACIPhysObject):
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
         node = self.get_node1()
-        linecards = node.get_children(Linecard)
-        for linecard in linecards:
-            if linecard.slot == self.slot1:
-                return linecard
-
+        if node :
+            linecards = node.get_children(Linecard)
+            for linecard in linecards:
+                if linecard.slot == self.slot1:
+                    return linecard
+        return None
+    
     def get_slot2(self):
         """Returns the Linecard object that corresponds to the second slot of the link.  The Linecard must be a child of
         the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
@@ -1291,11 +1296,13 @@ class Link(BaseACIPhysObject):
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
         node = self.get_node2()
-        linecards = node.get_children(Linecard)
-        for linecard in linecards:
-            if linecard.slot == self.slot2:
-                return linecard
-
+        if node :
+            linecards = node.get_children(Linecard)
+            for linecard in linecards:
+                if linecard.slot == self.slot2:
+                    return linecard
+        return None
+    
     def get_port1(self):
         """Returns the Linecard object that corresponds to the first port of the link.  The port must be a child of
         the Linecard in the Node in the Pod that this link is a member of, i.e. it must already have been read from the APIC.  This can
@@ -1307,11 +1314,13 @@ class Link(BaseACIPhysObject):
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
         linecard = self.get_slot1()
-        interfaces = linecard.get_children(Interface)
-        for interface in interfaces:
-            if interface.port == self.port1:
-                return interface
-
+        if linecard :
+            interfaces = linecard.get_children(ACI.Interface)
+            for interface in interfaces:
+                if interface.port == self.port1:
+                    return interface
+        return None
+    
     def get_port2(self):
         """
         Returns the Linecard object that corresponds to the second port of\
@@ -1326,11 +1335,30 @@ class Link(BaseACIPhysObject):
             raise TypeError(("Parent pod must be specified in "
                              "order to get node"))
         linecard = self.get_slot2()
-        interfaces = linecard.get_children(Interface)
-        for interface in interfaces:
-            if interface.port == self.port2:
-                return interface
+        if linecard :
+            interfaces = linecard.get_children(ACI.Interface)
+            for interface in interfaces:
+                if interface.port == self.port2:
+                    return interface
+        return None
+    def get_port_id1(self) :
+        """
+        Returns the port ID of the first end of the link in the
+        format pod/node/slot/port
 
+        :returns: port ID string
+        """
+        return '{0}/{1}/{2}/{3}'.format(self.pod, self.node1, self.slot1, self.port1)
+    
+    def get_port_id2(self) :
+        """
+        Returns the port ID of the second end of the link in the
+        format pod/node/slot/port
+
+        :returns: port ID string
+        """
+        return '{0}/{1}/{2}/{3}'.format(self.pod, self.node2, self.slot2, self.port2)
+    
     @staticmethod
     def _parse_dn(dn):
         """Parses the pod and link number from a

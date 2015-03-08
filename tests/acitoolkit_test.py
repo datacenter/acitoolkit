@@ -16,6 +16,7 @@
 """ACI Toolkit Test module
 """
 from acitoolkit.acitoolkit import *
+from acitoolkit.aciphysobject import *
 import unittest
 import string
 import random
@@ -835,7 +836,21 @@ class TestInterface(unittest.TestCase):
 
     # def test_parse_name_no_space(self):
     #    self.parse_name('eth1/2/3/4')
+    def test_get_serial(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertEqual(intf1.get_serial(), None)
 
+    def test_get_type(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertEqual(intf1.get_type(), 'interface')
+
+    def test_cdp_disabled(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertFalse(intf1.is_cdp_disabled())
+
+    def test_lldp_disabled(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertFalse(intf1.is_lldp_disabled())
 
 class TestBaseContract(unittest.TestCase):
     def test_get_contract_code(self):
@@ -1154,7 +1169,7 @@ class TestEndpoint(unittest.TestCase):
             epg.attach(interface)
             ep.attach(interface)
         return tenant
-
+    
     def verify_json(self, data, deleted=False):
         """
         Check that the JSON is correct for an Endpoint.
@@ -1193,7 +1208,13 @@ class TestEndpoint(unittest.TestCase):
         tenant = self.create_tenant_with_ep('tenant', 'app', 'epg',
                                             '00-11-22-33-44-55')
         tenant.get_json()
-
+    def test_create_bad_parent(self) :
+        """
+        checks to see that creating an endpoint in something
+        other an EPG causes an error.
+        """
+        self.assertRaises(TypeError,Endpoint,'00-11-22-33-44-55','not an epg')
+        
     def test_create_on_interface(self):
         """
         Create a basic static endpoint and attach
@@ -1442,7 +1463,20 @@ class TestOspf(unittest.TestCase):
         outside.attach(ospfif)
         ospf_json = outside.get_json()
 
-
+class TestMonitorPolicy(unittest.TestCase):
+    """
+    Tests the monitoriing policy
+    """
+    def test_create(self):
+        m_policy = MonitorPolicy('fabric','policy-name')
+        self.assertEqual(m_policy.name,'policy-name')
+        self.assertEqual(m_policy.policyType,'fabric')
+        m_policy.set_name('policy-name-2')
+        self.assertEqual(m_policy.name,'policy-name-2')
+        m_policy.set_description('Policy description string')
+        self.assertEqual(m_policy.description,'Policy description string')
+    
+    
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -1612,6 +1646,18 @@ class TestLiveSubscription(TestLiveAPIC):
 
 
 class TestLiveInterface(TestLiveAPIC):
+    def get_valid_interface(self, session) :
+        interfaces = Interface.get(session)
+        return interfaces[0]
+    
+    def get_spine(self):
+        session = self.login_to_apic()
+        nodes = Node.get(session)
+        for node in nodes:
+            if node.get_role() == 'spine' and node.fabricSt == 'active':
+                return node
+        return None
+    
     def test_get_all_interfaces(self):
         session = self.login_to_apic()
         self.assertRaises(TypeError, Interface.get, None)
@@ -1622,7 +1668,36 @@ class TestLiveInterface(TestLiveAPIC):
             self.assertTrue(isinstance(interface_as_a_string, str))
             path = interface._get_path()
             self.assertTrue(isinstance(path, str))
+            
+    def test_get(self) :
+        session = self.login_to_apic()
+        interface = self.get_valid_interface(session)
+        pod = interface.pod
+        node = interface.node
+        slot = interface.module
+        port = interface.port
+        self.assertRaises(TypeError, Interface.get, session,pod, node, slot, 33)
+        self.assertRaises(TypeError, Interface.get, session,pod, node, 1, port)
+        self.assertRaises(TypeError, Interface.get, session,pod, 101, slot, port)
+        self.assertRaises(TypeError, Interface.get, session,1, node, slot, port)
+        interface_again = Interface.get(session, pod, node, slot, port)[0]
+        self.assertTrue(interface==interface_again)
 
+        self.assertRaises(TypeError, Interface.get, session, pod)
+        pod = Linecard(pod,node,slot)
+        interfaces = Interface.get(session, pod)
+        self.assertTrue(len(interfaces)>0)
+
+    def test_get_adjacent(self) :
+        session = self.login_to_apic()
+        interfaces = Interface.get(session)
+        for interface in interfaces :
+            if interface.porttype=='fab' and interface.attributes['operSt']=='up':
+                adj = interface.get_adjacent_port()
+                fields = adj.split('/')
+                self.assertEqual(len(fields),4)
+                for field in fields :
+                    self.assertIsInstance(int(field), int)
 
 class TestLivePortChannel(TestLiveAPIC):
     def test_get_all_portchannels(self):
@@ -2134,7 +2209,64 @@ class TestLiveOSPF(TestLiveAPIC):
                                         data=tenant.get_json())
             self.assertTrue(resp.ok)
 
+class TestLiveMonitorPolicy(TestLiveAPIC):
+    """
+    Live tests of the monitoriing policy
+    """
+    def check_collection_policy(self, parent) :
+        for index in parent.collection_policy :
+            policy = parent.collection_policy[index]
+            self.assertEqual(index, policy.granularity)
+            self.assertIn(policy.granularity, ['5min', '15min', '1h', '1d',
+                       '1w', '1mo', '1qtr', '1year'])
+            self.assertIn(policy.retention, ['none', 'inherited', '5min', '15min', '1h', '1d',
+                     '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'])
+            self.assertIn(policy.adminState, ['enabled', 'disabled', 'inherited'])
+            self.assertEqual(policy._parent, parent)
+        
+    def test_get(self):
+        session = self.login_to_apic()
+        policies = MonitorPolicy.get(session)
+        self.assertTrue(len(policies)>0)
+        for policy in policies :
+            self.assertIn(policy.policyType,['fabric','access'])
+            self.assertIsInstance(policy.name, str)
+            self.check_collection_policy(policy)
 
+    def test_monitor_target(self) :
+        session = self.login_to_apic()
+        policies = MonitorPolicy.get(session)
+        for policy in policies :
+            monitor_targets = policy.monitor_target
+            
+            for index in monitor_targets :
+                monitor_target = monitor_targets[index]
+                self.assertIn(monitor_target.scope,['l1PhysIf'])
+                self.assertEqual(monitor_target._parent, policy)
+                self.assertIsInstance(monitor_target.descr, str)
+                self.assertIsInstance(monitor_target.name, str)
+                self.check_collection_policy(monitor_target)
+                
+    def test_monitor_stats(self) :
+        session = self.login_to_apic()
+        policies = MonitorPolicy.get(session)
+        for policy in policies :
+            monitor_targets = policy.monitor_target
+            for index in monitor_targets :
+                monitor_stats = monitor_targets[index].monitor_stats
+                for index2 in monitor_stats :
+                    monitor_stat = monitor_stats[index2]
+                    self.assertIn(monitor_stat.scope,['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts',
+                        'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts',
+                        'ingrUnkBytes', 'ingrUnkPkts', 'ingrStorm'])
+                    self.assertEqual(monitor_stat._parent, monitor_targets[index])
+                    self.assertIsInstance(monitor_stat.descr, str)
+                    self.assertIsInstance(monitor_stat.name, str)
+                    self.check_collection_policy(monitor_stat)
+
+                
+        
+            
 if __name__ == '__main__':
 
     live = unittest.TestSuite()
@@ -2149,6 +2281,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestApic))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
+    live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
 
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestBaseRelation))
@@ -2170,6 +2303,8 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestOspf))
     offline.addTest(unittest.makeSuite(TestBGP))
     offline.addTest(unittest.makeSuite(TestEndpoint))
+    offline.addTest(unittest.makeSuite(TestMonitorPolicy))
+    
 
     full = unittest.TestSuite([live, offline])
 

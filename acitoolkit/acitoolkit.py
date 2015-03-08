@@ -20,8 +20,9 @@ from acibaseobject import BaseACIObject, BaseRelation
 from acisession import Session
 from acitoolkitlib import Credentials
 from acicounters import InterfaceStats
+import aciphysobject as ACI_PHYS
 
-# from aciphysobject import Linecard
+#from aciphysobject import Linecard
 import logging
 import re
 import copy
@@ -2236,16 +2237,26 @@ class Interface(BaseInterface):
         """
 
         if port:
+            if not isinstance(port, str) :
+                raise TypeError('When specifying a specific port, the port'
+                                ' must be a identified by a string')
             if not isinstance(module, str):
-                raise ValueError(('When specifying a specific port, the module'
+                raise TypeError(('When specifying a specific port, the module'
                                   ' must be identified by a string'))
             if not isinstance(node, str):
-                raise ValueError(('When specifying a specific port, the node '
+                raise TypeError(('When specifying a specific port, the node '
                                   'must be identified by a string'))
             if not isinstance(pod_parent, str):
-                raise ValueError(('When specifying a specific port, the pod '
+                raise TypeError(('When specifying a specific port, the pod '
                                   'must be identified by a string'))
-
+            parent = None
+        else :
+            if pod_parent :
+                if not isinstance(pod_parent, ACI_PHYS.Linecard) :
+                    raise TypeError('Interface parent must be a linecard object')
+            
+            parent = pod_parent
+            
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
@@ -2310,6 +2321,8 @@ class Interface(BaseInterface):
 
             if not isinstance(pod_parent, str) and pod_parent:
                 if interface_obj.pod == pod_parent.pod and interface_obj.node == pod_parent.node and interface_obj.module == pod_parent.slot:
+                    interface_obj._parent = pod_parent
+                    interface_obj._parent.add_child(interface_obj)
                     resp.append(interface_obj)
             else:
                 resp.append(interface_obj)
@@ -2336,8 +2349,26 @@ class Interface(BaseInterface):
 
             return True
         return False
+    def get_adjacent_port(self) :
+        """
+        This will return the port ID of the port at the other end of the link.
 
+        For Access ports, it will only have a result if it is connected to
+        a controller node.
 
+        If no link is found, then the result will be None.  That does not mean
+        that nothing is connected, just that a fabric link is not connected.
+
+        :returns : Port ID string  
+        """
+        result = None
+
+        links = ACI_PHYS.Link.get(self._session,'1',self.attributes['node'])
+        for link in links :
+            if link.port1==self.attributes['port'] :
+                return link.get_port_id2()
+        return result
+    
 class TunnelInterface(object):
     """This class describes a tunnel interface"""
     def __init__(self, if_type, pod, node, tunnel):
@@ -2875,16 +2906,16 @@ class Search(BaseACIObject):
 class BaseMonitorClass(object):
     """ Base class for monitoring policies.  These are methods that can be used on all monitoring objects.
     """
-    def setName(self, name):
+    def set_name(self, name):
         """
         Sets the name of the MonitorStats.
 
        :param name: String to use as the name
         """
-        self.name = name
+        self.name = str(name)
         self.modified = True
 
-    def setDescription(self, description):
+    def set_description(self, description):
         """
         Sets the description of the MonitorStats.
 
@@ -3061,17 +3092,17 @@ class MonitorPolicy(BaseMonitorClass):
         result = []
         aciObjects = cls._getClass(session, 'monInfraPol')
         for data in aciObjects:
-            name = data['monInfraPol']['attributes']['name']
+            name = str(data['monInfraPol']['attributes']['name'])
             policyObject = MonitorPolicy('access', name)
-            policyObject.setDescription(data['monInfraPol']['attributes']['descr'])
+            policyObject.set_description(data['monInfraPol']['attributes']['descr'])
             cls._getPolicy(policyObject, session, data['monInfraPol']['attributes']['dn'])
             result.append(policyObject)
 
         aciObjects = cls._getClass(session, 'monFabricPol')
         for data in aciObjects:
-            name = data['monFabricPol']['attributes']['name']
+            name = str(data['monFabricPol']['attributes']['name'])
             policyObject = MonitorPolicy('fabric', name)
-            policyObject.setDescription(data['monFabricPol']['attributes']['descr'])
+            policyObject.set_description(data['monFabricPol']['attributes']['descr'])
             cls._getPolicy(policyObject, session, data['monFabricPol']['attributes']['dn'])
             result.append(policyObject)
         return result
@@ -3095,8 +3126,8 @@ class MonitorPolicy(BaseMonitorClass):
                 retention = str(child[1]['attributes']['histRet'])
                 collPolicy = CollectionPolicy(policyObject, granularity,
                                               retention, adminState)
-                collPolicy.setName(child[1]['attributes']['name'])
-                collPolicy.setDescription(child[1]['attributes']['descr'])
+                collPolicy.set_name(child[1]['attributes']['name'])
+                collPolicy.set_description(child[1]['attributes']['descr'])
 
             if child[0] in ['monFabricTarget', 'monInfraTarget']:
                 scope = str(child[1]['attributes']['scope'])
@@ -3104,8 +3135,8 @@ class MonitorPolicy(BaseMonitorClass):
                 # initially only l1PhysIf is supported as a target
                 if scope == 'l1PhysIf':
                     target = MonitorTarget(policyObject, scope)
-                    target.setName(str(child[1]['attributes']['name']))
-                    target.setDescription(str(child[1]['attributes']['descr']))
+                    target.set_name(str(child[1]['attributes']['name']))
+                    target.set_description(str(child[1]['attributes']['descr']))
                     dn = child[1]['attributes']['dn']
                     targetChildren = cls._getChildren(session, dn)
                     for targetChild in targetChildren:
@@ -3114,8 +3145,8 @@ class MonitorPolicy(BaseMonitorClass):
                             scope = MonitorStats.statsDictionary[scope]
                             statFamily = MonitorStats(target, scope)
                             child_attr = targetChild[1]['attributes']
-                            statFamily.setName(str(child_attr['name']))
-                            statFamily.setDescription(str(child_attr['name']))
+                            statFamily.set_name(str(child_attr['name']))
+                            statFamily.set_description(str(child_attr['name']))
                             dn = targetChild[1]['attributes']['dn']
                             statChildren = cls._getChildren(session, dn)
                             for statChild in statChildren:
@@ -3128,8 +3159,8 @@ class MonitorPolicy(BaseMonitorClass):
                                                                   granularity,
                                                                   retention,
                                                                   adminState)
-                                    collPolicy.setName(child_stats['name'])
-                                    collPolicy.setDescription(child_stats['descr'])
+                                    collPolicy.set_name(child_stats['name'])
+                                    collPolicy.set_description(child_stats['descr'])
                         if targetChild[0] == 'statsHierColl':
                             child_attr = targetChild[1]['attributes']
                             granularity = str(child_attr['granularity'])
@@ -3139,8 +3170,8 @@ class MonitorPolicy(BaseMonitorClass):
                                                           granularity,
                                                           retention,
                                                           adminState)
-                            collPolicy.setName(child_attr['name'])
-                            collPolicy.setDescription(child_attr['descr'])
+                            collPolicy.set_name(child_attr['name'])
+                            collPolicy.set_description(child_attr['descr'])
 
     @classmethod
     def _getChildren(cls, session, dn):
