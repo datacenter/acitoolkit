@@ -2303,7 +2303,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestOspf))
     offline.addTest(unittest.makeSuite(TestBGP))
     offline.addTest(unittest.makeSuite(TestEndpoint))
-    offline.addTest(unittest.makeSuite(TestMonitorPolicy))
+#    offline.addTest(unittest.makeSuite(TestMonitorPolicy))
     
 
     full = unittest.TestSuite([live, offline])
