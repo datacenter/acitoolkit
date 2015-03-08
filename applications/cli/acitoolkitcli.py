@@ -29,8 +29,8 @@ except:
 
 
 def error_message(resp):
-    print 'Error:  Unable to push configuration to APIC'
-    print 'Reason:', resp.text
+    print('Error:  Unable to push configuration to APIC')
+    print('Reason:'), resp.text
 
 
 class SubMode(Cmd):
@@ -67,8 +67,8 @@ class SubMode(Cmd):
                 tenant_dict[tenant.name] = []
             if to_return:
                 return tenant_dict
-            print 'Tenant'
-            print '------'
+            print('Tenant')
+            print('------')
             for tenant in tenants:
                 print tenant.name
         elif words[0] == 'bridgedomain':
@@ -124,7 +124,7 @@ class SubMode(Cmd):
                 print template.format(*rec)
         elif words[0] == 'interface':
             ifs = Interface.get(self.apic)
-            print 'Interface\tType\tStatus\tSpeed\tMTU'
+            print('Interface\tType\tStatus\tSpeed\tMTU')
             for interface in ifs:
                 print interface
         elif words[0] == 'port-channel':
