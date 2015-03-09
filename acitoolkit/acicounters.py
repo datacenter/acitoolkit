@@ -148,7 +148,7 @@ class AtomicCountersOnGoing():
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         else:
-                            print 'Found unsupported counter', countName, granularity, period
+                            print('Found unsupported counter', countName, granularity, period)
 
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
@@ -325,7 +325,7 @@ class InterfaceStats():
             mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
         else :
             mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist'
-            
+
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
 
@@ -336,7 +336,7 @@ class InterfaceStats():
                 port_stats = InterfaceStats._process_data(interface)
                 result[port_id] = port_stats
         return result
-    
+
 
     @classmethod
     def _parseDn2PortId(cls,dn) :
@@ -356,8 +356,8 @@ class InterfaceStats():
         port = name[5].split(']')[0]
 
         return '{0}/{1}/{2}/{3}'.format(pod, node, module, port)
-        
-        
+
+
     def get(self, session=None, period=None):
         """
         Retrieve the count dictionary.  This method will read in all the
@@ -371,15 +371,15 @@ class InterfaceStats():
         result = {}
         if not session:
             session = self._parent._session
-        
+
         if period :
             if (period < 1) :
                 raise ValueError('Counter epoch value of 0 not yet implemented')
-                
+
             mo_query_url = '/api/mo/' + self._interfaceDn + '.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
         else :
             mo_query_url = '/api/mo/' + self._interfaceDn + '.json?query-target=self&rsp-subtree-include=stats'
-        
+
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
 
@@ -387,7 +387,7 @@ class InterfaceStats():
         # store the result to be accessed by the retrieve method
         self.result = result
         return result
-    
+
     @staticmethod
     def _process_data(data) :
         result = {}
@@ -497,7 +497,7 @@ class InterfaceStats():
                             for attrName in ['dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax', 'dropBytesRateMin']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
                         else:
-                            print 'Found unsupported counter', countName, granularity, period
+                            print('Found unsupported counter', countName, granularity, period)
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
