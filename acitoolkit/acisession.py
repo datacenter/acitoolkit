@@ -21,7 +21,7 @@ import json
 import requests
 import threading
 import time
-from websocket import create_connection
+from websocket import create_connection, WebSocketException
 # import websocket
 from Queue import Queue
 import ssl
@@ -38,9 +38,16 @@ class Login(threading.Thread):
         threading.Thread.__init__(self)
         self._apic = apic
         self._login_timeout = 0
+        self._exit = False
+
+    def exit(self):
+        """
+        Indicate that the thread should exit.
+        """
+        self._exit = True
 
     def run(self):
-        while True:
+        while not self._exit:
             time.sleep(self._login_timeout)
             self._apic._send_login()
             self._apic.subscription_thread._resubscribe()
@@ -89,6 +96,13 @@ class Subscriber(threading.Thread):
         self._refresh_time = 45
         self._event_q = Queue()
         self._events = {}
+        self._exit = False
+
+    def exit(self):
+        """
+        Indicate that the thread should exit.
+        """
+        self._exit = True
 
     def _send_subscription(self, url):
         """
@@ -229,7 +243,7 @@ class Subscriber(threading.Thread):
             self._ws.close()
 
     def run(self):
-        while True:
+        while not self._exit:
             # Sleep for some interval (60sec) and send subscription list
             time.sleep(self._refresh_time)
             self.refresh_subscriptions()
@@ -267,7 +281,7 @@ class Session(object):
         self.subscription_thread.daemon = True
         self.subscription_thread.start()
 
-    def _send_login(self):
+    def _send_login(self, timeout=None):
         """
         Send the actual login request to the APIC and open the web
         socket interface.
@@ -277,7 +291,11 @@ class Session(object):
                                                'pwd': self.pwd}}}
         jcred = json.dumps(name_pwd)
         self.session = requests.Session()
-        ret = self.session.post(login_url, data=jcred, verify=self.verify_ssl)
+        ret = self.session.post(login_url, data=jcred, verify=self.verify_ssl, timeout=timeout)
+        if not ret.ok:
+            self.login_thread.exit()
+            self.subscription_thread.exit()
+            return ret
         ret_data = json.loads(ret.text)['imdata'][0]
         timeout = ret_data['aaaLogin']['attributes']['refreshTimeoutSeconds']
         self.token = str(ret_data['aaaLogin']['attributes']['token'])
@@ -288,7 +306,7 @@ class Session(object):
         self.login_thread._login_timeout = timeout
         return ret
 
-    def login(self):
+    def login(self, timeout=None):
         """
         Initiate login to the APIC.  Opens a communication session with the\
         APIC using the python requests library.
@@ -297,7 +315,7 @@ class Session(object):
         response.ok is True if login is successful.
         """
         logging.info('Initializing connection to the APIC')
-        resp = self._send_login()
+        resp = self._send_login(timeout)
         self.login_thread.daemon = True
         self.login_thread.start()
         return resp
