@@ -819,7 +819,7 @@ class BaseACIObject(object):
                   gathered about the node.
         """
         text = ''
-        textf = '{0:>15}: {1}\n'
+        textf = '{0:>16}: {1}\n'
         for attrib in self.__dict__:
             if attrib[0] != '_':
                 text += textf.format(attrib, getattr(self, attrib))
