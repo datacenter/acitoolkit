@@ -59,11 +59,11 @@ resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
 if resp.ok:
     print 'Success'
 
-# Print what was sent 
+# Print what was sent
 print 'Pushed the following JSON to the APIC'
 print 'URL:', tenant.get_url()
 print 'JSON:', tenant.get_json()
 
 # Cleanup (uncomment the next 2 lines to delete the config)
-#tenant.mark_as_deleted()
-#resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+# tenant.mark_as_deleted()
+# resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
