@@ -292,6 +292,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
             card._more_populate_from_attributes(
                 apic_obj[apic_class]['attributes'])
             (card.firmware, card.bios) = card._get_firmware(dist_name)
+            card.dn = dist_name
+            card.start_time = str(apic_obj[apic_class]['attributes']['modTs'])
             card.node = node_id
             card.pod = pod
             card.slot = slot
@@ -496,6 +498,17 @@ class Linecard(BaseACIPhysModule):
         """
         return cls.get_obj(session, 'eqptLC', parent)
 
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
+        """
+        self.serial = str(attributes['ser'])
+        self.model = str(attributes['model'])
+        self.descr = str(attributes['descr'])
+        self.num_ports = str(attributes['numP'])
+        self.hardware_version = str(attributes['hwVer'])
+        
     def populate_children(self, deep=False):
         """Populates all of the children of the linecard.  Children are the interfaces.
         If deep is set to true, it will also try to populate the children of the children.
@@ -767,7 +780,7 @@ class Pod(BaseACIPhysObject):
 
 
 class Node(BaseACIPhysObject):
-    """Node :  roughly equivalent to eqptNode """
+    """Node :  roughly equivalent to fabricNode """
     def __init__(self, pod=None, node=None, name=None, role=None, parent=None):
         """
         :param pod: String representation of the pod number
@@ -801,6 +814,7 @@ class Node(BaseACIPhysObject):
         self._session = None
         self.fabricSt = None
         self.ipAddress = None
+        self.tep_ip = None
         self.macAddress = None
         self.state = None
         self.mode = None
@@ -811,7 +825,21 @@ class Node(BaseACIPhysObject):
         self.dn = None
         self.vendor = None
         self.serial = None
+        self.health = None
 
+        self.num_ps_slots = None
+        self.num_fan_slots = None
+        self.num_sup_slots = None
+        self.num_lc_slots = None
+        self.num_ps_modules = None
+        self.num_fan_modules = None
+        self.num_sup_modules = None
+        self.num_lc_modules = None
+        
+        self.vpc_info = None
+        self.v4_proxy_ip = None
+        self.mac_proxy_ip = None
+        
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' +
                       str(self.pod) + '/node-' + str(self.node))
         self._common_init(parent)
@@ -840,22 +868,42 @@ class Node(BaseACIPhysObject):
         return pod, node
 
     @staticmethod
-    def get(session, parent=None):
+    def get(session, parent=None, node_id=None):
         """Gets all of the Nodes from the APIC.  If the parent pod is specified,
         only nodes of that pod will be retrieved.
 
+        If parent pod and node_id is specified, only the matching switch will be
+        retrieved.
+
+        APIC controller nodes will have a 'role' of 'controller', while
+        switch nodes will have a 'role' of 'leaf' or 'spine'
+
         :param session: APIC session
-        :param parent: optional parent object
+        :param parent: optional parent object or pod_id
+        :param node_id: optional node_id of switch
+        
         :returns: list of Nodes
         """
         # need to add pod as parent
         if parent:
-            if not isinstance(parent, Pod):
-                raise TypeError('An instance of Pod class is required')
+            if not isinstance(parent, Pod) and not isinstance(parent, str):
+                raise TypeError('An instance of Pod class or string is required to specify pod')
+            
+        if node_id:
+            if not isinstance(node_id, str):
+                raise TypeError('The node_id must be a string such as "101".')
+            
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
-        node_query_url = ('/api/node/class/fabricNode.json?'
-                          'query-target=self')
+
+        if node_id :
+            # this can be enhanced to get a specific node
+            node_query_url = ('/api/node/class/fabricNode.json?'
+                              'query-target=self')
+        else :
+            node_query_url = ('/api/node/class/fabricNode.json?'
+                              'query-target=self')
+            
         nodes = []
         ret = session.get(node_query_url)
         node_data = ret.json()['imdata']
@@ -869,18 +917,114 @@ class Node(BaseACIPhysObject):
             node._session = session
             node._populate_from_attributes(apic_node['fabricNode']['attributes'])
             node._get_topsystem_info()
-            if parent:
 
-                if node.pod == parent.pod:
-                    node._parent = parent
-                    if parent.has_child(node):
-                        parent.remove_child(node)
-                    parent.add_child(node)
-                    nodes.append(node)
-            else:
+            # check for pod match if specified
+            pod_match = False
+            if parent:
+                if isinstance(parent, Pod) :
+                    if node.pod == parent.pod :
+                        pod_match = True
+                        parent.add_child(node)
+                        node._parent = parent
+                else :
+                    # pod is a number string
+                    if node.pod == parent :
+                        pod_match = True
+            else :
+                pod_match = True
+
+            # check for node match if specified
+            node_match = False
+            if node_id :
+                if node_id == node.node :
+                    node_match = True
+            else :
+                node_match = True
+
+            if node_match and pod_match :
+
+                if node.role == 'leaf' :
+                    node._add_vpc_info()
+                node.get_health()
                 nodes.append(node)
+                
         return nodes
 
+    def get_health(self):
+        """
+        This will get the health of the switch node
+        """
+        if self.role != 'controller' :
+            mo_query_url = '/api/mo/'+self.dn+ '/sys.json?&rsp-subtree-include=stats&rsp-subtree-class=fabricNodeHealth5min'
+            ret = self._session.get(mo_query_url)
+            data = ret.json()['imdata']
+            if data :
+                self.health = data[0]['topSystem']['children'][0]['fabricNodeHealth5min']['attributes']['healthLast']
+            
+    def _add_vpc_info(self):
+        """
+        This method only runs for leaf switches.  If
+        the leaf has a VPC peer, the VPC information will be populated
+        and the node.vpc_present flag will be set.
+
+        check for vpcDom sub-object
+        and if it exists, then create the entry as a dictionary of values.
+
+        Will first check vpc_inst to see if it is enabled
+        then get vpcDom under vpcInst
+
+        peer_present is true if vpcDom exists
+        
+        From vpcDom get :
+            domain_id
+            system_mac
+            local_mac
+            monitoring_policy
+            peer_ip
+            peer_system_mac
+            peer_version
+            peer_state
+            vtep_ip
+            vtep_mac
+            oper_role
+            
+        """
+        partial_dn = 'topology/pod-{0}/node-{1}/sys/vpc/inst'.format(self.pod, self.node)
+        
+        
+        mo_query_url = '/api/mo/' + partial_dn + '.json?query-target=self'
+        ret = self._session.get(mo_query_url)
+        data = ret.json()['imdata'][0]
+
+        vpc_admin_state = data['vpcInst']['attributes']['adminSt']
+        result = {'admin_state':vpc_admin_state}
+        if vpc_admin_state=='enabled' :
+            mo_query_url = '/api/mo/'+partial_dn + '.json?query-target=subtree&target-subtree-class=vpcDom'
+            ret = self._session.get(mo_query_url)
+            data = ret.json()['imdata']
+            if 'vpcDom' in data[0]:
+                result['oper_state'] = 'active'
+                vpcDom = data[0]['vpcDom']['attributes']
+                result['domain_id'] = vpcDom['id']
+                result['system_mac'] = vpcDom['sysMac']
+                result['local_mac'] = vpcDom['localMAC']
+                result['monitoring_policy'] = vpcDom['monPolDn']
+                result['peer_ip'] = vpcDom['peerIp']
+                result['peer_mac'] = vpcDom['peerMAC']
+                result['peer_version'] = vpcDom['peerVersion']
+                result['peer_state'] = vpcDom['peerSt']
+                result['vtep_ip'] = vpcDom['virtualIp']
+                result['vtep_mac'] = vpcDom['vpcMAC']
+                result['oper_role'] = vpcDom['operRole']
+            else:
+                result['oper_state'] = 'inactive'
+        else :
+            result['oper_state'] = 'inactive'
+
+        self.vpc_info = result
+        
+        
+        
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
@@ -897,22 +1041,25 @@ class Node(BaseACIPhysObject):
         self.dn = attributes['dn']
         self.vendor = attributes['vendor']
         self.fabricSt = attributes['fabricSt']
+        self.start_time = attributes['modTs']
 
     def _get_topsystem_info(self):
         """ will read in topSystem object to get more information about Node"""
-
+    
         mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=self'
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
-
+        
         if len(node_data) > 0:
             self.ipAddress = str(node_data[0]['topSystem']['attributes']['address'])
+            self.tep_ip = self.ipAddress
             self.macAddress = str(node_data[0]['topSystem']['attributes']['fabricMAC'])
             self.state = str(node_data[0]['topSystem']['attributes']['state'])
             self.mode = str(node_data[0]['topSystem']['attributes']['mode'])
+            
             # now get eqptCh for even more info
-            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
-            ret = self._session.get(mo_query_url)
+            ch_mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
+            ret = self._session.get(ch_mo_query_url)
             node_data = ret.json()['imdata']
 
             if len(node_data) > 0:
@@ -920,15 +1067,67 @@ class Node(BaseACIPhysObject):
                 self.operStQual = str(node_data[0]['eqptCh']['attributes']['operStQual'])
                 self.descr = str(node_data[0]['eqptCh']['attributes']['descr'])
 
+            # get the total number of ports = number of l1PhysIf
+            mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=l1PhysIf'
+            ret = self._session.get(mo_query_url)
+            node_data = ret.json()['imdata']
+            self.num_ports = len(node_data)
+
+            # get the total number of ports = number of fan slots
+            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptFtSlot'
+            ret = self._session.get(mo_query_url)
+            node_data = ret.json()['imdata']
+            self.num_fan_slots = len(node_data)
+            self.num_fan_modules = 0
+            if node_data :
+                for slot in node_data :
+                    if slot['eqptFtSlot']['attributes']['operSt']=='inserted' :
+                        self.num_fan_modules +=1
+
+            # get the total number of ports = number of linecard slots
+            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptLCSlot'
+            ret = self._session.get(mo_query_url)
+            node_data = ret.json()['imdata']
+            self.num_lc_slots = len(node_data)
+            self.num_lc_modules = 0
+            if node_data :
+                for slot in node_data :
+                    if slot['eqptLCSlot']['attributes']['operSt']=='inserted' :
+                        self.num_lc_modules +=1
+
+            # get the total number of ports = number of power supply slots
+            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptPsuSlot'
+            ret = self._session.get(mo_query_url)
+            node_data = ret.json()['imdata']
+            self.num_ps_slots = len(node_data)
+            self.num_ps_modules = 0
+            if node_data :
+                for slot in node_data :
+                    if slot['eqptPsuSlot']['attributes']['operSt']=='inserted' :
+                        self.num_ps_modules +=1
+
+            # get the total number of ports = number of supervisor slots
+            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptSupCSlot'
+            ret = self._session.get(mo_query_url)
+            node_data = ret.json()['imdata']
+            self.num_sup_slots = len(node_data)
+            self.num_sup_modules = 0
+            if node_data :
+                for slot in node_data :
+                    if slot['eqptSupCSlot']['attributes']['operSt']=='inserted' :
+                        self.num_sup_modules +=1
+
+            
+
     def populate_children(self, deep=False):
         """Will populate all of the children modules such as
         linecards, fantrays and powersupplies, of the node.
 
         :param deep: boolean that when true will cause the entire
-                     sub-tree to be populated when false, only the
+                     sub-tree to be populated. When false, only the
                      immediate children are populated
 
-        :returns: None
+        :returns: List of children objects
         """
 
         session = self._session
@@ -955,7 +1154,8 @@ class Node(BaseACIPhysObject):
         if deep:
             for child in self._children:
                 child.populate_children(deep=True)
-
+        return self._children
+    
     def get_model(self):
         """Returns the model string of the node'
 
@@ -1193,14 +1393,16 @@ class ENode(Node):
                 lldp_dn = lldp_dn + port + ']/adj-1'
 
         lldp_data = ENode._get_dn(session, lldp_dn)
-        attrib['ipAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtIp'])
-        attrib['name'] = str(lldp_data[0]['lldpAdjEp']['attributes']['sysName'])
-
-        chassis_id_t = lldp_data[0]['lldpAdjEp']['attributes']['chassisIdT']
-        if chassis_id_t == 'mac':
-            attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['chassisIdV'])
-        else:
-            attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtPortMac'])
+        if len(lldp_data) > 0 :
+            attrib['ipAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtIp'])
+            attrib['name'] = str(lldp_data[0]['lldpAdjEp']['attributes']['sysName'])
+    
+            chassis_id_t = lldp_data[0]['lldpAdjEp']['attributes']['chassisIdT']
+            if chassis_id_t == 'mac':
+                attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['chassisIdV'])
+            else:
+                attrib['macAddress'] = str(lldp_data[0]['lldpAdjEp']['attributes']['mgmtPortMac'])
+            
         attrib['state'] = 'unknown'
         return attrib
 

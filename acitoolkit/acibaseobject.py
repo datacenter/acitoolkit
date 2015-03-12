@@ -395,6 +395,7 @@ class BaseACIObject(object):
     def is_deleted(self):
         """
         Check if the object has been deleted.
+
         :returns: True or False, True indicates the object has been deleted.
         """
         return self._deleted
@@ -431,6 +432,7 @@ class BaseACIObject(object):
     def is_detached(self, item):
         """
         Indicates whether the item is detached from this object.
+
         :returns: True or False, True indicates the item is detached.
         """
         return self._check_relation(item, 'detached')
@@ -819,7 +821,7 @@ class BaseACIObject(object):
                   gathered about the node.
         """
         text = ''
-        textf = '{0:>15}: {1}\n'
+        textf = '{0:>16}: {1}\n'
         for attrib in self.__dict__:
             if attrib[0] != '_':
                 text += textf.format(attrib, getattr(self, attrib))

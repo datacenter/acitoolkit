@@ -128,7 +128,6 @@ class TestNode(unittest.TestCase):
         pod_id = '1'
         session = Session(URL, LOGIN, PASSWORD)
         self.assertRaises(TypeError, Node,'1', '2', 'Spine1', role='leaf', parent=pod_id)
-        self.assertRaises(TypeError, Node.get, session, pod_id)
 
     def test_create_invalid(self):
         self.assertRaises(TypeError, Node, '1', '2', 'Leaf1', 'leaf', '1')
@@ -727,12 +726,14 @@ class TestLivePod(TestLiveAPIC):
                 self.assertIsInstance(enode.attributes.get('status'), str)
                 self.assertIsInstance(enode.attributes.get('name'), str)
                 self.assertIsInstance(enode.attributes.get('descr'), str)
-                self.assertIsInstance(enode.attributes.get('macAddress'), str)
+                if enode.attributes.get('macAddress') :
+                    self.assertIsInstance(enode.attributes.get('macAddress'), str)
                 self.assertIsInstance(enode.attributes.get('state'), str)
                 self.assertIsInstance(enode.attributes.get('fabricSt'), str)
                 self.assertIsInstance(enode.attributes.get('role'), str)
                 self.assertIsInstance(enode.attributes.get('operIssues'), str)
-                self.assertIsInstance(enode.attributes.get('ipAddress'), str)
+                if enode.attributes.get('ipAddress') :
+                    self.assertIsInstance(enode.attributes.get('ipAddress'), str)
                 self.assertIsInstance(enode.attributes.get('id'), str)
                 self.assertEqual(enode.attributes.get('pod'), None)
             self.assertIn(enode.attributes.get('role'), ['physicalSwitch',
