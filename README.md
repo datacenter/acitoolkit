@@ -1,4 +1,5 @@
-# acitoolkit
+# acitoolkit [![Documentation Status](https://readthedocs.org/projects/acitoolkit/badge/?version=latest)](https://readthedocs.org/projects/acitoolkit/?badge=latest)
+
 
 # Description
 
