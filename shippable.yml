@@ -1,0 +1,26 @@
+language: python
+python:
+  - "2.7"
+  - "pypy"
+cache: true
+
+before_install:
+   - mkdir -p shippable/testresults
+   - mkdir -p shippable/codecoverage
+
+install: 
+  - "pip install requests"
+  - "pip install coverage"
+  - "python setup.py -q develop"
+
+script:
+  - coverage run -p tests/acitoolkit_test.py
+  - coverage run -p tests/aciphysobject_test.py
+  - coverage run -p tests/acitoolkitlib_test.py
+
+after_success:
+  - coverage combine
+  - coverage report --include=*acitoolkit*
+  - coverage xml --include=*acitoolkit*
+  - mv coverage.xml shippable/codecoverage/
+  - mv unittests.xml shippable/testresults/
