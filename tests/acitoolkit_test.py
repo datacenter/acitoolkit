@@ -20,7 +20,12 @@ from acitoolkit.aciphysobject import *
 import unittest
 import string
 import random
-from credentials import *
+try:
+    from credentials import *
+except:
+    URL = ''
+    LOGIN = ''
+    PASSWORD = ''
 import sys
 import time
 import json
