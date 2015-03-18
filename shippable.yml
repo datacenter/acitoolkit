@@ -5,7 +5,6 @@ python:
 cache: true
 
 before_install:
-   - mkdir -p shippable/testresults
    - mkdir -p shippable/codecoverage
 
 install: 
@@ -21,6 +20,4 @@ script:
 after_success:
   - coverage combine
   - coverage report --include=*acitoolkit*
-  - coverage xml --include=*acitoolkit*
-  - mv coverage.xml shippable/codecoverage/
-  - mv unittests.xml shippable/testresults/
+  - coverage xml -o shippable/codecoverage/coverage.xml --include=*acitoolkit*
