@@ -1,4 +1,4 @@
-# acitoolkit [![Documentation Status](https://readthedocs.org/projects/acitoolkit/badge/?version=latest)](https://readthedocs.org/projects/acitoolkit/?badge=latest)
+# acitoolkit [![Documentation Status](https://readthedocs.org/projects/acitoolkit/badge/?version=latest)](https://readthedocs.org/projects/acitoolkit/?badge=latest) [![Build Status](https://api.shippable.com/projects/54ea96315ab6cc13528d52ad/badge?branchName=master)](https://app.shippable.com/projects/54ea96315ab6cc13528d52ad/builds/latest)
 
 
 # Description
