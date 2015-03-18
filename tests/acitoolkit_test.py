@@ -22,7 +22,7 @@ import string
 import random
 try:
     from credentials import *
-except:
+except ImportError:
     URL = ''
     LOGIN = ''
     PASSWORD = ''

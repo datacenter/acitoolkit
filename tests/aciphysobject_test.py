@@ -14,7 +14,12 @@
 #    under the License.
 #
 from acitoolkit.acisession import Session
-from credentials import *
+try:
+    from credentials import *
+except ImportError:
+    URL = ''
+    LOGIN = ''
+    PASSWORD = ''
 from acitoolkit.acitoolkit import *
 from acitoolkit.aciphysobject import *
 import sys
