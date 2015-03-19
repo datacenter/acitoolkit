@@ -1125,11 +1125,12 @@ class ContractConfigSubMode(SubMode):
         cmd, arg, line = self.parseline(line)
 
         # to achieve the sequence_number of the subject.
-        try:
-            self.sequence_number = int(cmd)
-            cmd, arg, line = self.parseline(arg)
-        except ValueError:
-            pass
+        if cmd:
+            try:
+                self.sequence_number = int(cmd)
+                cmd, arg, line = self.parseline(arg)
+            except ValueError:
+                pass
 
         if arg == '?':
             cmds = self.completenames(cmd)
@@ -1156,7 +1157,7 @@ class CmdLine(SubMode):
         self.epg = None
         self.set_prompt()
         self.intro = ('\nCisco ACI Toolkit Command Shell\nCopyright (c)'
-                      ' 2014, Cisco Systems, Inc.  All rights reserved.')
+                      ' 2015, Cisco Systems, Inc.  All rights reserved.')
         self.negative = False
         self.configsubmode = ConfigSubMode()
         self.configsubmode.set_apic(apic)
