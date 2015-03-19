@@ -1125,12 +1125,11 @@ class ContractConfigSubMode(SubMode):
         cmd, arg, line = self.parseline(line)
 
         # to achieve the sequence_number of the subject.
-        if cmd:
-            try:
-                self.sequence_number = int(cmd)
-                cmd, arg, line = self.parseline(arg)
-            except ValueError:
-                pass
+        try:
+            self.sequence_number = int(cmd)
+            cmd, arg, line = self.parseline(arg)
+        except (ValueError, TypeError):
+            pass
 
         if arg == '?':
             cmds = self.completenames(cmd)
