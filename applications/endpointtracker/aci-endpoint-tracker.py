@@ -20,7 +20,11 @@ of the Endpoints.
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-import mysql.connector
+import warnings
+try:
+    import mysql.connector as mysql
+except ImportError:
+    import pymysql as mysql
 
 
 def convert_timestamp_to_mysql(timestamp):
@@ -45,23 +49,27 @@ if not resp.ok:
     sys.exit(0)
 
 # Create the MySQL database
-cnx = mysql.connector.connect(user=args.mysqllogin,
-                              password=args.mysqlpassword,
-                              host=args.mysqlip)
+cnx = mysql.connect(user=args.mysqllogin,
+                    password=args.mysqlpassword,
+                    host=args.mysqlip)
 c = cnx.cursor()
-c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
-cnx.commit()
+with warnings.catch_warnings():
+    warnings.filterwarnings('ignore')
+    c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
+    cnx.commit()
 c.execute('USE acitoolkit;')
-c.execute('''CREATE TABLE IF NOT EXISTS endpoints (
-                mac       CHAR(18) NOT NULL,
-                ip        CHAR(16),
-                tenant    CHAR(100) NOT NULL,
-                app       CHAR(100) NOT NULL,
-                epg       CHAR(100) NOT NULL,
-                interface CHAR(100) NOT NULL,
-                timestart TIMESTAMP NOT NULL,
-                timestop  TIMESTAMP);''')
-cnx.commit()
+with warnings.catch_warnings():
+    warnings.filterwarnings('ignore')
+    c.execute('''CREATE TABLE IF NOT EXISTS endpoints (
+                     mac       CHAR(18) NOT NULL,
+                     ip        CHAR(16),
+                     tenant    CHAR(100) NOT NULL,
+                     app       CHAR(100) NOT NULL,
+                     epg       CHAR(100) NOT NULL,
+                     interface CHAR(100) NOT NULL,
+                     timestart TIMESTAMP NOT NULL,
+                     timestop  TIMESTAMP);''')
+    cnx.commit()
 
 # Download all of the Endpoints and store in the database
 endpoints = ACI.Endpoint.get(session)
