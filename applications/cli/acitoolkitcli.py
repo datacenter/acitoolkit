@@ -1128,7 +1128,7 @@ class ContractConfigSubMode(SubMode):
         try:
             self.sequence_number = int(cmd)
             cmd, arg, line = self.parseline(arg)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
 
         if arg == '?':
@@ -1156,7 +1156,7 @@ class CmdLine(SubMode):
         self.epg = None
         self.set_prompt()
         self.intro = ('\nCisco ACI Toolkit Command Shell\nCopyright (c)'
-                      ' 2014, Cisco Systems, Inc.  All rights reserved.')
+                      ' 2015, Cisco Systems, Inc.  All rights reserved.')
         self.negative = False
         self.configsubmode = ConfigSubMode()
         self.configsubmode.set_apic(apic)
