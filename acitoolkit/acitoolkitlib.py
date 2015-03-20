@@ -17,7 +17,8 @@
 Used to get the APIC and MySQL login credentials from the command
 line (--help gives usage).
 
-The login credentials are taken in the following order:
+The login credentials are taken in the following order
+
 * Command line arguments
 * Environment variables
 * File named credentials.py
