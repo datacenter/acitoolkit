@@ -44,11 +44,12 @@ for interface in interfaces:
                  interface.attributes['adminstatus'],
                  interface.attributes['operSt'],
                  interface.attributes['speed'],
-                 interface.attributes['mtu']))
+                 interface.attributes['mtu'],
+                 interface.attributes['usage']))
 
 # Display the data downloaded
-template = "{0:17} {1:6} {2:^6} {3:^6} {4:7} {5:6}"
-print template.format("INTERFACE", "TYPE", "ADMIN", "OPER", "SPEED", "MTU")
-print template.format("---------", "----", "------", "------", "-----", "___")
+template = "{0:17} {1:6} {2:^6} {3:^6} {4:7} {5:6} {6:9} "
+print template.format("INTERFACE", "TYPE", "ADMIN", "OPER","SPEED", "MTU", "USAGE")
+print template.format("---------", "----", "------", "------", "-----", "___", "---------")
 for rec in data:
     print template.format(*rec)
