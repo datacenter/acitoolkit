@@ -289,8 +289,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
             card._session = session
             card._apic_class = apic_class
             card._populate_from_attributes(apic_obj[apic_class]['attributes'])
-            card._more_populate_from_attributes(
-                apic_obj[apic_class]['attributes'])
             (card.firmware, card.bios) = card._get_firmware(dist_name)
             card.dn = dist_name
             card.start_time = str(apic_obj[apic_class]['attributes']['modTs'])
@@ -318,13 +316,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.dn = str(attributes['dn'])
         self.descr = str(attributes['descr'])
 
-    def _more_populate_from_attributes(self, attributes):
-        """Fills in an object with the additional attributes.
-           Overridden by inheriting classes to provide the specific attributes
-           when getting objects from the APIC.
-        """
-        self.type = str(attributes['type'])
-
     def _get_firmware(self, dist_name):
         """Gets the firmware and bios version for the module from the "running" object in APIC.
 
@@ -348,6 +339,21 @@ class BaseACIPhysModule(BaseACIPhysObject):
         :returns: serial number string
         """
         return self.serial
+
+    def populate_children(self, deep=False):
+        """Default method for module.
+        If the module can have children, then this
+        should be overwritten in the inheriting class.
+
+        :param deep: boolean that when true will cause the
+                     entire sub-tree to be populated
+                     when false, only the immediate
+                     children are populated
+
+        :returns: None
+        """
+        return None
+
 
 
 class Systemcontroller(BaseACIPhysModule):
@@ -428,14 +434,22 @@ class Systemcontroller(BaseACIPhysModule):
         bios = None
         return (firmware, bios)
 
-    def _more_populate_from_attributes(self, attributes):
-        """Fills in the System controller with additional attributes.
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
         """
+        self.serial = str(attributes['ser'])
+        self.model = str(attributes['model'])
+        self.dn = str(attributes['dn'])
+        self.descr = str(attributes['descr'])
         self.type = str(attributes['type'])
-
+        self.oper_st = str(attributes['operSt'])
         # I think this is a bug fix to the APIC controller.  The type should be set correctly.
         if self.type == 'unknown':
             self.type = 'systemctrlcard'
+
+
 
 
 class Linecard(BaseACIPhysModule):
@@ -508,6 +522,9 @@ class Linecard(BaseACIPhysModule):
         self.descr = str(attributes['descr'])
         self.num_ports = str(attributes['numP'])
         self.hardware_version = str(attributes['hwVer'])
+        self.hardware_revision = str(attributes['rev'])
+        self.type = str(attributes['type'])
+        self.oper_st = str(attributes['operSt'])
         
     def populate_children(self, deep=False):
         """Populates all of the children of the linecard.  Children are the interfaces.
@@ -562,6 +579,21 @@ class Supervisorcard(BaseACIPhysModule):
         """
         return cls.get_obj(session, 'eqptSupC', parent)
 
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
+        """
+        self.serial = str(attributes['ser'])
+        self.model = str(attributes['model'])
+        self.dn = str(attributes['dn'])
+        self.descr = str(attributes['descr'])
+        self.type = str(attributes['type'])
+        self.num_ports = str(attributes['numP'])
+        self.hardware_version = str(attributes['hwVer'])
+        self.hardware_revision = str(attributes['rev'])
+        self.oper_st = str(attributes['operSt'])
+
 
 class Fantray(BaseACIPhysModule):
     """Class for the fan tray of a node"""
@@ -574,7 +606,7 @@ class Fantray(BaseACIPhysModule):
         :param slot: slot id
         :param parent: optional parent object
         """
-        self.name = 'Fan-' + '/'.join([pod, node, slot])
+        self.name = 'FT-' + '/'.join([pod, node, slot])
         self.type = 'fantray'
         self.status = None
         super(Fantray, self).__init__(pod, node, slot, parent)
@@ -594,12 +626,33 @@ class Fantray(BaseACIPhysModule):
 
         :returns: list of fantrays
         """
-        return cls.get_obj(session, 'eqptFt', parent)
+        fans = cls.get_obj(session, 'eqptFt', parent)
+        for fan in fans :
+            fan._add_additional_attributes(session)
+        return fans
 
-    def _more_populate_from_attributes(self, attributes):
-        """Fills in an object with additional attributes.
-         """
-        self.status = str(attributes['operSt'])
+    def _add_additional_attributes(self, session):
+        mo_query_url = '/api/mo/' + self.dn + \
+            '/ctrlrfwstatuscont/ctrlrrunning.json?query-target=self'
+        ret = self._session.get(mo_query_url)
+        node_data = ret.json()['imdata']
+
+        self.direction = 'unknown'
+        self.speed = 'unknown'
+        
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
+        """
+        self.serial = str(attributes['ser'])
+        self.model = str(attributes['model'])
+        self.dn = str(attributes['dn'])
+        self.descr = str(attributes['descr'])
+        self.oper_st = str(attributes['operSt'])
+        self.type = 'fantray'
+        self.name = str(attributes.get('fanName','None'))
+        self.status = str(attributes['status'])
 
     @staticmethod
     def _get_firmware(dist_name):
@@ -607,20 +660,114 @@ class Fantray(BaseACIPhysModule):
         return (None, None)
 
     def populate_children(self, deep=False):
-        """Populates all of the children of the fantray.
-        Since the fantray has no children,
-        this will return none.
-
-        :param deep: boolean that when true will cause the
-                     entire sub-tree to be populated
-                     when false, only the immediate
-                     children are populated
+        """Populates all of the fans of the fan tray
+        
+        :param deep: boolean that when true will cause the entire sub-tree to be populated\
+            when false, only the immediate children are populated
 
         :returns: None
         """
+
+        # The following will add the fans to the fantray
+        Fan.get(self._session, self)
+        
+        if deep:
+            for child in self._children:
+                child.populate_children(deep=True)
+
         return None
+    
+class Fan(BaseACIPhysModule):
+    """Class for the fan of a fan tray"""
+    def __init__(self, id=None, parent=None):
+        """ Initialize the basic fan.
+        
+        :param id: fan id - optional
+        :param parent: optional parent Fantray object
+        """
+        self.descr = None
+        self.type = 'fan'
+        self.oper_st = None
+        self.direction = None
+        self.speed = None
+        self.id = id
+        self._parent = parent
 
+    @classmethod
+    def get(cls, session, parent=None):
+        """Gets all of the fans from the APIC.  If parent
+        is specified, it will only get fantrays that are
+        children of the the parent.  The fantrays will
+        also be added as children to the parent Node.
 
+        The fan object is derived mostly from the APIC 'eqptFan' class.
+
+        :param session: APIC session
+        :param parent: optional parent fantray of class Fantray
+
+        :returns: list of fans
+        """
+        
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+        
+        if parent:
+            if not isinstance(parent, Fantray):
+                raise TypeError('When a parent is specified, it must be of type Fantray class')
+        
+        fans = []
+        
+        # get the total number of ports = number of power supply slots
+        if parent :
+            mo_query_url = '/api/mo/' + parent.dn + '.json?query-target=subtree&target-subtree-class=eqptFan'
+        else:
+            mo_query_url = ('/api/node/class/eqptFan.json?'
+                              'query-target=self')
+
+            
+        ret = session.get(mo_query_url)
+        node_data = ret.json()['imdata']
+        if node_data :
+            for fan_obj in node_data :
+                fan = Fan()
+                fan.dn = str(fan_obj['eqptFan']['attributes']['dn'])
+                fan.id = str(fan_obj['eqptFan']['attributes']['id'])
+                fan.descr = str(fan_obj['eqptFan']['attributes']['descr'])
+                fan.oper_st = str(fan_obj['eqptFan']['attributes']['operSt'])
+                fan.direction = str(fan_obj['eqptFan']['attributes']['dir'])
+                fan.model = str(fan_obj['eqptFan']['attributes']['model'])
+                fan.serial = str(fan_obj['eqptFan']['attributes']['ser'])
+                
+                #now get speed if it is being monitored
+                mo_query_url = '/api/mo/' + fan.dn + '.json?rsp-subtree-include=stats&rsp-subtree-class=eqptFanStats5min'
+                ret = session.get(mo_query_url)
+                stat_data = ret.json()['imdata']
+                fan.speed = 'unknown'
+                if stat_data :
+                    if 'eqptFan' in stat_data[0]:
+                        if 'children' in stat_data[0]['eqptFan']:
+                            if stat_data[0]['eqptFan']['children']:
+                                if 'eqptFanStats5min' in stat_data[0]['eqptFan']['children'][0]:
+                                    fan.speed = stat_data[0]['eqptFan']['children'][0]['eqptFanStats5min']['attributes']['speedLast']
+
+                if parent :
+                    fan._parent = parent
+                    parent.add_child(fan)
+                fans.append(fan)
+                
+        return fans
+
+    def __eq__(self, other):
+        """compares two fans and returns True if they are the same.
+        """
+        if type(self) == type(other):
+            if self.model == other.model:
+                if self.id == other.id:
+                    if self._parent==other._parent:
+                        return True
+        return False
+    
+    
 class Powersupply(BaseACIPhysModule):
     """ class for a power supply in a node   """
     def __init__(self, pod, node, slot, parent=None):
@@ -656,12 +803,21 @@ class Powersupply(BaseACIPhysModule):
         """
         return cls.get_obj(session, 'eqptPsu', parent)
 
-    def _more_populate_from_attributes(self, attributes):
-        """Fills in an object with additional desired attributes.
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
         """
-        self.status = str(attributes['operSt'])
+        self.serial = str(attributes['ser'])
+        self.model = str(attributes['model'])
+        self.dn = str(attributes['dn'])
+        self.descr = str(attributes['descr'])
+        self.oper_st = str(attributes['operSt'])
         self.fan_status = str(attributes['fanOpSt'])
         self.voltage_source = str(attributes['vSrc'])
+        self.hardware_version = str(attributes['hwVer'])
+        self.hardware_revision = str(attributes['rev'])
+        self.status = str(attributes['status'])
 
     @staticmethod
     def _get_firmware(dist_name):
@@ -1056,6 +1212,9 @@ class Node(BaseACIPhysObject):
             self.macAddress = str(node_data[0]['topSystem']['attributes']['fabricMAC'])
             self.state = str(node_data[0]['topSystem']['attributes']['state'])
             self.mode = str(node_data[0]['topSystem']['attributes']['mode'])
+            self.oob_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('oobMgmtAddr'))
+            self.inb_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('inbMgmtAddr'))
+            self.system_uptime = str(node_data[0]['topSystem']['attributes'].get('systemUpTime'))
             
             # now get eqptCh for even more info
             ch_mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
@@ -1691,3 +1850,18 @@ class Link(BaseACIPhysObject):
         link = str(name[2].split('-')[1])
 
         return pod, link
+
+class AccessPolicyConcrete(BaseACIObject):
+    """
+    Access policy in the switch
+    """
+    def __init__(self):
+        self.scope = None
+        self.action = None
+        self.dclass_id = None
+        self.sclass_id = None
+        self.direction = None
+        self.filter_id = None
+        self.mask_dscp = None
+        
+    
