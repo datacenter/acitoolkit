@@ -437,7 +437,7 @@ class CommonEPG(BaseACIObject):
         return children
 
     @classmethod
-    def get(cls, session, parent, tenant):
+    def get(cls, session, parent=None, tenant=None):
         """Gets all of the EPGs from the APIC.
 
         :param session: the instance of Session used for APIC communication
@@ -465,8 +465,9 @@ class EPG(CommonEPG):
         :param parent: Instance of the AppProfile class representing\
                        the Application Profile where this EPG is contained.
         """
-        if not isinstance(parent, AppProfile):
-            raise TypeError('Parent must be instance of AppProfile')
+        if parent :
+            if not isinstance(parent, AppProfile):
+                raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
 
     @classmethod
@@ -508,6 +509,16 @@ class EPG(CommonEPG):
         if '/LDevInst-' in dn:
             return 'ServiceGraph'
         return dn.split('/epg-')[1].split('/')[0]
+
+    def _populate_from_attributes(self, attributes):
+        """
+        Sets the attributes when creating objects from the APIC.
+        Called from the base object when calling the classmethod get()
+        """
+        self.match_type = attributes['matchT']
+        self.class_id = attributes['pcTag']
+        self.scope = attributes['scope']
+        self.name = attributes['name']
 
     # Bridge Domain references
     def add_bd(self, bridgedomain):
@@ -1409,7 +1420,7 @@ class Context(BaseACIObject):
 
         """
         super(Context, self).__init__(context_name, parent)
-        self._allow_all = False
+        self.allow_all = False
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1448,6 +1459,25 @@ class Context(BaseACIObject):
     def _get_name_from_dn(dn):
         return dn.split('/ctx-')[1].split('/')[0]
 
+    @staticmethod
+    def _get_tenant_from_dn(dn):
+        return dn.split('/tn-')[1].split('/')[0]
+
+    def _populate_from_attributes(self, attributes):
+        """
+        Sets the attributes when creating objects from the APIC.
+        Called from the base object when calling the classmethod get()
+        """
+        self.descr = attributes['descr']
+        self.known_mcast = attributes['knwMcastAct']
+        self.modified_time = attributes['modTs']
+        self.name = attributes['name']
+        self.class_id = attributes['pcTag']
+        self.scope = attributes['scope']
+        self.vnid = attributes['seg']
+        self._extract_attributes(attributes)
+        self.tenant = self._get_tenant_from_dn(attributes['dn'])
+        
     def _extract_attributes(self, attributes):
         if attributes['pcEnfPref'] == 'unenforced':
             allow_all = True
@@ -1462,7 +1492,7 @@ class Context(BaseACIObject):
 
         :param value: True or False.  Default is True.
         """
-        self._allow_all = value
+        self.allow_all = value
 
     def get_allow_all(self):
         """
@@ -1471,7 +1501,7 @@ class Context(BaseACIObject):
 
         :returns:  True or False.
         """
-        return self._allow_all
+        return self.allow_all
 
     def get_json(self):
         """
@@ -1488,7 +1518,7 @@ class Context(BaseACIObject):
                                              attributes=attributes)
 
     @classmethod
-    def get(cls, session, tenant):
+    def get(cls, session, tenant=None):
         """
         Gets all of the Contexts from the APIC.
 
@@ -2305,6 +2335,7 @@ class Interface(BaseInterface):
             attributes['monPolDn'] = str(interface['l1PhysIf']['attributes']['monPolDn'])
             attributes['name'] = str(interface['l1PhysIf']['attributes']['name'])
             attributes['descr'] = str(interface['l1PhysIf']['attributes']['descr'])
+            attributes['usage'] = str(interface['l1PhysIf']['attributes']['usage'])
             (interface_type, pod, node,
              module, port) = Interface.parse_dn(dist_name)
             attributes['interface_type'] = interface_type
@@ -2673,7 +2704,7 @@ class Endpoint(BaseACIObject):
         self.mac = str(attributes['mac'])
         self.ip = str(attributes['ip'])
         self.encap = str(attributes['encap'])
-
+        
     @classmethod
     def get_event(cls, session):
         urls = cls._get_subscription_urls()
