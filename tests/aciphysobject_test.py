@@ -332,7 +332,7 @@ class CheckModule():
 class TestFan(unittest.TestCase):
     def test_fan(self):
         mod_class = Fantray
-        CheckModule.check_module(self, mod_class, 'Fan', 'fantray')
+        CheckModule.check_module(self, mod_class, 'FT', 'fantray')
         CheckModule.check_mod_parent(self, mod_class)
         CheckModule.check_mod_instance(self, mod_class)
         CheckModule.check_mod_get_url(self, mod_class)
@@ -630,7 +630,6 @@ class TestLivePod(TestLiveAPIC):
         fantrays = Fantray.get(session)
         for ft in fantrays:
             self.assertIsInstance(ft.get_name(), str)
-            self.assertTrue(len(ft.get_name()) > 0)
 
             self.assertEqual(ft.get_type(), 'fantray')
 
