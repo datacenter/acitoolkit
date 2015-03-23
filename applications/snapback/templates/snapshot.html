@@ -1,0 +1,30 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block body %}
+<p>Schedule an ongoing automated snapshot of the APIC configuration or
+schedule a one time snapshot.</p>
+<form class="form" method="post" role="form">
+{{ wtf.form_field(form.frequency) }}
+{{ wtf.form_field(form.number, style="float:left") }}
+{{ wtf.form_field(form.interval) }}
+{{ wtf.form_field(form.date) }}
+{{ wtf.form_field(form.time) }}
+{{ form.csrf_token }}
+{{ wtf.form_field(form.submit) }}
+</form>
+
+{% if lastsnapshot %}
+    <p>Last snapshot taken at {{ lastsnapshot }}</p>
+{% endif %}
+{% if nextsnapshot %}
+    {% if schedule['interval'] %}
+        <p>Next snapshot scheduled for {{ nextsnapshot }} and every {{ schedule['interval'] }} {{ schedule['granularity'] }} beyond that.</p>
+    {% else %}
+        <p>Next snapshot scheduled for {{ nextsnapshot }}</p>
+    {% endif %}
+    {{ wtf.quick_form(cancel_form) }}
+{% else %}
+    <p>No recurring snapshot currently scheduled</p>
+{% endif %}
+{% endblock %}
+

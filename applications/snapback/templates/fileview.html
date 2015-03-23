@@ -1,0 +1,35 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block body %}
+<style>
+pre{
+  font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
+  margin-bottom: 10px;
+  overflow: auto;
+  width: auto;
+  padding: 5px;
+  background-color: #eee;
+  width: 650px!ie7;
+  padding-bottom: 20px!ie7;
+  max-height: 600px;
+  line-height: 15px;
+}
+pre {
+    overflow-x: auto;
+}
+pre code {
+    overflow-wrap: normal;
+    white-space: pre;
+}
+</style>
+
+{% for file in files %}
+<p>Filename:<b>{{ file[1] }}</b> Version:<b>{{ file[2] }}</b></p>
+<pre>
+<code>
+{{ file[0] }}
+</code>
+</pre>
+{% endfor %}
+
+{% endblock %}
