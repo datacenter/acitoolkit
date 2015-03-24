@@ -153,15 +153,9 @@ class StackedDiffs(BaseView):
         for choice in changes:
             start_choices.append((choice[0], choice[0]))
             end_choices.append((choice[0], choice[0]))
+        end_choices.reverse()
         form.start_version.choices = start_choices
         form.end_version.choices = end_choices
-        if len(start_choices) >= 1:
-            (start, start) = start_choices[0]
-            (end, end) = end_choices[-1]
-            end_choices.insert(0, (end, end))
-            form.end_version.choices = end_choices
-            form.start_version.default = start
-            form.end_version.default = end
         f = open('static/data.csv', 'w')
         f.write('Version,Deletions,Additions\n')
         for (version, additions, deletions) in changes:
