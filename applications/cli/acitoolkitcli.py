@@ -176,6 +176,83 @@ class SubMode(Cmd):
                         epg_dict[tenant.name][app.name].append(epg.name)
                     if epg_dict:
                         pprint.pprint(epg_dict)
+        elif words[0] == 'infradomains':
+            infradomains = PhysDomain.get(self.apic)
+            
+            output = []
+            association = ''
+            if len(infradomains) > 0:
+                print '---------------'
+                print 'Physical Domain'
+                print '---------------'
+            
+            for domain in infradomains:
+                print domain.name
+                
+            if len(infradomains) > 0:
+                print '\n'
+            
+            infradomains = []
+            infradomains = VmmDomain.get(self.apic)
+              
+            output = []
+            association = ''
+            if len(infradomains) > 0:
+                print ('----------')
+                print ('VMM Domain')
+                print ('----------')
+            
+            for domain in infradomains:
+                print (domain.name)
+            
+            if len(infradomains) > 0:
+                print ('\n')
+            
+            infradomains = [] 
+            infradomains = L2ExtDomain.get(self.apic)
+              
+            output = []
+            association = ''
+            if len(infradomains) > 0:
+                print ('------------------')
+                print ('L2 External Domain')
+                print ('------------------')
+            
+            for domain in infradomains:
+                print (domain.name)
+            
+            if len(infradomains) > 0:
+                print ('\n')
+            
+            infradomains = []
+            infradomains = L3ExtDomain.get(self.apic)
+              
+            output = []
+            association = ''
+            if len(infradomains) > 0:
+                print ('------------------')
+                print ('L3 External Domain')
+                print ('------------------')
+            
+            for domain in infradomains:
+                print (domain.name)
+            
+            if len(infradomains) > 0:
+                print ('\n')
+            
+            infradomains = EPGDomain.get(self.apic)
+                 
+            for domain in infradomains:
+                association = domain.tenant_name + ':' + domain.app_name + ':' + domain.epg_name
+                output.append((domain.domain_name,domain.domain_type,association))
+            
+            if len(infradomains) > 0:        
+                template = '{0:20} {1:11} {2:26}'
+                print (template.format('Infra Domain Profile', 'Domain Type', 'TENANT:APP:EPG Association'))
+                print (template.format('--------------------', '-----------', '--------------------------'))
+                for rec in output:
+                    print (template.format(*rec))
+                print ('\n')
         else:
             sys.stdout.write('%% Unrecognized command\n')
 
@@ -841,6 +918,29 @@ class EPGConfigSubMode(SubMode):
             else:
                 print 'Assigned bridgedomain to EPG.'
 
+    def do_infradomain(self, args):
+        " Infrastructure Domain\infradomain <infra-domain-name> "
+        
+        if len(args.split()) != 1:
+            sys.stdout.write('%% infradomain requires 1 name\n')
+            return
+        if self.negative:
+            pass
+        else:
+            epgdomain = EPGDomain.get_by_name(self.apic,args.strip())
+            
+            if epgdomain is None:
+                sys.stdout.write('%% infradomain does not exist. You need to create one first! "show infradomains"\n')
+                return 
+        
+            self.epg.add_infradomain(epgdomain)
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
+            
+            if not resp.ok:
+                error_message(resp)
+            else:
+                print 'Assigned Infrastructure Domain to EPG.'
 
 class AppProfileConfigSubMode(SubMode):
 
