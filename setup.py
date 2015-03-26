@@ -8,6 +8,12 @@ setup(
     url = "http://github.com/datacenter/acitoolkit/",
     license = "http://www.apache.org/licenses/LICENSE-2.0",
     install_requires = ["requests",
-                        "websocket-client"],
+                        "websocket-client",
+                        "gitpython",
+                        "flask",
+                        "flask-sqlalchemy",
+                        "flask-admin",
+                        "flask-bootstrap",
+                        "flask-wtf"],
     description = "This library allows basic Cisco ACI APIC configuration.",
 )
