@@ -328,7 +328,7 @@ class CABLEPLAN :
     def difference_link(self, cp) :
         """returns a list of links that are in self, but not in cp.
 
-        :param cp : cable plan of type CABLEPLAN
+        :param cp: cable plan of type CABLEPLAN
 
         :returns: list of CP_LINK
         """
