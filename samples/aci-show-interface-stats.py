@@ -57,7 +57,7 @@ def show_stats_short() :
                           "---------------", "---------------", "---------------"))
     template = "{0:17} {1:12,} {2:12,} {3:16,.2f} {4:16,.2f} {5:16,.2f} {6:16,.2f}"
     
-    for interface in sorted(interfaces):
+    for interface in sorted(interfaces, key=lamdba x: x.if_name):
         interface.stats.get()
         
         rec = []
