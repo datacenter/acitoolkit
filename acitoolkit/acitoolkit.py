@@ -2919,8 +2919,8 @@ class VMM(BaseACIObject):
         data = ret.json()['imdata']
         for item in data:
             for key in item:
-                print key
-        print data
+                print(str(key))
+        print(str(data))
         raise NotImplementedError
 
 

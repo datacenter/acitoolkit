@@ -146,7 +146,7 @@ class AtomicCountersOnGoing():
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         else:
-                            print 'Found unsupported counter', countName, granularity, period
+                            print('Found unsupported counter ' + str(countName) + " " + str(granularity) + " " + str(period))
 
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
@@ -495,7 +495,7 @@ class InterfaceStats():
                             for attrName in ['dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax', 'dropBytesRateMin']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
                         else:
-                            print 'Found unsupported counter', countName, granularity, period
+                            print('Found unsupported counter ' + str(countName) + " " + str(granularity) + " " + str(period))
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
