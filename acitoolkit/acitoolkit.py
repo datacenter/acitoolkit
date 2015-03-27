@@ -16,10 +16,10 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
-from acibaseobject import BaseACIObject, BaseRelation
-from acisession import Session
-from acitoolkitlib import Credentials
-from acicounters import InterfaceStats
+from .acibaseobject import BaseACIObject, BaseRelation
+from .acisession import Session
+from .acitoolkitlib import Credentials
+from .acicounters import InterfaceStats
 import aciphysobject as ACI_PHYS
 
 #from aciphysobject import Linecard

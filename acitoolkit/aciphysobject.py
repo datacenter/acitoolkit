@@ -16,10 +16,10 @@
 """ACI Toolkit module for physical objects
 """
 
-from acibaseobject import BaseACIObject
-from acisession import Session
+from .acibaseobject import BaseACIObject
+from .acisession import Session
 import acitoolkit as ACI
-from acicounters import AtomicCountersOnGoing
+from .acicounters import AtomicCountersOnGoing
 
 import logging
 import re
