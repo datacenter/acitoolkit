@@ -27,11 +27,11 @@ import ssl
 
 # Queue library is named "queue" in Python3
 try:
-	# Python2 naming
-	from Queue import Queue
+    # Python2 naming
+    from Queue import Queue
 except:
-	# Python3 naming
-	from queue import Queue
+    # Python3 naming
+    from queue import Queue
 
 # Time before login timer expiration to send refresh
 TIMEOUT_GRACE_SECONDS = 10
