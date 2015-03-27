@@ -38,7 +38,7 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 ACI.Tenant.subscribe(session)
@@ -47,6 +47,6 @@ while True:
     if ACI.Tenant.has_events(session):
         tenant = ACI.Tenant.get_event(session)
         if tenant.is_deleted():
-            print 'Tenant', tenant.name, 'has been deleted.'
+            print('Tenant ' + str(tenant.name) + ' has been deleted.')
         else:
-            print 'Tenant', tenant.name, 'has been created or modified.'
+            print('Tenant ' + str(tenant.name) + ' has been created or modified.')

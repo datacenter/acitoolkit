@@ -58,10 +58,10 @@ contract2 = Contract('contract-2')
 outside.consume(contract2)
 outside.attach(ospfif)
 
-print tenant.get_json()
+print(tenant.get_json())
 resp = session.push_to_apic(tenant.get_url(),
                             tenant.get_json())
 
 if not resp.ok:
-    print '%% Error: Could not push configuration to APIC'
-    print resp.text
+    print('%% Error: Could not push configuration to APIC')
+    print(resp.text)

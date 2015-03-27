@@ -26,7 +26,7 @@ import credentials
 session = ACI.Session(credentials.URL, credentials.LOGIN, credentials.PASSWORD)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
 
 # Download all of the tenants, app profiles, and EPGs
 # and store the names as tuples in a list
@@ -41,7 +41,7 @@ for tenant in tenants:
 
 # Display the data downloaded
 template = "{0:19} {1:20} {2:15}"
-print template.format("TENANT", "APP_PROFILE", "EPG")
-print template.format("------", "-----------", "---")
+print(template.format("TENANT", "APP_PROFILE", "EPG"))
+print(template.format("------", "-----------", "---"))
 for rec in data:
-    print template.format(*rec)
+    print(template.format(*rec))

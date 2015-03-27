@@ -32,7 +32,7 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 # Download all of the interfaces
@@ -47,7 +47,7 @@ for ep in endpoints:
 
 # Display the data downloaded
 template = "{0:19} {1:17} {2:15} {3:10} {4:10} {5:15} {6:15}"
-print template.format("MACADDRESS",        "IPADDRESS",        "INTERFACE",     "ENCAP",      "TENANT", "APP PROFILE", "EPG")
-print template.format("-----------------", "---------------", "--------------", "----------", "------", "-----------", "---")
+print(template.format("MACADDRESS",        "IPADDRESS",        "INTERFACE",     "ENCAP",      "TENANT", "APP PROFILE", "EPG"))
+print(template.format("-----------------", "---------------", "--------------", "----------", "------", "-----------", "---"))
 for rec in data:
-    print template.format(*rec)
+    print(template.format(*rec))

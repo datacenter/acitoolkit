@@ -44,7 +44,7 @@ VLAN = {'name': 'vlan5',
 session = ACI.Session(credentials.URL, credentials.LOGIN, credentials.PASSWORD)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
 
 # Create the Tenant, App Profile, and EPG
 tenant = ACI.Tenant(TENANT_NAME)
@@ -76,11 +76,11 @@ ep.ip = ip
 # Assign it to the L2Interface
 ep.attach(vlan_intf)
 
-print 'JSON to be pushed:', tenant.get_json()
+print('JSON to be pushed: '  + str(tenant.get_json()))
 
 # Push it all to the APIC
 resp = session.push_to_apic(tenant.get_url(),
                             tenant.get_json())
 if not resp.ok:
-    print '%% Error: Could not push configuration to APIC'
-    print resp.text
+    print('%% Error: Could not push configuration to APIC')
+    print(resp.text)

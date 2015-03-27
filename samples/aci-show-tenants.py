@@ -31,12 +31,12 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 # Download all of the tenants
-print "TENANT"
-print "------"
+print("TENANT")
+print("------")
 tenants = ACI.Tenant.get(session)
 for tenant in tenants:
-    print tenant.name
+    print(tenant.name)
