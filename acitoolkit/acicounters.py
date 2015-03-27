@@ -16,8 +16,6 @@
 """ACI Toolkit module for counter and stats objects
 """
 
-from acibaseobject import BaseACIObject, BaseRelation
-
 import json
 import logging
 import re
