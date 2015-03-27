@@ -20,9 +20,7 @@ from .acibaseobject import BaseACIObject, BaseRelation
 from .acisession import Session
 from .acitoolkitlib import Credentials
 from .acicounters import InterfaceStats
-import aciphysobject as ACI_PHYS
-
-#from aciphysobject import Linecard
+from .aciphysobject import Linecard, Link
 import logging
 import re
 import copy
@@ -2282,7 +2280,7 @@ class Interface(BaseInterface):
             parent = None
         else :
             if pod_parent :
-                if not isinstance(pod_parent, ACI_PHYS.Linecard) :
+                if not isinstance(pod_parent, Linecard) :
                     raise TypeError('Interface parent must be a linecard object')
             
             parent = pod_parent
@@ -2394,7 +2392,7 @@ class Interface(BaseInterface):
         """
         result = None
 
-        links = ACI_PHYS.Link.get(self._session,'1',self.attributes['node'])
+        links = Link.get(self._session,'1',self.attributes['node'])
         for link in links :
             if link.port1==self.attributes['port'] :
                 return link.get_port_id2()
