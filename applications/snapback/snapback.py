@@ -162,10 +162,10 @@ class StackedDiffs(BaseView):
         MyStackedDiffsForm = type('MyStackedDiffsForm',
                                   (StackedDiffsForm,),
                                   {'start_version': SelectField('Start Version',
-                                                                default=session['diffstartversion'],
+                                                                default=session.get('diffstartversion'),
                                                                 choices=start_choices),
                                    'end_version': SelectField('End Version',
-                                                                default=session['diffendversion'],
+                                                                default=session.get('diffendversion'),
                                                                 choices=end_choices)})
         form = MyStackedDiffsForm()
         f = open('static/data.csv', 'w')
@@ -174,11 +174,11 @@ class StackedDiffs(BaseView):
         if session.get('diffstartversion') is None:
             in_range = True
         for (version, additions, deletions) in changes:
-            if not in_range and version == session['diffstartversion']:
+            if not in_range and version == session.get('diffstartversion'):
                 in_range = True
             if in_range:
                 f.write(version + ',' + deletions + ',' + additions + '\n')
-            if in_range and version == session['diffendversion']:
+            if in_range and version == session.get('diffendversion'):
                 in_range = False
         f.close()
         return self.render('stackedbardiffs.html',
