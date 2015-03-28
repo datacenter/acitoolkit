@@ -355,10 +355,13 @@ class ConfigDB(object):
         :returns: string containing the latest version identifier for the
                   specified file
         """
-        versions = str(self.repo.git.show('--tags',
-                                          '--name-only',
-                                          '--oneline',
-                                          filename))
+        try:
+            versions = str(self.repo.git.show('--tags',
+                                              '--name-only',
+                                              '--oneline',
+                                              filename))
+        except git.exc.GitCommandError:
+            return None
         versions = versions.split('\n')
         assert len(versions) >= 2
         latest_version = versions[-2]

@@ -184,7 +184,11 @@ d3.csv("data.csv", function(error, data) {
 {% else %}
     {{ wtf.form_field(form.hide) }}
 {% endif %}
+</form>
+<form class="form" action="/stackeddiffs/setstartenddiffs" method="post" role="form">
+{{ form.csrf_token }}
 {{ wtf.form_field(form.start_version) }}
 {{ wtf.form_field(form.end_version) }}
+{{ wtf.form_field(form.daterange) }}
 </form>
 {% endblock %}

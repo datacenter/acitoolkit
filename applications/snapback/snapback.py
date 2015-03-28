@@ -19,7 +19,7 @@
 import datetime
 from aciconfigdb import ConfigDB
 from flask import Flask, render_template, session, redirect, url_for
-from flask import flash, send_from_directory
+from flask import flash, send_from_directory, request
 from flask.ext.sqlalchemy import SQLAlchemy
 from requests import Timeout
 from flask.ext import admin
@@ -30,7 +30,7 @@ from flask.ext.admin.model.template import macro
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.wtf import Form, CsrfProtect
 from wtforms import StringField, SubmitField, PasswordField, BooleanField
-from wtforms import RadioField, IntegerField, SelectField, TextAreaField
+from wtforms import RadioField, IntegerField, TextAreaField, SelectField
 from wtforms.fields.html5 import DateField, DateTimeField
 from wtforms.validators import Required, IPAddress, NumberRange
 from wtforms.validators import ValidationError, Optional
@@ -137,12 +137,12 @@ class StackedDiffsForm(Form):
     hide = SubmitField('Hide versions with no diffs')
     start_version = SelectField('Start Version')
     end_version = SelectField('End Version')
+    daterange = SubmitField('Set Date Range')
 
 
 class StackedDiffs(BaseView):
     @expose('/')
     def index(self):
-        form = StackedDiffsForm()
         if session.get('hideall') is None:
             session['hideall'] = False
         changes = cdb.get_versions(with_changes=True)
@@ -153,13 +153,33 @@ class StackedDiffs(BaseView):
         for choice in changes:
             start_choices.append((choice[0], choice[0]))
             end_choices.append((choice[0], choice[0]))
-        end_choices.reverse()
-        form.start_version.choices = start_choices
-        form.end_version.choices = end_choices
+        if session.get('diffstartversion') is None:
+            if len(start_choices):
+                session['diffstartversion'] = start_choices[0]
+        if session.get('diffendversion') is None:
+            if len(end_choices):
+                session['diffendversion'] = end_choices[-1]
+        MyStackedDiffsForm = type('MyStackedDiffsForm',
+                                  (StackedDiffsForm,),
+                                  {'start_version': SelectField('Start Version',
+                                                                default=session['diffstartversion'],
+                                                                choices=start_choices),
+                                   'end_version': SelectField('End Version',
+                                                                default=session['diffendversion'],
+                                                                choices=end_choices)})
+        form = MyStackedDiffsForm()
         f = open('static/data.csv', 'w')
         f.write('Version,Deletions,Additions\n')
+        in_range = False
+        if session.get('diffstartversion') is None:
+            in_range = True
         for (version, additions, deletions) in changes:
-            f.write(version + ',' + deletions + ',' + additions + '\n')
+            if not in_range and version == session['diffstartversion']:
+                in_range = True
+            if in_range:
+                f.write(version + ',' + deletions + ',' + additions + '\n')
+            if in_range and version == session['diffendversion']:
+                in_range = False
         f.close()
         return self.render('stackedbardiffs.html',
                            form=form,
@@ -167,17 +187,19 @@ class StackedDiffs(BaseView):
 
     @expose('/showhide', methods=['GET', 'POST'])
     def showhide(self):
-        print 'hideall', session['hideall']
-        form = StackedDiffsForm()
+        #form = StackedDiffsForm()
         if session.get('hideall') is False:
             session['hideall'] = True
         else:
             session['hideall'] = False
         print 'Passing ', session.get('hideall')
         return redirect(url_for('stackeddiffs.index'))
-        return self.render('stackedbardiffs.html',
-                           form=form,
-                           hideall=session.get('hideall'))
+
+    @expose('/setstartenddiffs', methods=['GET', 'POST'])
+    def setstartenddiffs(self):
+        session['diffstartversion'] = request.form['start_version']
+        session['diffendversion'] = request.form['end_version']
+        return redirect(url_for('stackeddiffs.index'))
 
     @expose('/data.csv')
     def data(self):
