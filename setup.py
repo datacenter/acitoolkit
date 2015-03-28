@@ -10,10 +10,10 @@ setup(
     install_requires = ["requests",
                         "websocket-client",
                         "gitpython",
-                        "flask",
                         "flask-sqlalchemy",
                         "flask-admin",
                         "flask-bootstrap",
-                        "flask-wtf"],
+                        "flask-wtf",
+                        "flask"],
     description = "This library allows basic Cisco ACI APIC configuration.",
 )
