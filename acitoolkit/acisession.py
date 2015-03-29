@@ -19,6 +19,7 @@
 import logging
 import json
 import requests
+from requests import Timeout, ConnectionError
 import threading
 import time
 from websocket import create_connection, WebSocketException

@@ -1,0 +1,194 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+
+{% block body %}
+
+<div id="chart">
+<style>
+
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+</style></div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<script>
+
+var margin = {top: 20, right: 20, bottom: 145, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .1);
+
+var y = d3.scale.linear()
+    .rangeRound([height, 0]);
+
+var color = d3.scale.category10()
+    .range(["#d62728", "#2ca02c"]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .tickFormat(d3.format(".2s"));
+
+var tip = d3.tip()
+  .attr('class', 'd3-tip')
+  .offset([-10, 0])
+  .html(function(d) {
+    if (d.name == 'Additions') {
+        return "<strong>" + d.name + "</strong> <span style='color:lightgreen'>" + (d.y1 - d.y0) + "</span>";
+    } else {
+        return "<strong>" + d.name + "</strong> <span style='color:red'>" + (d.y1 - d.y0) + "</span>";
+    }
+  })
+
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+svg.call(tip);
+
+d3.csv("data.csv", function(error, data) {
+  color.domain(d3.keys(data[0]).filter(function(key) { return key !== "Version"; }));
+
+  data.forEach(function(d) {
+    var y0 = 0;
+    d.diffs = color.domain().map(function(name) { return {name: name, y0: y0, y1: y0 += +d[name], version: d.Version}; });
+    d.total = d.diffs[d.diffs.length - 1].y1;
+  });
+
+  {% if hideall %}
+  data = data.filter(function(d) {return d.total != 0});
+  {% endif %}
+  x.domain(data.map(function(d) { return d.Version; }));
+  y.domain([0, d3.max(data, function(d) { return d.total; })]);
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+      .selectAll("text")
+          .style("text-anchor", "end")
+          .attr("dx", "-.8em")
+          .attr("transform", function(d) {
+              return "rotate(-65)"
+              });
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .style("font-size", "10px")
+      .text("Lines changed");
+
+  var version = svg.selectAll(".version")
+      .data(data)
+    .enter().append("g")
+      .attr("class", "g")
+      .attr("transform", function(d) { return "translate(" + x(d.Version) + ",0)"; });
+
+  version.selectAll("rect")
+      .data(function(d) { return d.diffs; })
+    .enter().append("rect")
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return y(d.y1); })
+      .attr("height", function(d) { return y(d.y0) - y(d.y1); })
+      .style("fill", function(d) { return color(d.name); })
+      .on("mouseover", tip.show)
+      .on("mouseout", tip.hide)
+      .on("click", function(d) { var url = "/snapshotsadmin/?flt1_0="+ d.version;
+                                 $(location).attr('href', url);
+                                 window.location = url;})
+
+  var legend = svg.selectAll(".legend")
+      .data(color.domain().slice().reverse())
+    .enter().append("g")
+      .attr("class", "legend")
+      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+  legend.append("rect")
+      .attr("x", width / 2 + 4 )
+      .attr("width", 18)
+      .attr("height", 18)
+      .style("fill", color);
+
+  legend.append("text")
+      .attr("x", width / 2)
+      .attr("y", 9)
+      .attr("dy", ".35em")
+      .style("text-anchor", "end")
+      .text(function(d) { return d; });
+
+});
+
+</script>
+
+<form class="form" action="/stackeddiffs/showhide" method="post" role="form">
+{{ form.csrf_token }}
+{% if hideall %}
+    {{ wtf.form_field(form.show) }}
+{% else %}
+    {{ wtf.form_field(form.hide) }}
+{% endif %}
+</form>
+<form class="form" action="/stackeddiffs/setstartenddiffs" method="post" role="form">
+{{ form.csrf_token }}
+{{ wtf.form_field(form.start_version) }}
+{{ wtf.form_field(form.end_version) }}
+{{ wtf.form_field(form.daterange) }}
+</form>
+{% endblock %}
