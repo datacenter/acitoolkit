@@ -436,7 +436,7 @@ class ConfigDB(object):
     def get_filenames(self, version,
                       prev_version=None, with_changes=False):
         """
-        Get the list of filenames for a specific snaphot version
+        Get the list of filenames for a specific snapshot version
         Optionally, the number of changes (additions/deletions) in
         comparison with the previous version.
 
@@ -728,7 +728,7 @@ if __name__ == "__main__":
                           metavar=('VERSION', 'CONFIGFILE'),
                           help=help_txt)
     help_txt = ('Show the contents of a particular configfile'
-                ' from a particular snaphot version.')
+                ' from a particular snapshot version.')
     commands.add_argument('--show', nargs=2,
                           metavar=('VERSION', 'CONFIGFILE'),
                           help=help_txt)
