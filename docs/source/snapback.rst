@@ -76,7 +76,7 @@ Installation
 ------------
 
 Snapback is part of the acitoolkit and will be installed at the same
-time.  The installation details can be found here.
+time.  The installation details can be found `here <tutorialsetup.html#install>`_.
 
 Web based Usage
 ---------------
