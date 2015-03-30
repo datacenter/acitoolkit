@@ -76,7 +76,7 @@ Installation
 ------------
 
 Snapback is part of the acitoolkit and will be installed at the same
-time.  The installation details can be found here.
+time.  The installation details can be found `here <tutorialsetup.html#install>`_.
 
 Web based Usage
 ---------------
@@ -184,13 +184,16 @@ following:
 
     **Version**: This is the timestamp of the configuration file.  The
     format is YY-MM-DD_HH:MM:SS
+    
     **Filename**: The name of the configuration file as described in
     section `Snapshot Files`_.
+    
     **Changes**: The Changes column gives the number of lines that
     have changed in this version as compared to the previous
     version. The changes are represented as *additions*/*deletions*.
     The additions are shown in green text and the deletions are shown
     in red text.
+    
     **Latest**: This column shows whether the configuration file is
     the most recent version of configuration.  A checkmark indicates
     that this file is the latest.  Since a configuration snapshot file
