@@ -1109,10 +1109,24 @@ class Node(BaseACIPhysObject):
                 if node.role == 'leaf' :
                     node._add_vpc_info()
                 node.get_health()
+                node.get_firmware()
                 nodes.append(node)
                 
         return nodes
-
+    def get_firmware(self):
+        """
+        retrieves firmware version
+        """
+        self.firmware = None
+        if self.role != 'controller':
+            dn = self.dn+'/sys/ch/supslot-1/sup/running'
+            query_url = '/api/mo/'+dn+'.json?&query-target=self'
+            ret = self._session.get(query_url)
+            data = ret.json()['imdata']
+            if data :
+                self.firmware = data[0]['firmwareCardRunning']['attributes']['version']
+                
+            
     def get_health(self):
         """
         This will get the health of the switch node
@@ -1293,7 +1307,7 @@ class Node(BaseACIPhysObject):
                 if 'topoctrlLbP' in lb_info:
                     self.dynamic_load_balancing_mode = lb_info['topoctrlLbP']['attributes']['dlbMode']
             
-            # get dynamic load balancing config
+            # get vxlan info
             mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoVxlanP'
             ret = self._session.get(mo_query_url)
             data = ret.json()['imdata']
