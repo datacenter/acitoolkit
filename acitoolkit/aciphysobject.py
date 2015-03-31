@@ -995,6 +995,7 @@ class Node(BaseACIPhysObject):
         self.vpc_info = None
         self.v4_proxy_ip = None
         self.mac_proxy_ip = None
+        self.dynamic_load_balancing = None
         
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' +
                       str(self.pod) + '/node-' + str(self.node))
@@ -1044,7 +1045,11 @@ class Node(BaseACIPhysObject):
         if parent:
             if not isinstance(parent, Pod) and not isinstance(parent, str):
                 raise TypeError('An instance of Pod class or string is required to specify pod')
-            
+            else:
+                if isinstance(parent, Pod):
+                    pod_id = parent.pod
+                else:
+                    pod_id = parent
         if node_id:
             if not isinstance(node_id, str):
                 raise TypeError('The node_id must be a string such as "101".')
@@ -1054,8 +1059,10 @@ class Node(BaseACIPhysObject):
 
         if node_id :
             # this can be enhanced to get a specific node
-            node_query_url = ('/api/node/class/fabricNode.json?'
-                              'query-target=self')
+            node_dn = 'topology/pod-{0}/node-{1}'.format(pod_id, node_id)
+            node_query_url = '/api/mo/'+node_dn+ '.json?query-target=self'
+#            node_query_url = ('/api/node/class/fabricNode.json?'
+#                              'query-target=self')
         else :
             node_query_url = ('/api/node/class/fabricNode.json?'
                               'query-target=self')
@@ -1073,7 +1080,7 @@ class Node(BaseACIPhysObject):
             node._session = session
             node._populate_from_attributes(apic_node['fabricNode']['attributes'])
             node._get_topsystem_info()
-
+            
             # check for pod match if specified
             pod_match = False
             if parent:
@@ -1276,6 +1283,27 @@ class Node(BaseACIPhysObject):
                     if slot['eqptSupCSlot']['attributes']['operSt']=='inserted' :
                         self.num_sup_modules +=1
 
+            # get dynamic load balancing config
+            mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoctrlLbP'
+            ret = self._session.get(mo_query_url)
+            lb_data = ret.json()['imdata']
+            self.dynamic_load_balancing_mode = 'unknown'
+
+            for lb_info in lb_data:
+                if 'topoctrlLbP' in lb_info:
+                    self.dynamic_load_balancing_mode = lb_info['topoctrlLbP']['attributes']['dlbMode']
+            
+            # get dynamic load balancing config
+            mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoVxlanP'
+            ret = self._session.get(mo_query_url)
+            data = ret.json()['imdata']
+            self.ivxlan_udp_port = 'unknown'
+
+            for info in data:
+                if 'topoctrlVxlanP' in info:
+                    self.ivxlan_udp_port = info['topoctrVxlanP']['attributes']['udpPort']
+            
+            
             
 
     def populate_children(self, deep=False):
