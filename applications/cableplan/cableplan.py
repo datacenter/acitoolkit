@@ -435,21 +435,24 @@ class CABLEPLAN :
         for node in nodes :
             if node.getFabricSt() == 'active' :
                 if node.get_role() == 'spine' :
-                    self.add_switch(CP_SWITCH(node.get_name(), node.get_chassisType(), spine=True))
+                    self.add_switch(CP_SWITCH(node.get_name(), node.get_chassis_type(), spine=True))
                 if node.get_role() == 'leaf' :
-                    self.add_switch(CP_SWITCH(node.get_name(), node.get_chassisType()))
+                    self.add_switch(CP_SWITCH(node.get_name(), node.get_chassis_type()))
         links = pod.get_children(Link)
         for link in links :
-            if link.get_node1().getFabricSt()=='active' and link.get_node2().getFabricSt()=='active' :
-                if link.get_node1().get_role() != 'controller' and link.get_node2().get_role() != 'controller' :
-                    sourceChassis = self._get_switch_from_apic_link(link,1)
-                    destChassis = self._get_switch_from_apic_link(link,2)
-                    sourceInterface = link.get_port1()
-                    destInterface = link.get_port2()
-                    sourcePort = '%s%s/%s' % (sourceInterface.interface_type, sourceInterface.module, sourceInterface.port)
-                    destPort = '%s%s/%s' % (destInterface.interface_type, destInterface.module, destInterface.port)
-                
-                    self.add_link(CP_LINK(sourceChassis=sourceChassis, sourcePort=sourcePort,destChassis=destChassis,destPort=destPort))            
+            switch1 = link.get_node2()
+            switch2 = link.get_node2()
+            if switch1 and switch2:
+                if link.get_node1().getFabricSt()=='active' and link.get_node2().getFabricSt()=='active' :
+                    if link.get_node1().get_role() != 'controller' and link.get_node2().get_role() != 'controller' :
+                        sourceChassis = self._get_switch_from_apic_link(link,1)
+                        destChassis = self._get_switch_from_apic_link(link,2)
+                        sourceInterface = link.get_port1()
+                        destInterface = link.get_port2()
+                        sourcePort = '%s%s/%s' % (sourceInterface.interface_type, sourceInterface.module, sourceInterface.port)
+                        destPort = '%s%s/%s' % (destInterface.interface_type, destInterface.module, destInterface.port)
+                    
+                        self.add_link(CP_LINK(sourceChassis=sourceChassis, sourcePort=sourcePort,destChassis=destChassis,destPort=destPort))            
 
     def _buildXML(self, node) :
 
