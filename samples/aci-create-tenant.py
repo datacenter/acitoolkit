@@ -40,10 +40,10 @@ def main():
     if not resp.ok:
         print('%% Could not login to APIC')
 
-    # Create the Tenant, App Profile, and EPG
+    # Create the Tenant
     tenant = aci.Tenant(args.tenant)
 
-    # Push it all to the APIC
+    # Push the tenant to the APIC
     resp = session.push_to_apic(tenant.get_url(),
                                 tenant.get_json())
     if not resp.ok:
