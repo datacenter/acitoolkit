@@ -33,7 +33,7 @@ args = creds.get()
 session = Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 # List of classes to get and print
@@ -42,10 +42,10 @@ phy_classes = (Node, ENode)
 for phy_class in phy_classes:
     # Print the class name
     class_name = phy_class.__name__
-    print class_name
-    print '=' * len(class_name)
+    print(class_name)
+    print('=' * len(class_name))
 
     # Get and print all of the items from the APIC
     items = phy_class.get(session)
     for item in items:
-        print item.info()
+        print(item.info())

@@ -44,20 +44,20 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 def show_stats_short() :
     
     # setup template and display header information
     template = "{0:17} {1:12} {2:12} {3:16} {4:16} {5:16} {6:16}"
-    print 'Granularity:',args.granularity, 'Epoch:',args.epoch
-    print template.format("   INTERFACE  ", "TOT RX PACKETS", "TOT TX PACKETS", "RX PKTs/Sec", "TX PKTs/Sec", "RX BYTES/Sec", "TX BYTES/Sec")
-    print template.format("--------------", "------------ ", "------------ ", "---------------",
-                          "---------------", "---------------", "---------------")
+    print('Granularity: ' + str(args.granularity)  + ' Epoch:' + str(args.epoch))
+    print(template.format("   INTERFACE  ", "TOT RX PACKETS", "TOT TX PACKETS", "RX PKTs/Sec", "TX PKTs/Sec", "RX BYTES/Sec", "TX BYTES/Sec"))
+    print(template.format("--------------", "------------ ", "------------ ", "---------------",
+                          "---------------", "---------------", "---------------"))
     template = "{0:17} {1:12,} {2:12,} {3:16,.2f} {4:16,.2f} {5:16,.2f} {6:16,.2f}"
     
-    for interface in sorted(interfaces):
+    for interface in sorted(interfaces, key=lamdba x: x.if_name):
         interface.stats.get()
         
         rec = []
@@ -71,17 +71,17 @@ def show_stats_short() :
                 allzero = False
                 
         if (args.nonzero and not allzero) or not args.nonzero :
-            print template.format(interface.name, *rec)
+            print(template.format(interface.name, *rec))
         
 def show_stats_long() :
-    print 'Interface {0}/{1}/{2}/{3}  Granularity:{4} Epoch:{5}'.format(pod,node,module,port,args.granularity, args.epoch)
+    print('Interface {0}/{1}/{2}/{3}  Granularity:{4} Epoch:{5}'.format(pod,node,module,port,args.granularity, args.epoch))
     stats = interfaces[0].stats.get()
     for statsFamily in sorted(stats) :
-        print statsFamily
+        print(statsFamily)
         if args.granularity in stats[statsFamily] :
             if args.epoch in stats[statsFamily][args.granularity] :
                 for counter in sorted(stats[statsFamily][args.granularity][args.epoch]) :
-                    print '    {0:>16}: {1}'.format(counter, stats[statsFamily][args.granularity][args.epoch][counter])
+                    print('    {0:>16}: {1}'.format(counter, stats[statsFamily][args.granularity][args.epoch][counter]))
         
 
 # Download all of the interfaces and get their stats

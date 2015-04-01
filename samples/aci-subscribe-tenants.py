@@ -45,7 +45,7 @@ def main():
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(0)
 
     aci.Tenant.subscribe(session)
@@ -54,9 +54,9 @@ def main():
         if aci.Tenant.has_events(session):
             tenant = aci.Tenant.get_event(session)
             if tenant.is_deleted():
-                print 'Tenant', tenant.name, 'has been deleted.'
+                print('Tenant', tenant.name, 'has been deleted.')
             else:
-                print 'Tenant', tenant.name, 'has been created or modified.'
+                print('Tenant', tenant.name, 'has been created or modified.')
 
 if __name__ == '__main__':
     try:

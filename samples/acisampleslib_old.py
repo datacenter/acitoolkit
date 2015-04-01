@@ -40,12 +40,12 @@ def get_login_info(argv):
                                    ["help", "login=", "password=",
                                     "url="])
     except getopt.GetoptError:
-        print argv[0], ': illegal option'
-        print usage
+        print(argv[0] + ' : illegal option')
+        print(usage)
         sys.exit(2)
     for opt, arg in opts:
         if opt in ('-h', '--help'):
-            print usage
+            print(usage)
             sys.exit()
         elif opt in ('-l', '--apic-login'):
             LOGIN = arg

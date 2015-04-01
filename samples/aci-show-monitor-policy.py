@@ -40,7 +40,7 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 
@@ -81,14 +81,14 @@ def printPolicyFlat(policy):
             rec.append(_getRet(adminState, retention))
         result[counter] = rec
 
-    print '{0:^16}  {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} {8:^7}'.\
-        format(policyName, *ACI.CollectionPolicy.granularityEnum)
-    print '{0:-^16}  {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} '\
-        '{0:-^7} {0:-^7}'.format('')
+    print('{0:^16}  {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} {8:^7}'.\
+        format(policyName, *ACI.CollectionPolicy.granularityEnum))
+    print('{0:-^16}  {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} '\
+        '{0:-^7} {0:-^7}'.format(''))
 
     for counter in ACI.MonitorStats.statsFamilyEnum:
-        print '{0:>16}: {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} '\
-            '{8:^7}'.format(counter, *result[counter])
+        print('{0:>16}: {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} '\
+            '{8:^7}'.format(counter, *result[counter]))
 
 
 def printPolicyHeir(obj):
@@ -97,34 +97,34 @@ def printPolicyHeir(obj):
 
     :param obj: The policy object whose state is to be displayed.
     """
-    print obj
+    print(obj)
     formatStr = '{0:27} {1:^11} {2:^9} {3:^10}'
-    print formatStr.format('object', 'granularity', 'retention', 'adminState')
-    print '{0:-^27} {0:-^11} {0:-^9} {0:-^10}'.format('')
+    print(formatStr.format('object', 'granularity', 'retention', 'adminState'))
+    print('{0:-^27} {0:-^11} {0:-^9} {0:-^10}'.format(''))
 
     for collection in obj.collection_policy:
         child = obj.collection_policy[collection]
-        print formatStr.format('Collection', child.granularity,
-                               child.retention, child.adminState)
+        print(formatStr.format('Collection', child.granularity,
+                               child.retention, child.adminState))
     for target in obj.monitor_target:
         child = obj.monitor_target[target]
-        print '{0:27}'.format('MonitorTarget:'+child.scope)
+        print('{0:27}'.format('MonitorTarget:'+child.scope))
 
         for collection in child.collection_policy:
             targetChild = child.collection_policy[collection]
-            print formatStr.format('    Collection', targetChild.granularity,
+            print(formatStr.format('    Collection', targetChild.granularity,
                                    targetChild.retention,
-                                   targetChild.adminState)
+                                   targetChild.adminState))
         for statFamily in child.monitor_stats:
             targetChild = child.monitor_stats[statFamily]
-            print '{0:27}'.format('    '+targetChild.scope)
+            print('{0:27}'.format('    '+targetChild.scope))
 
             for collection in targetChild.collection_policy:
                 statChild = targetChild.collection_policy[collection]
-                print formatStr.format('        Collection',
+                print(formatStr.format('        Collection',
                                        statChild.granularity,
                                        statChild.retention,
-                                       statChild.adminState)
+                                       statChild.adminState))
 
 policies = ACI.MonitorPolicy.get(session)
 

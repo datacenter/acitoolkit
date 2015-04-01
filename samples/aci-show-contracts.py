@@ -37,7 +37,7 @@ def main():
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(0)
 
     # Download all of the contracts
@@ -53,8 +53,8 @@ def main():
 
     # Display the data downloaded
     template = '{0:19} {1:20}'
-    print template.format("Tenant", "Contract")
-    print template.format("------", "--------")
+    print(template.format("Tenant", "Contract"))
+    print(template.format("------", "--------"))
     for rec in data:
         print template.format(*rec)
 

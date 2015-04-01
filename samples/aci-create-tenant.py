@@ -38,7 +38,7 @@ def main():
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
 
     # Create the Tenant, App Profile, and EPG
     tenant = aci.Tenant(args.tenant)
@@ -47,8 +47,9 @@ def main():
     resp = session.push_to_apic(tenant.get_url(),
                                 tenant.get_json())
     if not resp.ok:
-        print '%% Error: Could not push configuration to APIC'
-        print resp.text
+        print('%% Error: Could not push configuration to APIC')
+        print(resp.text)
+
 
 if __name__ == '__main__':
     try:

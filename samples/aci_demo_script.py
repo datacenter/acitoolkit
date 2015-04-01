@@ -23,7 +23,7 @@ def send_to_apic(tenant):
     session.login()
     resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
     if resp.ok:
-        print 'Success'
+        print('Success')
 
 # Basic Connectivity Example
 # Equivalent to connecting to ports to the same VLAN
@@ -52,8 +52,8 @@ epg.attach(vlan5_on_if1)
 epg.attach(vlan5_on_if2)
 
 # Dump the necessary configuration
-print 'URL:', tenant.get_url()
-print 'JSON:', tenant.get_json()
+print('URL: '  + str(tenant.get_url()))
+print('JSON: ' + str(tenant.get_json()))
 
 send_to_apic(tenant)
 

@@ -34,7 +34,7 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 # Download all of the interfaces
@@ -73,7 +73,7 @@ data = set_filter(data, 'contract')
 # Display the data downloaded
 width = '20'
 template = '{0:' + width + '} {1:' + width + '} {2:' + width + '}'
-print template.format("Filter Entries", "Contract", "Tenant")
-print template.format("--------------", "--------", "------")
+print(template.format("Filter Entries", "Contract", "Tenant"))
+print(template.format("--------------", "--------", "------"))
 for rec in data:
-    print template.format(rec['filter_entry'], rec['contract'], rec['tenant'])
+    print(template.format(rec['filter_entry'], rec['contract'], rec['tenant']))

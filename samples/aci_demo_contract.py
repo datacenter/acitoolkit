@@ -62,6 +62,6 @@ session.login()
 resp = tenant.push_to_apic(session)
 
 # Print what was sent
-print 'Pushed the following JSON to the APIC'
-print 'URL:', tenant.get_url()
-print 'JSON:', tenant.get_json()
+print('Pushed the following JSON to the APIC')
+print('URL: '  + str(tenant.get_url()))
+print('JSON: ' + str(tenant.get_json()))

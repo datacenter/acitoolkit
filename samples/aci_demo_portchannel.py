@@ -46,6 +46,6 @@ epg = EPG('epg', app)
 epg.attach(vlan5_on_pc)
 
 # Print the resulting JSON
-print pc.get_json()
-print tenant.get_json()
+print(pc.get_json())
+print(tenant.get_json())
 
