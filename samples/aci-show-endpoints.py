@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2014 Cisco Systems
+# Copyright (c) 2014, 2015 Cisco Systems, Inc.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -19,35 +19,55 @@ Simple application that logs on to the APIC and displays all
 of the Endpoints.
 """
 import sys
-import acitoolkit.acitoolkit as ACI
+import acitoolkit.acitoolkit as aci
 
-# Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = ('Simple application that logs on to the APIC'
-               ' and displays all of the Endpoints.')
-creds = ACI.Credentials('apic', description)
-args = creds.get()
 
-# Login to APIC
-session = ACI.Session(args.url, args.login, args.password)
-resp = session.login()
-if not resp.ok:
-    print '%% Could not login to APIC'
-    sys.exit(0)
+def main():
+    """
+    Main Show Endpoints Routine
+    :return: None
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = ('Simple application that logs on to the APIC'
+                   ' and displays all of the Endpoints.')
+    creds = aci.Credentials('apic', description)
+    args = creds.get()
 
-# Download all of the interfaces
-# and store the data as tuples in a list
-data = []
-endpoints = ACI.Endpoint.get(session)
-for ep in endpoints:
-    epg = ep.get_parent()
-    app_profile = epg.get_parent()
-    tenant = app_profile.get_parent()
-    data.append((ep.mac, ep.ip, ep.if_name, ep.encap, tenant.name, app_profile.name, epg.name))
+    # Login to APIC
+    session = aci.Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print '%% Could not login to APIC'
+        sys.exit(0)
 
-# Display the data downloaded
-template = "{0:19} {1:17} {2:15} {3:10} {4:10} {5:15} {6:15}"
-print template.format("MACADDRESS",        "IPADDRESS",        "INTERFACE",     "ENCAP",      "TENANT", "APP PROFILE", "EPG")
-print template.format("-----------------", "---------------", "--------------", "----------", "------", "-----------", "---")
-for rec in data:
-    print template.format(*rec)
+    # Download all of the interfaces
+    # and store the data as tuples in a list
+    data = []
+    endpoints = aci.Endpoint.get(session)
+    for ep in endpoints:
+        epg = ep.get_parent()
+        app_profile = epg.get_parent()
+        tenant = app_profile.get_parent()
+        data.append((ep.mac, ep.ip, ep.if_name, ep.encap,
+                     tenant.name, app_profile.name, epg.name))
+
+    # Display the data downloaded
+    col_widths = [19, 17, 15, 10, 15, 15, 15]
+    template = ''
+    for idx, width in enumerate(col_widths):
+        template += '{%s:%s} ' % (idx, width)
+    print template.format("MACADDRESS", "IPADDRESS", "INTERFACE",
+                          "ENCAP", "TENANT", "APP PROFILE", "EPG")
+    fmt_string = []
+    for i in range(0, len(col_widths)):
+        fmt_string.append('-' * (col_widths[i] - 2))
+    print template.format(*fmt_string)
+    for rec in data:
+        print template.format(*rec)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

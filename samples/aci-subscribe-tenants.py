@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2014 Cisco Systems
+# Copyright (c) 2014, 2015 Cisco Systems, Inc.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -22,31 +22,44 @@ will be printed on the screen.  Likewise, if an existing tenant is
 deleted.
 """
 import sys
-import acitoolkit.acitoolkit as ACI
+import acitoolkit.acitoolkit as aci
 
-# Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = ('Simple application using event subscription for the Tenant'
-               ' class. When run, this application will log into the APIC '
-               'and subscribe to events on the Tenant class.  If a new tenant'
-               ' is created, the event will be printed on the screen.  '
-               'Likewise, if an existing tenant is deleted.')
-creds = ACI.Credentials('apic', description)
-args = creds.get()
 
-# Login to APIC
-session = ACI.Session(args.url, args.login, args.password)
-resp = session.login()
-if not resp.ok:
-    print '%% Could not login to APIC'
-    sys.exit(0)
+def main():
+    """
+    Main subscribe tenants routine
+    :return: None
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = ('Simple application using event subscription for the'
+                   'Tenant class. When run, this application will log '
+                   'into the APIC and subscribe to events on the Tenant '
+                   'class.  If a new tenant is created, the event will be'
+                   'printed on the screen. Likewise, if an existing tenant'
+                   'is deleted.')
+    creds = aci.Credentials('apic', description)
+    args = creds.get()
 
-ACI.Tenant.subscribe(session)
+    # Login to APIC
+    session = aci.Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print '%% Could not login to APIC'
+        sys.exit(0)
 
-while True:
-    if ACI.Tenant.has_events(session):
-        tenant = ACI.Tenant.get_event(session)
-        if tenant.is_deleted():
-            print 'Tenant', tenant.name, 'has been deleted.'
-        else:
-            print 'Tenant', tenant.name, 'has been created or modified.'
+    aci.Tenant.subscribe(session)
+
+    while True:
+        if aci.Tenant.has_events(session):
+            tenant = aci.Tenant.get_event(session)
+            if tenant.is_deleted():
+                print 'Tenant', tenant.name, 'has been deleted.'
+            else:
+                print 'Tenant', tenant.name, 'has been created or modified.'
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
