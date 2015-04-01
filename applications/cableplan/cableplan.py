@@ -19,15 +19,8 @@ import re
 import base64
 import datetime as datetime_
 
-from acitoolkit.acisession import Session
-try:
-    from credentials import *
-except ImportError:
-    URL = ''
-    LOGIN = ''
-    PASSWORD = ''
-from acitoolkit.acitoolkit import *
-from acitoolkit.aciphysobject import *
+import acitoolkit.acitoolkit as ACI
+import acitoolkit.aciphysobject as ACI_PHYS
 
 etree_ = None
 Verbose_import_ = False
@@ -132,6 +125,7 @@ class CABLEPLAN :
         self.prefix_url = 'http://www.w3.org/2001/XMLSchema-instance'
         self.networkLocation = None
         self.idFormat = 'hostname'
+        
     @classmethod
     def get(cls,source) :
         """This will get input a cable plan from 'source'.  If source is a string,
@@ -144,8 +138,10 @@ class CABLEPLAN :
         """
         if isinstance(source, str) :
             rootObj = cls._parse(source)
-        elif isinstance(source, Session) :
+        elif isinstance(source, ACI.Session) :
             rootObj = cls._parseAPIC(source)
+        else:
+            print type(source)
         return rootObj
 
     @classmethod
@@ -162,7 +158,7 @@ class CABLEPLAN :
 
     @classmethod
     def _parseAPIC(cls,session):
-        pod = Pod.get(session)[0]
+        pod = ACI_PHYS.Pod.get(session)[0]
         pod.populate_children(deep=True)
         cable_plan = cls()
         cable_plan._buildAPIC(pod)
@@ -431,14 +427,14 @@ class CABLEPLAN :
 
         :returns: None
         """
-        nodes = pod.get_children(Node)
+        nodes = pod.get_children(ACI_PHYS.Node)
         for node in nodes :
             if node.getFabricSt() == 'active' :
                 if node.get_role() == 'spine' :
                     self.add_switch(CP_SWITCH(node.get_name(), node.get_chassis_type(), spine=True))
                 if node.get_role() == 'leaf' :
                     self.add_switch(CP_SWITCH(node.get_name(), node.get_chassis_type()))
-        links = pod.get_children(Link)
+        links = pod.get_children(ACI_PHYS.Link)
         for link in links :
             switch1 = link.get_node2()
             switch2 = link.get_node2()
@@ -1031,25 +1027,13 @@ class CP_LINK :
 #end class LINK
 
 
-USAGE_TEXT = """
-Usage: python cableplan.py -c <in_xml_file1> [<in_xml_file2>]
-Usage: python cableplan.py -e [<out_xml_file>]
-   -c : compare.  If two file names are given, then they will be compared,
-        if only one file is given, it will be compared to the running fabric
-        
-   -e : export.  This will read from the fabric and export to the named file
-        the currently running cable plan.  If no filename is given, it will
-        just output the text.
-"""
-
-def compareCablePlans(file1, file2=None) :
+def compareCablePlans(session, file1, file2=None) :
     if file2 :
         cp1 = CABLEPLAN.get(file1)
         source1 = file1
         cp2 = CABLEPLAN.get(file2)
         source2 = file2
     else :
-        session  = Session(URL, LOGIN, PASSWORD)
         resp = session.login()
         if not resp.ok:
             print '%% Could not login to APIC'
@@ -1091,8 +1075,8 @@ def compareCablePlans(file1, file2=None) :
             print source1,'and',source2,'are the same'
             
 
-def exportToFile(file1=None) :
-    session  = Session(URL, LOGIN, PASSWORD)
+def exportToFile(session, file1=None) :
+
     resp = session.login()
     if not resp.ok:
         print '%% Could not login to APIC'
@@ -1114,24 +1098,73 @@ def usage():
     sys.exit(1)
 
 def main():
-    args = sys.argv[1:]
-    if len(args) in [1,2, 3]:
-        if args[0] == '-e' :
-            if len(args) == 1 :
-                exportToFile()
-            elif len(args) == 2 :
-                exportToFile(args[1])
-            else :
-                usage()
-        elif args[0] == '-c' :
-            if len(args) == 2 :
-                compareCablePlans(args[1])
-            elif len(args) == 3 :
-                compareCablePlans(args[1], args[2])
-            else :
-                usage()
-    else:
-        usage()
+    description = 'Simple application that logs on to the APIC and displays stats for all of the Interfaces.'
+    creds = ACI.Credentials('apic', description)
+    #group = creds.add_mutually_exclusive_group()
+    group1 = creds.add_argument_group('Export','Export a cable plan')
+    group1.add_argument('-e', '--export_file', default=None, const='export text', dest='export_file', nargs='?',
+                    help='Export cableplan from running fabric.  If EXPORT_FILE is specified, the '\
+                    'cableplan will be written to EXPORT_FILE')
+    group2 = creds.add_argument_group('Compare','Compare cable plans')
+    group2.add_argument('-c1', '--cableplan1',
+                    type=str, nargs = 1,
+                    default = None,
+                    help="Name of cableplan xml file.  If only CABLEPLAN1 is specified, "\
+                    "it will be compared to the running fabric.  If it is specified with "\
+                    "CABLEPLAN2 (the -c2 option), then it will compare CABLEPLAN1 with CABLEPLAN2")
+    group2.add_argument('-c2', '--cableplan2',
+                    type=str, nargs = 1,
+                    default = None,
+                    help="Name of second cableplan xml file.  The second cableplan file.  This file will "\
+                    "be compared to CABLEPLAN1.  This option must only be used "\
+                    "in conjunction with the -c1 option.")
+                    
+                    
+    #creds.add_argument('efile',nargs='?',
+    #                help='Export cableplan from running fabric.  If EXPORT_FILE is specified, the '\
+    #                'cableplan will be written to EXPORT_FILE')
+    args = creds.get()
+#USAGE_TEXT = """
+#Usage: python cableplan.py -c <in_xml_file1> [<in_xml_file2>]
+#Usage: python cableplan.py -e [<out_xml_file>]
+#   -c : compare.  If two file names are given, then they will be compared,
+#        if only one file is given, it will be compared to the running fabric
+#        
+#   -e : export.  This will read from the fabric and export to the named file
+#        the currently running cable plan.  If no filename is given, it will
+#        just output the text.
+#"""
+
+
+    session = ACI.Session(args.url, args.login, args.password)
+
+    if args.export_file and (args.cableplan1 or args.cableplan2) :
+        creds.print_help()
+        print '\nError: export and compare operations are mutually exclusive'
+        exit()
+
+    if args.cableplan2 and not args.cableplan1:
+        creds.print_help()
+        print '\nError: -c2 option only valid with -c1 option'
+        exit()
+        
+    if not args.export_file and not args.cableplan1 :
+        creds.print_help()
+        print '\nError: Either export (-e) or compare (-c1) is required'
+        exit()
+        
+    if args.export_file:
+        if args.export_file == 'export text':
+            exportToFile(session)
+        else:
+            exportToFile(session, args.export_file)
+    
+
+    if args.cableplan1:
+        if args.cableplan2:
+            compareCablePlans(session, args.cableplan1[0], args.cableplan2[0])
+        else:
+            compareCablePlans(session, args.cableplan1[0])
 
 
 if __name__ == '__main__':
