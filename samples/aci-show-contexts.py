@@ -31,7 +31,7 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 # Download all of the contexts
@@ -47,7 +47,7 @@ for tenant in tenants:
 
 # Display the data downloaded
 template = '{0:19} {1:20}'
-print template.format("Tenant", "Context")
-print template.format("------", "-------")
+print(template.format("Tenant", "Context"))
+print(template.format("------", "-------"))
 for rec in data:
-    print template.format(*rec)
+    print(template.format(*rec))

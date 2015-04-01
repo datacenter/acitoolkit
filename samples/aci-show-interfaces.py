@@ -31,7 +31,7 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 # Download all of the interfaces
@@ -49,7 +49,7 @@ for interface in interfaces:
 
 # Display the data downloaded
 template = "{0:17} {1:6} {2:^6} {3:^6} {4:7} {5:6} {6:9} "
-print template.format("INTERFACE", "TYPE", "ADMIN", "OPER","SPEED", "MTU", "USAGE")
-print template.format("---------", "----", "------", "------", "-----", "___", "---------")
+print(template.format("INTERFACE", "TYPE", "ADMIN", "OPER","SPEED", "MTU", "USAGE"))
+print(template.format("---------", "----", "------", "------", "-----", "___", "---------"))
 for rec in data:
-    print template.format(*rec)
+    print(template.format(*rec))

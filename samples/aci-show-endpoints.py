@@ -38,7 +38,7 @@ def main():
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(0)
 
     # Download all of the interfaces
@@ -57,14 +57,14 @@ def main():
     template = ''
     for idx, width in enumerate(col_widths):
         template += '{%s:%s} ' % (idx, width)
-    print template.format("MACADDRESS", "IPADDRESS", "INTERFACE",
-                          "ENCAP", "TENANT", "APP PROFILE", "EPG")
+    print(template.format("MACADDRESS", "IPADDRESS", "INTERFACE",
+                          "ENCAP", "TENANT", "APP PROFILE", "EPG"))
     fmt_string = []
     for i in range(0, len(col_widths)):
         fmt_string.append('-' * (col_widths[i] - 2))
-    print template.format(*fmt_string)
+    print(template.format(*fmt_string))
     for rec in data:
-        print template.format(*rec)
+        print(template.format(*rec))
 
 if __name__ == '__main__':
     try:
