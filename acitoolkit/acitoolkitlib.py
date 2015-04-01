@@ -136,6 +136,20 @@ class Credentials(object):
         """
         return self._parser.add_mutually_exclusive_group(*args, **kwargs)
 
+    def add_argument_group(self, *args, **kwargs):
+        """
+        Pass through function to allow the underlying parser to be
+        extended.
+        """
+        return self._parser.add_argument_group(*args, **kwargs)
+
+    def print_help(self, *args, **kwargs):
+        """
+        Pass through function to allow the underlying parser to be
+        extended.
+        """
+        return self._parser.print_help(*args, **kwargs)
+
     def verify(self):
         """
         Verify that the arguments have been passed in some way.  If not,
