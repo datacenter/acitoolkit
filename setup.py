@@ -14,6 +14,7 @@ setup(
                         "flask-admin",
                         "flask-bootstrap",
                         "flask-wtf",
-                        "flask"],
+                        "flask",
+                        "pymysql"],
     description = "This library allows basic Cisco ACI APIC configuration.",
 )
