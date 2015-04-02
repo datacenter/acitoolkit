@@ -10,6 +10,9 @@ fabric# show interface [detail]
 Show the Contexts
 fabric# show context
 
+Show the Infrastructure Domains
+fabric# show infradomains
+
 Enter configuration mode
 fabric# configure terminal
 
@@ -37,6 +40,7 @@ fabric-tenant(config)# [no] app <app-profile-name>
 Create an EPG and assign it to a bridge domain 
 fabric-tenant(config-app)# [no] epg <epg-name>
 fabric-tenant(config-epg)# [no] bridgedomain <bd-name>
+fabric-tenant(config-epg)# [no] infradomain <domain-name>
 
 Assign an EPG to an interface and optionally specify the encapsulation and segmentation id used
 fabric-tenant(config)# interface <type> <pod>/<node>/<module>/<port>
