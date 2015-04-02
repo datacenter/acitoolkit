@@ -1,12 +1,15 @@
 from flask import Flask
-import mysql.connector
+try:
+    import mysql.connector as mysql
+except ImportError:
+    import pymysql as mysql
 from acitoolkit.acitoolkit import Credentials
 
 def populate_data(mysql_ip, mysql_username, mysql_password):
     # Create the MySQL database
-    cnx = mysql.connector.connect(user=mysql_username, password=mysql_password,
-                                  host=mysql_ip,
-                                  database='acitoolkit')
+    cnx = mysql.connect(user=mysql_username, password=mysql_password,
+                        host=mysql_ip,
+                        database='acitoolkit')
     c = cnx.cursor()
     c.execute('USE acitoolkit;')
     c.execute('SELECT * FROM endpoints;')
@@ -28,7 +31,6 @@ def populate_data(mysql_ip, mysql_username, mysql_password):
 
 app = Flask(__name__)
 
-    
 @app.route('/')
 def hello_world():
     return """
@@ -127,7 +129,8 @@ if __name__ == '__main__':
     
     # Take login credentials from the command line if provided
     # Otherwise, take them from your environment variables file ~/.profile
-    description = 'Simple application that logs on to the APIC and displays all of the Endpoints.'
+    description = ('Simple application that logs on to the APIC '
+                   'and displays all of the Endpoints.')
     creds = Credentials('mysql', description)
     args = creds.get()
 
