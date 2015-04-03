@@ -15,6 +15,7 @@
 #    under the License.
 #
 import acitoolkit.acitoolkit as ACI
+import re, time
 
 class SwitchJson(object):
     """
@@ -89,7 +90,7 @@ class SwitchJson(object):
         result = self.by_class.get(class_name)
         if not result:
             return []
-        return result[:]
+        return result
     
     def get_subtree(self, class_name, dn):
         """
@@ -106,7 +107,7 @@ class SwitchJson(object):
                 obj_dn = class_record[class_id]['attributes']['dn']
                 if obj_dn[0:len(dn)] == dn:
                     result.append(class_record)
-        return result[:]
+        return result
     
             
     def get_object(self, dn):
