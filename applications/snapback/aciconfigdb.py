@@ -43,6 +43,7 @@ class SnapshotScheduler(threading.Thread):
         self._exit = False
         self._cdb = cdb
         self._next_snapshot_time = None
+        self._callback = None
 
     def set_schedule(self, frequency='onetime', interval=None,
                      granularity='days', start_date=None,
@@ -231,14 +232,15 @@ class ConfigDB(object):
         data = self._get_from_apic(query_url)
 
         # Write the config to a file
-        f = open(filename, 'w')
-        f.write(json.dumps(data, indent=4, separators=(',', ':')))
-        f.close()
+        config_file = open(filename, 'w')
+        config_file.write(json.dumps(data, indent=4, separators=(',', ':')))
+        config_file.close()
 
         # Add the file to Git
         self.repo.index.add([filename])
 
-    def _get_url_for_file(self, filename):
+    @staticmethod
+    def _get_url_for_file(filename):
         """
         Internal function to generate a URL for communicating with the APIC
         that will get the configuration for a given filename
@@ -531,7 +533,8 @@ class ConfigDB(object):
                                             int(hour), int(minute))
         return latest_snapshot
 
-    def _print(self, title, items):
+    @staticmethod
+    def _print(title, items):
         """
         Internal function to iterate through a number of items for printing
 
@@ -705,7 +708,7 @@ class ConfigDB(object):
             return False
 
 
-if __name__ == "__main__":
+def main():
     """
     Main execution path when run from the command line
     """
@@ -767,3 +770,9 @@ if __name__ == "__main__":
         filename = args.show[1]
         config = cdb.get_file(version, filename)
         print config
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

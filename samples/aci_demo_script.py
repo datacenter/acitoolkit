@@ -13,50 +13,72 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from acitoolkit.acitoolkit import *
-from credentials import *
+"""
+    Basic Connectivity Example
+    Equivalent to connecting to ports to the same VLAN
+"""
+from acitoolkit.acitoolkit import Tenant, Context, BridgeDomain, AppProfile
+from acitoolkit.acitoolkit import EPG, Interface, L2Interface, Session
+from acitoolkit.acitoolkit import Credentials
 
 
 def send_to_apic(tenant):
-    # Login to APIC and push the config
-    session = Session(URL, LOGIN, PASSWORD, False)
+    """
+    Login to APIC and push the config
+
+    :param tenant: Tenant class instance
+    :return: request response object
+    """
+    description = 'Basic Connectivity Example'
+    creds = Credentials('apic', description)
+    args = creds.get()
+
+    # Login to APIC
+    session = Session(args.url, args.login, args.password, False)
     session.login()
-    resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+    resp = tenant.push_to_apic(session)
     if resp.ok:
         print('Success')
+    return resp
 
-# Basic Connectivity Example
-# Equivalent to connecting to ports to the same VLAN
+def main():
+    """
+    Main execution routine
 
-# Create a tenant
-tenant = Tenant('Coke')
+    :return: None
+    """
+    # Create a tenant
+    tenant = Tenant('Coke')
 
-# Create a Context and a BridgeDomain
-context = Context('VRF-1', tenant)
-context.set_allow_all()
-bd = BridgeDomain('BD-1', tenant)
-bd.add_context(context)
+    # Create a Context and a BridgeDomain
+    context = Context('VRF-1', tenant)
+    context.set_allow_all()
+    bd = BridgeDomain('BD-1', tenant)
+    bd.add_context(context)
 
-# Create an App Profile and an EPG
-app = AppProfile('sap', tenant)
-epg = EPG('sapepg', app)
+    # Create an App Profile and an EPG
+    app = AppProfile('sap', tenant)
+    epg = EPG('sapepg', app)
 
-# Attach the EPG to 2 interfaces using VLAN 5 as the encap
-if1 = Interface('eth', '1', '101', '1', '62')
-if2 = Interface('eth', '1', '101', '1', '63')
-vlan5_on_if1 = L2Interface('vlan5_on_if1', 'vlan', '5')
-vlan5_on_if2 = L2Interface('vlan5_on_if2', 'vlan', '5')
-vlan5_on_if1.attach(if1)
-vlan5_on_if2.attach(if2)
-epg.attach(vlan5_on_if1)
-epg.attach(vlan5_on_if2)
+    # Attach the EPG to 2 interfaces using VLAN 5 as the encap
+    if1 = Interface('eth', '1', '101', '1', '62')
+    if2 = Interface('eth', '1', '101', '1', '63')
+    vlan5_on_if1 = L2Interface('vlan5_on_if1', 'vlan', '5')
+    vlan5_on_if2 = L2Interface('vlan5_on_if2', 'vlan', '5')
+    vlan5_on_if1.attach(if1)
+    vlan5_on_if2.attach(if2)
+    epg.attach(vlan5_on_if1)
+    epg.attach(vlan5_on_if2)
 
-# Dump the necessary configuration
-print('URL: '  + str(tenant.get_url()))
-print('JSON: ' + str(tenant.get_json()))
+    # Dump the necessary configuration
+    print('URL: '  + str(tenant.get_url()))
+    print('JSON: ' + str(tenant.get_json()))
 
-send_to_apic(tenant)
+    send_to_apic(tenant)
 
-# Clean up
-# tenant.mark_as_deleted()
-# send_to_apic(tenant)
+    # Clean up
+    # tenant.mark_as_deleted()
+    # send_to_apic(tenant)
+
+if __name__ == '__main__':
+    main()
