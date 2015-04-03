@@ -458,11 +458,17 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertRaises(TypeError, Subnet, 'sub1', tenant)
 
     def test_add_subnet_twice(self):
+        """
+        Test adding the same subnet twice to the same BridgeDomain
+        """
         bd, sub1 = self.create_bd_with_subnet()
         bd.add_subnet(sub1)
         self.assertTrue(len(bd.get_subnets()) == 1)
 
     def test_add_subnet_different_bd(self):
+        """
+        Test adding the same subnet to 2 different BridgeDomains
+        """
         tenant, bd = self.create_bd()
         subnet = Subnet('subnet', bd)
         subnet.set_addr('1.2.3.4/24')
@@ -472,25 +478,40 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd2.has_subnet(subnet))
 
     def test_set_subnet_addr_to_none(self):
+        """
+        Test adding subnet to None
+        """
         bd, sub1 = self.create_bd_with_subnet()
         self.assertRaises(TypeError, sub1.set_addr, None)
 
     def test_has_subnet_wrong_type(self):
+        """
+        Test has_subnet with the wrong object class
+        """
         tenant, bd = self.create_bd()
         self.assertRaises(TypeError, bd.has_subnet, tenant)
 
     def test_has_subnet_no_addr(self):
+        """
+        Test subnet without address set
+        """
         tenant, bd = self.create_bd()
         sub1 = Subnet('sub1', bd)
         self.assertRaises(ValueError, bd.has_subnet, sub1)
 
     def test_remove_subnet(self):
+        """
+        Test remove subnet
+        """
         bd, sub1 = self.create_bd_with_subnet()
         bd.remove_subnet(sub1)
         self.assertFalse(bd.has_subnet(sub1))
         self.assertTrue(len(bd.get_subnets()) == 0)
 
     def test_remove_2_subnets(self):
+        """
+        Test remove 2 subnets
+        """
         bd, sub1, sub2 = self.test_add_2_valid_subnets()
         bd.remove_subnet(sub1)
         self.assertFalse(bd.has_subnet(sub1))
@@ -502,16 +523,25 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(len(bd.get_subnets()) == 0)
 
     def test_remove_subnet_wrong_type(self):
+        """
+        Test remove subnet of the wrong type
+        """
         bd, sub1 = self.create_bd_with_subnet()
         self.assertRaises(TypeError, bd.remove_subnet, 'sub1')
 
     def test_add_context(self):
+        """
+        Test adding context to the bd
+        """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
         self.assertTrue(bd.get_context() == context)
 
     def test_add_context_twice(self):
+        """
+        Test adding the same context twice to the same bd
+        """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
@@ -521,6 +551,9 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd.get_context() is None)
 
     def test_remove_context(self):
+        """
+        Test removing the context
+        """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
@@ -950,7 +983,7 @@ class TestEndpoint(unittest.TestCase):
             epg.attach(interface)
             ep.attach(interface)
         return tenant
-    
+
     def verify_json(self, data, deleted=False):
         """
         Check that the JSON is correct for an Endpoint.
@@ -989,13 +1022,15 @@ class TestEndpoint(unittest.TestCase):
         tenant = self.create_tenant_with_ep('tenant', 'app', 'epg',
                                             '00-11-22-33-44-55')
         tenant.get_json()
-    def test_create_bad_parent(self) :
+
+    def test_create_bad_parent(self):
         """
         checks to see that creating an endpoint in something
         other an EPG causes an error.
         """
-        self.assertRaises(TypeError,Endpoint,'00-11-22-33-44-55','not an epg')
-        
+        self.assertRaises(TypeError, Endpoint,
+                          '00-11-22-33-44-55', 'not an epg')
+
     def test_create_on_interface(self):
         """
         Create a basic static endpoint and attach
@@ -1244,20 +1279,21 @@ class TestOspf(unittest.TestCase):
         outside.attach(ospfif)
         ospf_json = outside.get_json()
 
+
 class TestMonitorPolicy(unittest.TestCase):
     """
     Tests the monitoriing policy
     """
     def test_create(self):
-        m_policy = MonitorPolicy('fabric','policy-name')
-        self.assertEqual(m_policy.name,'policy-name')
-        self.assertEqual(m_policy.policyType,'fabric')
+        m_policy = MonitorPolicy('fabric', 'policy-name')
+        self.assertEqual(m_policy.name, 'policy-name')
+        self.assertEqual(m_policy.policyType, 'fabric')
         m_policy.set_name('policy-name-2')
-        self.assertEqual(m_policy.name,'policy-name-2')
+        self.assertEqual(m_policy.name, 'policy-name-2')
         m_policy.set_description('Policy description string')
-        self.assertEqual(m_policy.description,'Policy description string')
-    
-    
+        self.assertEqual(m_policy.description, 'Policy description string')
+
+
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -1427,10 +1463,10 @@ class TestLiveSubscription(TestLiveAPIC):
 
 
 class TestLiveInterface(TestLiveAPIC):
-    def get_valid_interface(self, session) :
+    def get_valid_interface(self, session):
         interfaces = Interface.get(session)
         return interfaces[0]
-    
+
     def get_spine(self):
         session = self.login_to_apic()
         nodes = Node.get(session)
@@ -1438,7 +1474,7 @@ class TestLiveInterface(TestLiveAPIC):
             if node.get_role() == 'spine' and node.fabricSt == 'active':
                 return node
         return None
-    
+
     def test_get_all_interfaces(self):
         session = self.login_to_apic()
         self.assertRaises(TypeError, Interface.get, None)
@@ -1449,35 +1485,39 @@ class TestLiveInterface(TestLiveAPIC):
             self.assertTrue(isinstance(interface_as_a_string, str))
             path = interface._get_path()
             self.assertTrue(isinstance(path, str))
-            
-    def test_get(self) :
+
+    def test_get(self):
         session = self.login_to_apic()
         interface = self.get_valid_interface(session)
         pod = interface.pod
         node = interface.node
         slot = interface.module
         port = interface.port
-        self.assertRaises(TypeError, Interface.get, session,pod, node, slot, 33)
-        self.assertRaises(TypeError, Interface.get, session,pod, node, 1, port)
-        self.assertRaises(TypeError, Interface.get, session,pod, 101, slot, port)
-        self.assertRaises(TypeError, Interface.get, session,1, node, slot, port)
+        self.assertRaises(TypeError, Interface.get, session,
+                          pod, node, slot, 33)
+        self.assertRaises(TypeError, Interface.get, session,
+                          pod, node, 1, port)
+        self.assertRaises(TypeError, Interface.get, session,
+                          pod, 101, slot, port)
+        self.assertRaises(TypeError, Interface.get, session,
+                          1, node, slot, port)
         interface_again = Interface.get(session, pod, node, slot, port)[0]
-        self.assertTrue(interface==interface_again)
+        self.assertTrue(interface == interface_again)
 
         self.assertRaises(TypeError, Interface.get, session, pod)
-        pod = Linecard(pod,node,slot)
+        pod = Linecard(pod, node, slot)
         interfaces = Interface.get(session, pod)
-        self.assertTrue(len(interfaces)>0)
+        self.assertTrue(len(interfaces) > 0)
 
-    def test_get_adjacent(self) :
+    def test_get_adjacent(self):
         session = self.login_to_apic()
         interfaces = Interface.get(session)
-        for interface in interfaces :
-            if interface.porttype=='fab' and interface.attributes['operSt']=='up':
+        for interface in interfaces:
+            if interface.porttype == 'fab' and interface.attributes['operSt'] == 'up':
                 adj = interface.get_adjacent_port()
                 fields = adj.split('/')
-                self.assertEqual(len(fields),4)
-                for field in fields :
+                self.assertEqual(len(fields), 4)
+                for field in fields:
                     self.assertIsInstance(int(field), int)
 
 class TestLivePortChannel(TestLiveAPIC):
@@ -1994,8 +2034,8 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
     """
     Live tests of the monitoriing policy
     """
-    def check_collection_policy(self, parent) :
-        for index in parent.collection_policy :
+    def check_collection_policy(self, parent):
+        for index in parent.collection_policy:
             policy = parent.collection_policy[index]
             self.assertEqual(index, policy.granularity)
             self.assertIn(policy.granularity, ['5min', '15min', '1h', '1d',
@@ -2004,52 +2044,52 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
                      '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'])
             self.assertIn(policy.adminState, ['enabled', 'disabled', 'inherited'])
             self.assertEqual(policy._parent, parent)
-        
+
     def test_get(self):
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
-        self.assertTrue(len(policies)>0)
-        for policy in policies :
-            self.assertIn(policy.policyType,['fabric','access'])
+        self.assertTrue(len(policies) > 0)
+        for policy in policies:
+            self.assertIn(policy.policyType, ['fabric', 'access'])
             self.assertIsInstance(policy.name, str)
             self.check_collection_policy(policy)
 
-    def test_monitor_target(self) :
+    def test_monitor_target(self):
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
-        for policy in policies :
+        for policy in policies:
             monitor_targets = policy.monitor_target
-            
-            for index in monitor_targets :
+            for index in monitor_targets:
                 monitor_target = monitor_targets[index]
-                self.assertIn(monitor_target.scope,['l1PhysIf'])
+                self.assertIn(monitor_target.scope, ['l1PhysIf'])
                 self.assertEqual(monitor_target._parent, policy)
                 self.assertIsInstance(monitor_target.descr, str)
                 self.assertIsInstance(monitor_target.name, str)
                 self.check_collection_policy(monitor_target)
-                
-    def test_monitor_stats(self) :
+
+    def test_monitor_stats(self):
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
-        for policy in policies :
+        for policy in policies:
             monitor_targets = policy.monitor_target
-            for index in monitor_targets :
+            for index in monitor_targets:
                 monitor_stats = monitor_targets[index].monitor_stats
-                for index2 in monitor_stats :
+                for index2 in monitor_stats:
                     monitor_stat = monitor_stats[index2]
-                    self.assertIn(monitor_stat.scope,['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts',
-                        'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts',
-                        'ingrUnkBytes', 'ingrUnkPkts', 'ingrStorm'])
-                    self.assertEqual(monitor_stat._parent, monitor_targets[index])
+                    self.assertIn(monitor_stat.scope,
+                                  ['egrBytes', 'egrPkts', 'egrTotal',
+                                   'egrDropPkts', 'ingrBytes', 'ingrPkts',
+                                   'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes',
+                                   'ingrUnkPkts', 'ingrStorm'])
+                    self.assertEqual(monitor_stat._parent,
+                                     monitor_targets[index])
                     self.assertIsInstance(monitor_stat.descr, str)
                     self.assertIsInstance(monitor_stat.name, str)
                     self.check_collection_policy(monitor_stat)
 
-                
-        
-            
-if __name__ == '__main__':
 
+
+if __name__ == '__main__':
     live = unittest.TestSuite()
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
@@ -2084,7 +2124,6 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestBGP))
     offline.addTest(unittest.makeSuite(TestEndpoint))
     offline.addTest(unittest.makeSuite(TestMonitorPolicy))
-    
 
     full = unittest.TestSuite([live, offline])
 

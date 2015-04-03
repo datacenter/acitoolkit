@@ -164,7 +164,7 @@ class SnapshotScheduler(threading.Thread):
                     time.sleep(seconds)
             else:
                 delta = datetime.datetime.now() - start
-                seconds = delta.seconds + delta.days * (24*60*60)
+                seconds = delta.seconds + delta.days * (24 * 60 * 60)
                 self._next_snapshot_time = start
                 time.sleep(seconds)
 
