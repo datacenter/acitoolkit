@@ -30,8 +30,21 @@ creds.add_argument('-s', '--switch',
                    type=str,
                    default = None,
                    help='Specify a particular switch id, e.g. "102"')
-creds.add_argument('-v', '--verbose',action="store_true",
-                   help='Show detailed information')
+creds.add_argument('-a', '--all',action="store_true",
+                   help='Show all detailed information')
+creds.add_argument('-basic', action="store_true", help='Show basic switch info')
+creds.add_argument('-linecard', action="store_true", help='Show Lincard info')
+creds.add_argument('-supervisor', action="store_true", help='Show Supervisor Card info')
+creds.add_argument('-fantray', action="store_true", help='Show Fantray info')
+creds.add_argument('-powersupply', action="store_true", help='Show Power Supply info')
+creds.add_argument('-arp', action="store_true", help='Show ARP info')
+creds.add_argument('-context', action="store_true", help='Show Context (VRF) info')
+creds.add_argument('-bridgedomain', action="store_true", help='Show Bridge Domain info')
+creds.add_argument('-accessrule', action="store_true", help='Show Access Rule and Filter info')
+creds.add_argument('-endpoint', action="store_true", help='Show End Point info')
+creds.add_argument('-portchannel', action="store_true", help='Show Port Channel and Virtual Port Channel info')
+creds.add_argument('-overlay', action="store_true", help='Show Overlay info')
+
 args = creds.get()
 
 # Login to APIC
@@ -53,7 +66,7 @@ def show_switch_short(switch_id) :
         switches = ACI_PHYS.Node.get(session,'1',switch_id)
     else:
         switches = ACI_PHYS.Node.get(session)
-    for switch in sorted(switches):
+    for switch in sorted(switches, key = lambda x: (x.node)):
         if switch.role != 'controller':
             print template.format(switch.node,
                               switch.name,
@@ -67,12 +80,25 @@ def show_switch_short(switch_id) :
                               switch.firmware,
                               switch.serial)
 
-def show_switch_long(switch_id) :
+def show_switch_long(args) :
     report = Report(session)
-    report.switch(switch_id,'text')
+    report.switch(args,'text')
 
-if args.verbose:
-    show_switch_long(args.switch)
+
+if (args.all or
+    args.basic or 
+    args.linecard or
+    args.supervisor or
+    args.fantray or
+    args.powersupply or
+    args.arp or
+    args.context or 
+    args.bridgedomain or
+    args.accessrule or
+    args.endpoint or
+    args.portchannel or
+    args.overlay):
+    show_switch_long(args)
 else:
     show_switch_short(args.switch)
     
