@@ -518,6 +518,20 @@ class EPG(CommonEPG):
         self.scope = attributes['scope']
         self.name = attributes['name']
 
+    # Infrastructure Domain references
+    def add_infradomain(self, infradomain):
+        """
+        Add Infrastructure Domain to the EPG
+
+        :param infradomain:  Instance of InfraDomain class.  
+        """
+        if not isinstance(infradomain, EPGDomain):
+            raise TypeError('add_infradomain not called with InfraDomain')
+        self.populate_children(True)
+        if self.has_child(infradomain):
+            return
+        self.add_child(infradomain)
+        
     # Bridge Domain references
     def add_bd(self, bridgedomain):
         """
@@ -2259,6 +2273,694 @@ class Endpoint(BaseACIObject):
                                   'fvStCEp', 'fvRsStCEpToPathEp')
 
         return endpoints
+
+class PhysDomain(BaseACIObject):
+    
+    def __init__(self, name, parent):
+        """
+        :param name: String containing the PhysDomain name
+        :param parent: An instance of DomP class representing 
+        """
+        self.dn = None
+        self.lcOwn = None
+        self.childAction = None
+        self.name = name
+        super(PhysDomain, self).__init__(name, parent)
+            
+    def get_json(self):
+        """
+        Returns json representation of the fvTenant object
+
+        :returns: A json dictionary of fvTenant
+        """
+        attr = self._generate_attributes()
+        return super(PhysDomain, self).get_json(self._get_apic_classes()[0],
+                                            attributes=attr)
+    
+    def _generate_attributes(self):
+        """
+        Gets the attributes used in generating the JSON for the object
+        """
+        
+        attributes = dict()
+        if self.name:
+            attributes['name'] = self.name
+        if self.dn:
+            attributes['dn'] = self.dn
+        if self.lcOwn:
+            attributes['lcOwn'] = self.lcOwn
+        if self.childAction:
+            attributes['childAction'] = self.childAction
+       
+        return attributes
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+        resp.append('physDomP')
+        return resp
+    
+    def get_parent(self):
+        """
+        :returns: Parent of this object.
+        """
+        return self._parent
+        
+    @classmethod
+    def get(cls, session):
+
+        """
+        Gets all of the Physical Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of PhysDomain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        resp = []
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            resp.append(obj)
+        return resp
+    
+    @classmethod
+    def get_by_name(cls, session, infra_name):
+
+        """
+        Gets all of the Physical Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of PhysDomain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            if name == infra_name:
+                return obj
+        return None
+    
+class VmmDomain(BaseACIObject):
+    
+    def __init__(self, name, parent):
+        """
+        :param name: String containing the VMM Domain name
+        :param parent: An instance of DomP class 
+        """
+        self.dn = None
+        self.lcOwn = None
+        self.childAction = None
+        self.name = name
+        super(VmmDomain, self).__init__(name, parent)
+            
+    def get_json(self):
+        """
+        Returns json representation of the vmmDomP object
+
+        :returns: A json dictionary of vmmDomP
+        """
+        attr = self._generate_attributes()
+        return super(VmmDomain, self).get_json(self._get_apic_classes()[0],
+                                            attributes=attr)
+    
+    def _generate_attributes(self):
+        """
+        Gets the attributes used in generating the JSON for the object
+        """
+        
+        attributes = dict()
+        if self.name:
+            attributes['name'] = self.name
+        if self.dn:
+            attributes['dn'] = self.dn
+        if self.lcOwn:
+            attributes['lcOwn'] = self.lcOwn
+        if self.childAction:
+            attributes['childAction'] = self.childAction
+       
+        return attributes
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+        resp.append('vmmDomP')
+        return resp
+    
+    def get_parent(self):
+        """
+        :returns: Parent of this object.
+        """
+        return self._parent
+        
+    @classmethod
+    def get(cls, session):
+
+        """
+        Gets all of the VMM Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of VMM Domain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        resp = []
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            resp.append(obj)
+        return resp
+    
+    @classmethod
+    def get_by_name(cls, session, infra_name):
+
+        """
+        Gets all of the VMM Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of VMM Domain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            if name == infra_name:
+                return obj
+        return None
+    
+class L2ExtDomain(BaseACIObject):
+    
+    def __init__(self, name, parent):
+        """
+        :param name: String containing the L2ExtDomain name
+        :param parent: An instance of DomP class representing 
+        """
+        self.dn = None
+        self.lcOwn = None
+        self.childAction = None
+        self.name = name
+        super(L2ExtDomain, self).__init__(name, parent)
+            
+    def get_json(self):
+        """
+        Returns json representation of the l2extDomP object
+
+        :returns: A json dictionary of fvTenant
+        """
+        attr = self._generate_attributes()
+        return super(L2ExtDomain, self).get_json(self._get_apic_classes()[0],
+                                            attributes=attr)
+    
+    def _generate_attributes(self):
+        """
+        Gets the attributes used in generating the JSON for the object
+        """
+        
+        attributes = dict()
+        if self.name:
+            attributes['name'] = self.name
+        if self.dn:
+            attributes['dn'] = self.dn
+        if self.lcOwn:
+            attributes['lcOwn'] = self.lcOwn
+        if self.childAction:
+            attributes['childAction'] = self.childAction
+       
+        return attributes
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+        resp.append('l2extDomP')
+        return resp
+    
+    def get_parent(self):
+        """
+        :returns: Parent of this object.
+        """
+        return self._parent
+        
+    @classmethod
+    def get(cls, session):
+
+        """
+        Gets all of the L2Ext Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of L2ExtDomain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        resp = []
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            resp.append(obj)
+        return resp
+    
+    @classmethod
+    def get_by_name(cls, session, infra_name):
+
+        """
+        Gets all of the Physical Domainss from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of L2ExtDomain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            if name == infra_name:
+                return obj
+        return None
+    
+class L3ExtDomain(BaseACIObject):
+    
+    def __init__(self, name, parent):
+        """
+        :param name: String containing the name of the external routed domain 
+        :param parent: An instance of DomP class
+        """
+        self.dn = None
+        self.lcOwn = None
+        self.childAction = None
+        self.name = name
+        super(L3ExtDomain, self).__init__(name, parent)
+            
+    def get_json(self):
+        """
+        Returns json representation of the fvTenant object
+
+        :returns: A json dictionary of fvTenant
+        """
+        attr = self._generate_attributes()
+        return super(L3ExtDomain, self).get_json(self._get_apic_classes()[0],
+                                            attributes=attr)
+    
+    def _generate_attributes(self):
+        """
+        Gets the attributes used in generating the JSON for the object
+        """
+        
+        attributes = dict()
+        if self.name:
+            attributes['name'] = self.name
+        if self.dn:
+            attributes['dn'] = self.dn
+        if self.lcOwn:
+            attributes['lcOwn'] = self.lcOwn
+        if self.childAction:
+            attributes['childAction'] = self.childAction
+       
+        return attributes
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+        resp.append('l3extDomP')
+        return resp
+    
+    def get_parent(self):
+        """
+        :returns: Parent of this object.
+        """
+        return self._parent
+        
+    @classmethod
+    def get(cls, session):
+
+        """
+        Gets all of the Physical Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of L3Ext Domain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        resp = []
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            resp.append(obj)
+        return resp
+    
+    @classmethod
+    def get_by_name(cls, session, infra_name):
+
+        """
+        Gets all of the L3Ext Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of L3Ext Domain objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['name'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            if name == infra_name:
+                return obj
+        return None
+    
+class EPGDomain(BaseACIObject):
+    
+    def __init__(self, name, parent):
+        """
+        :param name: String containing the name of a source relation to an
+                     infrastructure domain profile associated with application
+                     endpoint groups. The domain profile can be either a VMM
+                     domain profile or a physical domain profile.
+        :param parent: An instance of EPG class representing the EPG\
+                       which contains this Domain Profile.
+        """
+        self.dn = None
+        self.lcOwn = None
+        self.tDn = None
+        self.rType = None
+        self.stateQual = None
+        self.tCl = None
+        self.triggerSt = None
+        self.status = None
+        self.state = None
+        self.forceResolve = None
+        self.instrImedcy = None
+        self.monPolDn = None
+        self.modTs = None
+        self.uid = None
+        self.tType = None
+        self.resImedcy = None
+        self.childAction = None
+        self.domain_name = None
+        self.domain_type = None
+        self.tenant_name = None
+        self.app_name = None
+        self.epg_name = None
+
+        super(EPGDomain, self).__init__(name, parent)
+            
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+        resp.append('fvRsDomAtt')
+        return resp
+        
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return None
+    
+    def get_json(self):
+        """
+        Returns json representation of the fvTenant object
+
+        :returns: A json dictionary of fvTenant
+        """
+        attr = self._generate_attributes()
+        return super(EPGDomain, self).get_json(self._get_apic_classes()[0],
+                                            attributes=attr)
+    
+    def _generate_attributes(self):
+        """
+        Gets the attributes used in generating the JSON for the object
+        """
+        
+        attributes = dict()
+        if self.dn:
+            attributes['dn'] = self.dn
+        #if self.lcOwn:
+        #    attributes['lcOwn'] = self.lcOwn
+        if self.tDn:
+            attributes['tDn'] = self.tDn
+        if self.rType:
+            attributes['rType'] = self.rType
+        if self.stateQual:
+            attributes['stateQual'] = self.stateQual
+        if self.tCl:
+            attributes['tCl'] = self.tCl
+        if self.triggerSt:
+            attributes['triggerSt'] = self.triggerSt
+        if self.status:
+            attributes['status'] = self.status
+        if self.state:
+            attributes['state'] = self.state
+        if self.forceResolve:
+            attributes['forceResolve'] = self.forceResolve
+        if self.instrImedcy:
+            attributes['instrImedcy'] = self.instrImedcy    
+        if self.monPolDn:
+            attributes['monPolDn'] = self.monPolDn
+        if self.modTs:
+            attributes['modTs'] = self.modTs
+        if self.uid:
+            attributes['uid'] = self.uid
+        if self.tType:
+            attributes['tType'] = self.tType
+        if self.resImedcy:
+            attributes['resImedcy'] = self.resImedcy
+        if self.childAction:
+            attributes['childAction'] = self.childAction        
+        
+        return attributes
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+        resp.append('fvRsDomAtt')
+        return resp
+    
+    def get_parent(self):
+        """
+        :returns: Parent of this object.
+        """
+        return self._parent
+    
+    @classmethod
+    def get_by_name(cls, session, infra_name):
+
+        """
+        Gets all of the Physical Domainss from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of Switch Profile objects
+
+        """
+        
+        domain = PhysDomain.get_by_name(session,infra_name)
+        
+        if domain is None:
+            domain = VmmDomain.get_by_name(session,infra_name)
+            if domain is None:
+                domain = L2ExtDomain.get_by_name(session,infra_name)
+                if domain is None:
+                    domain = L3ExtDomain.get_by_name(session,infra_name)
+                    if domain is None:
+                        return None
+        
+        toolkit_class = cls
+        parent = None
+        obj = toolkit_class(domain.name, parent)
+        apic_class = cls._get_apic_classes()[0]
+        
+        obj.tDn = domain.dn
+        obj.lcOwn = domain.lcOwn
+        obj.name = domain.name
+            
+        return obj
+    
+    @classmethod
+    def get(cls, session):
+
+        """
+        Gets all of the Physical Domains from the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: List of Switch Profile objects
+
+        """
+        toolkit_class = cls
+        apic_class = cls._get_apic_classes()[0]
+        parent = None
+        logging.debug('%s.get called', cls.__name__)
+        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        logging.debug('response returned %s', data)
+        resp = []
+        for object_data in data:
+            name = str(object_data[apic_class]['attributes']['uid'])
+            obj = toolkit_class(name, parent)
+            attribute_data = object_data[apic_class]['attributes']
+            obj._populate_from_attributes(attribute_data)
+            obj.domain_name = object_data[apic_class]['attributes']['tDn'].split('/')[1].split('-')[1]
+            obj.domain_type = object_data[apic_class]['attributes']['tDn'].split('/')[1].split('-')[0]
+            obj.tenant_name = object_data[apic_class]['attributes']['dn'].split('/')[1].split('-')[1]
+            obj.app_name = object_data[apic_class]['attributes']['dn'].split('/')[2].split('-')[1]
+            obj.epg_name = object_data[apic_class]['attributes']['dn'].split('/')[3].split('-')[1]
+            obj.dn = object_data[apic_class]['attributes']['dn']
+            obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
+            obj.tDn = object_data[apic_class]['attributes']['tDn']
+            obj.rType = object_data[apic_class]['attributes']['rType']
+            obj.tCI = object_data[apic_class]['attributes']['tCl']
+            obj.triggerSt = object_data[apic_class]['attributes']['triggerSt']
+            obj.status = object_data[apic_class]['attributes']['status']
+            obj.state = object_data[apic_class]['attributes']['state']
+            obj.forceResolve = object_data[apic_class]['attributes']['forceResolve']
+            obj.instrImedcy = object_data[apic_class]['attributes']['instrImedcy']
+            obj.monPolDn = object_data[apic_class]['attributes']['monPolDn']
+            obj.modTs = object_data[apic_class]['attributes']['modTs']
+            obj.uid = object_data[apic_class]['attributes']['uid']
+            obj.tType = object_data[apic_class]['attributes']['tType']
+            obj.resImedcy = object_data[apic_class]['attributes']['resImedcy']
+            obj.childAction = object_data[apic_class]['attributes']['childAction']
+            
+            resp.append(obj)
+        return resp
 
 
 class NetworkPool(BaseACIObject):
