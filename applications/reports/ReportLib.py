@@ -127,7 +127,7 @@ class Report(object):
 
                 self.build_vnid_dictionary(top)
                 if args.all or args.arp:
-                    result[switch.node]['arp'] = self.get_arp(top)
+                    result[switch.node]['arp'] = SwitchArp.get(top)
                 if args.all or args.context:
                     result[switch.node]['context'] = SwitchContext.get(top)
                 if args.all or args.bridgedomain:
@@ -148,61 +148,6 @@ class Report(object):
                     print self.render_text_switch(result[switch.node])
 
         return result
-
-    def get_arp(self, top):
-        """
-        Will retrieve all of the ARP information for the specified
-        switch node
-        """
-
-        arp = {}
-        node_data = top.get_class('arpInst')
-        for data in node_data:
-            if 'arpInst' in data:
-                arp['adminSt'] = data['arpInst']['attributes']['adminSt']
-                if 'children' in data['arpInst']:
-                    arp['domain'] = self.get_arp_domain(data['arpInst']['children'])
-        return arp
-
-    def get_arp_domain(self, data):
-        """
-        Get various attributes from the arp domain
-        """
-        domains = []
-        for domain in data:
-            result = {}
-            result['stats'] = {}
-            result['entry'] = []
-            result['name'] = domain['arpDom']['attributes']['name']
-            result['encap'] = domain['arpDom']['attributes']['encap']
-            if 'children' in domain['arpDom']:
-                for child in domain['arpDom']['children']:
-                    if 'arpDomStatsAdj' in child:
-                        result['stats'].update(child['arpDomStatsAdj']['attributes'])
-                    if 'arpDomStatsRx' in child:
-                        result['stats'].update(child['arpDomStatsRx']['attributes'])
-                    if 'arpDomStatsTx' in child:
-                        result['stats'].update(child['arpDomStatsTx']['attributes'])
-
-                    if 'arpDb' in child:
-                        if 'children' in child['arpDb']:
-                            for arp_adj_ep in child['arpDb']['children']:
-                                entry = self.get_arp_entry(arp_adj_ep)
-                                result['entry'].append(entry)
-            domains.append(result)
-        return domains
-
-    def get_arp_entry(self, arp_adj_ep):
-        """
-        parses arpAdjEp
-        """
-        entry = {}
-        entry['interface_id'] = arp_adj_ep['arpAdjEp']['attributes']['ifId']
-        entry['ip'] = arp_adj_ep['arpAdjEp']['attributes']['ip']
-        entry['mac'] = arp_adj_ep['arpAdjEp']['attributes']['mac']
-        entry['physical_interface'] = arp_adj_ep['arpAdjEp']['attributes']['physIfId']
-        entry['oper_st'] = arp_adj_ep['arpAdjEp']['attributes']['operSt']
-        return entry
 
     def time_since(self, timestamp):
         """
@@ -259,8 +204,8 @@ class Report(object):
             text_string += SwitchFilter.gen_report(switch['access_filter'],
                                                    super_title) + '\n'
         if 'arp' in switch:
-            text_string += self.switch_arp(switch['arp'],
-                                           super_title) + '\n'
+            text_string += SwitchArp.gen_report(switch['arp'],
+                                                super_title) + '\n'
         if 'end_point' in switch:
             text_string += SwitchEp.gen_report(switch['end_point'],
                                                super_title) + '\n'
@@ -434,55 +379,6 @@ class Report(object):
         text_string += Table.row_column(table, super_title+'Supervisors')
         return text_string
 
-    def switch_arp(self, arp, super_title=None):
-        """
-        Returns arp information in a displayable format.
-        """
-        text_string = ''
-
-        table_data = [['Context', 'Add', 'Delete', 'Timeout.',
-                       'Resolved', 'Incomplete', 'Total', 'Rx Pkts',
-                       'Rx Drop', 'Tx Pkts', 'Tx Drop', 'Tx Req',
-                       'Tx Grat Req', 'Tx Resp']]
-        for domain in arp['domain']:
-            table_data.append([
-                domain['name'],
-                str(domain['stats'].get('adjAdd')),
-                str(domain['stats'].get('adjDel')),
-                str(domain['stats'].get('adjTimeout')),
-                str(domain['stats'].get('resolved')),
-                str(domain['stats'].get('incomplete')),
-                str(domain['stats'].get('total')),
-                str(domain['stats'].get('pktRcvd')),
-                str(domain['stats'].get('pktRcvdDrp')),
-                str(domain['stats'].get('pktSent')),
-                str(domain['stats'].get('pktSentDrop')),
-                str(domain['stats'].get('pktSentReq')),
-                str(domain['stats'].get('pktSentGratReq')),
-                str(domain['stats'].get('pktSentRsp'))
-                ])
-
-        table_data[1:] = sorted(table_data[1:])
-        text_string += Table.row_column(table_data, super_title+'ARP Stats')
-
-        table_data = [['Context', 'MAC Address', 'IP Address',
-                       'Physical I/F', 'Interface ID', 'Oper Status']]
-
-        for domain in arp['domain']:
-            for entry in domain['entry']:
-                table_data.append([
-                    domain['name'],
-                    entry.get('mac'),
-                    entry.get('ip'),
-                    entry.get('physical_interface'),
-                    entry.get('interface_id'),
-                    entry.get('oper_st')
-                    ])
-        text_string += '\n'
-        text_string += Table.row_column(table_data, super_title+'ARP Entries')
-
-        return text_string
-
     def build_vnid_dictionary(self, top):
         """
         Will build a dictionary that is indexed by
@@ -524,6 +420,125 @@ class Report(object):
 
             record = {'name':name, 'type':'bd', 'context':context}
             top.vnid_dict[vnid] = record
+
+class SwitchArp(object):
+    """
+    This class is for the ARP state on a switch.
+    """
+    def __init__(self):
+        """
+        Initialize the ARP object.
+        """
+        self.attr = {}
+        self.domain = []
+
+    @classmethod
+    def get(cls, top):
+        """
+        Will retrieve all of the ARP information for the specified
+        switch node
+        """
+
+        result = []
+        node_data = top.get_class('arpInst')
+        for data in node_data:
+            if 'arpInst' in data:
+                arp = SwitchArp()
+                arp.attr['adminSt'] = data['arpInst']['attributes']['adminSt']
+                if 'children' in data['arpInst']:
+                    arp.get_arp_domain(data['arpInst']['children'])
+                result.append(arp)
+        return result
+
+
+    def get_arp_domain(self,data):
+        """
+        Get various attributes from the arp domain
+        """
+        for domain in data:
+            result = {}
+            result['stats'] = {}
+            result['entry'] = []
+            result['name'] = domain['arpDom']['attributes']['name']
+            result['encap'] = domain['arpDom']['attributes']['encap']
+            if 'children' in domain['arpDom']:
+                for child in domain['arpDom']['children']:
+                    if 'arpDomStatsAdj' in child:
+                        result['stats'].update(child['arpDomStatsAdj']['attributes'])
+                    if 'arpDomStatsRx' in child:
+                        result['stats'].update(child['arpDomStatsRx']['attributes'])
+                    if 'arpDomStatsTx' in child:
+                        result['stats'].update(child['arpDomStatsTx']['attributes'])
+
+                    if 'arpDb' in child:
+                        if 'children' in child['arpDb']:
+                            for arp_adj_ep in child['arpDb']['children']:
+                                entry = self.get_arp_entry(arp_adj_ep)
+                                result['entry'].append(entry)
+            self.domain.append(result)
+        
+    def get_arp_entry(self, arp_adj_ep):
+        """
+        parses arpAdjEp
+        """
+        entry = {}
+        entry['interface_id'] = arp_adj_ep['arpAdjEp']['attributes']['ifId']
+        entry['ip'] = arp_adj_ep['arpAdjEp']['attributes']['ip']
+        entry['mac'] = arp_adj_ep['arpAdjEp']['attributes']['mac']
+        entry['physical_interface'] = arp_adj_ep['arpAdjEp']['attributes']['physIfId']
+        entry['oper_st'] = arp_adj_ep['arpAdjEp']['attributes']['operSt']
+        return entry
+
+    @staticmethod
+    def gen_report(arps, super_title=None):
+        """
+        Returns arp information in a displayable format.
+        """
+        text_string = ''
+
+        table_data = [['Context', 'Add', 'Delete', 'Timeout.',
+                       'Resolved', 'Incomplete', 'Total', 'Rx Pkts',
+                       'Rx Drop', 'Tx Pkts', 'Tx Drop', 'Tx Req',
+                       'Tx Grat Req', 'Tx Resp']]
+        for arp in arps:
+            for domain in arp.domain:
+                table_data.append([
+                    domain['name'],
+                    str(domain['stats'].get('adjAdd')),
+                    str(domain['stats'].get('adjDel')),
+                    str(domain['stats'].get('adjTimeout')),
+                    str(domain['stats'].get('resolved')),
+                    str(domain['stats'].get('incomplete')),
+                    str(domain['stats'].get('total')),
+                    str(domain['stats'].get('pktRcvd')),
+                    str(domain['stats'].get('pktRcvdDrp')),
+                    str(domain['stats'].get('pktSent')),
+                    str(domain['stats'].get('pktSentDrop')),
+                    str(domain['stats'].get('pktSentReq')),
+                    str(domain['stats'].get('pktSentGratReq')),
+                    str(domain['stats'].get('pktSentRsp'))
+                    ])
+
+            table_data[1:] = sorted(table_data[1:])
+            text_string += Table.row_column(table_data, super_title+'ARP Stats')
+    
+            table_data = [['Context', 'MAC Address', 'IP Address',
+                           'Physical I/F', 'Interface ID', 'Oper Status']]
+    
+            for domain in arp.domain:
+                for entry in domain['entry']:
+                    table_data.append([
+                        domain['name'],
+                        entry.get('mac'),
+                        entry.get('ip'),
+                        entry.get('physical_interface'),
+                        entry.get('interface_id'),
+                        entry.get('oper_st')
+                        ])
+            text_string += '\n'
+            text_string += Table.row_column(table_data, super_title+'ARP Entries')
+
+        return text_string
 
 class SwitchVpc(object):
     """
