@@ -30,7 +30,7 @@ creds.add_argument('-s', '--switch',
                    type=str,
                    default = None,
                    help='Specify a particular switch id, e.g. "102"')
-creds.add_argument('-a', '--all',action="store_true",
+creds.add_argument('-all',action="store_true",
                    help='Show all detailed information')
 creds.add_argument('-basic', action="store_true", help='Show basic switch info')
 creds.add_argument('-linecard', action="store_true", help='Show Lincard info')
