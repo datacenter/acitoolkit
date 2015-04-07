@@ -1568,14 +1568,21 @@ class SwitchEp(object):
         Will create table of switch end point information
         """
         text_string = ''
-
         table = []
         table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
                       'Interface', 'Flags'])
-        for ept in sorted(end_points, key=lambda x: (x.attr['context'],
+        def flt_local_external(end_point):
+            if 'loopback' not in str(end_point.attr.get('interface_id')) and \
+               'svi' not in str(end_point.attr.get('interface_id')) and \
+               'local' in str(end_point.attr.get('flags')):
+                return True
+            else:
+                return False
+        
+        for ept in filter(flt_local_external,sorted(end_points, key=lambda x: (x.attr['context'],
                                                      x.attr['bridge_domain'],
                                                      x.attr['mac'],
-                                                     x.attr['ip'])):
+                                                     x.attr['ip']))):
             table.append([
                 str(ept.attr.get('context')),
                 str(ept.attr.get('bridge_domain')),
@@ -1584,7 +1591,103 @@ class SwitchEp(object):
                 str(ept.attr.get('interface_id')),
                 str(ept.attr.get('flags'))])
 
-        text_string += Table.row_column(table, super_title+'End Points')
+        text_string += Table.row_column(table, super_title+'Local External End Points') +'\n'
+        table = []
+        table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+                      'Interface', 'Flags'])
+        def flt_remote(end_point):
+            if 'loopback' not in str(end_point.attr.get('interface_id')) and \
+               'svi' not in str(end_point.attr.get('interface_id')) and \
+               'peer' in str(end_point.attr.get('flags')):
+                print str(end_point.attr.get('flags'))
+                return True
+            else:
+                return False
+        
+        for ept in filter(flt_remote,sorted(end_points, key=lambda x: (x.attr['context'],
+                                                     x.attr['bridge_domain'],
+                                                     x.attr['mac'],
+                                                     x.attr['ip']))):
+            table.append([
+                str(ept.attr.get('context')),
+                str(ept.attr.get('bridge_domain')),
+                str(ept.attr.get('mac')),
+                str(ept.attr.get('ip')),
+                str(ept.attr.get('interface_id')),
+                str(ept.attr.get('flags'))])
+
+        text_string += Table.row_column(table, super_title+'Remote (vpc-peer) External End Points') +'\n'
+        
+        table = []
+        table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+                      'Interface', 'Flags'])
+        
+        def flt_svi(end_point):
+            if 'svi' in str(end_point.attr.get('interface_id')) :
+                return True
+            else:
+                return False
+        for ept in filter(flt_svi,sorted(end_points, key=lambda x: (x.attr['context'],
+                                                     x.attr['bridge_domain'],
+                                                     x.attr['mac'],
+                                                     x.attr['ip']))):
+            table.append([
+                str(ept.attr.get('context')),
+                str(ept.attr.get('bridge_domain')),
+                str(ept.attr.get('mac')),
+                str(ept.attr.get('ip')),
+                str(ept.attr.get('interface_id')),
+                str(ept.attr.get('flags'))])
+
+        text_string += Table.row_column(table, super_title+'SVI End Points (default gateway endpoint)') +'\n'
+        table = []
+        
+        def flt_lb(end_point):
+            if 'loopback' in str(end_point.attr.get('interface_id')) :
+                return True
+            else:
+                return False
+        table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+                      'Interface', 'Flags'])
+        for ept in filter(flt_lb,sorted(end_points, key=lambda x: (x.attr['context'],
+                                                     x.attr['bridge_domain'],
+                                                     x.attr['mac'],
+                                                     x.attr['ip']))):
+            table.append([
+                str(ept.attr.get('context')),
+                str(ept.attr.get('bridge_domain')),
+                str(ept.attr.get('mac')),
+                str(ept.attr.get('ip')),
+                str(ept.attr.get('interface_id')),
+                str(ept.attr.get('flags'))])
+
+        text_string += Table.row_column(table, super_title+'Loopback End Points') + '\n'
+        table = []
+        table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+                      'Interface', 'Flags'])
+        def flt_other(end_point):
+            if 'loopback' not in str(end_point.attr.get('interface_id')) and \
+               'svi' not in str(end_point.attr.get('interface_id')) and \
+               'local' not in str(end_point.attr.get('flags')) and \
+               'peer' not in str(end_point.attr.get('flags')):
+                print str(end_point.attr.get('flags'))
+                return True
+            else:
+                return False
+        
+        for ept in filter(flt_other,sorted(end_points, key=lambda x: (x.attr['context'],
+                                                     x.attr['bridge_domain'],
+                                                     x.attr['mac'],
+                                                     x.attr['ip']))):
+            table.append([
+                str(ept.attr.get('context')),
+                str(ept.attr.get('bridge_domain')),
+                str(ept.attr.get('mac')),
+                str(ept.attr.get('ip')),
+                str(ept.attr.get('interface_id')),
+                str(ept.attr.get('flags'))])
+
+        text_string += Table.row_column(table, super_title+'Other End Points') +'\n'
         return text_string
 
     def __eq__(self, other):
