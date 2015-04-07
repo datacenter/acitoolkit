@@ -554,7 +554,7 @@ class TestBridgeDomain(unittest.TestCase):
 
     def test_add_context_twice(self):
         """
-        Test adding the same context twice to the same bd
+        Test adding the same context twice
         """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
@@ -565,9 +565,6 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd.get_context() is None)
 
     def test_remove_context(self):
-        """
-        Test removing the context
-        """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
@@ -1479,7 +1476,10 @@ class TestLiveSubscription(TestLiveAPIC):
 class TestLiveInterface(TestLiveAPIC):
     def get_valid_interface(self, session):
         interfaces = Interface.get(session)
-        return interfaces[0]
+        if len(interfaces):
+            return interfaces[0]
+        else:
+            return None
 
     def get_spine(self):
         session = self.login_to_apic()
@@ -1503,6 +1503,7 @@ class TestLiveInterface(TestLiveAPIC):
     def test_get(self):
         session = self.login_to_apic()
         interface = self.get_valid_interface(session)
+        assert interface is not None
         pod = interface.pod
         node = interface.node
         slot = interface.module
@@ -1566,26 +1567,19 @@ class TestLiveEPG(TestLiveAPIC):
                     self.assertTrue(isinstance(epg, EPG))
 
 
-class TestLiveEndpoint(unittest.TestCase):
+class TestLiveEndpoint(TestLiveAPIC):
     def test_get_bad_session(self):
         bad_session = 'BAD SESSION'
         self.assertRaises(TypeError, Endpoint.get, bad_session)
 
     def test_get(self):
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
-
+        session = self.login_to_apic()
         endpoints = Endpoint.get(session)
 
 
-class TestApic(unittest.TestCase):
+class TestApic(TestLiveAPIC):
     def base_test_setup(self):
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self.login_to_apic()
 
         # Create the Tenant
         tenant = Tenant('aci-toolkit-test')
@@ -1618,7 +1612,11 @@ class TestApic(unittest.TestCase):
         url = ('/api/mo/uni/tn-%s.json?query-target=subtree&'
                'target-subtree-class=fvRsPathAtt' % tenant.name)
         attachments = session.get(url)
-        num_attachments_before = int(attachments.json()['totalCount'])
+        attachment_data = attachments.json()
+        if 'totalCount' in attachment_data:
+            num_attachments_before = int(attachment_data['totalCount'])
+        else:
+            num_attachments_before = 0
 
         # Attach the EPG to an Interface
         intf = Interface('eth', '1', '101', '1', '69')
@@ -1630,7 +1628,11 @@ class TestApic(unittest.TestCase):
 
         # Verify that the number of attachments increased
         attachments = session.get(url)
-        num_attachments_after = int(attachments.json()['totalCount'])
+        attachment_data = attachments.json()
+        if 'totalCount' in attachment_data:
+            num_attachments_after = int(attachments.json()['totalCount'])
+        else:
+            num_attachments_after = 0
         self.assertTrue(num_attachments_after > num_attachments_before,
                         'EPG was not added to the interface')
 

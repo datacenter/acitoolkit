@@ -527,10 +527,10 @@ class EPG(CommonEPG):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.match_type = attributes['matchT']
-        self.class_id = attributes['pcTag']
-        self.scope = attributes['scope']
-        self.name = attributes['name']
+        self.match_type = attributes.get('matchT')
+        self.class_id = attributes.get('pcTag')
+        self.scope = attributes.get('scope')
+        self.name = attributes.get('name')
 
     # Infrastructure Domain references
     def add_infradomain(self, infradomain):
@@ -1413,10 +1413,10 @@ class Subnet(BaseACIObject):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.set_addr(attributes['ip'])
+        self.set_addr(attributes.get('ip'))
 
     def _extract_attributes(self, attributes):
-        self.set_addr(str(attributes['ip']))
+        self.set_addr(str(attributes.get('ip')))
 
     @classmethod
     def get(cls, session, bridgedomain, tenant):
@@ -1494,15 +1494,15 @@ class Context(BaseACIObject):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.descr = attributes['descr']
-        self.known_mcast = attributes['knwMcastAct']
-        self.modified_time = attributes['modTs']
-        self.name = attributes['name']
-        self.class_id = attributes['pcTag']
-        self.scope = attributes['scope']
-        self.vnid = attributes['seg']
+        self.descr = attributes.get('descr')
+        self.known_mcast = attributes.get('knwMcastAct')
+        self.modified_time = attributes.get('modTs')
+        self.name = attributes.get('name')
+        self.class_id = attributes.get('pcTag')
+        self.scope = attributes.get('scope')
+        self.vnid = attributes.get('seg')
         self._extract_attributes(attributes)
-        self.tenant = self._get_tenant_from_dn(attributes['dn'])
+        self.tenant = self._get_tenant_from_dn(attributes.get('dn'))
         
     def _extract_attributes(self, attributes):
         if attributes['pcEnfPref'] == 'unenforced':
@@ -1876,7 +1876,7 @@ class FilterEntry(BaseACIObject):
     @classmethod
     def create_from_apic_json(cls, data, parent):
         attributes = data['vzEntry']['attributes']
-        entry = cls(name=str(attributes['name']),
+        entry = cls(name=str(attributes.get('name')),
                     parent=parent)
         entry._extract_attributes(attributes)
         return entry
@@ -2186,9 +2186,9 @@ class Endpoint(BaseACIObject):
     def _populate_from_attributes(self, attributes):
         if 'mac' not in attributes:
             return
-        self.mac = str(attributes['mac'])
-        self.ip = str(attributes['ip'])
-        self.encap = str(attributes['encap'])
+        self.mac = str(attributes.get('mac'))
+        self.ip = str(attributes.get('ip'))
+        self.encap = str(attributes.get('encap'))
         
     @classmethod
     def get_event(cls, session):
@@ -2201,16 +2201,16 @@ class Endpoint(BaseACIObject):
                 if class_name in event['imdata'][0]:
                     break
             attributes = event['imdata'][0][class_name]['attributes']
-            status = str(attributes['status'])
-            dn = str(attributes['dn'])
+            status = str(attributes.get('status'))
+            dn = str(attributes.get('dn'))
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
             if status == 'created':
-                name = str(attributes['mac'])
+                name = str(attributes.get('mac'))
             else:
                 name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)
             obj._populate_from_attributes(attributes)
-            obj.timestamp = str(attributes['modTs'])
+            obj.timestamp = str(attributes.get('modTs'))
             if obj.mac is None:
                 obj.mac = name
             if status == 'deleted':
