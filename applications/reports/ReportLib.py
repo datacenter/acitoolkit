@@ -1599,7 +1599,6 @@ class SwitchEp(object):
             if 'loopback' not in str(end_point.attr.get('interface_id')) and \
                'svi' not in str(end_point.attr.get('interface_id')) and \
                'peer' in str(end_point.attr.get('flags')):
-                print str(end_point.attr.get('flags'))
                 return True
             else:
                 return False
@@ -1670,7 +1669,6 @@ class SwitchEp(object):
                'svi' not in str(end_point.attr.get('interface_id')) and \
                'local' not in str(end_point.attr.get('flags')) and \
                'peer' not in str(end_point.attr.get('flags')):
-                print str(end_point.attr.get('flags'))
                 return True
             else:
                 return False
