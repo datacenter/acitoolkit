@@ -68,8 +68,8 @@ if not resp.ok:
 def show_switch_short(switch_id) :
     
     # setup template and display header information
-    template = "{0:^7} | {1:^12} | {2:^5} | {3:^15} | {4:^5} | {5:^16} | {6:^6} | {7:^20} | {8:^20} | {9:^8} | {10:^11}"
-    line_template = "{0:-^7}-+-{0:-^12}-+-{0:-^5}-+-{0:-^15}-+-{0:-^5}-+-{0:-^16}-+-{0:-^6}-+-{0:-^20}-+-{0:-^20}-+-{0:-^8}-+-{0:-^11}"
+    template = "{0:^7} | {1:^14} | {2:^11} | {3:^15} | {4:^5} | {5:^16} | {6:^6} | {7:^20} | {8:^20} | {9:^8} | {10:^11}"
+    line_template = "{0:-^7}-+-{0:-^14}-+-{0:-^11}-+-{0:-^15}-+-{0:-^5}-+-{0:-^16}-+-{0:-^6}-+-{0:-^20}-+-{0:-^20}-+-{0:-^8}-+-{0:-^11}"
     print template.format("Node ID", "Name","Role","Model","Ports","State","Health","In-Band Mgmt IP", "Out-of-band Mgmt IP", "Firmware", "Serial")
     print line_template.format("")
     
