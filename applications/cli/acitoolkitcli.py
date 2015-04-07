@@ -1,29 +1,29 @@
 #!/usr/bin/env python
-################################################################################
-#           _    ____ ___ _____           _ _    _ _    ____ _     ___         #
-#          / \  / ___|_ _|_   _|__   ___ | | | _(_) |_ / ___| |   |_ _|        #
-#         / _ \| |    | |  | |/ _ \ / _ \| | |/ / | __| |   | |    | |         #
-#        / ___ \ |___ | |  | | (_) | (_) | |   <| | |_| |___| |___ | |         #
-#       /_/   \_\____|___| |_|\___/ \___/|_|_|\_\_|\__|\____|_____|___|        #
-#                                                                              #
-################################################################################
-#                                                                              #
-# Copyright (c) 2015 Cisco Systems                                             #
-# All Rights Reserved.                                                         #
-#                                                                              #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
-#    not use this file except in compliance with the License. You may obtain   #
-#    a copy of the License at                                                  #
-#                                                                              #
-#         http://www.apache.org/licenses/LICENSE-2.0                           #
-#                                                                              #
-#    Unless required by applicable law or agreed to in writing, software       #
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
-#    License for the specific language governing permissions and limitations   #
-#    under the License.                                                        #
-#                                                                              #
-################################################################################
+###############################################################################
+#           _    ____ ___ _____           _ _    _ _    ____ _     ___        #
+#          / \  / ___|_ _|_   _|__   ___ | | | _(_) |_ / ___| |   |_ _|       #
+#         / _ \| |    | |  | |/ _ \ / _ \| | |/ / | __| |   | |    | |        #
+#        / ___ \ |___ | |  | | (_) | (_) | |   <| | |_| |___| |___ | |        #
+#       /_/   \_\____|___| |_|\___/ \___/|_|_|\_\_|\__|\____|_____|___|       #
+#                                                                             #
+###############################################################################
+#                                                                             #
+# Copyright (c) 2015 Cisco Systems                                            #
+# All Rights Reserved.                                                        #
+#                                                                             #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may  #
+#    not use this file except in compliance with the License. You may obtain  #
+#    a copy of the License at                                                 #
+#                                                                             #
+#         http://www.apache.org/licenses/LICENSE-2.0                          #
+#                                                                             #
+#    Unless required by applicable law or agreed to in writing, software      #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT#
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the #
+#    License for the specific language governing permissions and limitations  #
+#    under the License.                                                       #
+#                                                                             #
+###############################################################################
 
 """This module implements a CLI similar to Cisco IOS and NXOS
    for use with the ACI Toolkit.
@@ -203,75 +203,74 @@ class SubMode(Cmd):
                         pprint.pprint(epg_dict)
         elif words[0] == 'infradomains':
             infradomains = PhysDomain.get(self.apic)
-            
+
             output = []
             association = ''
             if len(infradomains) > 0:
-                print '---------------'
-                print 'Physical Domain'
-                print '---------------'
-            
+                print ('---------------')
+                print ('Physical Domain')
+                print ('---------------')
+
             for domain in infradomains:
                 print domain.name
-                
+
             if len(infradomains) > 0:
                 print '\n'
-            
+
             infradomains = []
             infradomains = VmmDomain.get(self.apic)
-              
+
             output = []
             association = ''
             if len(infradomains) > 0:
                 print ('----------')
                 print ('VMM Domain')
                 print ('----------')
-            
+
             for domain in infradomains:
                 print (domain.name)
-            
+
             if len(infradomains) > 0:
                 print ('\n')
-            
-            infradomains = [] 
+
             infradomains = L2ExtDomain.get(self.apic)
-              
+
             output = []
             association = ''
             if len(infradomains) > 0:
                 print ('------------------')
                 print ('L2 External Domain')
                 print ('------------------')
-            
+
             for domain in infradomains:
                 print (domain.name)
-            
+
             if len(infradomains) > 0:
                 print ('\n')
-            
-            infradomains = []
+
             infradomains = L3ExtDomain.get(self.apic)
-              
+
             output = []
             association = ''
             if len(infradomains) > 0:
                 print ('------------------')
                 print ('L3 External Domain')
                 print ('------------------')
-            
+
             for domain in infradomains:
                 print (domain.name)
-            
+
             if len(infradomains) > 0:
                 print ('\n')
-            
+
             infradomains = EPGDomain.get(self.apic)
-                 
+
             for domain in infradomains:
                 association = domain.tenant_name + ':' + domain.app_name + ':' + domain.epg_name
-                output.append((domain.domain_name,domain.domain_type,association))
-            
-            if len(infradomains) > 0:        
+                output.append((domain.domain_name, domain.domain_type,
+                               association))
+
+            if len(infradomains) > 0:
                 template = '{0:20} {1:11} {2:26}'
                 print (template.format('Infra Domain Profile', 'Domain Type', 'TENANT:APP:EPG Association'))
                 print (template.format('--------------------', '-----------', '--------------------------'))
@@ -286,7 +285,8 @@ class SubMode(Cmd):
 
     def complete_show(self, text, line, begidx, endidx):
         show_args = ['bridgedomain', 'context', 'contract', 'app',
-                     'port-channel', 'epg', 'interface', 'tenant']
+                     'port-channel', 'epg', 'infradomains', 'interface',
+                     'tenant']
         completions = [a for a in show_args if a.startswith(line[5:])]
         return completions
 
@@ -945,27 +945,28 @@ class EPGConfigSubMode(SubMode):
 
     def do_infradomain(self, args):
         " Infrastructure Domain\infradomain <infra-domain-name> "
-        
+
         if len(args.split()) != 1:
             sys.stdout.write('%% infradomain requires 1 name\n')
             return
         if self.negative:
             pass
         else:
-            epgdomain = EPGDomain.get_by_name(self.apic,args.strip())
-            
+            epgdomain = EPGDomain.get_by_name(self.apic, args.strip())
+
             if epgdomain is None:
                 sys.stdout.write('%% infradomain does not exist. You need to create one first! "show infradomains"\n')
-                return 
-        
+                return
+
             self.epg.add_infradomain(epgdomain)
             resp = self.apic.push_to_apic(self.tenant.get_url(),
                                           self.tenant.get_json())
-            
+
             if not resp.ok:
                 error_message(resp)
             else:
                 print 'Assigned Infrastructure Domain to EPG.'
+
 
 class AppProfileConfigSubMode(SubMode):
 
@@ -1095,7 +1096,7 @@ class ContractConfigSubMode(SubMode):
                 return
             elif len(args) <= 1:
                 print 'Invalid argument. Default value', arp_arg, 'is applied.'
-            else :
+            else:
                 if args[1] in ['request', '1', 1]:
                     arp_arg = 1
                 elif args[1] in ['reply', '2', 2]:
@@ -1374,6 +1375,12 @@ class MockStdin:
             sys.stdin = self.original_stdin
         return line
 
+
+def main(apic):
+    cmdLine = CmdLine()
+    cmdLine.apic = apic
+    cmdLine.cmdloop()
+
 # *** MAIN LOOP ***
 if __name__ == '__main__':
     LOGIN = ''
@@ -1436,6 +1443,7 @@ if __name__ == '__main__':
     if 'TESTFILE' in locals():
         sys.stdin = MockStdin(TESTFILE, sys.stdin)
 
-    cmdLine = CmdLine()
-    cmdLine.apic = apic
-    cmdLine.cmdloop()
+    try:
+        main(apic)
+    except KeyboardInterrupt:
+        pass

@@ -5,6 +5,7 @@ show epg
 show interface
 show context
 show invalid
+show infradomains
 help show
 ?
 config t
