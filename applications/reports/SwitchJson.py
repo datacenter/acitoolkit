@@ -39,13 +39,21 @@ class SwitchJson(object):
     def __init__(self, session, node_id):
         self.session = session
         self.node_id = node_id
+        
+        self.by_class = {}
+        self.by_dn = {}
+        
         pod_id = '1'
         self.top_dn = 'topology/pod-'+pod_id+'/node-'+self.node_id+'/sys'
         query_url = ('/api/mo/'+self.top_dn+'.json?'
                      'query-target=self&rsp-subtree=full')
 
         ret = session.get(query_url)
-        self.json = ret.json()['imdata'][0]
+        data = ret.json()['imdata']
+        if data:
+            self.json = ret.json()['imdata'][0]
+        else:
+            self.json = None
         self._index_objects()
 
     def _index_objects(self):
@@ -69,31 +77,32 @@ class SwitchJson(object):
         """
         Will index the json by dn and by class for quick reference
         """
-
-        for apic_class in branch:
-            self.by_dn[branch[apic_class]['attributes']['dn']] = {apic_class:branch[apic_class]}
-
-            if not apic_class in self.by_class:
-                self.by_class[apic_class] = []
-
-            self.by_class[apic_class].append({apic_class:branch[apic_class]})
-
-            if 'children' in branch[apic_class]:
-                for child in branch[apic_class]['children']:
-                    self._index_by_dn_class(child)
+        if branch:
+            for apic_class in branch:
+                self.by_dn[branch[apic_class]['attributes']['dn']] = {apic_class:branch[apic_class]}
+    
+                if not apic_class in self.by_class:
+                    self.by_class[apic_class] = []
+    
+                self.by_class[apic_class].append({apic_class:branch[apic_class]})
+    
+                if 'children' in branch[apic_class]:
+                    for child in branch[apic_class]['children']:
+                        self._index_by_dn_class(child)
 
     def _index_recurse_dn(self, branch, dn_root):
         """
         recursive part of _index_objects
         """
-        for apic_class in branch:
-            if not 'dn' in branch[apic_class]['attributes']:
-                branch[apic_class]['attributes']['dn'] = dn_root+ \
-                    '/'+branch[apic_class]['attributes']['rn']
-            new_root_dn = branch[apic_class]['attributes']['dn']
-            if 'children' in branch[apic_class]:
-                for child in branch[apic_class]['children']:
-                    self._index_recurse_dn(child, new_root_dn)
+        if branch:
+            for apic_class in branch:
+                if not 'dn' in branch[apic_class]['attributes']:
+                    branch[apic_class]['attributes']['dn'] = dn_root+ \
+                        '/'+branch[apic_class]['attributes']['rn']
+                new_root_dn = branch[apic_class]['attributes']['dn']
+                if 'children' in branch[apic_class]:
+                    for child in branch[apic_class]['children']:
+                        self._index_recurse_dn(child, new_root_dn)
 
 
     def get_class(self, class_name):
@@ -115,11 +124,12 @@ class SwitchJson(object):
         result = []
 
         classes = self.get_class(class_name)
-        for class_record in classes:
-            for class_id in class_record:
-                obj_dn = class_record[class_id]['attributes']['dn']
-                if obj_dn[0:len(dname)] == dname:
-                    result.append(class_record)
+        if classes:
+            for class_record in classes:
+                for class_id in class_record:
+                    obj_dn = class_record[class_id]['attributes']['dn']
+                    if obj_dn[0:len(dname)] == dname:
+                        result.append(class_record)
         return result
 
 
