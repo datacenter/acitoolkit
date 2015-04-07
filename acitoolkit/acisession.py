@@ -44,7 +44,7 @@ import ssl
 try:
     # Python2 naming
     from Queue import Queue
-except:
+except ImportError:
     # Python3 naming
     from queue import Queue
 
