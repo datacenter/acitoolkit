@@ -711,6 +711,7 @@ class Fan(BaseACIPhysModule):
         self.speed = None
         self.id = id
         self._parent = parent
+        self._children = []
 
     @classmethod
     def get(cls, session, parent=None):
@@ -774,7 +775,6 @@ class Fan(BaseACIPhysModule):
                     fan._parent = parent
                     parent.add_child(fan)
                 fans.append(fan)
-
         return fans
 
     def __eq__(self, other):
@@ -1132,7 +1132,6 @@ class Node(BaseACIPhysObject):
                 node_match = True
 
             if node_match and pod_match:
-
                 if node.role == 'leaf':
                     node._add_vpc_info()
                 node.get_health()
@@ -1198,6 +1197,7 @@ class Node(BaseACIPhysObject):
 
         mo_query_url = '/api/mo/' + partial_dn + '.json?query-target=self'
         ret = self._session.get(mo_query_url)
+
         data = ret.json()['imdata']
         vpc_admin_state = 'disabled'
         if data:
@@ -1225,9 +1225,9 @@ class Node(BaseACIPhysObject):
                     result['vtep_ip'] = vpcDom['virtualIp']
                     result['vtep_mac'] = vpcDom['vpcMAC']
                     result['oper_role'] = vpcDom['operRole']
+
         else:
             result['oper_state'] = 'inactive'
-
         self.vpc_info = result
 
 
@@ -2349,7 +2349,6 @@ class Interface(BaseInterface):
 
         :returns: list of Interface instances
         """
-
         if port:
             if not isinstance(port, str):
                 raise TypeError('When specifying a specific port, the port'
@@ -2367,7 +2366,8 @@ class Interface(BaseInterface):
         else:
             if pod_parent:
                 if not isinstance(pod_parent, Linecard):
-                    raise TypeError('Interface parent must be a linecard object')
+                    raise TypeError(('Interface parent must be a linecard'
+                                     'object'))
 
             parent = pod_parent
 
@@ -2427,7 +2427,8 @@ class Interface(BaseInterface):
             attributes['module'] = module
             attributes['port'] = port
             attributes['operSt'] = ethDataDict[dist_name + '/phys']['operSt']
-            interface_obj = Interface(interface_type, pod, node, module, port, parent=None, session=session,
+            interface_obj = Interface(interface_type, pod, node, module, port,
+                                      parent=None, session=session,
                                       attributes=attributes)
             interface_obj.porttype = porttype
             interface_obj.adminstatus = adminstatus

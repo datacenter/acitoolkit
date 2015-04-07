@@ -1,32 +1,32 @@
-################################################################################
-#                                  _    ____ ___                               #
-#                                 / \  / ___|_ _|                              #
-#                                / _ \| |    | |                               #
-#                               / ___ \ |___ | |                               #
-#                         _____/_/   \_\____|___|_ _                           #
-#                        |_   _|__   ___ | | | _(_) |_                         #
-#                          | |/ _ \ / _ \| | |/ / | __|                        #
-#                          | | (_) | (_) | |   <| | |_                         #
-#                          |_|\___/ \___/|_|_|\_\_|\__|                        #
-#                                                                              #
-################################################################################
-#                                                                              #
-# Copyright (c) 2015 Cisco Systems                                             #
-# All Rights Reserved.                                                         #
-#                                                                              #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
-#    not use this file except in compliance with the License. You may obtain   #
-#    a copy of the License at                                                  #
-#                                                                              #
-#         http://www.apache.org/licenses/LICENSE-2.0                           #
-#                                                                              #
-#    Unless required by applicable law or agreed to in writing, software       #
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
-#    License for the specific language governing permissions and limitations   #
-#    under the License.                                                        #
-#                                                                              #
-################################################################################
+###############################################################################
+#                                  _    ____ ___                              #
+#                                 / \  / ___|_ _|                             #
+#                                / _ \| |    | |                              #
+#                               / ___ \ |___ | |                              #
+#                         _____/_/   \_\____|___|_ _                          #
+#                        |_   _|__   ___ | | | _(_) |_                        #
+#                          | |/ _ \ / _ \| | |/ / | __|                       #
+#                          | | (_) | (_) | |   <| | |_                        #
+#                          |_|\___/ \___/|_|_|\_\_|\__|                       #
+#                                                                             #
+###############################################################################
+#                                                                             #
+# Copyright (c) 2015 Cisco Systems                                            #
+# All Rights Reserved.                                                        #
+#                                                                             #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may  #
+#    not use this file except in compliance with the License. You may obtain  #
+#    a copy of the License at                                                 #
+#                                                                             #
+#        http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                             #
+#    Unless required by applicable law or agreed to in writing, software      #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT#
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the #
+#    License for the specific language governing permissions and limitations  #
+#    under the License.                                                       #
+#                                                                             #
+###############################################################################
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
@@ -477,7 +477,7 @@ class EPG(CommonEPG):
         :param parent: Instance of the AppProfile class representing\
                        the Application Profile where this EPG is contained.
         """
-        if parent :
+        if parent:
             if not isinstance(parent, AppProfile):
                 raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
@@ -537,7 +537,7 @@ class EPG(CommonEPG):
         """
         Add Infrastructure Domain to the EPG
 
-        :param infradomain:  Instance of InfraDomain class.  
+        :param infradomain:  Instance of InfraDomain class.
         """
         if not isinstance(infradomain, EPGDomain):
             raise TypeError('add_infradomain not called with InfraDomain')
@@ -545,7 +545,7 @@ class EPG(CommonEPG):
         if self.has_child(infradomain):
             return
         self.add_child(infradomain)
-        
+
     # Bridge Domain references
     def add_bd(self, bridgedomain):
         """
@@ -737,7 +737,8 @@ class OutsideEPG(CommonEPG):
         :returns: json dictionary of OutsideEPG
         """
         children = []
-        context = {'l3extRsEctx': {'attributes': {'tnFvCtxName': self.context_name},
+        context = {'l3extRsEctx': {'attributes': {'tnFvCtxName':
+                                                  self.context_name},
                                    'children': []}}
         children.append(context)
         for interface in self.get_interfaces():
@@ -1503,7 +1504,7 @@ class Context(BaseACIObject):
         self.vnid = attributes.get('seg')
         self._extract_attributes(attributes)
         self.tenant = self._get_tenant_from_dn(attributes.get('dn'))
-        
+
     def _extract_attributes(self, attributes):
         if attributes['pcEnfPref'] == 'unenforced':
             allow_all = True
@@ -1882,9 +1883,6 @@ class FilterEntry(BaseACIObject):
         return entry
 
 
-
-
-
 class TunnelInterface(object):
     """This class describes a tunnel interface"""
     def __init__(self, if_type, pod, node, tunnel):
@@ -2189,7 +2187,7 @@ class Endpoint(BaseACIObject):
         self.mac = str(attributes.get('mac'))
         self.ip = str(attributes.get('ip'))
         self.encap = str(attributes.get('encap'))
-        
+
     @classmethod
     def get_event(cls, session):
         urls = cls._get_subscription_urls()
@@ -2220,7 +2218,8 @@ class Endpoint(BaseACIObject):
             return obj
 
     @staticmethod
-    def _get(session, endpoint_name, interfaces, endpoints, apic_endpoint_class, endpoint_path):
+    def _get(session, endpoint_name, interfaces, endpoints,
+             apic_endpoint_class, endpoint_path):
         # Get all of the Endpoints
         if endpoint_name is None:
             endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
@@ -2244,7 +2243,8 @@ class Endpoint(BaseACIObject):
                 app_profile = AppProfile(unknown, tenant)
                 epg = EPG(unknown, app_profile)
             else:
-                app_profile = AppProfile(str(ep['dn']).split('/')[2][3:], tenant)
+                app_profile = AppProfile(str(ep['dn']).split('/')[2][3:],
+                                         tenant)
                 epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
             endpoint = Endpoint(str(ep['name']), parent=epg)
             endpoint.mac = str(ep['mac'])
@@ -2281,26 +2281,25 @@ class Endpoint(BaseACIObject):
         interfaces = ret.json()['imdata']
 
         endpoints = []
-        endpoints = Endpoint._get(session, endpoint_name, interfaces, endpoints,
-                                  'fvCEp', 'fvRsCEpToPathEp')
-        endpoints = Endpoint._get(session, endpoint_name, interfaces, endpoints,
-                                  'fvStCEp', 'fvRsStCEpToPathEp')
+        endpoints = Endpoint._get(session, endpoint_name, interfaces,
+                                  endpoints, 'fvCEp', 'fvRsCEpToPathEp')
+        endpoints = Endpoint._get(session, endpoint_name, interfaces,
+                                  endpoints, 'fvStCEp', 'fvRsStCEpToPathEp')
 
         return endpoints
 
 class PhysDomain(BaseACIObject):
-    
     def __init__(self, name, parent):
         """
         :param name: String containing the PhysDomain name
-        :param parent: An instance of DomP class representing 
+        :param parent: An instance of DomP class representing
         """
         self.dn = None
         self.lcOwn = None
         self.childAction = None
         self.name = name
         super(PhysDomain, self).__init__(name, parent)
-            
+
     def get_json(self):
         """
         Returns json representation of the fvTenant object
@@ -2310,12 +2309,11 @@ class PhysDomain(BaseACIObject):
         attr = self._generate_attributes()
         return super(PhysDomain, self).get_json(self._get_apic_classes()[0],
                                             attributes=attr)
-    
+
     def _generate_attributes(self):
         """
         Gets the attributes used in generating the JSON for the object
         """
-        
         attributes = dict()
         if self.name:
             attributes['name'] = self.name
@@ -2325,9 +2323,8 @@ class PhysDomain(BaseACIObject):
             attributes['lcOwn'] = self.lcOwn
         if self.childAction:
             attributes['childAction'] = self.childAction
-       
         return attributes
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2338,16 +2335,15 @@ class PhysDomain(BaseACIObject):
         resp = []
         resp.append('physDomP')
         return resp
-    
+
     def get_parent(self):
         """
         :returns: Parent of this object.
         """
         return self._parent
-        
+
     @classmethod
     def get(cls, session):
-
         """
         Gets all of the Physical Domains from the APIC
 
@@ -2359,7 +2355,8 @@ class PhysDomain(BaseACIObject):
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
@@ -2372,29 +2369,27 @@ class PhysDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
+
             resp.append(obj)
         return resp
-    
+
     @classmethod
     def get_by_name(cls, session, infra_name):
-
         """
         Gets all of the Physical Domains from the APIC
 
         :param session: the instance of Session used for APIC communication
         :returns: List of PhysDomain objects
-
         """
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
-        
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
             obj = toolkit_class(name, parent)
@@ -2403,24 +2398,23 @@ class PhysDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
             if name == infra_name:
                 return obj
         return None
-    
+
+
 class VmmDomain(BaseACIObject):
-    
     def __init__(self, name, parent):
         """
         :param name: String containing the VMM Domain name
-        :param parent: An instance of DomP class 
+        :param parent: An instance of DomP class
         """
         self.dn = None
         self.lcOwn = None
         self.childAction = None
         self.name = name
         super(VmmDomain, self).__init__(name, parent)
-            
+
     def get_json(self):
         """
         Returns json representation of the vmmDomP object
@@ -2430,12 +2424,11 @@ class VmmDomain(BaseACIObject):
         attr = self._generate_attributes()
         return super(VmmDomain, self).get_json(self._get_apic_classes()[0],
                                             attributes=attr)
-    
+
     def _generate_attributes(self):
         """
         Gets the attributes used in generating the JSON for the object
         """
-        
         attributes = dict()
         if self.name:
             attributes['name'] = self.name
@@ -2445,9 +2438,8 @@ class VmmDomain(BaseACIObject):
             attributes['lcOwn'] = self.lcOwn
         if self.childAction:
             attributes['childAction'] = self.childAction
-       
         return attributes
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2458,13 +2450,13 @@ class VmmDomain(BaseACIObject):
         resp = []
         resp.append('vmmDomP')
         return resp
-    
+
     def get_parent(self):
         """
         :returns: Parent of this object.
         """
         return self._parent
-        
+
     @classmethod
     def get(cls, session):
 
@@ -2473,13 +2465,13 @@ class VmmDomain(BaseACIObject):
 
         :param session: the instance of Session used for APIC communication
         :returns: List of VMM Domain objects
-
         """
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
@@ -2492,13 +2484,11 @@ class VmmDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
             resp.append(obj)
         return resp
-    
+
     @classmethod
     def get_by_name(cls, session, infra_name):
-
         """
         Gets all of the VMM Domains from the APIC
 
@@ -2510,11 +2500,12 @@ class VmmDomain(BaseACIObject):
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
-        
+
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
             obj = toolkit_class(name, parent)
@@ -2523,24 +2514,24 @@ class VmmDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
+
             if name == infra_name:
                 return obj
         return None
-    
+
+
 class L2ExtDomain(BaseACIObject):
-    
     def __init__(self, name, parent):
         """
         :param name: String containing the L2ExtDomain name
-        :param parent: An instance of DomP class representing 
+        :param parent: An instance of DomP class representing
         """
         self.dn = None
         self.lcOwn = None
         self.childAction = None
         self.name = name
         super(L2ExtDomain, self).__init__(name, parent)
-            
+
     def get_json(self):
         """
         Returns json representation of the l2extDomP object
@@ -2550,12 +2541,11 @@ class L2ExtDomain(BaseACIObject):
         attr = self._generate_attributes()
         return super(L2ExtDomain, self).get_json(self._get_apic_classes()[0],
                                             attributes=attr)
-    
+
     def _generate_attributes(self):
         """
         Gets the attributes used in generating the JSON for the object
         """
-        
         attributes = dict()
         if self.name:
             attributes['name'] = self.name
@@ -2565,9 +2555,8 @@ class L2ExtDomain(BaseACIObject):
             attributes['lcOwn'] = self.lcOwn
         if self.childAction:
             attributes['childAction'] = self.childAction
-       
         return attributes
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2578,13 +2567,13 @@ class L2ExtDomain(BaseACIObject):
         resp = []
         resp.append('l2extDomP')
         return resp
-    
+
     def get_parent(self):
         """
         :returns: Parent of this object.
         """
         return self._parent
-        
+
     @classmethod
     def get(cls, session):
 
@@ -2599,7 +2588,8 @@ class L2ExtDomain(BaseACIObject):
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
@@ -2612,10 +2602,9 @@ class L2ExtDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
             resp.append(obj)
         return resp
-    
+
     @classmethod
     def get_by_name(cls, session, infra_name):
 
@@ -2630,11 +2619,12 @@ class L2ExtDomain(BaseACIObject):
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
-        
+
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
             obj = toolkit_class(name, parent)
@@ -2643,16 +2633,16 @@ class L2ExtDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
+
             if name == infra_name:
                 return obj
         return None
-    
+
+
 class L3ExtDomain(BaseACIObject):
-    
     def __init__(self, name, parent):
         """
-        :param name: String containing the name of the external routed domain 
+        :param name: String containing the name of the external routed domain
         :param parent: An instance of DomP class
         """
         self.dn = None
@@ -2660,7 +2650,7 @@ class L3ExtDomain(BaseACIObject):
         self.childAction = None
         self.name = name
         super(L3ExtDomain, self).__init__(name, parent)
-            
+
     def get_json(self):
         """
         Returns json representation of the fvTenant object
@@ -2670,12 +2660,11 @@ class L3ExtDomain(BaseACIObject):
         attr = self._generate_attributes()
         return super(L3ExtDomain, self).get_json(self._get_apic_classes()[0],
                                             attributes=attr)
-    
+
     def _generate_attributes(self):
         """
         Gets the attributes used in generating the JSON for the object
         """
-        
         attributes = dict()
         if self.name:
             attributes['name'] = self.name
@@ -2685,9 +2674,8 @@ class L3ExtDomain(BaseACIObject):
             attributes['lcOwn'] = self.lcOwn
         if self.childAction:
             attributes['childAction'] = self.childAction
-       
         return attributes
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2698,13 +2686,13 @@ class L3ExtDomain(BaseACIObject):
         resp = []
         resp.append('l3extDomP')
         return resp
-    
+
     def get_parent(self):
         """
         :returns: Parent of this object.
         """
         return self._parent
-        
+
     @classmethod
     def get(cls, session):
 
@@ -2719,7 +2707,8 @@ class L3ExtDomain(BaseACIObject):
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree'
+                      '&target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
@@ -2732,10 +2721,10 @@ class L3ExtDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
+
             resp.append(obj)
         return resp
-    
+
     @classmethod
     def get_by_name(cls, session, infra_name):
 
@@ -2750,11 +2739,12 @@ class L3ExtDomain(BaseACIObject):
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
-        
+
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
             obj = toolkit_class(name, parent)
@@ -2763,13 +2753,13 @@ class L3ExtDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
+
             if name == infra_name:
                 return obj
         return None
-    
+
+
 class EPGDomain(BaseACIObject):
-    
     def __init__(self, name, parent):
         """
         :param name: String containing the name of a source relation to an
@@ -2803,7 +2793,7 @@ class EPGDomain(BaseACIObject):
         self.epg_name = None
 
         super(EPGDomain, self).__init__(name, parent)
-            
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2814,7 +2804,7 @@ class EPGDomain(BaseACIObject):
         resp = []
         resp.append('fvRsDomAtt')
         return resp
-        
+
     @staticmethod
     def _get_parent_class():
         """
@@ -2823,7 +2813,7 @@ class EPGDomain(BaseACIObject):
         :returns: class of parent object
         """
         return None
-    
+
     def get_json(self):
         """
         Returns json representation of the fvTenant object
@@ -2832,17 +2822,17 @@ class EPGDomain(BaseACIObject):
         """
         attr = self._generate_attributes()
         return super(EPGDomain, self).get_json(self._get_apic_classes()[0],
-                                            attributes=attr)
-    
+                                               attributes=attr)
+
     def _generate_attributes(self):
         """
         Gets the attributes used in generating the JSON for the object
         """
-        
+
         attributes = dict()
         if self.dn:
             attributes['dn'] = self.dn
-        #if self.lcOwn:
+        # if self.lcOwn:
         #    attributes['lcOwn'] = self.lcOwn
         if self.tDn:
             attributes['tDn'] = self.tDn
@@ -2861,7 +2851,7 @@ class EPGDomain(BaseACIObject):
         if self.forceResolve:
             attributes['forceResolve'] = self.forceResolve
         if self.instrImedcy:
-            attributes['instrImedcy'] = self.instrImedcy    
+            attributes['instrImedcy'] = self.instrImedcy
         if self.monPolDn:
             attributes['monPolDn'] = self.monPolDn
         if self.modTs:
@@ -2873,10 +2863,10 @@ class EPGDomain(BaseACIObject):
         if self.resImedcy:
             attributes['resImedcy'] = self.resImedcy
         if self.childAction:
-            attributes['childAction'] = self.childAction        
-        
+            attributes['childAction'] = self.childAction
+
         return attributes
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2887,46 +2877,46 @@ class EPGDomain(BaseACIObject):
         resp = []
         resp.append('fvRsDomAtt')
         return resp
-    
+
     def get_parent(self):
         """
         :returns: Parent of this object.
         """
         return self._parent
-    
+
     @classmethod
     def get_by_name(cls, session, infra_name):
 
         """
-        Gets all of the Physical Domainss from the APIC
+        Gets all of the Physical Domains from the APIC
 
         :param session: the instance of Session used for APIC communication
         :returns: List of Switch Profile objects
 
         """
-        
-        domain = PhysDomain.get_by_name(session,infra_name)
-        
+
+        domain = PhysDomain.get_by_name(session, infra_name)
+
         if domain is None:
-            domain = VmmDomain.get_by_name(session,infra_name)
+            domain = VmmDomain.get_by_name(session, infra_name)
             if domain is None:
-                domain = L2ExtDomain.get_by_name(session,infra_name)
+                domain = L2ExtDomain.get_by_name(session, infra_name)
                 if domain is None:
-                    domain = L3ExtDomain.get_by_name(session,infra_name)
+                    domain = L3ExtDomain.get_by_name(session, infra_name)
                     if domain is None:
                         return None
-        
+
         toolkit_class = cls
         parent = None
         obj = toolkit_class(domain.name, parent)
         apic_class = cls._get_apic_classes()[0]
-        
+
         obj.tDn = domain.dn
         obj.lcOwn = domain.lcOwn
         obj.name = domain.name
-            
+
         return obj
-    
+
     @classmethod
     def get(cls, session):
 
@@ -2941,7 +2931,8 @@ class EPGDomain(BaseACIObject):
         apic_class = cls._get_apic_classes()[0]
         parent = None
         logging.debug('%s.get called', cls.__name__)
-        query_url = ('/api/mo/uni.json?query-target=subtree&target-subtree-class=' + str(apic_class))
+        query_url = (('/api/mo/uni.json?query-target='
+                      'subtree&target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
         logging.debug('response returned %s', data)
@@ -2972,7 +2963,7 @@ class EPGDomain(BaseACIObject):
             obj.tType = object_data[apic_class]['attributes']['tType']
             obj.resImedcy = object_data[apic_class]['attributes']['resImedcy']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-            
+
             resp.append(obj)
         return resp
 
@@ -3098,17 +3089,20 @@ class VMM(BaseACIObject):
 
 
 class Search(BaseACIObject):
-    """This is an empty class used to create a search object for use with the "find" method.
+    """This is an empty class used to create a search object for use with
+       the "find" method.
 
-    Attaching attributes to this class and then invoking find will return all objects with matching attributes
-    in the object hierarchy at and below where the find is invoked.
+       Attaching attributes to this class and then invoking find will return
+       all objects with matching attributes in the object hierarchy at and
+       below where the find is invoked.
     """
     def __init__(self):
         pass
 
 
 class BaseMonitorClass(object):
-    """ Base class for monitoring policies.  These are methods that can be used on all monitoring objects.
+    """ Base class for monitoring policies.  These are methods that can be
+        used on all monitoring objects.
     """
     def set_name(self, name):
         """
@@ -3204,14 +3198,15 @@ class BaseMonitorClass(object):
 
     def remove_collection_policy(self, collection):
         """
-        Remove a collection_policy object.  The object to remove is identified by
-        its granularity, e.g. '5min', '15min', etc.  This string can be found
-        in the 'CollectionPolicy.granularity' attribute of the object.
+        Remove a collection_policy object.  The object to remove is identified
+        by its granularity, e.g. '5min', '15min', etc.  This string can be
+        found in the 'CollectionPolicy.granularity' attribute of the object.
 
         :param collection: CollectionPolicy to remove.
         """
         if collection not in CollectionPolicy.granularityEnum:
-            raise TypeError('CollectionPolicy must be identified by its granularity')
+            raise TypeError(('CollectionPolicy must be identified by its'
+                             'granularity'))
 
         if collection in self.collection_policy:
             self.collection_policy.remove(collection)
@@ -3280,15 +3275,16 @@ class MonitorPolicy(BaseMonitorClass):
         self.collection_policy = {}
         self.monitor_target = {}
 
-        # assume that it has not been written to APIC.  This is cleared if the policy is just loaded from APIC
-        # or the policy is written to the APIC.
+        # assume that it has not been written to APIC.  This is cleared if the
+        # policy is just loaded from APIC or the policy is written to the APIC.
         self.modified = True
 
     @classmethod
     def get(cls, session):
         """
-        get() will get all of the monitor policies from the APIC and return them as a list.  It will get both
-        fabric and access (infra) policies including default policies.
+        get() will get all of the monitor policies from the APIC and return
+        them as a list.  It will get both fabric and access (infra) policies
+        including default policies.
 
        :param session: the instance of Session used for APIC communication
        :returns: List of MonitorPolicy objects
@@ -3299,7 +3295,8 @@ class MonitorPolicy(BaseMonitorClass):
             name = str(data['monInfraPol']['attributes']['name'])
             policyObject = MonitorPolicy('access', name)
             policyObject.set_description(data['monInfraPol']['attributes']['descr'])
-            cls._getPolicy(policyObject, session, data['monInfraPol']['attributes']['dn'])
+            cls._getPolicy(policyObject, session,
+                           data['monInfraPol']['attributes']['dn'])
             result.append(policyObject)
 
         aciObjects = cls._getClass(session, 'monFabricPol')
@@ -3307,7 +3304,8 @@ class MonitorPolicy(BaseMonitorClass):
             name = str(data['monFabricPol']['attributes']['name'])
             policyObject = MonitorPolicy('fabric', name)
             policyObject.set_description(data['monFabricPol']['attributes']['descr'])
-            cls._getPolicy(policyObject, session, data['monFabricPol']['attributes']['dn'])
+            cls._getPolicy(policyObject, session,
+                           data['monFabricPol']['attributes']['dn'])
             result.append(policyObject)
         return result
 
