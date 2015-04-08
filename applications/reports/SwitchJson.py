@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 ################################################################################
-#               _    ____ ___   ____                       _                   #
-#              / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
-#             / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
-#            / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
+# _    ____ ___   ____                       _                   #
+# / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
+# / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
+# / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
 #           /_/   \_\____|___| |_| \_\___| .__/ \___/|_|   \__|___/            #
 #                                        |_|                                   #
 #                                                                              #
@@ -25,6 +25,8 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
+
+
 class SwitchJson(object):
     """
     This class will hold the entire json tree
@@ -36,17 +38,18 @@ class SwitchJson(object):
     It will allow an instance of a class to be retrieved returned
     as a single object.
     """
+
     def __init__(self, session, node_id):
         self.session = session
         self.node_id = node_id
-        
+
         self.by_class = {}
         self.by_dn = {}
-        
+
         pod_id = '1'
-        self.top_dn = 'topology/pod-'+pod_id+'/node-'+self.node_id+'/sys'
-        query_url = ('/api/mo/'+self.top_dn+'.json?'
-                     'query-target=self&rsp-subtree=full')
+        self.top_dn = 'topology/pod-' + pod_id + '/node-' + self.node_id + '/sys'
+        query_url = ('/api/mo/' + self.top_dn + '.json?'
+                                                'query-target=self&rsp-subtree=full')
 
         ret = session.get(query_url)
         data = ret.json()['imdata']
@@ -79,13 +82,13 @@ class SwitchJson(object):
         """
         if branch:
             for apic_class in branch:
-                self.by_dn[branch[apic_class]['attributes']['dn']] = {apic_class:branch[apic_class]}
-    
-                if not apic_class in self.by_class:
+                self.by_dn[branch[apic_class]['attributes']['dn']] = {apic_class: branch[apic_class]}
+
+                if apic_class not in self.by_class:
                     self.by_class[apic_class] = []
-    
-                self.by_class[apic_class].append({apic_class:branch[apic_class]})
-    
+
+                self.by_class[apic_class].append({apic_class: branch[apic_class]})
+
                 if 'children' in branch[apic_class]:
                     for child in branch[apic_class]['children']:
                         self._index_by_dn_class(child)
@@ -96,14 +99,13 @@ class SwitchJson(object):
         """
         if branch:
             for apic_class in branch:
-                if not 'dn' in branch[apic_class]['attributes']:
-                    branch[apic_class]['attributes']['dn'] = dn_root+ \
-                        '/'+branch[apic_class]['attributes']['rn']
+                if 'dn' not in branch[apic_class]['attributes']:
+                    branch[apic_class]['attributes']['dn'] = dn_root + \
+                        '/' + branch[apic_class]['attributes']['rn']
                 new_root_dn = branch[apic_class]['attributes']['dn']
                 if 'children' in branch[apic_class]:
                     for child in branch[apic_class]['children']:
                         self._index_recurse_dn(child, new_root_dn)
-
 
     def get_class(self, class_name):
         """
@@ -131,7 +133,6 @@ class SwitchJson(object):
                     if obj_dn[0:len(dname)] == dname:
                         result.append(class_record)
         return result
-
 
     def get_object(self, dname):
         """
