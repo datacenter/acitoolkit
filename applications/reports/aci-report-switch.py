@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ################################################################################
-#               _    ____ ___   ____                       _                   #
+# _    ____ ___   ____                       _                   #
 #              / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
 #             / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
 #            / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
@@ -39,9 +39,9 @@ description = 'Simple application that logs on to the APIC and displays stats fo
 creds = ACI.Credentials('apic', description)
 creds.add_argument('-s', '--switch',
                    type=str,
-                   default = None,
+                   default=None,
                    help='Specify a particular switch id, e.g. "102"')
-creds.add_argument('-all',action="store_true",
+creds.add_argument('-all', action="store_true",
                    help='Show all detailed information')
 creds.add_argument('-basic', action="store_true", help='Show basic switch info')
 creds.add_argument('-linecard', action="store_true", help='Show Lincard info')
@@ -65,55 +65,54 @@ if not resp.ok:
     print '%% Could not login to APIC'
     sys.exit(0)
 
-def show_switch_short(switch_id) :
-    
+
+def show_switch_short(switch_id):
     # setup template and display header information
-    template = "{0:^7} | {1:^14} | {2:^11} | {3:^15} | {4:^5} | {5:^16} | {6:^6} | {7:^20} | {8:^20} | {9:^8} | {10:^11}"
-    line_template = "{0:-^7}-+-{0:-^14}-+-{0:-^11}-+-{0:-^15}-+-{0:-^5}-+-{0:-^16}-+-{0:-^6}-+-{0:-^20}-+-{0:-^20}-+-{0:-^8}-+-{0:-^11}"
-    print template.format("Node ID", "Name","Role","Model","Ports","State","Health","In-Band Mgmt IP", "Out-of-band Mgmt IP", "Firmware", "Serial")
+    template = "{0:^7} | {1:^14} | {2:^11} | {3:^15} | {4:^5} | {5:^16} |"\
+               "{6:^6} | {7:^20} | {8:^20} | {9:^8} | {10:^11}"
+    line_template = "{0:-^7}-+-{0:-^14}-+-{0:-^11}-+-{0:-^15}-+-{0:-^5}-+-"\
+                    "{0:-^16}-+-{0:-^6}-+-{0:-^20}-+-{0:-^20}-+-{0:-^8}-+-{0:-^11}"
+    print template.format("Node ID", "Name", "Role", "Model", "Ports", "State", "Health", "In-Band Mgmt IP",
+                          "Out-of-band Mgmt IP", "Firmware", "Serial")
     print line_template.format("")
-    
+
     if switch_id:
-        switches = ACI_PHYS.Node.get(session,'1',switch_id)
+        switches = ACI_PHYS.Node.get(session, '1', switch_id)
     else:
         switches = ACI_PHYS.Node.get(session)
-    for switch in sorted(switches, key = lambda x: (x.node)):
+    for switch in sorted(switches, key=lambda x: x.node):
         if switch.role != 'controller':
             print template.format(switch.node,
-                              switch.name,
-                              switch.role,
-                              switch.model,
-                              switch.num_ports,
-                              switch.state,
-                              switch.health,
-                              switch.inb_mgmt_ip,
-                              switch.oob_mgmt_ip,
-                              switch.firmware,
-                              switch.serial)
+                                  switch.name,
+                                  switch.role,
+                                  switch.model,
+                                  switch.num_ports,
+                                  switch.state,
+                                  switch.health,
+                                  switch.inb_mgmt_ip,
+                                  switch.oob_mgmt_ip,
+                                  switch.firmware,
+                                  switch.serial)
 
-def show_switch_long(args) :
+
+def show_switch_long(args):
     report = Report(session)
-    report.switch(args,'text')
+    report.switch(args, 'text')
 
 
 if (args.all or
-    args.basic or 
-    args.linecard or
-    args.supervisor or
-    args.fantray or
-    args.powersupply or
-    args.arp or
-    args.context or 
-    args.bridgedomain or
-    args.accessrule or
-    args.endpoint or
-    args.portchannel or
-    args.overlay):
+        args.basic or
+        args.linecard or
+        args.supervisor or
+        args.fantray or
+        args.powersupply or
+        args.arp or
+        args.context or
+        args.bridgedomain or
+        args.accessrule or
+        args.endpoint or
+        args.portchannel or
+        args.overlay):
     show_switch_long(args)
 else:
     show_switch_short(args.switch)
-    
-
-
-    
-
