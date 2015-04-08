@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 ################################################################################
-# _    ____ ___   ____                       _                   #
-# / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
-# / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
+#               _    ____ ___   ____                       _                   #
+#              / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
+#             / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
 #            / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
 #           /_/   \_\____|___| |_| \_\___| .__/ \___/|_|   \__|___/            #
 #                                        |_|                                   #
@@ -91,7 +91,7 @@ class Report(object):
         else:
             switches = ACI_PHYS.Node.get(self.session)
 
-        for switch in sorted(switches, key=lambda x: (x.node)):
+        for switch in sorted(switches, key=lambda x: x.node):
             if switch.role != 'controller':
                 result[switch.node] = {}
                 result[switch.node]['node'] = switch.node
@@ -231,47 +231,47 @@ class Report(object):
 
         return text_string
 
-    def switch_basic(self, info, super_title=None):
+    @staticmethod
+    def switch_basic(info, super_title=None):
         """
         Creates report of basic switch information
         """
-        table = []
-        table.append([
-            ('Name:', info['name']),
-            ('Pod ID:', info['pod']),
-            ('Node ID:', info['node']),
-            ('Serial Number:', info['serial']),
-            ('Model:', info['model']),
-            ('Role:', info['role']),
-            ('State:', info['state']),
-            ('Firmware:', info['firmware']),
-            ('Health:', info['health']),
-            ('In-band managment IP:', info['inb_mgmt_ip']),
-            ('Out-of-band managment IP:', info['oob_mgmt_ip']),
-            ('Number of ports:', info['num_ports']),
-            ('Number of Linecards (inserted):', str(info['num_lc_slots']) + \
-             '(' + str(info['num_lc_modules']) + ')'),
-            ('Number of Sups (inserted):', str(info['num_sup_slots']) + \
-             '(' + str(info['num_sup_modules']) + ')'),
-            ('Number of Fans (inserted):', str(info['num_fan_slots']) + \
-             '(' + str(info['num_fan_modules']) + ')'),
-            ('Number of Power Supplies (inserted):', str(info['num_ps_slots']) + \
-             '(' + str(info['num_ps_modules']) + ')'),
-            ('System Uptime:', info['system_uptime']),
-            ('Dynamic Load Balancing:', info['dynamic_load_balancing_mode'])])
-        text_string = Table.column(table, super_title + 'Basic Information for {0}' \
+        table = [[
+                 ('Name:', info['name']),
+                 ('Pod ID:', info['pod']),
+                 ('Node ID:', info['node']),
+                 ('Serial Number:', info['serial']),
+                 ('Model:', info['model']),
+                 ('Role:', info['role']),
+                 ('State:', info['state']),
+                 ('Firmware:', info['firmware']),
+                 ('Health:', info['health']),
+                 ('In-band managment IP:', info['inb_mgmt_ip']),
+                 ('Out-of-band managment IP:', info['oob_mgmt_ip']),
+                 ('Number of ports:', info['num_ports']),
+                 ('Number of Linecards (inserted):', str(info['num_lc_slots']) +
+                  '(' + str(info['num_lc_modules']) + ')'),
+                 ('Number of Sups (inserted):', str(info['num_sup_slots']) +
+                  '(' + str(info['num_sup_modules']) + ')'),
+                 ('Number of Fans (inserted):', str(info['num_fan_slots']) +
+                  '(' + str(info['num_fan_modules']) + ')'),
+                 ('Number of Power Supplies (inserted):', str(info['num_ps_slots']) +
+                  '(' + str(info['num_ps_modules']) + ')'),
+                 ('System Uptime:', info['system_uptime']),
+                 ('Dynamic Load Balancing:', info['dynamic_load_balancing_mode'])]]
+        text_string = Table.column(table, super_title + 'Basic Information for {0}'
                                    .format(info['name'])) + '\n'
         return text_string
 
-    def switch_fantray(self, modules, super_title=None):
+    @staticmethod
+    def switch_fantray(modules, super_title=None):
         """
         Will create table of fantry information
         """
         text_string = ''
 
-        table = []
-        table.append(['Slot', 'Model', 'Name', 'Tray Serial',
-                      'Fan ID', 'Oper St', 'Direction', 'Speed', 'Fan Serial'])
+        table = [['Slot', 'Model', 'Name', 'Tray Serial',
+                  'Fan ID', 'Oper St', 'Direction', 'Speed', 'Fan Serial']]
         for slot in sorted(modules):
             fantray = modules[slot]
             if fantray['slot_state'] == 'inserted':
@@ -300,7 +300,8 @@ class Report(object):
         text_string += Table.row_column(table, super_title + 'Fan Trays')
         return text_string
 
-    def switch_power_supply(self, modules, super_title=None):
+    @staticmethod
+    def switch_power_supply(modules, super_title=None):
         """
         Will create table of power supply information
         """
@@ -326,7 +327,8 @@ class Report(object):
         text_string += Table.row_column(table, super_title + 'Power Supplies')
         return text_string
 
-    def switch_linecards(self, linecards, super_title=None):
+    @staticmethod
+    def switch_linecards(linecards, super_title=None):
         """
         Will create table of line card information
         """
@@ -337,10 +339,9 @@ class Report(object):
             if linecard['slot_state'] == 'inserted':
                 linecard['uptime'] = time_since(linecard['start_time'])
 
-        table = []
-        table.append(['Slot', 'Model', 'Ports',
-                      'Firmware', 'Bios', 'HW Ver', 'Hw Rev',
-                      'Oper St', 'Serial', 'Uptime'])
+        table = [['Slot', 'Model', 'Ports',
+                  'Firmware', 'Bios', 'HW Ver', 'Hw Rev',
+                  'Oper St', 'Serial', 'Uptime']]
         for slot in sorted(linecards):
             module = linecards[slot]
             if module['slot_state'] == 'inserted':
@@ -360,7 +361,8 @@ class Report(object):
         text_string += Table.row_column(table, super_title + 'Linecards')
         return text_string
 
-    def switch_supervisors(self, modules, super_title=None):
+    @staticmethod
+    def switch_supervisors(modules, super_title=None):
         """
         Will create table of supervisor information
         """
@@ -370,9 +372,8 @@ class Report(object):
             module = modules[slot]
             if module['slot_state'] == 'inserted':
                 module['uptime'] = time_since(module['start_time'])
-        table = []
-        table.append(['Slot', 'Model', 'Ports', 'Firmware', 'Bios',
-                      'HW Ver', 'Hw Rev', 'Oper St', 'Serial', 'Uptime'])
+        table = [['Slot', 'Model', 'Ports', 'Firmware', 'Bios',
+                  'HW Ver', 'Hw Rev', 'Oper St', 'Serial', 'Uptime']]
         for slot in modules:
             module = modules[slot]
             if module['slot_state'] == 'inserted':
@@ -392,7 +393,8 @@ class Report(object):
         text_string += Table.row_column(table, super_title + 'Supervisors')
         return text_string
 
-    def build_vnid_dictionary(self, top):
+    @staticmethod
+    def build_vnid_dictionary(top):
         """
         Will build a dictionary that is indexed by
         vnid and will return context or bridge_domain
@@ -439,7 +441,7 @@ class Report(object):
             record = {'name': name, 'type': 'bd', 'context': context}
             top.vnid_dict[vnid] = record
 
-            #and opposite dictionary
+            # and opposite dictionary
             top.bd_dict[name] = vnid
 
 
@@ -473,17 +475,15 @@ class SwitchArp(object):
                 result.append(arp)
         return result
 
-
     def get_arp_domain(self, data):
         """
         Get various attributes from the arp domain
         """
         for domain in data:
-            result = {}
-            result['stats'] = {}
-            result['entry'] = []
-            result['name'] = domain['arpDom']['attributes']['name']
-            result['encap'] = domain['arpDom']['attributes']['encap']
+            result = {'stats': {},
+                      'entry': [],
+                      'name': domain['arpDom']['attributes']['name'],
+                      'encap': domain['arpDom']['attributes']['encap']}
             if 'children' in domain['arpDom']:
                 for child in domain['arpDom']['children']:
                     if 'arpDomStatsAdj' in child:
@@ -500,16 +500,16 @@ class SwitchArp(object):
                                 result['entry'].append(entry)
             self.domain.append(result)
 
-    def get_arp_entry(self, arp_adj_ep):
+    @staticmethod
+    def get_arp_entry(arp_adj_ep):
         """
         parses arpAdjEp
         """
-        entry = {}
-        entry['interface_id'] = arp_adj_ep['arpAdjEp']['attributes']['ifId']
-        entry['ip'] = arp_adj_ep['arpAdjEp']['attributes']['ip']
-        entry['mac'] = arp_adj_ep['arpAdjEp']['attributes']['mac']
-        entry['physical_interface'] = arp_adj_ep['arpAdjEp']['attributes']['physIfId']
-        entry['oper_st'] = arp_adj_ep['arpAdjEp']['attributes']['operSt']
+        entry = {'interface_id': arp_adj_ep['arpAdjEp']['attributes']['ifId'],
+                 'ip': arp_adj_ep['arpAdjEp']['attributes']['ip'],
+                 'mac': arp_adj_ep['arpAdjEp']['attributes']['mac'],
+                 'physical_interface': arp_adj_ep['arpAdjEp']['attributes']['physIfId'],
+                 'oper_st': arp_adj_ep['arpAdjEp']['attributes']['operSt']}
         return entry
 
     @staticmethod
@@ -653,7 +653,6 @@ class SwitchVpc(object):
         """
         text_string = ''
 
-        table = []
         for vpc in vpcs:
             table = []
             if vpc.attr['admin_st'] == 'enabled' and vpc.attr['dom_present']:
@@ -749,9 +748,8 @@ class SwitchVpcIf(object):
 
         text_string = ''
 
-        table = []
-        table.append(['ID', 'Interface', 'Oper St', 'Remote Oper State',
-                      'Up VLANS', 'Remote Up VLANs'])
+        table = [['ID', 'Interface', 'Oper St', 'Remote Oper State',
+                  'Up VLANS', 'Remote Up VLANs']]
         for intf in vpc_ifs:
             table.append([
                 str(intf.attr.get('id')),
@@ -836,9 +834,8 @@ class SwitchContext(object):
         """
         text_string = ''
 
-        table = []
-        table.append(['Name', 'VNID', 'Scope', 'Type', 'VRF Id',
-                      'MCast Class Id', 'Admin St', 'Oper St', 'Modified'])
+        table = [['Name', 'VNID', 'Scope', 'Type', 'VRF Id',
+                  'MCast Class Id', 'Admin St', 'Oper St', 'Modified']]
         for context in contexts:
             table.append([
                 str(context.attr.get('name')),
@@ -1064,7 +1061,8 @@ class SwitchBD(object):
 
         return name
 
-    def _get_multicast_flood_address(self, dname, top):
+    @staticmethod
+    def _get_multicast_flood_address(dname, top):
         """
         Will read the fmcastGrp to get the multicast addre
         used when flooding across the fabric.
@@ -1083,11 +1081,10 @@ class SwitchBD(object):
         """
         text_string = ''
 
-        table = []
-        table.append(['Context', 'Name', 'VNID', 'Mode', 'Bridge',
-                      'Route', 'Type', 'ARP Flood', 'MCST Flood',
-                      'Unk UCAST', 'Unk MCAST', 'Learn', 'Flood GIPo',
-                      'Admin St', 'Oper St'])
+        table = [['Context', 'Name', 'VNID', 'Mode', 'Bridge',
+                  'Route', 'Type', 'ARP Flood', 'MCST Flood',
+                  'Unk UCAST', 'Unk MCAST', 'Learn', 'Flood GIPo',
+                  'Admin St', 'Oper St']]
         for bdomain in bridge_domains:
             if ':' in bdomain.attr['name']:
                 name = bdomain.attr['name'].split(':')[-1]
@@ -1183,7 +1180,7 @@ class SwitchAccCtrlRule(object):
         This will map from scope to tenant name
         and context
         """
-        #contexts = ACI.Context.get(session)
+        # contexts = ACI.Context.get(session)
         for context in contexts:
             if self.attr['scope'] == context.scope:
                 self.attr['context'] = context.name
@@ -1209,8 +1206,8 @@ class SwitchAccCtrlRule(object):
         if self.attr['sclass'] == 'any' and self.attr['dclass'] == 'any':
             return
 
-        #get all the EPG
-        #epgs = ACI.EPG.get(session)
+        # get all the EPG
+        # epgs = ACI.EPG.get(session)
         for epg in epgs:
             if epg.class_id == self.attr['dclass']:
                 self.attr['d_epg'] = epg.name
@@ -1233,9 +1230,8 @@ class SwitchAccCtrlRule(object):
         """
         text_string = ''
 
-        table = []
-        table.append(['Tenant', 'Context', 'Type', 'Scope', 'Src EPG',
-                      'Dst EPG', 'Filter', 'Action', 'DSCP', 'QoS', 'Priority'])
+        table = [['Tenant', 'Context', 'Type', 'Scope', 'Src EPG',
+                  'Dst EPG', 'Filter', 'Action', 'DSCP', 'QoS', 'Priority']]
         for rule in data:
             table.append([
                 str(rule.attr.get('tenant')),
@@ -1251,7 +1247,7 @@ class SwitchAccCtrlRule(object):
                 str(rule.attr.get('priority'))])
 
         table[1:] = sorted(table[1:], key=lambda x: (x[10], x[0], x[1]))
-        text_string += Table.row_column(table, super_title + \
+        text_string += Table.row_column(table, super_title +
                                         'Access Rules (Contracts/Access Policies)')
         return text_string
 
@@ -1328,9 +1324,8 @@ class SwitchFilter(object):
         """
         text_string = ''
 
-        table = []
-        table.append(['Filter', 'Name', 'Status', 'Entry #', 'EtherType',
-                      'Protocol/Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags'])
+        table = [['Filter', 'Name', 'Status', 'Entry #', 'EtherType',
+                  'Protocol/Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags']]
         for acc_filter in sorted(data, key=lambda x: (x.attr['id'])):
             sorted_entries = sorted(acc_filter.entries, key=lambda x: (x.attr['name']))
             first_entry = sorted_entries[0]
@@ -1540,7 +1535,7 @@ class SwitchEp(object):
         for svi in svis:
             svi_table[svi.attr['id']] = svi
         for ept in final_result:
-            if 'vlan' in ept.attr['interface_id'] and ept.attr['mac'] == None:
+            if 'vlan' in ept.attr['interface_id'] and ept.attr['mac'] is None:
                 ept.attr['mac'] = svi_table[ept.attr['interface_id']].attr['mac']
                 ept.attr['interface_id'] = 'svi-' + ept.attr['interface_id']
 
@@ -1606,17 +1601,15 @@ class SwitchEp(object):
         Will create table of switch end point information
         """
         text_string = ''
-        table = []
-        table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
-                      'Interface', 'Flags'])
+        table = [['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+                  'Interface', 'Flags']]
 
         def flt_local_external(end_point):
-            if 'loopback' not in str(end_point.attr.get('interface_id')) and \
-                            'svi' not in str(end_point.attr.get('interface_id')) and \
-                            'local' in str(end_point.attr.get('flags')):
-                return True
-            else:
-                return False
+            if 'loopback' not in str(end_point.attr.get('interface_id')):
+                if 'svi' not in str(end_point.attr.get('interface_id')):
+                    if 'local' in str(end_point.attr.get('flags')):
+                        return True
+            return False
 
         for ept in filter(flt_local_external, sorted(end_points, key=lambda x: (x.attr['context'],
                                                                                 x.attr['bridge_domain'],
@@ -1631,17 +1624,15 @@ class SwitchEp(object):
                 str(ept.attr.get('flags'))])
 
         text_string += Table.row_column(table, super_title + 'Local External End Points') + '\n'
-        table = []
-        table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
-                      'Interface', 'Flags'])
+        table = [['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+                  'Interface', 'Flags']]
 
         def flt_remote(end_point):
-            if 'loopback' not in str(end_point.attr.get('interface_id')) and \
-                            'svi' not in str(end_point.attr.get('interface_id')) and \
-                            'peer' in str(end_point.attr.get('flags')):
-                return True
-            else:
-                return False
+            if 'loopback' not in str(end_point.attr.get('interface_id')):
+                if 'svi' not in str(end_point.attr.get('interface_id')):
+                    if 'peer' in str(end_point.attr.get('flags')):
+                        return True
+            return False
 
         for ept in filter(flt_remote, sorted(end_points, key=lambda x: (x.attr['context'],
                                                                         x.attr['bridge_domain'],
@@ -1702,9 +1693,8 @@ class SwitchEp(object):
                 str(ept.attr.get('flags'))])
 
         text_string += Table.row_column(table, super_title + 'Loopback End Points') + '\n'
-        table = []
-        table.append(['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
-                      'Interface', 'Flags'])
+        table = [['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+                  'Interface', 'Flags']]
 
         def flt_other(end_point):
             if 'loopback' not in str(end_point.attr.get('interface_id')):
@@ -1833,6 +1823,7 @@ class SwitchPortChannel(object):
         """
         text_string = ''
 
+        # noinspection PyListCreation
         for pch in sorted(port_ch, key=lambda x: (x.attr['id'])):
             table = []
             table.append([('Name', pch.attr['name']),
@@ -1863,13 +1854,12 @@ class SwitchPortChannel(object):
                           ('Native VLAN', pch.attr['native_vlan']),
                           ('Router MAC', pch.attr['router_mac']),
                           ('Backplane MAC', pch.attr['backplane_mac'])])
-            text_string += Table.column(table, super_title + 'Port Channel:{0}'. \
+            text_string += Table.column(table, super_title + 'Port Channel:{0}'.
                                         format(pch.attr['id']))
 
             text_string += '\n'
-            table = []
-            table.append(['Interface', 'PC State', 'Admin State', 'Oper State',
-                          'Oper Qualifier', 'Usage'])
+            table = [['Interface', 'PC State', 'Admin State', 'Oper State',
+                      'Oper Qualifier', 'Usage']]
             for member in sorted(pch.members, key=lambda x: (x['id'])):
                 table.append([member['id'],
                               member['state'],
@@ -1878,7 +1868,7 @@ class SwitchPortChannel(object):
                               member['oper_st_qual'],
                               member['usage']])
             text_string += Table.row_column(table,
-                                            super_title + 'Port Channel "{0}" Link Members'. \
+                                            super_title + 'Port Channel "{0}" Link Members'.
                                             format(pch.attr['id']))
             text_string += '\n'
 
@@ -1927,14 +1917,13 @@ class SwitchOverlay(object):
 
         :param attr: Attributes of the APIC object
         """
-        tunnel = {}
         self.attr['src_tep_ip'] = attr['src'].split('/')[0]
-        tunnel['dest_tep_ip'] = attr['dest']
-        tunnel['id'] = attr['id']
-        tunnel['oper_st'] = attr['operSt']
-        tunnel['oper_st_qual'] = attr['operStQual']
-        tunnel['context'] = attr['vrfName']
-        tunnel['type'] = attr['type']
+        tunnel = {'dest_tep_ip': attr['dest'],
+                  'id': attr['id'],
+                  'oper_st': attr['operSt'],
+                  'oper_st_qual': attr['operStQual'],
+                  'context': attr['vrfName'],
+                  'type': attr['type']}
 
         if 'proxy-acast-mac' in tunnel['type']:
             self.attr['proxy_ip_mac'] = tunnel['dest_tep_ip']
@@ -1950,16 +1939,14 @@ class SwitchOverlay(object):
         Create print string for overlay information
         """
         text_string = ""
-        table = []
-        table.append([('Source TEP address:', overlay.attr.get('src_tep_ip')),
-                      ('IPv4 Proxy address:', overlay.attr.get('proxy_ip_v4')),
-                      ('IPv6 Proxy address:', overlay.attr.get('proxy_ip_v6')),
-                      ('MAC Proxy address:', overlay.attr.get('proxy_ip_mac'))])
+        table = [[('Source TEP address:', overlay.attr.get('src_tep_ip')),
+                  ('IPv4 Proxy address:', overlay.attr.get('proxy_ip_v4')),
+                  ('IPv6 Proxy address:', overlay.attr.get('proxy_ip_v6')),
+                  ('MAC Proxy address:', overlay.attr.get('proxy_ip_mac'))]]
         text_string += Table.column(table, super_title + 'Overlay Config') + '\n'
 
-        table = []
-        table.append(['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
-                      'Oper State Qualifier'])
+        table = [['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
+                  'Oper State Qualifier']]
         for tunnel in overlay.tunnels:
             table.append([tunnel['id'],
                           tunnel['context'],
@@ -1990,4 +1977,3 @@ if __name__ == '__main__':
     report.switch(args.switch, 'text')
     finish_time = time.time()
     print 'Elapsed time {0:.3} seconds'.format(finish_time - start_time)
-
