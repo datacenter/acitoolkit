@@ -3579,7 +3579,7 @@ class MonitorStats(BaseMonitorClass):
             raise TypeError(('Parent of MonitorStats must be one of type '
                              'MonitorTarget'))
         if statsFamily not in MonitorStats.statsFamilyEnum:
-            raise ValueError('statsFamily must be one of:', statsFamilyEnum)
+            raise ValueError('statsFamily must be one of:', MonitorStats.statsFamilyEnum)
 
         self._parent = parent
         self.scope = statsFamily
