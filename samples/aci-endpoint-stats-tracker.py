@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ################################################################################
-#                 _    ____ ___   _____           _ _    _ _                   #
+# _    ____ ___   _____           _ _    _ _                   #
 #                / \  / ___|_ _| |_   _|__   ___ | | | _(_) |_                 #
 #               / _ \| |    | |    | |/ _ \ / _ \| | |/ / | __|                #
 #              / ___ \ |___ | |    | | (_) | (_) | |   <| | |_                 #
@@ -49,12 +49,13 @@ import acitoolkit.acitoolkit as ACI
 from acicounters import InterfaceStats
 import mysql.connector
 
+
 def convert_timestamp_to_mysql(timestamp):
     (ts, remaining) = timestamp.split('T')
-    ts = ts + ' '
+    ts += ' '
     ts = ts + remaining.split('+')[0].split('.')[0]
     return ts
-    
+
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = ('Application that logs on to the APIC and tracks'
@@ -79,68 +80,73 @@ cnx.commit()
 c.execute('USE acitoolkit_interface_stats;')
 validTables = []
 
-def createTable(tableName, counterList) :
-    commandStr = 'CREATE TABLE IF NOT EXISTS %s (interface CHAR(16) NOT NULL' % (tableName)
-    for columnName in counterList :
-        if columnName in ['intervalStart', 'intervalEnd'] :
-            commandStr += ', '+columnName.lower() + ' TIMESTAMP'
-        elif 'rate' in columnName.lower() :
-            commandStr += ', '+columnName.lower() + ' FLOAT UNSIGNED'
-        elif 'cum' in columnName.lower() :
-            commandStr += ', '+columnName.lower() + ' BIGINT UNSIGNED'
-        elif 'bytes' in columnName.lower() :
-            commandStr += ', '+columnName.lower() + ' BIGINT UNSIGNED'
-        else :
-            commandStr += ', '+columnName.lower() + ' INT UNSIGNED'
-    commandStr +=');'
 
-    c.execute(commandStr)
+def create_table(table_name, counter_list):
+    command_str = u'CREATE TABLE IF NOT EXISTS {0:s} (interface CHAR(16) NOT NULL'.format(table_name)
+    for columnName in counter_list:
+        if columnName in ['intervalStart', 'intervalEnd']:
+            command_str += ', ' + columnName.lower() + ' TIMESTAMP'
+        elif 'rate' in columnName.lower():
+            command_str += ', ' + columnName.lower() + ' FLOAT UNSIGNED'
+        elif 'cum' in columnName.lower():
+            command_str += ', ' + columnName.lower() + ' BIGINT UNSIGNED'
+        elif 'bytes' in columnName.lower():
+            command_str += ', ' + columnName.lower() + ' BIGINT UNSIGNED'
+        else:
+            command_str += ', ' + columnName.lower() + ' INT UNSIGNED'
+    command_str += ');'
+
+    c.execute(command_str)
     cnx.commit()
-    validTables.append(tableName)
+    validTables.append(table_name)
 
-def insertStatsRow(table, interfaceName, stats) :
+
+def insert_stats_row(table, interface_name, stats):
     """this will insert a row of stats in the specified table
     """
-    columnNames = list(stats.keys())
-    
-    if table not in validTables :
-        createTable(table, columnNames)
-        
-    commandStr = 'INSERT INTO %s (%s' % (table, 'interface')
+    column_names = list(stats.keys())
 
-    for column in columnNames :
-        commandStr += ', %s' % (column.lower())
-    
-    commandStr += ") VALUES ('%s'" % (interfaceName)
+    if table not in validTables:
+        create_table(table, column_names)
 
-    for column in columnNames :
-        if column in ['intervalStart','intervalEnd'] :
-            commandStr += ", '%s'" % (convert_timestamp_to_mysql(stats[column]))
-        else :
-            commandStr += ", %s" % (stats[column])
+    command_str = 'INSERT INTO {0:s} ({1:s}'.format(table, 'interface')
 
-    commandStr += ')'
-    c.execute(commandStr)
+    for column in column_names:
+        command_str += ', %s' % (column.lower())
+
+    command_str += u") VALUES ('{0:s}'".format(interface_name)
+
+    for column in column_names:
+        if column in ['intervalStart', 'intervalEnd']:
+            command_str += ", '%s'" % (convert_timestamp_to_mysql(stats[column]))
+        else:
+            command_str += ", %s" % (stats[column])
+
+    command_str += ')'
+    c.execute(command_str)
     cnx.commit()
 
-def intervalEndExists(table, interfaceName, intervalEnd) :
-    sql_intervalEnd = convert_timestamp_to_mysql(intervalEnd)
-    c.execute("SELECT interface, intervalend FROM %s where intervalend='%s' and interface='%s';" % (table, sql_intervalEnd, interfaceName))
+
+def interval_end_exists(table, interface_name, interval_end):
+    sql_interval_end = convert_timestamp_to_mysql(interval_end)
+    c.execute("SELECT interface, intervalend FROM %s where intervalend='%s' and interface='%s';" % (
+        table, sql_interval_end, interface_name))
     rows = c.fetchall()
 
-    if len(rows) > 0 :
+    if len(rows) > 0:
         return True
-    else :
+    else:
         return False
 
-all_stats = InterfaceStats.get_all_ports(session,1)
-for intf in all_stats :
+
+all_stats = InterfaceStats.get_all_ports(session, 1)
+for intf in all_stats:
     stats = all_stats[intf]
-    for statsFamily in stats :
-        if '5min' in stats[statsFamily] :
-            for epoch in stats[statsFamily]['5min'] :
-                if epoch != 0 :
+    for statsFamily in stats:
+        if '5min' in stats[statsFamily]:
+            for epoch in stats[statsFamily]['5min']:
+                if epoch != 0:
                     ss = stats[statsFamily]['5min'][epoch]
-                    if not intervalEndExists(statsFamily, intf, ss['intervalEnd']) :
-                        insertStatsRow(statsFamily, intf, ss)
-    
+                    if not interval_end_exists(statsFamily, intf, ss['intervalEnd']):
+                        insert_stats_row(statsFamily, intf, ss)
+
