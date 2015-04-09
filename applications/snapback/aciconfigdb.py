@@ -190,7 +190,11 @@ class ConfigDB(object):
         # Create the Git repository
         repo_parent_dir = os.getcwd()
         self.repo_dir = os.path.join(repo_parent_dir, 'apic-config-db')
-        self.repo = git.Repo.init(self.repo_dir)
+        try:
+            self.repo = git.Repo.init(self.repo_dir)
+        except:
+            print 'Unable to initialize repository. Are you sure git is installed ?'
+            sys.exit(0)
         self._snapshot_scheduler = None
 
     def login(self, args, timeout=2):
@@ -227,7 +231,7 @@ class ConfigDB(object):
         :returns: JSON dictionary of returned data
         """
         ret = self.session.get(url)
-        data = ret.json()['imdata'][0]
+        data = ret.json()
         return data
 
     def _snapshot(self, query_url, filename):
@@ -268,6 +272,18 @@ class ConfigDB(object):
         elif filename == 'fabric.json':
             url = ('/api/mo/uni/fabric.json?rsp-subtree=full&'
                    'rsp-prop-include=config-only')
+        elif filename == 'phys-domain.json':
+            url = ('/api/node/class/physDomP.json?query-target=self&'
+                   'rsp-subtree=full&rsp-prop-include=config-only')
+        elif filename == 'vmm-domain.json':
+            url = ('/api/node/class/vmmDomP.json?query-target=self&'
+                   'rsp-subtree=full&rsp-prop-include=config-only')
+        elif filename == 'l2ext-domain.json':
+            url = ('/api/node/class/l2extDomP.json?query-target=self&'
+                   'rsp-subtree=full&rsp-prop-include=config-only')
+        elif filename == 'l3ext-domain.json':
+            url = ('/api/node/class/l3extDomP.json?query-target=self&'
+                   'rsp-subtree=full&rsp-prop-include=config-only')
         return url
 
     def take_snapshot(self, callback=None):
@@ -288,18 +304,12 @@ class ConfigDB(object):
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
 
-        # Save the Infra config
-        filename = 'infra.json'
-        url = self._get_url_for_file(filename)
-        self._snapshot(url, filename)
-
-        # Save the Fabric config
-        filename = 'fabric.json'
-        url = self._get_url_for_file(filename)
-        self._snapshot(url, filename)
-
-        # Remove tenant files that used to exist
-        # but the tenant has since been deleted
+        # Save the rest of the config
+        filenames = ['infra.json', 'fabric.json', 'phys-domain.json',
+                     'vmm-domain.json', 'l2ext-domain.json', 'l3ext-domain.json']
+        for filename in filenames:
+            url = self._get_url_for_file(filename)
+            self._snapshot(url, filename)
 
         # Commit the files and tag with the timestamp
         self.repo.index.commit(tag_name)
@@ -689,9 +699,10 @@ class ConfigDB(object):
 
             # Push it to the APIC
             url = self._get_url_for_file(filename)
-            self.session.push_to_apic(url, old_version)
-            print 'Pushing....'
-            print old_version
+            for data in old_version['imdata']:
+                self.session.push_to_apic(url, data)
+                print 'Pushing....'
+                print data
 
             # Get the current version
             current_version = self._get_from_apic(url)
