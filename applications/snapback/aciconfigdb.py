@@ -174,9 +174,11 @@ class SnapshotScheduler(threading.Thread):
                     print 'Next snapshot in', self._next_snapshot_time
                     time.sleep(seconds)
             else:
-                delta = datetime.datetime.now() - start
+                delta = start - datetime.datetime.now()
                 seconds = delta.seconds + delta.days * (24 * 60 * 60)
                 self._next_snapshot_time = start
+                if seconds == 0:
+                    seconds = 1
                 time.sleep(seconds)
 
 
