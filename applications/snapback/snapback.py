@@ -46,6 +46,7 @@ from wtforms.fields.html5 import DateField, DateTimeField
 from wtforms.validators import Required, IPAddress, NumberRange
 from wtforms.validators import ValidationError, Optional
 import difflib
+from acitoolkit.acitoolkit import Credentials
 
 # Create application
 app = Flask(__name__, static_folder='static')
@@ -313,7 +314,7 @@ class ScheduleSnapshot(BaseView):
                            schedule=cdb.get_current_schedule())
 
 
-class Credentials(BaseView):
+class CredentialsView(BaseView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         form = CredentialsForm()
@@ -429,7 +430,7 @@ admin = admin.Admin(app,
                     base_template='layout.html')
 
 # Add views
-admin.add_view(Credentials(name='Credentials'))
+admin.add_view(CredentialsView(name='Credentials'))
 admin.add_view(ScheduleSnapshot(name='Schedule Snapshot',
                                 endpoint='schedulesnapshot'))
 admin.add_view(SnapshotsAdmin(Snapshots, db.session,
@@ -467,9 +468,12 @@ def build_db():
     return
 
 if __name__ == '__main__':
+    description = ('ACI Configuration Snapshot and Rollback tool.')
+    creds = Credentials('server', description)
+    args = creds.get()
 
     # Build the database
     build_db()
 
     # Start app
-    app.run(debug=True)
+    app.run(debug=True, host=args.ip, port=int(args.port))

@@ -157,19 +157,9 @@ $(document).ready(function() {
     """ % populate_data(args.mysqlip, args.mysqllogin, args.mysqlpassword)
 
 if __name__ == '__main__':
-    global args
-    
-    # Take login credentials from the command line if provided
-    # Otherwise, take them from your environment variables file ~/.profile
     description = ('Simple application that logs on to the APIC '
                    'and displays all of the Endpoints.')
-    creds = Credentials('mysql', description)
-    creds.add_argument('-p', '--port', help='Port number to listen on', required=False)
+    creds = Credentials(['mysql', 'server'], description)
     args = creds.get()
     
-    try:
-        port=int(args.port)
-    except:
-        port=5000
-
-    app.run(debug=True, port=port)
+    app.run(debug=True, host=args.ip, port=int(args.port))
