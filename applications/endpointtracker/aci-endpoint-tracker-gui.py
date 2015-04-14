@@ -164,6 +164,12 @@ if __name__ == '__main__':
     description = ('Simple application that logs on to the APIC '
                    'and displays all of the Endpoints.')
     creds = Credentials('mysql', description)
+    creds.add_argument('-p', '--port', help='Port number to listen on', required=False)
     args = creds.get()
+    
+    try:
+        port=int(args.port)
+    except:
+        port=5000
 
-    app.run(debug=True)
+    app.run(debug=True, port=port)
