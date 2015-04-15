@@ -106,6 +106,15 @@ class Credentials(object):
             self._parser.add_argument('-s', '--mysqlpassword',
                                       default=DEFAULT_MYSQL_PASSWORD,
                                       help='MySQL login password.')
+        if 'server' in qualifier:
+            DEFAULT_PORT = '5000'
+            DEFAULT_IPADDRESS = '127.0.0.1'
+            self._parser.add_argument('--ip',
+                                      default=DEFAULT_IPADDRESS,
+                                      help='IP address to listen on.')
+            self._parser.add_argument('--port',
+                                      default=DEFAULT_PORT,
+                                      help='Port number to listen on.')
 
     @staticmethod
     def _get_from_user(prompt):
