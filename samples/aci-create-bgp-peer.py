@@ -32,41 +32,51 @@
 Sample of creating a BGP peer
 """
 
-from acitoolkit.acitoolkit import *
-
-creds = Credentials('apic')
-args = creds.get()
-session = Session(args.url, args.login, args.password)
-session.login()
+from acitoolkit.acitoolkit import Credentials, Session, Tenant, Context, OutsideEPG, Contract
+from acitoolkit.acitoolkit import Interface, L2Interface, L3Interface, BGPSession
 
 
-tenant = Tenant('cisco')
-context = Context('ctx1', tenant)
-outside = OutsideEPG('out-1', tenant)
-phyif = Interface('eth', '1', '101', '1', '46')
-phyif.speed = '1G'
-l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
-l2if.attach(phyif)
-l3if = L3Interface('l3if')
-l3if.set_l3if_type('l3-port')
-l3if.set_addr('1.1.1.2/30')
-l3if.add_context(context)
-l3if.attach(l2if)
-bgpif = BGPSession('test', peer_ip='1.1.1.1', node_id='101')
-bgpif.router_id = '172.1.1.1'
-bgpif.attach(l3if)
-bgpif.options = 'send-ext-com'
-bgpif.networks.append('0.0.0.0/0')
-contract1 = Contract('icmp')
-outside.provide(contract1)
-outside.add_context(context)
-outside.consume(contract1)
-outside.attach(bgpif)
-bgp_json = bgpif.get_json()
+def main():
+    """
+    Main execution routine
 
-resp = session.push_to_apic(tenant.get_url(),
-                            tenant.get_json())
+    :return: None
+    """
+    creds = Credentials('apic')
+    args = creds.get()
+    session = Session(args.url, args.login, args.password)
+    session.login()
 
-if not resp.ok:
-    print('%% Error: Could not push configuration to APIC')
-    print(resp.text)
+    tenant = Tenant('cisco')
+    context = Context('ctx1', tenant)
+    outside = OutsideEPG('out-1', tenant)
+    phyif = Interface('eth', '1', '101', '1', '46')
+    phyif.speed = '1G'
+    l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+    l2if.attach(phyif)
+    l3if = L3Interface('l3if')
+    l3if.set_l3if_type('l3-port')
+    l3if.set_addr('1.1.1.2/30')
+    l3if.add_context(context)
+    l3if.attach(l2if)
+    bgpif = BGPSession('test', peer_ip='1.1.1.1', node_id='101')
+    bgpif.router_id = '172.1.1.1'
+    bgpif.attach(l3if)
+    bgpif.options = 'send-ext-com'
+    bgpif.networks.append('0.0.0.0/0')
+    contract1 = Contract('icmp')
+    outside.provide(contract1)
+    outside.add_context(context)
+    outside.consume(contract1)
+    outside.attach(bgpif)
+    bgp_json = bgpif.get_json()
+    
+    resp = session.push_to_apic(tenant.get_url(),
+                                tenant.get_json())
+
+    if not resp.ok:
+        print('%% Error: Could not push configuration to APIC')
+        print(resp.text)
+
+if __name__ == '__main__':
+    main()
