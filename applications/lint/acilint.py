@@ -35,6 +35,10 @@ import argparse
 
 
 class Checker(object):
+    """
+    Checker class contains a series of lint checks that are executed against the
+    provided configuration.
+    """
     def __init__(self, session):
         print 'Getting configuration from APIC....'
         self.tenants = Tenant.get_deep(session)
