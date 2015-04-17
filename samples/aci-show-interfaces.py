@@ -35,35 +35,45 @@ of the Interfaces.
 import sys
 import acitoolkit.acitoolkit as ACI
 
-# Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Interfaces.'
-creds = ACI.Credentials('apic', description)
-args = creds.get()
 
-# Login to APIC
-session = ACI.Session(args.url, args.login, args.password)
-resp = session.login()
-if not resp.ok:
-    print('%% Could not login to APIC')
-    sys.exit(0)
+def main():
+    """
+    Main execution routine
 
-# Download all of the interfaces
-# and store the data as tuples in a list
-data = []
-interfaces = ACI.Interface.get(session)
-for interface in interfaces:
-    data.append((interface.attributes['if_name'],
-                 interface.attributes['porttype'],
-                 interface.attributes['adminstatus'],
-                 interface.attributes['operSt'],
-                 interface.attributes['speed'],
-                 interface.attributes['mtu'],
-                 interface.attributes['usage']))
+    :return: None
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = 'Simple application that logs on to the APIC and displays all of the Interfaces.'
+    creds = ACI.Credentials('apic', description)
+    args = creds.get()
 
-# Display the data downloaded
-template = "{0:17} {1:6} {2:^6} {3:^6} {4:7} {5:6} {6:9} "
-print(template.format("INTERFACE", "TYPE", "ADMIN", "OPER","SPEED", "MTU", "USAGE"))
-print(template.format("---------", "----", "------", "------", "-----", "___", "---------"))
-for rec in data:
-    print(template.format(*rec))
+    # Login to APIC
+    session = ACI.Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
+        sys.exit(0)
+
+    # Download all of the interfaces
+    # and store the data as tuples in a list
+    data = []
+    interfaces = ACI.Interface.get(session)
+    for interface in interfaces:
+        data.append((interface.attributes['if_name'],
+                     interface.attributes['porttype'],
+                     interface.attributes['adminstatus'],
+                     interface.attributes['operSt'],
+                     interface.attributes['speed'],
+                     interface.attributes['mtu'],
+                     interface.attributes['usage']))
+
+    # Display the data downloaded
+    template = "{0:17} {1:6} {2:^6} {3:^6} {4:7} {5:6} {6:9} "
+    print(template.format("INTERFACE", "TYPE", "ADMIN", "OPER", "SPEED", "MTU", "USAGE"))
+    print(template.format("---------", "----", "------", "------", "-----", "___", "---------"))
+    for rec in data:
+        print(template.format(*rec))
+
+if __name__ == '__main__':
+    main()

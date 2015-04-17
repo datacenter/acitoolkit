@@ -37,29 +37,40 @@ import sys
 from acitoolkit.acitoolkit import Session, Credentials
 from acitoolkit.aciphysobject import Node, ENode
 
-# Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the physical nodes; both belonging to and connected to the fabric.'
-creds = Credentials('apic', description)
-args = creds.get()
 
-# Login to APIC
-session = Session(args.url, args.login, args.password)
-resp = session.login()
-if not resp.ok:
-    print('%% Could not login to APIC')
-    sys.exit(0)
+def main():
+    """
+    Main execution routine
 
-# List of classes to get and print
-phy_classes = (Node, ENode)
+    :return: None
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = ('Simple application that logs on to the APIC and displays all'
+                   ' of the physical nodes; both belonging to and connected to the fabric.')
+    creds = Credentials('apic', description)
+    args = creds.get()
 
-for phy_class in phy_classes:
-    # Print the class name
-    class_name = phy_class.__name__
-    print(class_name)
-    print('=' * len(class_name))
+    # Login to APIC
+    session = Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
+        sys.exit(0)
 
-    # Get and print all of the items from the APIC
-    items = phy_class.get(session)
-    for item in items:
-        print(item.info())
+    # List of classes to get and print
+    phy_classes = (Node, ENode)
+
+    for phy_class in phy_classes:
+        # Print the class name
+        class_name = phy_class.__name__
+        print(class_name)
+        print('=' * len(class_name))
+
+        # Get and print all of the items from the APIC
+        items = phy_class.get(session)
+        for item in items:
+            print(item.info())
+
+if __name__ == '__main__':
+    main()

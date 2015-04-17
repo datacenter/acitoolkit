@@ -34,6 +34,7 @@ from acitoolkit.aciphysobject import *
 import unittest
 import string
 import random
+
 try:
     from credentials import *
 except ImportError:
@@ -72,6 +73,7 @@ def random_size_string():
 class TestBaseRelation(unittest.TestCase):
     """Tests on the BaseRelation class.  These do not communicate with the APIC
     """
+
     def create_relation(self, status='attached'):
         """
         Creates a base relation
@@ -201,6 +203,7 @@ class TestTenant(unittest.TestCase):
     """
     Tenant class tests.  These do not communicate with APIC
     """
+
     def test_create(self):
         """
         Tenant creation
@@ -233,6 +236,7 @@ class TestAppProfile(unittest.TestCase):
     """
     AppProfile class tests.  These do not communicate with APIC
     """
+
     def test_create(self):
         """
         AppProfile creation
@@ -340,6 +344,7 @@ class TestBridgeDomain(unittest.TestCase):
     """
     Test the BridgeDomain class
     """
+
     def create_bd(self):
         """ Create a BridgeDomain """
         tenant = Tenant('tenant')
@@ -677,6 +682,7 @@ class TestL3Interface(unittest.TestCase):
         self.assertIsNone(l3if.get_context())
         self.assertFalse(l3if.has_context())
 
+
 class TestBaseContract(unittest.TestCase):
     def test_get_contract_code(self):
         contract = BaseContract('contract')
@@ -779,7 +785,7 @@ class TestEPG(unittest.TestCase):
         tenant, app, epg = self.create_epg()
         self.assertTrue(isinstance(epg, EPG))
 
-    #def test_invalid_create_parent_none(self):
+    # def test_invalid_create_parent_none(self):
     #    self.assertRaises(TypeError, EPG, 'epg', None)
 
     def test_invalid_create_parent_wrong_class(self):
@@ -980,6 +986,7 @@ class TestEndpoint(unittest.TestCase):
     Test Static Endpoints.
     These tests do not communicate with the APIC
     """
+
     def create_tenant_with_ep(self, tenant_name, app_name,
                               epg_name, ep_name, interface=None):
         """
@@ -1009,7 +1016,7 @@ class TestEndpoint(unittest.TestCase):
             if 'fvRsPathAtt' in child:
                 dn_attr = child['fvRsPathAtt']['attributes']['tDn']
                 self.assertTrue(dn_attr == interface)
-                children_checked = children_checked + 1
+                children_checked += 1
             if 'fvStCEp' in child:
                 ep_child = child['fvStCEp']['children'][0]
                 ep_attributes = child['fvStCEp']['attributes']
@@ -1018,7 +1025,7 @@ class TestEndpoint(unittest.TestCase):
                     status = ep_attributes['status']
                     self.assertTrue(status == 'deleted')
                 self.assertTrue(ep_name == mac)
-                children_checked = children_checked + 1
+                children_checked += 1
                 self.assertTrue('fvRsStCEpToPathEp' in ep_child)
                 if_attr = ep_child['fvRsStCEpToPathEp']['attributes']
                 child_interface = if_attr['tDn']
@@ -1295,6 +1302,7 @@ class TestMonitorPolicy(unittest.TestCase):
     """
     Tests the monitoriing policy
     """
+
     def test_create(self):
         m_policy = MonitorPolicy('fabric', 'policy-name')
         self.assertEqual(m_policy.name, 'policy-name')
@@ -1439,7 +1447,7 @@ class TestLiveSubscription(TestLiveAPIC):
         # Create the tenant and push to APIC
         new_tenant = Tenant(tenant_name)
         resp = session.push_to_apic(new_tenant.get_url(),
-                                    data=new_tenant.get_json())
+            data=new_tenant.get_json())
         self.assertTrue(resp.ok)
 
         # Wait for the event to come through the subscription
@@ -1459,7 +1467,7 @@ class TestLiveSubscription(TestLiveAPIC):
 
         new_tenant.mark_as_deleted()
         resp = session.push_to_apic(new_tenant.get_url(),
-                                    data=new_tenant.get_json())
+            data=new_tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_resubscribe(self):
@@ -1535,6 +1543,7 @@ class TestLiveInterface(TestLiveAPIC):
                 for field in fields:
                     self.assertIsInstance(int(field), int)
 
+
 class TestLivePortChannel(TestLiveAPIC):
     def test_get_all_portchannels(self):
         session = self.login_to_apic()
@@ -1596,7 +1605,7 @@ class TestApic(TestLiveAPIC):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
-        return(session, tenant, app, epg)
+        return (session, tenant, app, epg)
 
     def base_test_teardown(self, session, tenant):
         # Delete the tenant
@@ -1874,7 +1883,7 @@ class TestLiveContracts(TestLiveAPIC):
                              sToPort='65535',
                              tcpRules='unspecified',
                              parent=contract)
-        return(entry1, entry2)
+        return (entry1, entry2)
 
     def test_get(self):
         session = self.login_to_apic()
@@ -1959,106 +1968,110 @@ class TestLiveContracts(TestLiveAPIC):
 
 
 class TestLiveOSPF(TestLiveAPIC):
+    def test_no_auth(self):
+        tenant = Tenant('cisco')
+        context = Context('cisco-ctx1', tenant)
+        outside = OutsideEPG('out-1', tenant)
+        outside.add_context(context)
+        phyif = Interface('eth', '1', '101', '1', '46')
+        phyif.speed = '1G'
+        l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+        l2if.attach(phyif)
+        l3if = L3Interface('l3if')
+        l3if.set_l3if_type('l3-port')
+        l3if.set_mtu('1500')
+        l3if.set_addr('1.1.1.2/30')
+        l3if.add_context(context)
+        l3if.attach(l2if)
+        rtr = OSPFRouter('rtr-1')
+        rtr.set_router_id('23.23.23.23')
+        rtr.set_node_id('101')
+        ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='1')
+        ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
+        ifpol.set_nw_type('p2p')
+        ospfif.int_policy_name = ifpol.name
+        tenant.attach(ospfif)
+        ospfif.networks.append('55.5.5.0/24')
+        ospfif.attach(l3if)
+        contract1 = Contract('contract-1')
+        outside.provide(contract1)
+        contract2 = Contract('contract-2')
+        outside.consume(contract2)
+        outside.attach(ospfif)
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-        def test_no_auth(self):
-            tenant = Tenant('cisco')
-            context = Context('cisco-ctx1', tenant)
-            outside = OutsideEPG('out-1', tenant)
-            outside.add_context(context)
-            phyif = Interface('eth', '1', '101', '1', '46')
-            phyif.speed = '1G'
-            l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
-            l2if.attach(phyif)
-            l3if = L3Interface('l3if')
-            l3if.set_l3if_type('l3-port')
-            l3if.set_mtu('1500')
-            l3if.set_addr('1.1.1.2/30')
-            l3if.add_context(context)
-            l3if.attach(l2if)
-            rtr = OSPFRouter('rtr-1')
-            rtr.set_router_id('23.23.23.23')
-            rtr.set_node_id('101')
-            ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='1')
-            ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
-            ifpol.set_nw_type('p2p')
-            ospfif.int_policy_name = ifpol.name
-            tenant.attach(ospfif)
-            ospfif.networks.append('55.5.5.0/24')
-            ospfif.attach(l3if)
-            contract1 = Contract('contract-1')
-            outside.provide(contract1)
-            contract2 = Contract('contract-2')
-            outside.consume(contract2)
-            outside.attach(ospfif)
-            session = self.login_to_apic()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-            # Cleanup
-            tenant.mark_as_deleted()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
+    def test_authenticated(self):
+        tenant = Tenant('cisco')
+        context = Context('cisco-ctx1', tenant)
+        outside = OutsideEPG('out-1', tenant)
+        outside.add_context(context)
+        phyif = Interface('eth', '1', '101', '1', '46')
+        phyif.speed = '1G'
+        l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+        l2if.attach(phyif)
+        l3if = L3Interface('l3if')
+        l3if.set_l3if_type('l3-port')
+        l3if.set_mtu('1500')
+        l3if.set_addr('1.1.1.2/30')
+        l3if.add_context(context)
+        l3if.attach(l2if)
+        rtr = OSPFRouter('rtr-1')
+        rtr.set_router_id('23.23.23.23')
+        rtr.set_node_id('101')
+        ospfif = OSPFInterface('ospfif-1', rtr, '1')
+        ospfif.auth_key = 'password'
+        ospfif.auth_keyid = '1'
+        ospfif.auth_type = 'simple'
+        ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
+        ifpol.set_nw_type('p2p')
+        ospfif.int_policy_name = ifpol.name
+        tenant.attach(ospfif)
+        ospfif.networks.append('55.5.5.0/24')
+        ospfif.attach(l3if)
+        contract1 = Contract('contract-1')
+        outside.provide(contract1)
+        contract2 = Contract('contract-2')
+        outside.consume(contract2)
+        outside.attach(ospfif)
 
-        def test_authenticated(self):
-            tenant = Tenant('cisco')
-            context = Context('cisco-ctx1', tenant)
-            outside = OutsideEPG('out-1', tenant)
-            outside.add_context(context)
-            phyif = Interface('eth', '1', '101', '1', '46')
-            phyif.speed = '1G'
-            l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
-            l2if.attach(phyif)
-            l3if = L3Interface('l3if')
-            l3if.set_l3if_type('l3-port')
-            l3if.set_mtu('1500')
-            l3if.set_addr('1.1.1.2/30')
-            l3if.add_context(context)
-            l3if.attach(l2if)
-            rtr = OSPFRouter('rtr-1')
-            rtr.set_router_id('23.23.23.23')
-            rtr.set_node_id('101')
-            ospfif = OSPFInterface('ospfif-1', rtr, '1')
-            ospfif.auth_key = 'password'
-            ospfif.auth_keyid = '1'
-            ospfif.auth_type = 'simple'
-            ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
-            ifpol.set_nw_type('p2p')
-            ospfif.int_policy_name = ifpol.name
-            tenant.attach(ospfif)
-            ospfif.networks.append('55.5.5.0/24')
-            ospfif.attach(l3if)
-            contract1 = Contract('contract-1')
-            outside.provide(contract1)
-            contract2 = Contract('contract-2')
-            outside.consume(contract2)
-            outside.attach(ospfif)
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-            session = self.login_to_apic()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-            # Cleanup
-            tenant.mark_as_deleted()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
 
 class TestLiveMonitorPolicy(TestLiveAPIC):
     """
     Live tests of the monitoriing policy
     """
+
     def check_collection_policy(self, parent):
         for index in parent.collection_policy:
             policy = parent.collection_policy[index]
             self.assertEqual(index, policy.granularity)
             self.assertIn(policy.granularity, ['5min', '15min', '1h', '1d',
-                       '1w', '1mo', '1qtr', '1year'])
-            self.assertIn(policy.retention, ['none', 'inherited', '5min', '15min', '1h', '1d',
-                     '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'])
-            self.assertIn(policy.adminState, ['enabled', 'disabled', 'inherited'])
+                                               '1w', '1mo', '1qtr', '1year'])
+            self.assertIn(policy.retention,
+                          ['none', 'inherited', '5min', '15min', '1h', '1d',
+                           '1w', '10d', '1mo', '1qtr', '1year', '2year',
+                           '3year'])
+            self.assertIn(policy.adminState,
+                          ['enabled', 'disabled', 'inherited'])
             self.assertEqual(policy._parent, parent)
 
     def test_get(self):
@@ -2102,7 +2115,6 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
                     self.assertIsInstance(monitor_stat.descr, str)
                     self.assertIsInstance(monitor_stat.name, str)
                     self.check_collection_policy(monitor_stat)
-
 
 
 if __name__ == '__main__':

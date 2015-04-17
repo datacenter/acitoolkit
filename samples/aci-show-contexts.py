@@ -35,33 +35,44 @@ of the Contexts.
 import sys
 import acitoolkit.acitoolkit as ACI
 
-# Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays all of the Contexts.'
-creds = ACI.Credentials('apic', description)
-args = creds.get()
 
-# Login to APIC
-session = ACI.Session(args.url, args.login, args.password)
-resp = session.login()
-if not resp.ok:
-    print('%% Could not login to APIC')
-    sys.exit(0)
+def main():
+    """
+    Main execution routine
 
-# Download all of the contexts
-# and store the data as tuples in a list
-data = []
-tenants = ACI.Tenant.get(session)
-for tenant in tenants:
-    contexts = ACI.Context.get(session, tenant)
-    for context in contexts:
-        data.append((tenant.name, context.name))
+    :return: None
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = 'Simple application that logs on to the APIC and displays all of the Contexts.'
+    creds = ACI.Credentials('apic', description)
+    args = creds.get()
 
-# IPython.embed()
+    # Login to APIC
+    session = ACI.Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
+        sys.exit(0)
 
-# Display the data downloaded
-template = '{0:19} {1:20}'
-print(template.format("Tenant", "Context"))
-print(template.format("------", "-------"))
-for rec in data:
-    print(template.format(*rec))
+    # Download all of the contexts
+    # and store the data as tuples in a list
+    data = []
+    tenants = ACI.Tenant.get(session)
+    for tenant in tenants:
+        contexts = ACI.Context.get(session, tenant)
+        for context in contexts:
+            data.append((tenant.name, context.name))
+
+    # IPython.embed()
+
+    # Display the data downloaded
+    template = '{0:19} {1:20}'
+    print(template.format("Tenant", "Context"))
+    print(template.format("------", "-------"))
+    for rec in data:
+        print(template.format(*rec))
+
+if __name__ == '__main__':
+    main()
+
