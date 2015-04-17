@@ -70,7 +70,7 @@ def main():
     outside.consume(contract1)
     outside.attach(bgpif)
     bgp_json = bgpif.get_json()
-    
+
     resp = session.push_to_apic(tenant.get_url(),
                                 tenant.get_json())
 
