@@ -29,7 +29,8 @@ acilint - A static configuration analysis tool for examining ACI Fabric
           configuration for potential problems and unused configuration.
 """
 import sys
-from acitoolkit.acitoolkit import *
+from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain, Contract
+from acitoolkit.acitoolkit import Credentials, Session
 import argparse
 
 
@@ -298,7 +299,12 @@ class Checker(object):
             getattr(self, method)()
 
 
-if __name__ == "__main__":
+def acilint():
+    """
+    Main execution routine
+
+    :return: None
+    """
     description = ('aci-lint - A static configuration analysis tool. '
                    'Checks can be individually disabled by generating'
                    ' and editing a configuration file.  If no config '
@@ -343,3 +349,6 @@ if __name__ == "__main__":
 
     checker = Checker(session)
     checker.execute(methods)
+
+if __name__ == "__main__":
+    acilint()
