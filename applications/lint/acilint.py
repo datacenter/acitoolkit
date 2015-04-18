@@ -31,6 +31,7 @@ acilint - A static configuration analysis tool for examining ACI Fabric
 import sys
 from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain, Contract
 from acitoolkit.acitoolkit import Credentials, Session
+from acitoolkit.acifakeapic import FakeSession
 import argparse
 
 
@@ -125,8 +126,8 @@ class Checker(object):
                 for epg in app.get_children(EPG):
                     if epg.has_bd():
                         bd = epg.get_bd().name
-                    if bd in bds:
-                        bds.remove(bd)
+                        if bd in bds:
+                            bds.remove(bd)
             for bd in bds:
                 print ("Warning 005: BridgeDomain '%s' in Tenant '%s'"
                        " has no EPGs." % (bd, tenant.name))
@@ -309,7 +310,7 @@ def acilint():
 
     :return: None
     """
-    description = ('aci-lint - A static configuration analysis tool. '
+    description = ('acilint - A static configuration analysis tool. '
                    'Checks can be individually disabled by generating'
                    ' and editing a configuration file.  If no config '
                    'file is given, all checks will be run.')
@@ -344,12 +345,15 @@ def acilint():
             if method.startswith(('warning_', 'error_', 'critical_')):
                 methods.append(method)
 
-    # Login to APIC
-    session = Session(args.url, args.login, args.password)
-    resp = session.login()
-    if not resp.ok:
-        print '%% Could not login to APIC'
-        sys.exit(0)
+    if args.file:
+        session = FakeSession(filenames=args.file)
+    else:
+        # Login to APIC
+        session = Session(args.url, args.login, args.password)
+        resp = session.login()
+        if not resp.ok:
+            print '%% Could not login to APIC'
+            sys.exit(0)
 
     checker = Checker(session)
     checker.execute(methods)

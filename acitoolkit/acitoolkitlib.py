@@ -93,6 +93,8 @@ class Credentials(object):
             self._parser.add_argument('-p', '--password',
                                       default=DEFAULT_PASSWORD,
                                       help='APIC login password.')
+            self._parser.add_argument('-f', '--file', nargs='+',
+                                      help='APIC configuration files')
         if 'mysql' in qualifier:
             DEFAULT_MYSQL_IP = set_default('mysqlip')
             DEFAULT_MYSQL_LOGIN = set_default('mysqllogin')
@@ -178,7 +180,7 @@ class Credentials(object):
         Verify that the arguments have been passed in some way.  If not,
         ask the user through interactive prompt.
         """
-        if 'apic' in self._qualifier:
+        if 'apic' in self._qualifier and self._args.file is None:
             if self._args.login is None:
                 self._args.login = self._get_from_user('APIC login username: ')
             if self._args.url is None:
