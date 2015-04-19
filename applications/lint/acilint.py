@@ -345,8 +345,8 @@ def acilint():
             if method.startswith(('warning_', 'error_', 'critical_')):
                 methods.append(method)
 
-    if args.file:
-        session = FakeSession(filenames=args.file)
+    if args.snapshotfiles:
+        session = FakeSession(filenames=args.snapshotfiles)
     else:
         # Login to APIC
         session = Session(args.url, args.login, args.password)
