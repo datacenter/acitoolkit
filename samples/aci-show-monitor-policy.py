@@ -37,19 +37,24 @@ import acitoolkit.acitoolkit as ACI
 
 
 def main():
+    """
+    Main execution routine
+
+    :return: None
+    """
     # Take login credentials from the command line if provided
     # Otherwise, take them from your environment variables file ~/.profile
     description = 'Simple application that logs on to the APIC'\
         'and displays all of the monitoring policies.'
     creds = ACI.Credentials('apic', description)
     creds.add_argument('-f', '--flat', action="store_true",
-                        help='Show monitor policy flattened - recommended')
+                       help='Show monitor policy flattened - recommended')
     creds.add_argument('-t', '--type', default="all",
-                        type=str, choices=['all', 'fabric', 'access'],
-                        help='Show a particular monitor policy type (default:all)')
+                       type=str, choices=['all', 'fabric', 'access'],
+                       help='Show a particular monitor policy type (default:all)')
     creds.add_argument('-n', '--name', metavar='POLICYNAME',
-                        type=str,
-                        help='Show all monitor policies whose name is POLICYNAME')
+                       type=str,
+                       help='Show all monitor policies whose name is POLICYNAME')
     args = creds.get()
 
     # Login to APIC
@@ -58,7 +63,6 @@ def main():
     if not resp.ok:
         print('%% Could not login to APIC')
         sys.exit(0)
-
 
     def _getRet(adminState, retention):
         """
@@ -76,7 +80,6 @@ def main():
             return '-'
         return '0' if retention == 'none' else retention
 
-
     def printPolicyFlat(policy):
         """
         Prints the monitoring policy in a tabular format.  A dash ('-')
@@ -87,7 +90,7 @@ def main():
         :param policy:  The policy object whose state is to be displayed.
         """
         policyFlat = policy.flat('l1PhysIf')
-        policyName = policy.policyType+':'+policy.name
+        policyName = policy.policyType + ':' + policy.name
         result = {}
         for counter in ACI.MonitorStats.statsFamilyEnum:
             rec = []
@@ -97,15 +100,14 @@ def main():
                 rec.append(_getRet(adminState, retention))
             result[counter] = rec
 
-        print('{0:^16}  {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} {8:^7}'.\
-            format(policyName, *ACI.CollectionPolicy.granularityEnum))
-        print('{0:-^16}  {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} '\
-            '{0:-^7} {0:-^7}'.format(''))
+        print('{0:^16}  {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} {8:^7}'.
+              format(policyName, *ACI.CollectionPolicy.granularityEnum))
+        print('{0:-^16}  {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} {0:-^7} '
+              '{0:-^7} {0:-^7}'.format(''))
 
         for counter in ACI.MonitorStats.statsFamilyEnum:
-            print('{0:>16}: {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} '\
-                '{8:^7}'.format(counter, *result[counter]))
-
+            print('{0:>16}: {1:^7} {2:^7} {3:^7} {4:^7} {5:^7} {6:^7} {7:^7} '
+                  '{8:^7}'.format(counter, *result[counter]))
 
     def printPolicyHeir(obj):
         """
@@ -124,7 +126,7 @@ def main():
                                    child.retention, child.adminState))
         for target in obj.monitor_target:
             child = obj.monitor_target[target]
-            print('{0:27}'.format('MonitorTarget:'+child.scope))
+            print('{0:27}'.format('MonitorTarget:' + child.scope))
 
             for collection in child.collection_policy:
                 targetChild = child.collection_policy[collection]
@@ -133,7 +135,7 @@ def main():
                                        targetChild.adminState))
             for statFamily in child.monitor_stats:
                 targetChild = child.monitor_stats[statFamily]
-                print('{0:27}'.format('    '+targetChild.scope))
+                print('{0:27}'.format('    ' + targetChild.scope))
 
                 for collection in targetChild.collection_policy:
                     statChild = targetChild.collection_policy[collection]
@@ -143,7 +145,6 @@ def main():
                                            statChild.adminState))
 
     policies = ACI.MonitorPolicy.get(session)
-
 
     for policy in policies:
         if args.type != 'all' and policy.policyType != args.type:
