@@ -33,8 +33,14 @@ example use cases for such a tool include the following:
 Usage
 -----
 
-``acilint`` collects the configuration directly from the APIC and thus
-needs the proper credentials.  These can be passed via the command
+``acilint`` can be run against the current running APIC configuration or a
+previously saved set of configuration snapshot files.
+
+Running using Live APIC configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When ``acilint`` collects the configuration directly from the APIC, it
+needs the proper login credentials.  These can be passed via the command
 line arguments, a ``credentials.py`` file, environment variables, or if none of
 these, the user will be directly queried.
 
@@ -46,6 +52,29 @@ arguments for credentials::
 where ``admin`` is the APIC login username, ``password`` is the APIC
 password, and ``https://1.2.3.4`` is the URL used to login to the
 APIC.
+
+Running using Configuration Snapshot files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``snapback`` application provides the ability to save snapshots of
+the APIC configuration into JSON files.  ``acilint`` can use these snapshot
+files as input rather than connecting to a live APIC.
+
+This can be useful in debugging as it lets the user compare the ``acilint``
+output of the live APIC to the output of a previous configuration snapshot.
+``acilint`` can also be used to perform some "What If" scenarios. A single
+configuration snapshot actually consists of multiple snapshot files. These
+configuration files are then fed as input into ``acilint``. These snapshot
+files fed into ``acilint`` can actually be from different configuration
+snapshot versions creating an entirely new configuration that may have never
+existed on the APIC, but we can run ``acilint`` against this configuration to
+check for possible errors and warnings that would occur if this configuration
+were to be deployed.
+
+The following example shows how to run with configuration snapahot files as
+input::
+
+    python acilint.py --snapshotfiles infra.json tenant-cisco.json fabric.json
 
 Customization
 ~~~~~~~~~~~~~
