@@ -62,7 +62,7 @@ acitoolkit object model.  The parent class of ``AppProfile`` is
 The Endpoint Group provides the policy based configuration for
 Endpoints that are members of the Endpoint Group.  This is represented
 by the ``EPG`` class.  In this case, we create an ``EPG`` with the
-name `myapp` and pass the ``AppProfile`` that we created to be the
+name `myepg` and pass the ``AppProfile`` that we created to be the
 parent object.
 
 .. code-block:: python
