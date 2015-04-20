@@ -31,6 +31,7 @@
 """
 from acitoolkit.acitoolkit import *
 from acitoolkit.aciphysobject import *
+from acitoolkit.acibaseobject import *
 import unittest
 import string
 import random
