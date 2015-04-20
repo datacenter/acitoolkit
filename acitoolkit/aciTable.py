@@ -26,7 +26,7 @@
 #                                                                              #
 ################################################################################
 from tabulate import tabulate
-
+import copy
 
 class Table(object):
     """
@@ -45,7 +45,7 @@ class Table(object):
 
     def __init__(self, data=None, headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
                  stralign="center",
-                 missingval=""):
+                 missingval="", columns = 1):
         """
 
         :param data: list of table data.  Each row is a list and each table is a list of rows
@@ -65,9 +65,10 @@ class Table(object):
         self.stralign = stralign
         self.missingval = missingval
         self.title = title
+        self.columns = columns
 
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
-                 missingval=None, supresstitle=False):
+                 missingval=None, supresstitle=False, columns = None):
         """
 
         :param title: optional title string will over-ride configured title
@@ -91,10 +92,51 @@ class Table(object):
             missingval = self.missingval
         if title is None:
             title = self.title
+        if columns is None:
+            columns = self.columns
 
         result = ''
+
+        if columns == 1:
+            result += tabulate(self.data, self.headers, tablefmt=tablefmt, floatfmt=floatfmt,
+                               numalign=numalign, stralign=stralign, missingval=missingval)+'\n'
+        else:
+            table1_len = (len(self.data)+1)/2
+            table2_len = len(self.data) - table1_len
+
+            data1 = self.data[0:table1_len]
+            data2 = self.data[table1_len:]
+            result1 = tabulate(data1, self.headers, tablefmt=tablefmt, floatfmt=floatfmt,
+                               numalign=numalign, stralign=stralign, missingval=missingval)
+            result2 = tabulate(data2, self.headers, tablefmt=tablefmt, floatfmt=floatfmt,
+                               numalign=numalign, stralign=stralign, missingval=missingval)
+            t1 = result1.split('\n')
+            t2 = result2.split('\n')
+            result = ''
+            for index in range(len(t2)):
+                row = t1[index]+' '+t2[index]+'\n'
+                result += row
+
+            if table1_len > table2_len:
+                result += t1[len(t1)-2] + '\n'
+                result += t1[len(t1)-1] + '\n'
+
         if title and not supresstitle:
-            result += title + '\n'
-        result += tabulate(self.data, self.headers, tablefmt=tablefmt, floatfmt=floatfmt,
-                           numalign=numalign, stralign=stralign, missingval=missingval)+'\n'
+            result = title + '\n' + result
+        return result
+
+    def multi_column(self, table_text):
+        """
+
+        :return: new, multi-column table text
+        """
+        result = ''
+        rows = table_text.split('\n')
+        for index in range(len(rows)/2):
+            result += rows[index]
+            if (len(rows)/2 + index) < len(rows):
+                result += rows[len(rows)/2 + index] + '\n'
+            else:
+                result += '\n'
+
         return result
