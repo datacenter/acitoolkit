@@ -30,14 +30,10 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
-from .acibaseobject import BaseACIObject, BaseRelation
+from .aciphysobject import Interface
+from .acibaseobject import BaseACIObject, BaseRelation, BaseInterface
 from .acisession import Session
-from .acitoolkitlib import Credentials
-from .acicounters import InterfaceStats
-from .aciphysobject import BaseInterface, Interface
 import logging
-import re
-import copy
 
 
 class Tenant(BaseACIObject):
