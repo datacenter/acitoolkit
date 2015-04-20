@@ -31,9 +31,9 @@
 """
 Simple application to display the physical inventory
 """
-from acitoolkit.aciphysobject import Pod
 from acitoolkit.acitoolkit import Credentials, Session
 import sys
+from acitoolkit.aciphysobject import Pod
 
 
 def print_inventory(item):
