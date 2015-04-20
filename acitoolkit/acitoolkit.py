@@ -1710,7 +1710,7 @@ class Contract(BaseContract):
                 for subj_child in subject['children']:
                     if 'vzRsSubjFiltAtt' in subj_child:
                         filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
-                        filter_name = filter_attributes['rn'].split('rssubjFiltAtt-')[1]
+                        filter_name = filter_attributes['tnVzFilterName']
                         for filter in full_data[0]['fvTenant']['children']:
                             if 'vzFilter' in filter:
                                 match_name = filter['vzFilter']['attributes']['name']

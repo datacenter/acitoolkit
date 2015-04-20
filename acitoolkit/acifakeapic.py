@@ -94,7 +94,8 @@ class FakeSession(Session):
         if isinstance(db, list):
             for obj in db:
                 assert not isinstance(obj, list)
-                self._get_class(class_name, resp, obj)
+                self._get_class(class_name, resp, obj,
+                                with_children, with_name)
             return resp
         if class_name in db:
             if with_name and db[class_name]['attributes']['name'] != with_name:
@@ -108,9 +109,14 @@ class FakeSession(Session):
                 resp.append(ret)
         else:
             for key in db:
-                if 'children' in db[key]:
+                if 'imdata' == key:
+                    for child in db[key]:
+                        self._get_class(class_name, resp, child,
+                                        with_children, with_name)
+                elif 'children' in db[key]:
                     for child in db[key]['children']:
-                        self._get_class(class_name, resp, child)
+                        self._get_class(class_name, resp, child,
+                                        with_children, with_name)
         return resp
 
     def _get_config(self, url):

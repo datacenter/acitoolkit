@@ -50,7 +50,7 @@ def main():
     pc.attach(intf2)
     pc.attach(intf3)
     pc.attach(intf4)
-    pc.mark_as_deleted()
+    # pc.mark_as_deleted()
 
     # Create a VLAN interface on the port channel
     # This is the L2 interface representing a single VLAN encap
@@ -59,7 +59,7 @@ def main():
     vlan5_on_pc.attach(pc)
 
     # Create a tenant, app profile, and epg
-    tenant = Tenant('coke')
+    tenant = Tenant('acitoolkitdemo')
     app = AppProfile('app', tenant)
     epg = EPG('epg', app)
 
