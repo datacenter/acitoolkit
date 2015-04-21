@@ -46,7 +46,7 @@ class Table(object):
 
     def __init__(self, data=None, headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
                  stralign="center",
-                 missingval="", columns=1):
+                 missingval="", columns = 1, table_type = 'table'):
         """
 
         :param data: list of table data.  Each row is a list and each table is a list of rows
@@ -57,7 +57,11 @@ class Table(object):
         :param numalign: number alignment - right, center, left, decimal - default is 'decimal'
         :param stralign: alignment for strings - right, center, left - default is 'center'
         :param missingval: alternate to use when a value is 'None' - default is ''
+        :param columns: Number of columns to display table in.  Default is 1.  2 is implemented.
+        :param table_type: Kind of table, 'table' or 'list'. Default is 'table'
         """
+
+        # TODO: truly separate data and headers for list view and allow table_type to drive display format
         self.data = data
         self.headers = headers
         self.tablefmt = tablefmt
@@ -67,6 +71,7 @@ class Table(object):
         self.missingval = missingval
         self.title = title
         self.columns = columns
+        self.table_type = 'table'
 
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
                  missingval=None, supresstitle=False, columns=None):
