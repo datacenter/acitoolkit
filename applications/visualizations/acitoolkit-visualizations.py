@@ -28,7 +28,6 @@
 #                                                                              #
 ################################################################################
 import flask
-import mysql.connector
 from acitoolkitvisualizationslib import *
 from acitoolkit.acitoolkitlib import Credentials
 
