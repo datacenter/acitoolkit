@@ -27,13 +27,16 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
-import mysql.connector
+try:
+    import mysql.connector as mysql
+except ImportError:
+    import pymysql as mysql
 import json
 
 
 def regenerate_pie_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
-    cnx = mysql.connector.connect(user=MYSQL_USERID, password=MYSQL_PASSWORD,
-                                  host=MYSQL_IP)
+    cnx = mysql.connect(user=MYSQL_USERID, password=MYSQL_PASSWORD,
+                        host=MYSQL_IP)
     c = cnx.cursor()
     c.execute('USE acitoolkit;')
     c.execute("SELECT DISTINCT(tenant) FROM endpoints;")
@@ -66,9 +69,9 @@ def regenerate_radial_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
         return resp
 
     def get_data_from_db():
-        cnx = mysql.connector.connect(user=MYSQL_USERID,
-                                      password=MYSQL_PASSWORD,
-                                      host=MYSQL_IP)
+        cnx = mysql.connect(user=MYSQL_USERID,
+                            password=MYSQL_PASSWORD,
+                            host=MYSQL_IP)
         c = cnx.cursor()
         c.execute('USE acitoolkit;')
         c.execute("SELECT DISTINCT(tenant) FROM endpoints;")
@@ -114,9 +117,9 @@ def regenerate_radial_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
 
 
 def regenerate_sunburst_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
-    cnx = mysql.connector.connect(user=MYSQL_USERID, password=MYSQL_PASSWORD,
-                                  host=MYSQL_IP,
-                                  database='acitoolkit')
+    cnx = mysql.connect(user=MYSQL_USERID, password=MYSQL_PASSWORD,
+                        host=MYSQL_IP,
+                        database='acitoolkit')
     c = cnx.cursor()
     c.execute('USE acitoolkit;')
     query = """select distinct mac,tenant,app,epg from endpoints;"""
@@ -172,9 +175,9 @@ def regenerate_endpoint_epg_tree(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
         return {'name': item, 'children': children_json}
 
     def get_data_from_db():
-        cnx = mysql.connector.connect(user=MYSQL_USERID,
-                                      password=MYSQL_PASSWORD,
-                                      host=MYSQL_IP)
+        cnx = mysql.connect(user=MYSQL_USERID,
+                            password=MYSQL_PASSWORD,
+                            host=MYSQL_IP)
         c = cnx.cursor()
         c.execute('USE acitoolkit;')
         c.execute("SELECT DISTINCT(tenant) FROM endpoints;")

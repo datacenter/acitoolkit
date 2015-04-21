@@ -859,7 +859,7 @@ class BaseACIObject(object):
         return result
 
     @staticmethod
-    def get_table(aci_object, title = ''):
+    def get_table(aci_object, title=''):
 
         """
         Abstract method that should be replaced by a version that is specific to
@@ -869,6 +869,7 @@ class BaseACIObject(object):
         :return: list of Table objects
         """
         return [None]
+
 
 class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
