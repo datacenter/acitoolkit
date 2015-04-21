@@ -17,9 +17,10 @@ The virtual machine is configured with the following parameters::
     Processor Cores: 2
     Memory: 2GB
 
-The ``acitoolkit`` and necessary packages are already installed. However, there
-likely has been changes since the VM was created. The VM can be updated to the
-latest version by entering the following command::
+The ``acitoolkit`` and necessary packages are already installed. However, given
+the pace of change in datacenter networking, there most likely have been changes
+since the VM was created. Luckily, the VM can be updated to the latest version
+by entering the following command::
 
     sudo ~/install
 
