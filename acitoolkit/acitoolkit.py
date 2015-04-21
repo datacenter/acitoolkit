@@ -33,6 +33,7 @@
 from .aciphysobject import Interface
 from .acibaseobject import BaseACIObject, BaseRelation, BaseInterface
 from .acisession import Session
+from .acitoolkitlib import Credentials
 import logging
 
 

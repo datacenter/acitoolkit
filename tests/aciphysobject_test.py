@@ -578,9 +578,10 @@ class TestLivePod(TestLiveAPIC):
         for child in children:
             children_types.add(child.get_type())
 
-        self.assertEqual(len(children_types), 2)
+        self.assertEqual(len(children_types), 3)
         self.assertIn('systemctrlcard', children_types)
         self.assertIn('fantray', children_types)
+        self.assertIn('powersupply', children_types)
 
     def test_linecard(self):
         session = self.login_to_apic()
@@ -705,6 +706,7 @@ class TestLivePod(TestLiveAPIC):
         for module in modules:
             module_types.add(module.get_type())
         self.assertEqual(len(module_types ^ set(['systemctrlcard',
+                                                 'powersupply',
                                                  'fantray'])), 0)
 
         links = pod.get_children(Link)

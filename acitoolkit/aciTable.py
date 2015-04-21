@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ################################################################################
-# _    ____ ___   ____                       _                   #
+#               _    ____ ___   ____                       _                   #
 #              / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
 #             / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
 #            / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
@@ -27,6 +27,7 @@
 ################################################################################
 from tabulate import tabulate
 import copy
+
 
 class Table(object):
     """
@@ -73,7 +74,7 @@ class Table(object):
         self.table_type = 'table'
 
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
-                 missingval=None, supresstitle=False, columns = None):
+                 missingval=None, supresstitle=False, columns=None):
         """
 
         :param title: optional title string will over-ride configured title
