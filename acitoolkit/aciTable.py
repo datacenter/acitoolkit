@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ################################################################################
-# _    ____ ___   ____                       _                   #
+#               _    ____ ___   ____                       _                   #
 #              / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
 #             / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
 #            / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
@@ -28,6 +28,7 @@
 from tabulate import tabulate
 import copy
 
+
 class Table(object):
     """
     Table object that holds the table data, headers, titles, and other switches
@@ -45,7 +46,7 @@ class Table(object):
 
     def __init__(self, data=None, headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
                  stralign="center",
-                 missingval="", columns = 1):
+                 missingval="", columns=1):
         """
 
         :param data: list of table data.  Each row is a list and each table is a list of rows
@@ -68,7 +69,7 @@ class Table(object):
         self.columns = columns
 
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
-                 missingval=None, supresstitle=False, columns = None):
+                 missingval=None, supresstitle=False, columns=None):
         """
 
         :param title: optional title string will over-ride configured title
