@@ -31,9 +31,9 @@
 """
 from aciTable import Table
 from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseACIPhysObject, BaseInterface
+import aciConcreteLib as Aci_Con
 from .acisession import Session
 from .acicounters import AtomicCountersOnGoing, InterfaceStats
-import aciConcreteLib as Aci_Con
 import logging
 import re
 import copy
@@ -1195,7 +1195,8 @@ class Node(BaseACIPhysObject):
         Fantray.get(session, self)
         Powersupply.get(session, self)
 
-        if include_concrete:
+        if include_concrete and self.role != 'controller':
+            # todo: currently only have concrete model for switches - need to add controller
             top_system = SwitchJson(session, self.node)
             Aci_Con.ConcreteArp.get(top_system, self)
             Aci_Con.ConcreteAccCtrlRule.get(top_system, self)
@@ -1271,7 +1272,7 @@ class Node(BaseACIPhysObject):
              '(' + str(switch.num_ps_modules) + ')'],
             ['System Uptime:', switch.system_uptime],
             ['Dynamic Load Balancing:', switch.dynamic_load_balancing_mode]]
-        result = [Table(table, title=super_title + 'Basic Information for {0}'.format(switch.name))]
+        result = [Table(table, title=super_title + 'Basic Information for {0}'.format(switch.name), columns=2)]
         return result
 
 
@@ -1798,8 +1799,6 @@ class AccessPolicyConcrete(BaseACIObject):
         self.direction = None
         self.filter_id = None
         self.mask_dscp = None
-
-
 
 
 class Interface(BaseInterface):
@@ -2345,6 +2344,7 @@ class SwitchJson(object):
                                                 'query-target=self&rsp-subtree=full')
 
         ret = session.get(query_url)
+        ret._content = ret._content.replace('\n','')
         data = ret.json()['imdata']
         if data:
             self.json = ret.json()['imdata'][0]
