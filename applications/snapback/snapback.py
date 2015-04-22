@@ -1,18 +1,29 @@
-# Copyright (c) 2015 Cisco Systems
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
+################################################################################
+#         _    ____ ___    ____                    _                _          #
+#        / \  / ___|_ _|  / ___| _ __   __ _ _ __ | |__   __ _  ___| | __      #
+#       / _ \| |    | |   \___ \| '_ \ / _` | '_ \| '_ \ / _` |/ __| |/ /      #
+#      / ___ \ |___ | |    ___) | | | | (_| | |_) | |_) | (_| | (__|   <       #
+#     /_/   \_\____|___|  |____/|_| |_|\__,_| .__/|_.__/ \__,_|\___|_|\_\      #
+#                                           |_|                                #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
 """  Snapback: Configuration Snapshot and Rollback for ACI fabrics
      This file contains the main GUI for the Snapback tool
 """
@@ -35,6 +46,7 @@ from wtforms.fields.html5 import DateField, DateTimeField
 from wtforms.validators import Required, IPAddress, NumberRange
 from wtforms.validators import ValidationError, Optional
 import difflib
+from acitoolkit.acitoolkit import Credentials
 
 # Create application
 app = Flask(__name__, static_folder='static')
@@ -302,7 +314,7 @@ class ScheduleSnapshot(BaseView):
                            schedule=cdb.get_current_schedule())
 
 
-class Credentials(BaseView):
+class CredentialsView(BaseView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         form = CredentialsForm()
@@ -418,7 +430,7 @@ admin = admin.Admin(app,
                     base_template='layout.html')
 
 # Add views
-admin.add_view(Credentials(name='Credentials'))
+admin.add_view(CredentialsView(name='Credentials'))
 admin.add_view(ScheduleSnapshot(name='Schedule Snapshot',
                                 endpoint='schedulesnapshot'))
 admin.add_view(SnapshotsAdmin(Snapshots, db.session,
@@ -456,9 +468,12 @@ def build_db():
     return
 
 if __name__ == '__main__':
+    description = ('ACI Configuration Snapshot and Rollback tool.')
+    creds = Credentials('server', description)
+    args = creds.get()
 
     # Build the database
     build_db()
 
     # Start app
-    app.run(debug=True)
+    app.run(debug=True, host=args.ip, port=int(args.port))

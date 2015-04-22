@@ -1,25 +1,41 @@
-# Copyright (c) 2014 Cisco Systems
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
+################################################################################
+#                                  _    ____ ___                               #
+#                                 / \  / ___|_ _|                              #
+#                                / _ \| |    | |                               #
+#                               / ___ \ |___ | |                               #
+#                         _____/_/   \_\____|___|_ _                           #
+#                        |_   _|__   ___ | | | _(_) |_                         #
+#                          | |/ _ \ / _ \| | |/ / | __|                        #
+#                          | | (_) | (_) | |   <| | |_                         #
+#                          |_|\___/ \___/|_|_|\_\_|\__|                        #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
 """ACI Toolkit Test module
 """
 from acitoolkit.acitoolkit import *
 from acitoolkit.aciphysobject import *
+from acitoolkit.acibaseobject import *
 import unittest
 import string
 import random
+
 try:
     from credentials import *
 except ImportError:
@@ -58,6 +74,7 @@ def random_size_string():
 class TestBaseRelation(unittest.TestCase):
     """Tests on the BaseRelation class.  These do not communicate with the APIC
     """
+
     def create_relation(self, status='attached'):
         """
         Creates a base relation
@@ -187,6 +204,7 @@ class TestTenant(unittest.TestCase):
     """
     Tenant class tests.  These do not communicate with APIC
     """
+
     def test_create(self):
         """
         Tenant creation
@@ -219,6 +237,7 @@ class TestAppProfile(unittest.TestCase):
     """
     AppProfile class tests.  These do not communicate with APIC
     """
+
     def test_create(self):
         """
         AppProfile creation
@@ -326,6 +345,7 @@ class TestBridgeDomain(unittest.TestCase):
     """
     Test the BridgeDomain class
     """
+
     def create_bd(self):
         """ Create a BridgeDomain """
         tenant = Tenant('tenant')
@@ -458,11 +478,17 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertRaises(TypeError, Subnet, 'sub1', tenant)
 
     def test_add_subnet_twice(self):
+        """
+        Test adding the same subnet twice to the same BridgeDomain
+        """
         bd, sub1 = self.create_bd_with_subnet()
         bd.add_subnet(sub1)
         self.assertTrue(len(bd.get_subnets()) == 1)
 
     def test_add_subnet_different_bd(self):
+        """
+        Test adding the same subnet to 2 different BridgeDomains
+        """
         tenant, bd = self.create_bd()
         subnet = Subnet('subnet', bd)
         subnet.set_addr('1.2.3.4/24')
@@ -472,25 +498,40 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd2.has_subnet(subnet))
 
     def test_set_subnet_addr_to_none(self):
+        """
+        Test adding subnet to None
+        """
         bd, sub1 = self.create_bd_with_subnet()
         self.assertRaises(TypeError, sub1.set_addr, None)
 
     def test_has_subnet_wrong_type(self):
+        """
+        Test has_subnet with the wrong object class
+        """
         tenant, bd = self.create_bd()
         self.assertRaises(TypeError, bd.has_subnet, tenant)
 
     def test_has_subnet_no_addr(self):
+        """
+        Test subnet without address set
+        """
         tenant, bd = self.create_bd()
         sub1 = Subnet('sub1', bd)
         self.assertRaises(ValueError, bd.has_subnet, sub1)
 
     def test_remove_subnet(self):
+        """
+        Test remove subnet
+        """
         bd, sub1 = self.create_bd_with_subnet()
         bd.remove_subnet(sub1)
         self.assertFalse(bd.has_subnet(sub1))
         self.assertTrue(len(bd.get_subnets()) == 0)
 
     def test_remove_2_subnets(self):
+        """
+        Test remove 2 subnets
+        """
         bd, sub1, sub2 = self.test_add_2_valid_subnets()
         bd.remove_subnet(sub1)
         self.assertFalse(bd.has_subnet(sub1))
@@ -502,16 +543,25 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(len(bd.get_subnets()) == 0)
 
     def test_remove_subnet_wrong_type(self):
+        """
+        Test remove subnet of the wrong type
+        """
         bd, sub1 = self.create_bd_with_subnet()
         self.assertRaises(TypeError, bd.remove_subnet, 'sub1')
 
     def test_add_context(self):
+        """
+        Test adding context to the bd
+        """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
         self.assertTrue(bd.get_context() == context)
 
     def test_add_context_twice(self):
+        """
+        Test adding the same context twice
+        """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
@@ -634,229 +684,6 @@ class TestL3Interface(unittest.TestCase):
         self.assertFalse(l3if.has_context())
 
 
-class TestInterface(unittest.TestCase):
-    def test_create_valid_phydomain(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        (phydomain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'physDomP': {'attributes': {'name': 'allvlans'}, 'c"
-                         "hildren': [{'infraRsVlanNs': {'attributes': {'tDn': "
-                         "'uni/infra/vlanns-allvlans-static'}, 'children': []}"
-                         "}]}}")
-        self.assertEqual(str(phydomain_json), expected_json)
-
-    def test_create_valid(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        (phydomain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
-                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
-                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
-                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
-                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
-                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
-                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
-                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
-                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
-                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
-                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
-                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
-                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
-                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
-                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
-                         "0G', 'autoNeg': 'on', 'speed': '10G', 'name': 'speed"
-                         "10G'}, 'children': []}}, {'infraFuncP': {'attributes"
-                         "': {}, 'children': [{'infraAccPortGrp': {'attributes"
-                         "': {'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', '"
-                         "name': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'"
-                         "attributes': {'tnFabricHIfPolName': 'speed10G'}, 'ch"
-                         "ildren': []}}, {'infraRsAttEntP': {'attributes': {'t"
-                         "Dn': 'uni/infra/attentp-allvlans'}, 'children': []}}"
-                         "]}}]}}, {'infraAttEntityP': {'attributes': {'name': "
-                         "'allvlans'}, 'children': [{'infraRsDomP': {'attribut"
-                         "es': {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanIn"
-                         "stP': {'attributes': {'name': 'allvlans', 'allocMode"
-                         "': 'static'}, 'children': [{'fvnsEncapBlk': {'attrib"
-                         "utes': {'to': 'vlan-4092', 'from': 'vlan-1', 'name':"
-                         " 'encap'}}}]}}]}}")
-        self.assertTrue(intf is not None)
-        self.assertEqual(str(infra_json), expected_json)
-
-    def test_set_speed_10G(self):
-        intf = Interface('eth', '1', '101', '1', '5')
-        intf.speed = '10G'
-        (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-101-1-5'}, 'children': [{'infraLe"
-                         "afS': {'attributes': {'type': 'range', 'name': '1-10"
-                         "1-1-5'}, 'children': [{'infraNodeBlk': {'attributes'"
-                         ": {'from_': '101', 'name': '1-101-1-5', 'to_': '101'"
-                         "}, 'children': []}}]}}, {'infraRsAccPortP': {'attrib"
-                         "utes': {'tDn': 'uni/infra/accportprof-1-101-1-5'}, '"
-                         "children': []}}]}}, {'infraAccPortP': {'attributes':"
-                         " {'name': '1-101-1-5'}, 'children': [{'infraHPortS':"
-                         " {'attributes': {'type': 'range', 'name': '1-101-1-5"
-                         "'}, 'children': [{'infraPortBlk': {'attributes': {'t"
-                         "oPort': '5', 'fromPort': '5', 'fromCard': '1', 'name"
-                         "': '1-101-1-5', 'toCard': '1'}, 'children': []}}, {'"
-                         "infraRsAccBaseGrp': {'attributes': {'tDn': 'uni/infr"
-                         "a/funcprof/accportgrp-1-101-1-5'}, 'children': []}}]"
-                         "}}]}}, {'fabricHIfPol': {'attributes': {'dn': 'uni/i"
-                         "nfra/hintfpol-speed10G', 'autoNeg': 'on', 'speed': '"
-                         "10G', 'name': 'speed10G'}, 'children': []}}, {'infra"
-                         "FuncP': {'attributes': {}, 'children': [{'infraAccPo"
-                         "rtGrp': {'attributes': {'dn': 'uni/infra/funcprof/ac"
-                         "cportgrp-1-101-1-5', 'name': '1-101-1-5'}, 'children"
-                         "': [{'infraRsHIfPol': {'attributes': {'tnFabricHIfPo"
-                         "lName': 'speed10G'}, 'children': []}}, {'infraRsAttE"
-                         "ntP': {'attributes': {'tDn': 'uni/infra/attentp-allv"
-                         "lans'}, 'children': []}}]}}]}}, {'infraAttEntityP': "
-                         "{'attributes': {'name': 'allvlans'}, 'children': [{'"
-                         "infraRsDomP': {'attributes': {'tDn': 'uni/phys-allvl"
-                         "ans'}}}]}}, {'fvnsVlanInstP': {'attributes': {'name'"
-                         ": 'allvlans', 'allocMode': 'static'}, 'children': [{"
-                         "'fvnsEncapBlk': {'attributes': {'to': 'vlan-4092', '"
-                         "from': 'vlan-1', 'name': 'encap'}}}]}}]}}")
-        self.assertEqual(str(infra_json), expected_json)
-
-    def test_set_speed_1G(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.speed = '1G'
-        (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
-                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
-                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
-                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
-                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
-                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
-                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
-                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
-                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
-                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
-                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
-                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
-                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
-                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
-                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
-                         "G', 'autoNeg': 'on', 'speed': '1G', 'name': 'speed1G"
-                         "'}, 'children': []}}, {'infraFuncP': {'attributes': "
-                         "{}, 'children': [{'infraAccPortGrp': {'attributes': "
-                         "{'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', 'nam"
-                         "e': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'att"
-                         "ributes': {'tnFabricHIfPolName': 'speed1G'}, 'childr"
-                         "en': []}}, {'infraRsAttEntP': {'attributes': {'tDn':"
-                         " 'uni/infra/attentp-allvlans'}, 'children': []}}]}}]"
-                         "}}, {'infraAttEntityP': {'attributes': {'name': 'all"
-                         "vlans'}, 'children': [{'infraRsDomP': {'attributes':"
-                         " {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanInstP'"
-                         ": {'attributes': {'name': 'allvlans', 'allocMode': '"
-                         "static'}, 'children': [{'fvnsEncapBlk': {'attributes"
-                         "': {'to': 'vlan-4092', 'from': 'vlan-1', 'name': 'en"
-                         "cap'}}}]}}]}}")
-
-        self.assertEqual(str(infra_json), expected_json)
-
-    def test_adminstate_not_set(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.adminstate = ''
-        phys_domain_url, fabric_url, infra_url = intf.get_url()
-        phys_domain_json, fabric_json, infra_json = intf.get_json()
-        self.assertIsNone(fabric_json)
-
-    def test_adminstate_up(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.adminstatus = 'up'
-        phys_domain_json, fabric_json, infra_json = intf.get_json()
-        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
-                         "th': {'attributes': {'dn': 'uni/fabric/outofsvc/rsoo"
-                         "sPath-[topology/pod-1/paths-1/pathep-[eth1/1]]', 'st"
-                         "atus': 'deleted', 'tDn': 'topology/pod-1/paths-1/pat"
-                         "hep-[eth1/1]'}, 'children': []}}]}}")
-        self.assertEqual(str(fabric_json), expected_json)
-
-    def test_adminstate_down(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.adminstatus = 'down'
-        phys_domain_json, fabric_json, infra_json = intf.get_json()
-        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
-                         "th': {'attributes': {'tDn': 'topology/pod-1/paths-1/"
-                         "pathep-[eth1/1]', 'lc': 'blacklist'}, 'children': []"
-                         "}}]}}")
-        self.assertEqual(str(fabric_json), expected_json)
-
-    def test_cdp_not_enabled(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        self.assertFalse(intf.is_cdp_enabled())
-
-    def test_cdp_is_enabled(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.enable_cdp()
-        self.assertTrue(intf.is_cdp_enabled())
-
-    def test_cdp_is_disabled(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.disable_cdp()
-        self.assertFalse(intf.is_cdp_enabled())
-
-    def test_lldp_not_enabled(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        self.assertFalse(intf.is_lldp_enabled())
-
-    def test_lldp_is_enabled(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.enable_lldp()
-        self.assertTrue(intf.is_lldp_enabled())
-
-    def test_lldp_is_disabled(self):
-        intf = Interface('eth', '1', '1', '1', '1')
-        intf.disable_lldp()
-        self.assertFalse(intf.is_lldp_enabled())
-
-    def parse_name(self, text):
-        (intf_type, pod, node, module, port) = Interface.parse_name(text)
-        self.assertTrue(intf_type == 'eth')
-        self.assertTrue(pod == '1')
-        self.assertTrue(node == '2')
-        self.assertTrue(module == '3')
-        self.assertTrue(port == '4')
-
-    def test_parse_name_space(self):
-        self.parse_name('eth 1/2/3/4')
-
-    def test_set_attributes(self):
-        intf1 = Interface('eth', '1', '2', '3', '4')
-        intf2 = Interface('eth', '6', '7', '8', '9')
-
-        self.assertTrue(intf1.attributes['interface_type'] == 'eth')
-        self.assertTrue(intf1.attributes['pod'] == '1')
-        self.assertTrue(intf1.attributes['node'] == '2')
-        self.assertTrue(intf1.attributes['module'] == '3')
-        self.assertTrue(intf1.attributes['port'] == '4')
-
-        self.assertTrue(intf2.attributes['interface_type'] == 'eth')
-        self.assertTrue(intf2.attributes['pod'] == '6')
-        self.assertTrue(intf2.attributes['node'] == '7')
-        self.assertTrue(intf2.attributes['module'] == '8')
-        self.assertTrue(intf2.attributes['port'] == '9')
-
-    # def test_parse_name_no_space(self):
-    #    self.parse_name('eth1/2/3/4')
-    def test_get_serial(self) :
-        intf1 = Interface('eth', '1', '2', '3', '4')
-        self.assertEqual(intf1.get_serial(), None)
-
-    def test_get_type(self) :
-        intf1 = Interface('eth', '1', '2', '3', '4')
-        self.assertEqual(intf1.get_type(), 'interface')
-
-    def test_cdp_disabled(self) :
-        intf1 = Interface('eth', '1', '2', '3', '4')
-        self.assertFalse(intf1.is_cdp_disabled())
-
-    def test_lldp_disabled(self) :
-        intf1 = Interface('eth', '1', '2', '3', '4')
-        self.assertFalse(intf1.is_lldp_disabled())
-
 class TestBaseContract(unittest.TestCase):
     def test_get_contract_code(self):
         contract = BaseContract('contract')
@@ -959,7 +786,7 @@ class TestEPG(unittest.TestCase):
         tenant, app, epg = self.create_epg()
         self.assertTrue(isinstance(epg, EPG))
 
-    #def test_invalid_create_parent_none(self):
+    # def test_invalid_create_parent_none(self):
     #    self.assertRaises(TypeError, EPG, 'epg', None)
 
     def test_invalid_create_parent_wrong_class(self):
@@ -1160,6 +987,7 @@ class TestEndpoint(unittest.TestCase):
     Test Static Endpoints.
     These tests do not communicate with the APIC
     """
+
     def create_tenant_with_ep(self, tenant_name, app_name,
                               epg_name, ep_name, interface=None):
         """
@@ -1174,7 +1002,7 @@ class TestEndpoint(unittest.TestCase):
             epg.attach(interface)
             ep.attach(interface)
         return tenant
-    
+
     def verify_json(self, data, deleted=False):
         """
         Check that the JSON is correct for an Endpoint.
@@ -1189,7 +1017,7 @@ class TestEndpoint(unittest.TestCase):
             if 'fvRsPathAtt' in child:
                 dn_attr = child['fvRsPathAtt']['attributes']['tDn']
                 self.assertTrue(dn_attr == interface)
-                children_checked = children_checked + 1
+                children_checked += 1
             if 'fvStCEp' in child:
                 ep_child = child['fvStCEp']['children'][0]
                 ep_attributes = child['fvStCEp']['attributes']
@@ -1198,7 +1026,7 @@ class TestEndpoint(unittest.TestCase):
                     status = ep_attributes['status']
                     self.assertTrue(status == 'deleted')
                 self.assertTrue(ep_name == mac)
-                children_checked = children_checked + 1
+                children_checked += 1
                 self.assertTrue('fvRsStCEpToPathEp' in ep_child)
                 if_attr = ep_child['fvRsStCEpToPathEp']['attributes']
                 child_interface = if_attr['tDn']
@@ -1213,13 +1041,15 @@ class TestEndpoint(unittest.TestCase):
         tenant = self.create_tenant_with_ep('tenant', 'app', 'epg',
                                             '00-11-22-33-44-55')
         tenant.get_json()
-    def test_create_bad_parent(self) :
+
+    def test_create_bad_parent(self):
         """
         checks to see that creating an endpoint in something
         other an EPG causes an error.
         """
-        self.assertRaises(TypeError,Endpoint,'00-11-22-33-44-55','not an epg')
-        
+        self.assertRaises(TypeError, Endpoint,
+                          '00-11-22-33-44-55', 'not an epg')
+
     def test_create_on_interface(self):
         """
         Create a basic static endpoint and attach
@@ -1468,20 +1298,22 @@ class TestOspf(unittest.TestCase):
         outside.attach(ospfif)
         ospf_json = outside.get_json()
 
+
 class TestMonitorPolicy(unittest.TestCase):
     """
     Tests the monitoriing policy
     """
+
     def test_create(self):
-        m_policy = MonitorPolicy('fabric','policy-name')
-        self.assertEqual(m_policy.name,'policy-name')
-        self.assertEqual(m_policy.policyType,'fabric')
+        m_policy = MonitorPolicy('fabric', 'policy-name')
+        self.assertEqual(m_policy.name, 'policy-name')
+        self.assertEqual(m_policy.policyType, 'fabric')
         m_policy.set_name('policy-name-2')
-        self.assertEqual(m_policy.name,'policy-name-2')
+        self.assertEqual(m_policy.name, 'policy-name-2')
         m_policy.set_description('Policy description string')
-        self.assertEqual(m_policy.description,'Policy description string')
-    
-    
+        self.assertEqual(m_policy.description, 'Policy description string')
+
+
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -1616,7 +1448,7 @@ class TestLiveSubscription(TestLiveAPIC):
         # Create the tenant and push to APIC
         new_tenant = Tenant(tenant_name)
         resp = session.push_to_apic(new_tenant.get_url(),
-                                    data=new_tenant.get_json())
+            data=new_tenant.get_json())
         self.assertTrue(resp.ok)
 
         # Wait for the event to come through the subscription
@@ -1636,7 +1468,7 @@ class TestLiveSubscription(TestLiveAPIC):
 
         new_tenant.mark_as_deleted()
         resp = session.push_to_apic(new_tenant.get_url(),
-                                    data=new_tenant.get_json())
+            data=new_tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_resubscribe(self):
@@ -1651,10 +1483,13 @@ class TestLiveSubscription(TestLiveAPIC):
 
 
 class TestLiveInterface(TestLiveAPIC):
-    def get_valid_interface(self, session) :
+    def get_valid_interface(self, session):
         interfaces = Interface.get(session)
-        return interfaces[0]
-    
+        if len(interfaces):
+            return interfaces[0]
+        else:
+            return None
+
     def get_spine(self):
         session = self.login_to_apic()
         nodes = Node.get(session)
@@ -1662,7 +1497,7 @@ class TestLiveInterface(TestLiveAPIC):
             if node.get_role() == 'spine' and node.fabricSt == 'active':
                 return node
         return None
-    
+
     def test_get_all_interfaces(self):
         session = self.login_to_apic()
         self.assertRaises(TypeError, Interface.get, None)
@@ -1673,36 +1508,42 @@ class TestLiveInterface(TestLiveAPIC):
             self.assertTrue(isinstance(interface_as_a_string, str))
             path = interface._get_path()
             self.assertTrue(isinstance(path, str))
-            
-    def test_get(self) :
+
+    def test_get(self):
         session = self.login_to_apic()
         interface = self.get_valid_interface(session)
+        assert interface is not None
         pod = interface.pod
         node = interface.node
         slot = interface.module
         port = interface.port
-        self.assertRaises(TypeError, Interface.get, session,pod, node, slot, 33)
-        self.assertRaises(TypeError, Interface.get, session,pod, node, 1, port)
-        self.assertRaises(TypeError, Interface.get, session,pod, 101, slot, port)
-        self.assertRaises(TypeError, Interface.get, session,1, node, slot, port)
+        self.assertRaises(TypeError, Interface.get, session,
+                          pod, node, slot, 33)
+        self.assertRaises(TypeError, Interface.get, session,
+                          pod, node, 1, port)
+        self.assertRaises(TypeError, Interface.get, session,
+                          pod, 101, slot, port)
+        self.assertRaises(TypeError, Interface.get, session,
+                          1, node, slot, port)
         interface_again = Interface.get(session, pod, node, slot, port)[0]
-        self.assertTrue(interface==interface_again)
+        self.assertTrue(interface == interface_again)
 
         self.assertRaises(TypeError, Interface.get, session, pod)
-        pod = Linecard(pod,node,slot)
+        pod = Linecard(pod, node, slot)
         interfaces = Interface.get(session, pod)
-        self.assertTrue(len(interfaces)>0)
+        self.assertTrue(len(interfaces) > 0)
 
-    def test_get_adjacent(self) :
+    def test_get_adjacent(self):
         session = self.login_to_apic()
         interfaces = Interface.get(session)
-        for interface in interfaces :
-            if interface.porttype=='fab' and interface.attributes['operSt']=='up':
+        for interface in interfaces:
+            if interface.porttype == 'fab' and interface.attributes['operSt'] == 'up':
                 adj = interface.get_adjacent_port()
                 fields = adj.split('/')
-                self.assertEqual(len(fields),4)
-                for field in fields :
+                self.assertEqual(len(fields), 4)
+                for field in fields:
                     self.assertIsInstance(int(field), int)
+
 
 class TestLivePortChannel(TestLiveAPIC):
     def test_get_all_portchannels(self):
@@ -1736,26 +1577,19 @@ class TestLiveEPG(TestLiveAPIC):
                     self.assertTrue(isinstance(epg, EPG))
 
 
-class TestLiveEndpoint(unittest.TestCase):
+class TestLiveEndpoint(TestLiveAPIC):
     def test_get_bad_session(self):
         bad_session = 'BAD SESSION'
         self.assertRaises(TypeError, Endpoint.get, bad_session)
 
     def test_get(self):
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
-
+        session = self.login_to_apic()
         endpoints = Endpoint.get(session)
 
 
-class TestApic(unittest.TestCase):
+class TestApic(TestLiveAPIC):
     def base_test_setup(self):
-        # Login to APIC
-        session = Session(URL, LOGIN, PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self.login_to_apic()
 
         # Create the Tenant
         tenant = Tenant('aci-toolkit-test')
@@ -1772,7 +1606,7 @@ class TestApic(unittest.TestCase):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
-        return(session, tenant, app, epg)
+        return (session, tenant, app, epg)
 
     def base_test_teardown(self, session, tenant):
         # Delete the tenant
@@ -1788,7 +1622,11 @@ class TestApic(unittest.TestCase):
         url = ('/api/mo/uni/tn-%s.json?query-target=subtree&'
                'target-subtree-class=fvRsPathAtt' % tenant.name)
         attachments = session.get(url)
-        num_attachments_before = int(attachments.json()['totalCount'])
+        attachment_data = attachments.json()
+        if 'totalCount' in attachment_data:
+            num_attachments_before = int(attachment_data['totalCount'])
+        else:
+            num_attachments_before = 0
 
         # Attach the EPG to an Interface
         intf = Interface('eth', '1', '101', '1', '69')
@@ -1800,7 +1638,11 @@ class TestApic(unittest.TestCase):
 
         # Verify that the number of attachments increased
         attachments = session.get(url)
-        num_attachments_after = int(attachments.json()['totalCount'])
+        attachment_data = attachments.json()
+        if 'totalCount' in attachment_data:
+            num_attachments_after = int(attachments.json()['totalCount'])
+        else:
+            num_attachments_after = 0
         self.assertTrue(num_attachments_after > num_attachments_before,
                         'EPG was not added to the interface')
 
@@ -2042,7 +1884,7 @@ class TestLiveContracts(TestLiveAPIC):
                              sToPort='65535',
                              tcpRules='unspecified',
                              parent=contract)
-        return(entry1, entry2)
+        return (entry1, entry2)
 
     def test_get(self):
         session = self.login_to_apic()
@@ -2127,153 +1969,156 @@ class TestLiveContracts(TestLiveAPIC):
 
 
 class TestLiveOSPF(TestLiveAPIC):
+    def test_no_auth(self):
+        tenant = Tenant('cisco')
+        context = Context('cisco-ctx1', tenant)
+        outside = OutsideEPG('out-1', tenant)
+        outside.add_context(context)
+        phyif = Interface('eth', '1', '101', '1', '46')
+        phyif.speed = '1G'
+        l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+        l2if.attach(phyif)
+        l3if = L3Interface('l3if')
+        l3if.set_l3if_type('l3-port')
+        l3if.set_mtu('1500')
+        l3if.set_addr('1.1.1.2/30')
+        l3if.add_context(context)
+        l3if.attach(l2if)
+        rtr = OSPFRouter('rtr-1')
+        rtr.set_router_id('23.23.23.23')
+        rtr.set_node_id('101')
+        ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='1')
+        ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
+        ifpol.set_nw_type('p2p')
+        ospfif.int_policy_name = ifpol.name
+        tenant.attach(ospfif)
+        ospfif.networks.append('55.5.5.0/24')
+        ospfif.attach(l3if)
+        contract1 = Contract('contract-1')
+        outside.provide(contract1)
+        contract2 = Contract('contract-2')
+        outside.consume(contract2)
+        outside.attach(ospfif)
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-        def test_no_auth(self):
-            tenant = Tenant('cisco')
-            context = Context('cisco-ctx1', tenant)
-            outside = OutsideEPG('out-1', tenant)
-            outside.add_context(context)
-            phyif = Interface('eth', '1', '101', '1', '46')
-            phyif.speed = '1G'
-            l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
-            l2if.attach(phyif)
-            l3if = L3Interface('l3if')
-            l3if.set_l3if_type('l3-port')
-            l3if.set_mtu('1500')
-            l3if.set_addr('1.1.1.2/30')
-            l3if.add_context(context)
-            l3if.attach(l2if)
-            rtr = OSPFRouter('rtr-1')
-            rtr.set_router_id('23.23.23.23')
-            rtr.set_node_id('101')
-            ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='1')
-            ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
-            ifpol.set_nw_type('p2p')
-            ospfif.int_policy_name = ifpol.name
-            tenant.attach(ospfif)
-            ospfif.networks.append('55.5.5.0/24')
-            ospfif.attach(l3if)
-            contract1 = Contract('contract-1')
-            outside.provide(contract1)
-            contract2 = Contract('contract-2')
-            outside.consume(contract2)
-            outside.attach(ospfif)
-            session = self.login_to_apic()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-            # Cleanup
-            tenant.mark_as_deleted()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
+    def test_authenticated(self):
+        tenant = Tenant('cisco')
+        context = Context('cisco-ctx1', tenant)
+        outside = OutsideEPG('out-1', tenant)
+        outside.add_context(context)
+        phyif = Interface('eth', '1', '101', '1', '46')
+        phyif.speed = '1G'
+        l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
+        l2if.attach(phyif)
+        l3if = L3Interface('l3if')
+        l3if.set_l3if_type('l3-port')
+        l3if.set_mtu('1500')
+        l3if.set_addr('1.1.1.2/30')
+        l3if.add_context(context)
+        l3if.attach(l2if)
+        rtr = OSPFRouter('rtr-1')
+        rtr.set_router_id('23.23.23.23')
+        rtr.set_node_id('101')
+        ospfif = OSPFInterface('ospfif-1', rtr, '1')
+        ospfif.auth_key = 'password'
+        ospfif.auth_keyid = '1'
+        ospfif.auth_type = 'simple'
+        ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
+        ifpol.set_nw_type('p2p')
+        ospfif.int_policy_name = ifpol.name
+        tenant.attach(ospfif)
+        ospfif.networks.append('55.5.5.0/24')
+        ospfif.attach(l3if)
+        contract1 = Contract('contract-1')
+        outside.provide(contract1)
+        contract2 = Contract('contract-2')
+        outside.consume(contract2)
+        outside.attach(ospfif)
 
-        def test_authenticated(self):
-            tenant = Tenant('cisco')
-            context = Context('cisco-ctx1', tenant)
-            outside = OutsideEPG('out-1', tenant)
-            outside.add_context(context)
-            phyif = Interface('eth', '1', '101', '1', '46')
-            phyif.speed = '1G'
-            l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
-            l2if.attach(phyif)
-            l3if = L3Interface('l3if')
-            l3if.set_l3if_type('l3-port')
-            l3if.set_mtu('1500')
-            l3if.set_addr('1.1.1.2/30')
-            l3if.add_context(context)
-            l3if.attach(l2if)
-            rtr = OSPFRouter('rtr-1')
-            rtr.set_router_id('23.23.23.23')
-            rtr.set_node_id('101')
-            ospfif = OSPFInterface('ospfif-1', rtr, '1')
-            ospfif.auth_key = 'password'
-            ospfif.auth_keyid = '1'
-            ospfif.auth_type = 'simple'
-            ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
-            ifpol.set_nw_type('p2p')
-            ospfif.int_policy_name = ifpol.name
-            tenant.attach(ospfif)
-            ospfif.networks.append('55.5.5.0/24')
-            ospfif.attach(l3if)
-            contract1 = Contract('contract-1')
-            outside.provide(contract1)
-            contract2 = Contract('contract-2')
-            outside.consume(contract2)
-            outside.attach(ospfif)
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-            session = self.login_to_apic()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(),
+            data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
-            # Cleanup
-            tenant.mark_as_deleted()
-            resp = session.push_to_apic(tenant.get_url(),
-                                        data=tenant.get_json())
-            self.assertTrue(resp.ok)
 
 class TestLiveMonitorPolicy(TestLiveAPIC):
     """
     Live tests of the monitoriing policy
     """
-    def check_collection_policy(self, parent) :
-        for index in parent.collection_policy :
+
+    def check_collection_policy(self, parent):
+        for index in parent.collection_policy:
             policy = parent.collection_policy[index]
             self.assertEqual(index, policy.granularity)
             self.assertIn(policy.granularity, ['5min', '15min', '1h', '1d',
-                       '1w', '1mo', '1qtr', '1year'])
-            self.assertIn(policy.retention, ['none', 'inherited', '5min', '15min', '1h', '1d',
-                     '1w', '10d', '1mo', '1qtr', '1year', '2year', '3year'])
-            self.assertIn(policy.adminState, ['enabled', 'disabled', 'inherited'])
+                                               '1w', '1mo', '1qtr', '1year'])
+            self.assertIn(policy.retention,
+                          ['none', 'inherited', '5min', '15min', '1h', '1d',
+                           '1w', '10d', '1mo', '1qtr', '1year', '2year',
+                           '3year'])
+            self.assertIn(policy.adminState,
+                          ['enabled', 'disabled', 'inherited'])
             self.assertEqual(policy._parent, parent)
-        
+
     def test_get(self):
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
-        self.assertTrue(len(policies)>0)
-        for policy in policies :
-            self.assertIn(policy.policyType,['fabric','access'])
+        self.assertTrue(len(policies) > 0)
+        for policy in policies:
+            self.assertIn(policy.policyType, ['fabric', 'access'])
             self.assertIsInstance(policy.name, str)
             self.check_collection_policy(policy)
 
-    def test_monitor_target(self) :
+    def test_monitor_target(self):
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
-        for policy in policies :
+        for policy in policies:
             monitor_targets = policy.monitor_target
-            
-            for index in monitor_targets :
+            for index in monitor_targets:
                 monitor_target = monitor_targets[index]
-                self.assertIn(monitor_target.scope,['l1PhysIf'])
+                self.assertIn(monitor_target.scope, ['l1PhysIf'])
                 self.assertEqual(monitor_target._parent, policy)
                 self.assertIsInstance(monitor_target.descr, str)
                 self.assertIsInstance(monitor_target.name, str)
                 self.check_collection_policy(monitor_target)
-                
-    def test_monitor_stats(self) :
+
+    def test_monitor_stats(self):
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
-        for policy in policies :
+        for policy in policies:
             monitor_targets = policy.monitor_target
-            for index in monitor_targets :
+            for index in monitor_targets:
                 monitor_stats = monitor_targets[index].monitor_stats
-                for index2 in monitor_stats :
+                for index2 in monitor_stats:
                     monitor_stat = monitor_stats[index2]
-                    self.assertIn(monitor_stat.scope,['egrBytes', 'egrPkts', 'egrTotal', 'egrDropPkts',
-                        'ingrBytes', 'ingrPkts', 'ingrTotal', 'ingrDropPkts',
-                        'ingrUnkBytes', 'ingrUnkPkts', 'ingrStorm'])
-                    self.assertEqual(monitor_stat._parent, monitor_targets[index])
+                    self.assertIn(monitor_stat.scope,
+                                  ['egrBytes', 'egrPkts', 'egrTotal',
+                                   'egrDropPkts', 'ingrBytes', 'ingrPkts',
+                                   'ingrTotal', 'ingrDropPkts', 'ingrUnkBytes',
+                                   'ingrUnkPkts', 'ingrStorm'])
+                    self.assertEqual(monitor_stat._parent,
+                                     monitor_targets[index])
                     self.assertIsInstance(monitor_stat.descr, str)
                     self.assertIsInstance(monitor_stat.name, str)
                     self.check_collection_policy(monitor_stat)
 
-                
-        
-            
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     live = unittest.TestSuite()
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
@@ -2296,7 +2141,6 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestBridgeDomain))
     offline.addTest(unittest.makeSuite(TestL2Interface))
     offline.addTest(unittest.makeSuite(TestL3Interface))
-    offline.addTest(unittest.makeSuite(TestInterface))
     offline.addTest(unittest.makeSuite(TestBaseContract))
     offline.addTest(unittest.makeSuite(TestContract))
     offline.addTest(unittest.makeSuite(TestTaboo))
@@ -2309,7 +2153,6 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestBGP))
     offline.addTest(unittest.makeSuite(TestEndpoint))
     offline.addTest(unittest.makeSuite(TestMonitorPolicy))
-    
 
     full = unittest.TestSuite([live, offline])
 

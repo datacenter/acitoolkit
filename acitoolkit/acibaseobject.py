@@ -1,18 +1,32 @@
-# Copyright (c) 2014 Cisco Systems
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
+################################################################################
+#                                  _    ____ ___                               #
+#                                 / \  / ___|_ _|                              #
+#                                / _ \| |    | |                               #
+#                               / ___ \ |___ | |                               #
+#                         _____/_/   \_\____|___|_ _                           #
+#                        |_   _|__   ___ | | | _(_) |_                         #
+#                          | |/ _ \ / _ \| | |/ / | __|                        #
+#                          | | (_) | (_) | |   <| | |_                         #
+#                          |_|\___/ \___/|_|_|\_\_|\__|                        #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
 """
 This module implements the Base Class for creating all of the ACI Objects.
 """
@@ -74,7 +88,7 @@ class BaseACIObject(object):
     This class defines functionality common to all ACI objects.
     Functions may be overwritten by inheriting classes.
     """
-    def __init__(self, name, parent=None):
+    def __init__(self, name=None, parent=None):
         """
         Constructor initializes the basic object and should be called by\
         the init routines of inheriting subclasses.
@@ -524,15 +538,20 @@ class BaseACIObject(object):
         """
         self._children.remove(obj)
 
-    def populate_children(self, deep=False):
+    def populate_children(self, deep=False, include_concrete=False):
         """
         Populates all of the children and then calls populate_children\
         of those children if deep is True.  This method should be\
-        overridden by any object that does have children
+        overridden by any object that does have children.
 
+        If include_concrete is True, then if the object has concrete objects
+        below it, i.e. is a switch, then also populate those conrete object.
+
+        :param include_concrete: True or False. Default is False
         :param deep: True or False.  Default is False.
         """
         assert(deep is True or deep is False)
+        assert(include_concrete is True or include_concrete is False)
         return None
 
     def get_parent(self):
@@ -838,3 +857,417 @@ class BaseACIObject(object):
             if attrib[0] != '_':
                 result.append((attrib, getattr(self, attrib)))
         return result
+
+    @staticmethod
+    def get_table(aci_object, title=''):
+
+        """
+        Abstract method that should be replaced by a version that is specific to
+        the object
+        :param aci_object:
+        :param title:
+        :return: list of Table objects
+        """
+        return [None]
+
+
+class BaseACIPhysObject(BaseACIObject):
+    """Base class for physical objects
+    """
+
+    def __init__(self, name=None, parent=None):
+        super(BaseACIPhysObject, self).__init__(name, parent)
+        self.node = None
+
+    def _common_init(self, parent):
+        """
+        Common init used for all physical objects
+        """
+        self._deleted = False
+        self._parent = parent
+        self._children = []
+        self._relations = []
+        self._session = None
+        if self._parent is not None:
+            self._parent.add_child(self)
+
+    @staticmethod
+    def _delete_redundant_policy(infra, policy_type):
+        """
+        Removes redundant policies
+        """
+        policies = []
+        for idx, child in enumerate(infra['infraInfra']['children']):
+            if policy_type in child:
+                policy_name = child[policy_type]['attributes']['name']
+                if policy_name in policies:
+                    del infra['infraInfra']['children'][idx]
+                else:
+                    policies.append(policy_name)
+        return infra
+
+    def _combine_json(self, data, other):
+        """
+        Combines the json
+        """
+        if len(data) == 0:
+            return other
+        if len(other) == 0:
+            return data
+        phys_domain, fabric, infra = data
+        other_phys_domain, other_fabric, other_infra = other
+        infra['infraInfra']['children'].extend(other_infra['infraInfra']['children'])
+
+        # Remove duplicate named policies
+        for item in infra['infraInfra']['children']:
+            for key in item:
+                if 'name' in item[key]['attributes']:
+                    self._delete_redundant_policy(infra, key)
+
+        # Combine all of the infraFuncP items
+        first_occur = None
+        for idx, child in enumerate(infra['infraInfra']['children']):
+            if 'infraFuncP' in child:
+                if first_occur is None:
+                    first_occur = idx
+                else:
+                    for other_child in child['infraFuncP']['children']:
+                        infra['infraInfra']['children'][first_occur]['infraFuncP']['children'].append(other_child)
+                    del infra['infraInfra']['children'][idx]
+        return phys_domain, fabric, infra
+
+    def get_json(self):
+        """Returns json representation of the object
+
+        :returns: JSON of contained Interfaces
+        """
+        data = []
+        for child in self.get_children():
+            other = child.get_json()
+            if other is not None:
+                data = self._combine_json(data, other)
+        if len(data) == 0:
+            return None
+        return data
+
+    @staticmethod
+    def get_url(fmt='json'):
+        """Get the URL used to push the configuration to the APIC
+        if no fmt parameter is specified, the format will be 'json'
+        otherwise it will return '/api/mo/uni.' with the fmt string appended.
+
+        :param fmt: optional fmt string
+        :returns: Nothing - physical objects are not modifiable
+        """
+        pass
+
+    def add_child(self, child_obj):
+        """Add a child to the children list. All children must be unique so it
+        will first delete the child if it already exists.
+
+        :param child_obj: a child object to be added as a child to this object.
+                          This will be put into the _children list.
+
+        :returns: None
+        """
+        if self.has_child(child_obj):
+            self.remove_child(child_obj)
+        self._children.append(child_obj)
+
+    def get_children(self, child_type=None):
+        """Returns the list of children.  If childType is provided, then
+        it will return all of the children of the matching type.
+
+        :param child_type: This optional parameter will cause this method to\
+                        return only those children\
+                        that match the type of childType.  If this parameter\
+                        is ommitted, then all of the children will be returned.
+
+        :returns: list of children
+        """
+        if child_type:
+            children = []
+            for child in self._children:
+                if isinstance(child, child_type):
+                    children.append(child)
+            return children
+        else:
+            return self._children
+
+    @classmethod
+    def exists(cls, session, phys_obj):
+        """Check if an apic phys_obj exists on the APIC.
+        Returns True if the phys_obj does exist.
+
+        :param session: APIC session to use when accessing the APIC controller.
+        :param phys_obj: The object that you are checking for.
+        :returns: True if the phys_obj exists, False if it does not.
+        """
+
+        # TODO: this does not work.  There are more parameters in the .get method.
+        apic_nodes = cls.get(session)
+        for apic_node in apic_nodes:
+            if phys_obj == apic_node:
+                return True
+        return False
+
+    def get_type(self):
+        """Gets physical object type
+
+        :returns: type string of the object.
+        """
+        return self.type
+
+    def get_pod(self):
+        """Gets pod_id
+        :returns: id of pod
+        """
+        return self.pod
+
+    def get_node(self):
+        """Gets node id
+
+        :returns: id of node
+        """
+        return self.node
+
+    def get_name(self):
+        """Gets name.
+
+        :returns: Name string
+        """
+        return self.name
+
+    def get_serial(self):
+        """Gets serial number.
+
+        :returns: serial number string
+        """
+        return None
+
+
+class BaseACIPhysModule(BaseACIPhysObject):
+    """BaseACIPhysModule: base class for modules  """
+
+    def __init__(self, pod, node, slot, parent=None):
+        """ Initialize the basic object.  This should be called by the
+            init routines of inheriting subclasses.
+
+            :param pod: pod id of module
+            :param node: node id of module
+            :param slot: slot id of module
+            :param parent: optional parent object
+        """
+        super(BaseACIPhysModule, self).__init__(name='', parent=None)
+
+        # check that parent is a node
+        if parent:
+            if isinstance(parent, str):
+                raise TypeError('An instance of Node class is required')
+
+        self.pod = str(pod)
+        self.node = str(node)
+        self.slot = str(slot)
+        self.serial = None
+        self.model = None
+        self.dn = None
+        self.descr = None
+        self.bios = None
+        self.firmware = None
+
+        self._apic_class = None
+        self.dn = None
+        self._session = None
+
+        logging.debug('Creating %s %s', self.__class__.__name__,
+                      'pod-' + self.pod + '/node-' + self.node + '/slot-' + self.slot)
+        self._common_init(parent)
+
+    def get_slot(self):
+        """Gets slot id
+
+        :returns: slot id
+        """
+        return self.slot
+
+    def __eq__(self, other):
+        """ Two modules are considered equal if their class type is the same
+        and pod, node, slot, type all match.
+        """
+        if type(self) is not type(other):
+            return False
+        return (self.pod == other.pod) and (self.node == other.node) and \
+               (self.slot == other.slot) and (self.type == other.type)
+
+    @staticmethod
+    def _parse_dn(dn):
+        """Parses the pod, node, and slot from a
+           distinguished name of the node.
+
+           :param dn: str - distinguished name
+
+           :returns: pod, node, slot strings
+        """
+        name = dn.split('/')
+        pod = str(name[1].split('-')[1])
+        node = str(name[2].split('-')[1])
+        slot = str(name[5].split('-')[1])
+        return pod, node, slot
+
+    @classmethod
+    def get_obj(cls, session, apic_class, parent_node):
+        """Gets all of the Nodes from the APIC.  This is called by the
+        module specific get() methods.  The parameters passed include the
+        APIC object class, apic_class, so that this will work for
+        different kinds of modules.
+
+        :param parent_node: parent object or node id
+        :param session: APIC session to use when retrieving the nodes
+        :param apic_class: The object class in APIC to retrieve
+        :returns: list of module objects derived from the specified apic_class
+
+        """
+        node = None
+        if parent_node:
+            if not isinstance(parent_node, str):
+                node = parent_node.node
+            else:
+                node = parent_node
+        pod = '1'
+        if parent_node:
+            parent_dn = 'topology/pod-{0}/node-{1}/sys'.format(pod, node)
+            interface_query_url = '/api/mo/' + parent_dn + \
+                                  '.json?query-target=subtree&target-subtree-class=' + apic_class
+
+        else:
+            interface_query_url = ('/api/node/class/' + apic_class + '.json?'
+                                                                     'query-target=self')
+        cards = []
+        ret = session.get(interface_query_url)
+        card_data = ret.json()['imdata']
+        for apic_obj in card_data:
+            dist_name = str(apic_obj[apic_class]['attributes']['dn'])
+            (pod, node_id, slot) = cls._parse_dn(dist_name)
+            if not isinstance(parent_node, str):
+                card = cls(pod, node_id, slot, parent_node)
+            else:
+                card = cls(pod, node_id, slot)
+            card._session = session
+            card._apic_class = apic_class
+            card._populate_from_attributes(apic_obj[apic_class]['attributes'])
+
+            (card.firmware, card.bios) = card._get_firmware(dist_name)
+            card.modify_time = str(apic_obj[apic_class]['attributes']['modTs'])
+            if parent_node:
+                if card.node == parent_node.node:
+                    if card._parent.has_child(card):
+                        card._parent.remove_child(card)
+                    card._parent.add_child(card)
+                    cards.append(card)
+            else:
+                cards.append(card)
+
+        return cards
+
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
+        """
+        self.serial = str(attributes['ser'])
+        self.model = str(attributes['model'])
+        self.dn = str(attributes['dn'])
+        self.descr = str(attributes['descr'])
+        self.modify_time = str(attributes['modTs'])
+
+    def _get_firmware(self, dist_name):
+        """Gets the firmware and bios version for the module from the "running" object in APIC.
+
+        :param dist_name: dn of module, a string
+
+        :returns: firmware, bios
+        """
+        mo_query_url = '/api/mo/' + dist_name + '/running.json?query-target=self'
+        ret = self._session.get(mo_query_url)
+        node_data = ret.json()['imdata']
+        if node_data:
+            firmware = str(node_data[0]['firmwareCardRunning']['attributes']['version'])
+            bios = str(node_data[0]['firmwareCardRunning']['attributes']['biosVer'])
+        else:
+            firmware = None
+            bios = None
+        return firmware, bios
+
+    def get_serial(self):
+        """Returns the serial number.
+        :returns: serial number string
+        """
+        return self.serial
+
+    def populate_children(self, deep=False, include_concrete=False):
+        """Default method for module.
+        If the module can have children, then this
+        should be overwritten in the inheriting class.
+
+        :param include_concrete: boolean that when true will cause the concrete object to be populated
+                                if they exist.
+        :param deep: boolean that when true will cause the
+                     entire sub-tree to be populated
+                     when false, only the immediate
+                     children are populated
+
+
+        :returns: None
+        """
+        return None
+
+
+class BaseInterface(BaseACIObject):
+    """Abstract class used to provide base functionality to other Interface
+       classes.
+    """
+
+    def _get_port_selector_json(self, port_type, port_name):
+        """Returns the json used for selecting the specified interfaces
+        """
+        name = self._get_name_for_json()
+        port_blk = {'name': name,
+                    'fromCard': self.module,
+                    'toCard': self.module,
+                    'fromPort': self.port,
+                    'toPort': self.port}
+        port_blk = {'infraPortBlk': {'attributes': port_blk,
+                                     'children': []}}
+        pc_url = 'uni/infra/funcprof/%s-%s' % (port_type, port_name)
+        accbasegrp = {'infraRsAccBaseGrp': {'attributes': {'tDn': pc_url},
+                                            'children': []}}
+        portselect = {'infraHPortS': {'attributes': {'name': name,
+                                                     'type': 'range'},
+                                      'children': [port_blk, accbasegrp]}}
+        accport_selector = {'infraAccPortP': {'attributes': {'name': name},
+                                              'children': [portselect]}}
+        node_blk = {'name': name,
+                    'from_': self.node, 'to_': self.node}
+        node_blk = {'infraNodeBlk': {'attributes': node_blk, 'children': []}}
+        leaf_selector = {'infraLeafS': {'attributes': {'name': name,
+                                                       'type': 'range'},
+                                        'children': [node_blk]}}
+        accport = {'infraRsAccPortP':
+                   {'attributes': {'tDn': 'uni/infra/accportprof-%s' % name},
+                    'children': []}}
+        node_profile = {'infraNodeP': {'attributes': {'name': name},
+                                       'children': [leaf_selector,
+                                                    accport]}}
+        return node_profile, accport_selector
+
+    def get_port_selector_json(self):
+        """
+        Returns the port selector.
+
+        :return:
+        """
+        return self._get_port_selector_json('accportgrp',
+                                            self._get_name_for_json())
+
+    def get_port_channel_selector_json(self, port_name):
+        return self._get_port_selector_json('accbundle', port_name)

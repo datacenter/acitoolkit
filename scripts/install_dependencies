@@ -1,0 +1,10 @@
+#!/bin/bash 
+
+# This script is used to self initialize the preinstalled acitoolkit VM
+
+apt-get -y update
+apt-get -y upgrade
+cd acitoolkit
+git pull
+python setup.py develop
+/etc/init.d/mysql start

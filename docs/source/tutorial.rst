@@ -7,5 +7,6 @@ acitoolkit package.
    :maxdepth: 2
 
    tutorialsetup
+   tutorialpackages
    tutorialsimpleconfig
    subscriptions

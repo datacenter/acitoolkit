@@ -1,18 +1,32 @@
-# Copyright (c) 2014 Cisco Systems
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
+################################################################################
+#                                  _    ____ ___                               #
+#                                 / \  / ___|_ _|                              #
+#                                / _ \| |    | |                               #
+#                               / ___ \ |___ | |                               #
+#                         _____/_/   \_\____|___|_ _                           #
+#                        |_   _|__   ___ | | | _(_) |_                         #
+#                          | |/ _ \ / _ \| | |/ / | __|                        #
+#                          | | (_) | (_) | |   <| | |_                         #
+#                          |_|\___/ \___/|_|_|\_\_|\__|                        #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
 """
 Used to get the APIC and MySQL login credentials from the command
 line (--help gives usage).
@@ -79,6 +93,8 @@ class Credentials(object):
             self._parser.add_argument('-p', '--password',
                                       default=DEFAULT_PASSWORD,
                                       help='APIC login password.')
+            self._parser.add_argument('--snapshotfiles', nargs='+',
+                                      help='APIC configuration files')
         if 'mysql' in qualifier:
             DEFAULT_MYSQL_IP = set_default('mysqlip')
             DEFAULT_MYSQL_LOGIN = set_default('mysqllogin')
@@ -92,6 +108,15 @@ class Credentials(object):
             self._parser.add_argument('-s', '--mysqlpassword',
                                       default=DEFAULT_MYSQL_PASSWORD,
                                       help='MySQL login password.')
+        if 'server' in qualifier:
+            DEFAULT_PORT = '5000'
+            DEFAULT_IPADDRESS = '127.0.0.1'
+            self._parser.add_argument('--ip',
+                                      default=DEFAULT_IPADDRESS,
+                                      help='IP address to listen on.')
+            self._parser.add_argument('--port',
+                                      default=DEFAULT_PORT,
+                                      help='Port number to listen on.')
 
     @staticmethod
     def _get_from_user(prompt):
@@ -136,12 +161,26 @@ class Credentials(object):
         """
         return self._parser.add_mutually_exclusive_group(*args, **kwargs)
 
+    def add_argument_group(self, *args, **kwargs):
+        """
+        Pass through function to allow the underlying parser to be
+        extended.
+        """
+        return self._parser.add_argument_group(*args, **kwargs)
+
+    def print_help(self, *args, **kwargs):
+        """
+        Pass through function to allow the underlying parser to be
+        extended.
+        """
+        return self._parser.print_help(*args, **kwargs)
+
     def verify(self):
         """
         Verify that the arguments have been passed in some way.  If not,
         ask the user through interactive prompt.
         """
-        if 'apic' in self._qualifier:
+        if 'apic' in self._qualifier and self._args.snapshotfiles is None:
             if self._args.login is None:
                 self._args.login = self._get_from_user('APIC login username: ')
             if self._args.url is None:

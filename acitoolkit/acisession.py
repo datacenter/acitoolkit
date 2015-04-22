@@ -1,18 +1,32 @@
-# Copyright (c) 2014 Cisco Systems
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
+################################################################################
+#                                  _    ____ ___                               #
+#                                 / \  / ___|_ _|                              #
+#                                / _ \| |    | |                               #
+#                               / ___ \ |___ | |                               #
+#                         _____/_/   \_\____|___|_ _                           #
+#                        |_   _|__   ___ | | | _(_) |_                         #
+#                          | |/ _ \ / _ \| | |/ / | __|                        #
+#                          | | (_) | (_) | |   <| | |_                         #
+#                          |_|\___/ \___/|_|_|\_\_|\__|                        #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
 """  This module contains the Session class that controls communication
      with the APIC.
 """
@@ -24,8 +38,15 @@ import threading
 import time
 from websocket import create_connection, WebSocketException
 # import websocket
-from Queue import Queue
 import ssl
+
+# Queue library is named "queue" in Python3
+try:
+    # Python2 naming
+    from Queue import Queue
+except ImportError:
+    # Python3 naming
+    from queue import Queue
 
 # Time before login timer expiration to send refresh
 TIMEOUT_GRACE_SECONDS = 10
@@ -51,7 +72,7 @@ class Login(threading.Thread):
         while not self._exit:
             time.sleep(self._login_timeout)
             self._apic._send_login()
-            self._apic.subscription_thread._resubscribe()
+            self._apic.resubscribe()
 
 
 class EventHandler(threading.Thread):
@@ -255,7 +276,8 @@ class Session(object):
        Session class
        This class is responsible for all communication with the APIC.
     """
-    def __init__(self, url, uid, pwd, verify_ssl=False):
+    def __init__(self, url, uid, pwd, verify_ssl=False,
+                 subscription_enabled=True):
         """
         :param url:  String containing the APIC URL such as ``https://1.2.3.4``
         :param uid: String containing the username that will be used as\
@@ -278,9 +300,11 @@ class Session(object):
         self.verify_ssl = verify_ssl
         self.token = None
         self.login_thread = Login(self)
-        self.subscription_thread = Subscriber(self)
-        self.subscription_thread.daemon = True
-        self.subscription_thread.start()
+        self._subscription_enabled = subscription_enabled
+        if subscription_enabled:
+            self.subscription_thread = Subscriber(self)
+            self.subscription_thread.daemon = True
+            self.subscription_thread.start()
 
     def _send_login(self, timeout=None):
         """
@@ -300,7 +324,8 @@ class Session(object):
         ret_data = json.loads(ret.text)['imdata'][0]
         timeout = ret_data['aaaLogin']['attributes']['refreshTimeoutSeconds']
         self.token = str(ret_data['aaaLogin']['attributes']['token'])
-        self.subscription_thread._open_web_socket('https://' in self.api)
+        if self._subscription_enabled:
+            self.subscription_thread._open_web_socket('https://' in self.api)
         timeout = int(timeout)
         if (timeout - TIMEOUT_GRACE_SECONDS) > 0:
             timeout = timeout - TIMEOUT_GRACE_SECONDS
@@ -328,7 +353,12 @@ class Session(object):
 
         :param url:  URL string to issue subscription
         """
-        self.subscription_thread.subscribe(url)
+        if self._subscription_enabled:
+            self.subscription_thread.subscribe(url)
+
+    def resubscribe(self):
+        if self._subscription_enabled:
+            self.subscription_thread._resubscribe()
 
     def has_events(self, url):
         """
@@ -358,7 +388,8 @@ class Session(object):
 
         :param url:  URL string to remove issue subscription
         """
-        self.subscription_thread.unsubscribe(url)
+        if self._subscription_enabled:
+            self.subscription_thread.unsubscribe(url)
 
     def push_to_apic(self, url, data):
         """

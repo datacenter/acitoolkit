@@ -29,53 +29,100 @@
 #                                                                              #
 ################################################################################
 """
-Simple application to display the physical inventory
+Simple application that logs on to the APIC and displays all
+of the Physical Domains, VMM Domains, and EPG associations.
 """
-from acitoolkit.acitoolkit import Credentials, Session
 import sys
-from acitoolkit.aciphysobject import Pod
-
-
-def print_inventory(item):
-    """
-    Display routine
-
-    :param item: Object to print
-    :return: None
-    """
-    for child in item.get_children():
-        print_inventory(child)
-    print(item.info())
+import acitoolkit.acitoolkit as aci
 
 
 def main():
     """
-    Main execution routine
-
+    Main Show Domains Routine
     :return: None
     """
     # Take login credentials from the command line if provided
-    # Otherwise, take them from your environment variables
-    description = ('Simple application that logs on to the APIC and displays'
-                   ' the physical inventory.')
-    creds = Credentials('apic', description)
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = ('Simple application that logs on to the APIC'
+                   ' and displays all of the Endpoints.')
+    creds = aci.Credentials('apic', description)
     args = creds.get()
 
     # Login to APIC
-    session = Session(args.url, args.login, args.password)
+    session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
         sys.exit(0)
 
-    # Print the inventory of each Pod
-    pods = Pod.get(session)
-    for pod in pods:
-        pod.populate_children(deep=True)
-        pod_name = 'Pod: %s' % pod.name
-        print(pod_name)
-        print('=' * len(pod_name))
-        print_inventory(pod)
+    domains = aci.PhysDomain.get(session)
+
+    if len(domains) > 0:
+        print ('---------------')
+        print ('Physical Domain')
+        print ('---------------')
+
+    for domain in domains:
+        print domain.name
+
+    if len(domains) > 0:
+        print '\n'
+
+    domains = aci.VmmDomain.get(session)
+
+    if len(domains) > 0:
+        print ('----------')
+        print ('VMM Domain')
+        print ('----------')
+
+    for domain in domains:
+        print (domain.name)
+
+    if len(domains) > 0:
+        print ('\n')
+
+    domains = aci.L2ExtDomain.get(session)
+
+    if len(domains) > 0:
+        print ('------------------')
+        print ('L2 External Domain')
+        print ('------------------')
+
+    for domain in domains:
+        print (domain.name)
+
+    if len(domains) > 0:
+        print ('\n')
+
+    domains = aci.L3ExtDomain.get(session)
+
+    if len(domains) > 0:
+        print ('------------------')
+        print ('L3 External Domain')
+        print ('------------------')
+
+    for domain in domains:
+        print (domain.name)
+
+    if len(domains) > 0:
+        print ('\n')
+
+    domains = aci.EPGDomain.get(session)
+
+    output = []
+    for domain in domains:
+        association = domain.tenant_name + ':' + domain.app_name + ':' + domain.epg_name
+        output.append((domain.domain_name, domain.domain_type,
+                       association))
+
+    if len(domains) > 0:
+        template = '{0:20} {1:11} {2:26}'
+        print (template.format('Infra Domain Profile', 'Domain Type', 'TENANT:APP:EPG Association'))
+        print (template.format('--------------------', '-----------', '--------------------------'))
+        for rec in output:
+            print (template.format(*rec))
+        print ('\n')
+
 
 if __name__ == '__main__':
     try:

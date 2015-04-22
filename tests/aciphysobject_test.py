@@ -1,18 +1,32 @@
-# Copyright (c) 2014 Cisco Systems
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
+################################################################################
+#                                  _    ____ ___                               #
+#                                 / \  / ___|_ _|                              #
+#                                / _ \| |    | |                               #
+#                               / ___ \ |___ | |                               #
+#                         _____/_/   \_\____|___|_ _                           #
+#                        |_   _|__   ___ | | | _(_) |_                         #
+#                          | |/ _ \ / _ \| | |/ / | __|                        #
+#                          | | (_) | (_) | |   <| | |_                         #
+#                          |_|\___/ \___/|_|_|\_\_|\__|                        #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
 from acitoolkit.acisession import Session
 try:
     from credentials import *
@@ -564,9 +578,10 @@ class TestLivePod(TestLiveAPIC):
         for child in children:
             children_types.add(child.get_type())
 
-        self.assertEqual(len(children_types), 2)
+        self.assertEqual(len(children_types), 3)
         self.assertIn('systemctrlcard', children_types)
         self.assertIn('fantray', children_types)
+        self.assertIn('powersupply', children_types)
 
     def test_linecard(self):
         session = self.login_to_apic()
@@ -691,6 +706,7 @@ class TestLivePod(TestLiveAPIC):
         for module in modules:
             module_types.add(module.get_type())
         self.assertEqual(len(module_types ^ set(['systemctrlcard',
+                                                 'powersupply',
                                                  'fantray'])), 0)
 
         links = pod.get_children(Link)
@@ -790,6 +806,229 @@ class TestFind(unittest.TestCase):
         self.assertEqual(results[0].serial, 'SerialNumber1')
 
 
+class TestInterface(unittest.TestCase):
+    def test_create_valid_phydomain(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        (phydomain_json, fabric_json, infra_json) = intf.get_json()
+        expected_json = ("{'physDomP': {'attributes': {'name': 'allvlans'}, 'c"
+                         "hildren': [{'infraRsVlanNs': {'attributes': {'tDn': "
+                         "'uni/infra/vlanns-allvlans-static'}, 'children': []}"
+                         "}]}}")
+        self.assertEqual(str(phydomain_json), expected_json)
+
+    def test_create_valid(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        (phydomain_json, fabric_json, infra_json) = intf.get_json()
+        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
+                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
+                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
+                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
+                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
+                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
+                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
+                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
+                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
+                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
+                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
+                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
+                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
+                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
+                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
+                         "0G', 'autoNeg': 'on', 'speed': '10G', 'name': 'speed"
+                         "10G'}, 'children': []}}, {'infraFuncP': {'attributes"
+                         "': {}, 'children': [{'infraAccPortGrp': {'attributes"
+                         "': {'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', '"
+                         "name': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'"
+                         "attributes': {'tnFabricHIfPolName': 'speed10G'}, 'ch"
+                         "ildren': []}}, {'infraRsAttEntP': {'attributes': {'t"
+                         "Dn': 'uni/infra/attentp-allvlans'}, 'children': []}}"
+                         "]}}]}}, {'infraAttEntityP': {'attributes': {'name': "
+                         "'allvlans'}, 'children': [{'infraRsDomP': {'attribut"
+                         "es': {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanIn"
+                         "stP': {'attributes': {'name': 'allvlans', 'allocMode"
+                         "': 'static'}, 'children': [{'fvnsEncapBlk': {'attrib"
+                         "utes': {'to': 'vlan-4092', 'from': 'vlan-1', 'name':"
+                         " 'encap'}}}]}}]}}")
+        self.assertTrue(intf is not None)
+        self.assertEqual(str(infra_json), expected_json)
+
+    def test_set_speed_10G(self):
+        intf = Interface('eth', '1', '101', '1', '5')
+        intf.speed = '10G'
+        (phys_domain_json, fabric_json, infra_json) = intf.get_json()
+        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+                         "utes': {'name': '1-101-1-5'}, 'children': [{'infraLe"
+                         "afS': {'attributes': {'type': 'range', 'name': '1-10"
+                         "1-1-5'}, 'children': [{'infraNodeBlk': {'attributes'"
+                         ": {'from_': '101', 'name': '1-101-1-5', 'to_': '101'"
+                         "}, 'children': []}}]}}, {'infraRsAccPortP': {'attrib"
+                         "utes': {'tDn': 'uni/infra/accportprof-1-101-1-5'}, '"
+                         "children': []}}]}}, {'infraAccPortP': {'attributes':"
+                         " {'name': '1-101-1-5'}, 'children': [{'infraHPortS':"
+                         " {'attributes': {'type': 'range', 'name': '1-101-1-5"
+                         "'}, 'children': [{'infraPortBlk': {'attributes': {'t"
+                         "oPort': '5', 'fromPort': '5', 'fromCard': '1', 'name"
+                         "': '1-101-1-5', 'toCard': '1'}, 'children': []}}, {'"
+                         "infraRsAccBaseGrp': {'attributes': {'tDn': 'uni/infr"
+                         "a/funcprof/accportgrp-1-101-1-5'}, 'children': []}}]"
+                         "}}]}}, {'fabricHIfPol': {'attributes': {'dn': 'uni/i"
+                         "nfra/hintfpol-speed10G', 'autoNeg': 'on', 'speed': '"
+                         "10G', 'name': 'speed10G'}, 'children': []}}, {'infra"
+                         "FuncP': {'attributes': {}, 'children': [{'infraAccPo"
+                         "rtGrp': {'attributes': {'dn': 'uni/infra/funcprof/ac"
+                         "cportgrp-1-101-1-5', 'name': '1-101-1-5'}, 'children"
+                         "': [{'infraRsHIfPol': {'attributes': {'tnFabricHIfPo"
+                         "lName': 'speed10G'}, 'children': []}}, {'infraRsAttE"
+                         "ntP': {'attributes': {'tDn': 'uni/infra/attentp-allv"
+                         "lans'}, 'children': []}}]}}]}}, {'infraAttEntityP': "
+                         "{'attributes': {'name': 'allvlans'}, 'children': [{'"
+                         "infraRsDomP': {'attributes': {'tDn': 'uni/phys-allvl"
+                         "ans'}}}]}}, {'fvnsVlanInstP': {'attributes': {'name'"
+                         ": 'allvlans', 'allocMode': 'static'}, 'children': [{"
+                         "'fvnsEncapBlk': {'attributes': {'to': 'vlan-4092', '"
+                         "from': 'vlan-1', 'name': 'encap'}}}]}}]}}")
+        self.assertEqual(str(infra_json), expected_json)
+
+    def test_set_speed_1G(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.speed = '1G'
+        (phys_domain_json, fabric_json, infra_json) = intf.get_json()
+        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
+                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
+                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
+                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
+                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
+                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
+                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
+                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
+                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
+                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
+                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
+                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
+                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
+                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
+                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
+                         "G', 'autoNeg': 'on', 'speed': '1G', 'name': 'speed1G"
+                         "'}, 'children': []}}, {'infraFuncP': {'attributes': "
+                         "{}, 'children': [{'infraAccPortGrp': {'attributes': "
+                         "{'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', 'nam"
+                         "e': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'att"
+                         "ributes': {'tnFabricHIfPolName': 'speed1G'}, 'childr"
+                         "en': []}}, {'infraRsAttEntP': {'attributes': {'tDn':"
+                         " 'uni/infra/attentp-allvlans'}, 'children': []}}]}}]"
+                         "}}, {'infraAttEntityP': {'attributes': {'name': 'all"
+                         "vlans'}, 'children': [{'infraRsDomP': {'attributes':"
+                         " {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanInstP'"
+                         ": {'attributes': {'name': 'allvlans', 'allocMode': '"
+                         "static'}, 'children': [{'fvnsEncapBlk': {'attributes"
+                         "': {'to': 'vlan-4092', 'from': 'vlan-1', 'name': 'en"
+                         "cap'}}}]}}]}}")
+
+        self.assertEqual(str(infra_json), expected_json)
+
+    def test_adminstate_not_set(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.adminstate = ''
+        phys_domain_url, fabric_url, infra_url = intf.get_url()
+        phys_domain_json, fabric_json, infra_json = intf.get_json()
+        self.assertIsNone(fabric_json)
+
+    def test_adminstate_up(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.adminstatus = 'up'
+        phys_domain_json, fabric_json, infra_json = intf.get_json()
+        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
+                         "th': {'attributes': {'dn': 'uni/fabric/outofsvc/rsoo"
+                         "sPath-[topology/pod-1/paths-1/pathep-[eth1/1]]', 'st"
+                         "atus': 'deleted', 'tDn': 'topology/pod-1/paths-1/pat"
+                         "hep-[eth1/1]'}, 'children': []}}]}}")
+        self.assertEqual(str(fabric_json), expected_json)
+
+    def test_adminstate_down(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.adminstatus = 'down'
+        phys_domain_json, fabric_json, infra_json = intf.get_json()
+        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
+                         "th': {'attributes': {'tDn': 'topology/pod-1/paths-1/"
+                         "pathep-[eth1/1]', 'lc': 'blacklist'}, 'children': []"
+                         "}}]}}")
+        self.assertEqual(str(fabric_json), expected_json)
+
+    def test_cdp_not_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        self.assertFalse(intf.is_cdp_enabled())
+
+    def test_cdp_is_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.enable_cdp()
+        self.assertTrue(intf.is_cdp_enabled())
+
+    def test_cdp_is_disabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.disable_cdp()
+        self.assertFalse(intf.is_cdp_enabled())
+
+    def test_lldp_not_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        self.assertFalse(intf.is_lldp_enabled())
+
+    def test_lldp_is_enabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.enable_lldp()
+        self.assertTrue(intf.is_lldp_enabled())
+
+    def test_lldp_is_disabled(self):
+        intf = Interface('eth', '1', '1', '1', '1')
+        intf.disable_lldp()
+        self.assertFalse(intf.is_lldp_enabled())
+
+    def parse_name(self, text):
+        (intf_type, pod, node, module, port) = Interface.parse_name(text)
+        self.assertTrue(intf_type == 'eth')
+        self.assertTrue(pod == '1')
+        self.assertTrue(node == '2')
+        self.assertTrue(module == '3')
+        self.assertTrue(port == '4')
+
+    def test_parse_name_space(self):
+        self.parse_name('eth 1/2/3/4')
+
+    def test_set_attributes(self):
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        intf2 = Interface('eth', '6', '7', '8', '9')
+
+        self.assertTrue(intf1.attributes['interface_type'] == 'eth')
+        self.assertTrue(intf1.attributes['pod'] == '1')
+        self.assertTrue(intf1.attributes['node'] == '2')
+        self.assertTrue(intf1.attributes['module'] == '3')
+        self.assertTrue(intf1.attributes['port'] == '4')
+
+        self.assertTrue(intf2.attributes['interface_type'] == 'eth')
+        self.assertTrue(intf2.attributes['pod'] == '6')
+        self.assertTrue(intf2.attributes['node'] == '7')
+        self.assertTrue(intf2.attributes['module'] == '8')
+        self.assertTrue(intf2.attributes['port'] == '9')
+
+    # def test_parse_name_no_space(self):
+    #    self.parse_name('eth1/2/3/4')
+    def test_get_serial(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertEqual(intf1.get_serial(), None)
+
+    def test_get_type(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertEqual(intf1.get_type(), 'interface')
+
+    def test_cdp_disabled(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertFalse(intf1.is_cdp_disabled())
+
+    def test_lldp_disabled(self) :
+        intf1 = Interface('eth', '1', '2', '3', '4')
+        self.assertFalse(intf1.is_lldp_disabled())
+
 if __name__ == '__main__':
     offline = unittest.TestSuite()
 
@@ -803,6 +1042,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestSystemcontroller))
     offline.addTest(unittest.makeSuite(TestExternalNode))
     offline.addTest(unittest.makeSuite(TestFind))
+    offline.addTest(unittest.makeSuite(TestInterface))
 
     live = unittest.TestSuite()
     live.addTest(unittest.makeSuite(TestLiveAPIC))

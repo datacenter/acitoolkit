@@ -15,28 +15,15 @@ Configuration Object Definition
 `Imports`
 ~~~~~~~~~
 The first part of the tutorial program consists of the ``import``
-statements.  The ``acitoolkit`` module from the acitoolkit package is
-imported as is the ``credentials.py`` file.
+statement.  The ``acitoolkit`` module from the acitoolkit package is
+imported.
 
 .. code-block:: python
 
    from acitoolkit.acitoolkit import *
-   from credentials import *
 
 The ``acitoolkit`` module within the acitoolkit package provides
 access to all of the acitoolkit configuration.
-
-The ``credentials.py`` file contains the login credentials for the
-APIC and is shown in its entirety below.  It contains the following
-variables: ``LOGIN``, ``PASSWORD``, ``URL``, and ``IPADDR``.  These
-variables should be modified to the settings of your particular APIC.
-
-.. code-block:: python
-
-   LOGIN = 'admin'
-   PASSWORD = 'password'
-   IPADDR = '10.1.1.1'
-   URL = 'https://' + IPADDR
 
 `Tenant Creation`
 ~~~~~~~~~~~~~~~~~
@@ -75,7 +62,7 @@ acitoolkit object model.  The parent class of ``AppProfile`` is
 The Endpoint Group provides the policy based configuration for
 Endpoints that are members of the Endpoint Group.  This is represented
 by the ``EPG`` class.  In this case, we create an ``EPG`` with the
-name `myapp` and pass the ``AppProfile`` that we created to be the
+name `myepg` and pass the ``AppProfile`` that we created to be the
 parent object.
 
 .. code-block:: python
@@ -182,7 +169,56 @@ Deploying to the APIC
 At this point, the entire configuration is done and all that is left
 is connecting to the APIC and deploying the configuration.
 
-First, we log into the APIC.  This is done through the ``Session``
+`APIC Login Credentials`
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The APIC login credentials are retrieved using an instance of the
+``Credentials`` class. This class provides a convenient mechanism to
+retrieve credentials and is used by a variety of toolkit applications.
+
+The Credentials object is instantiated with a string describing the type
+of credentials desired and a description string.
+
+.. code-block:: python
+
+    description = 'acitoolkit tutorial application'
+    creds = Credentials('apic', description)
+
+The command line is also extensible through the ``add_argument`` function.
+This is the same ``add_argument`` function provided by the standard ``argparse``
+python package. In this tutorial, we extend the command line options with a
+delete flag so that we can clean up the configuration afterwards.
+
+.. code-block:: python
+
+    creds.add_argument('--delete', action='store_true',
+                   help='Delete the configuration from the APIC')
+
+
+Retrieving the credentials is done by calling the ``get`` function.
+
+.. code-block:: python
+
+        args = creds.get()
+
+The ``apic`` set of credential variables consist of the ``username``, ``password``,
+and ``URL`` of the APIC. The ``Credentials`` class allow the credentials to be
+provided in a number of formats and is taken in the following priority order
+
+* Command line options
+* Configuration file called ``credentials.py``
+* Environment variables
+* Interactively querying the user
+
+A search will be performed for each credential individually so that different
+methods can be used at the same time.  For example, the username and URL can be
+passed as Command Line Options and the password can be collected by querying
+the user directly.  For this tutorial, we will query the user directly.
+
+`APIC Login`
+~~~~~~~~~~~~
+
+Next, we log into the APIC.  This is done through the ``Session``
 class.  We create an instance and pass it the login credentials,
 namely the ``URL``, ``LOGIN``, and ``PASSWORD``.
 
@@ -241,19 +277,23 @@ expose.
 Removing the tenant configuration
 ---------------------------------
 
-The last few lines of the tutorial.py file are commented out.  This is
-because if executed they will delete the configuration that we just
-sent to the APIC.  In order to delete the tenant configuration, we
-simply mark the ``Tenant`` as deleted and push the configuration to
-the APIC.  This causes all of the configuration underneath the
-``Tenant`` to be deleted.
+You might have noticed that we jumped over 2 lines of the tutorial code,
+specifically the following lines.
 
 .. code-block:: python
 
-   #tenant.mark_as_deleted()
-   #resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+    if args.delete:
+        tenant.mark_as_deleted()
 
-So, if you uncomment these 2 lines and re-run the entire
-``tutorial.py`` file, you will again push the configuration to the
-APIC, print it again, and then immediately delete the configuration
-leaving you where we started.
+The ``args.delete`` is set if the ``--delete`` command line option is given.
+Calling the ``mark_as_deleted`` function will cause the tenant to be deleted
+from the APIC when the configuration is pushed.  It should be noted that
+deleting the tenant will cause all of the configuration for the tenant to be
+deleted. This will allow us to run the tutorial and then run it again to delete
+the configuration by executing the following commands.::
+
+    python tutorial.py
+    python tutorial.py --delete
+
+The first command will push the configuration to the APIC and the second
+command will delete the configuration leaving you where we started.

@@ -184,7 +184,7 @@ following:
 
     **Version**: This is the timestamp of the configuration file.  The
     format is YY-MM-DD_HH:MM:SS
-    
+
     **Filename**: The name of the configuration file as described in
     section `Snapshot Files`_.
     

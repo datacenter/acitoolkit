@@ -29,6 +29,9 @@ Invoking
 The Cable Plan module is imported from :file:`cableplan.py` which can
 be found in the ``acitoolkit/applications/cableplan`` directory.
 
+It can be incorporated directly into a python script, or it can be
+used from the command-line.
+
 ::
 
   >>>from cableplan import CABLEPLAN
@@ -133,6 +136,43 @@ modified cable plan::
   >>>f = open(fileName,'w')
   >>>cp2.export(f)
   >>>f.close()
+
+***************************
+Cable Plan from the Command Line
+***************************
+
+Invoking the cable plan application from the command line is very
+simple.
+
+From the command prompt do the following::
+  > python cableplan.py -h
+
+This will then return usage instructions that explain each of the
+command line options.
+
+There are two primary functions that can be invoked from the
+command-line: 'export' and 'compare'.  
+
+The 'export' function, selected with the '-e' option,  will create a cable plan by reading the state of
+the ACI fabric from the APIC controller.  This cable plan will be
+either displayed on the monitor or, if a filename is specified, will
+be placed in a file.  It will be in nicely formatted XML.
+
+The 'compare' function will compare two cable plans.  One of those
+must be in a file that is specified at the command line and the second
+one can come either directly from the APIC or from a second file.  If
+only the '-c1 file_name' option is used, then the content of file_name
+is compared to the actual running configuration of the ACI fabric.::
+
+  > python cableplan.py -c1 netwrk1.xml
+
+If you want to compare two files, then both the '-c1 file_name1' and
+'-c2 file_name2' options must be used.::
+
+  > python cableplan.py -c1 netwrk1.xml -c2 netwrk2.xml
+
+This comparison will list all of the links in the first cable plan
+that are not in the second and vice-versa.
 
 ***************************
 Cable Plan XML Syntax 

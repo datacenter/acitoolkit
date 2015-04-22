@@ -1,29 +1,45 @@
 #!/usr/bin/env python
-# Copyright (c) 2015 Cisco Systems
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
-#
+################################################################################
+#                        _    ____ ___   _     _       _                       #
+#                       / \  / ___|_ _| | |   (_)_ __ | |_                     #
+#                      / _ \| |    | |  | |   | | '_ \| __|                    #
+#                     / ___ \ |___ | |  | |___| | | | | |_                     #
+#                    /_/   \_\____|___| |_____|_|_| |_|\__|                    #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
 """
 acilint - A static configuration analysis tool for examining ACI Fabric
           configuration for potential problems and unused configuration.
 """
 import sys
-from acitoolkit.acitoolkit import *
+from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain, Contract
+from acitoolkit.acitoolkit import Credentials, Session
+from acitoolkit.acifakeapic import FakeSession
 import argparse
 
 
 class Checker(object):
+    """
+    Checker class contains a series of lint checks that are executed against the
+    provided configuration.
+    """
     def __init__(self, session):
         print 'Getting configuration from APIC....'
         self.tenants = Tenant.get_deep(session)
@@ -110,8 +126,8 @@ class Checker(object):
                 for epg in app.get_children(EPG):
                     if epg.has_bd():
                         bd = epg.get_bd().name
-                    if bd in bds:
-                        bds.remove(bd)
+                        if bd in bds:
+                            bds.remove(bd)
             for bd in bds:
                 print ("Warning 005: BridgeDomain '%s' in Tenant '%s'"
                        " has no EPGs." % (bd, tenant.name))
@@ -288,8 +304,13 @@ class Checker(object):
             getattr(self, method)()
 
 
-if __name__ == "__main__":
-    description = ('aci-lint - A static configuration analysis tool. '
+def acilint():
+    """
+    Main execution routine
+
+    :return: None
+    """
+    description = ('acilint - A static configuration analysis tool. '
                    'Checks can be individually disabled by generating'
                    ' and editing a configuration file.  If no config '
                    'file is given, all checks will be run.')
@@ -324,12 +345,18 @@ if __name__ == "__main__":
             if method.startswith(('warning_', 'error_', 'critical_')):
                 methods.append(method)
 
-    # Login to APIC
-    session = Session(args.url, args.login, args.password)
-    resp = session.login()
-    if not resp.ok:
-        print '%% Could not login to APIC'
-        sys.exit(0)
+    if args.snapshotfiles:
+        session = FakeSession(filenames=args.snapshotfiles)
+    else:
+        # Login to APIC
+        session = Session(args.url, args.login, args.password)
+        resp = session.login()
+        if not resp.ok:
+            print '%% Could not login to APIC'
+            sys.exit(0)
 
     checker = Checker(session)
     checker.execute(methods)
+
+if __name__ == "__main__":
+    acilint()
