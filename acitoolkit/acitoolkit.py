@@ -64,15 +64,32 @@ class Tenant(BaseACIObject):
         return None
 
     def _get_instance_subscription_url(self):
+        """
+        Get the URL for subscribing to a specific instance
+
+        :return: string containing URL
+        """
         return '/api/mo/uni/tn-%s.json?subscription=yes' % self.name
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
         name = dn.split('uni/tn-')[1].split('/')[0]
         return name
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return None
 
     def get_json(self):
@@ -1485,6 +1502,12 @@ class Context(BaseACIObject):
 
     @staticmethod
     def _get_tenant_from_dn(dn):
+        """
+        Get the tenant name from the DN
+
+        :param dn: String containing the DN
+        :return: string containing the tenant name
+        """
         return dn.split('/tn-')[1].split('/')[0]
 
     def _populate_from_attributes(self, attributes):
@@ -1571,10 +1594,20 @@ class BaseContract(BaseACIObject):
 
     @staticmethod
     def _get_subject_code():
+        """
+        Get the subject code
+
+        :return: None
+        """
         raise NotImplementedError
 
     @staticmethod
     def _get_subject_relation_code():
+        """
+        Get the subject relation code
+
+        :return: None
+        """
         raise NotImplementedError
 
     @classmethod
@@ -1873,6 +1906,13 @@ class FilterEntry(BaseACIObject):
 
     @classmethod
     def create_from_apic_json(cls, data, parent):
+        """
+        create from the apic json
+
+        :param data: json dictionary
+        :param parent: parent object
+        :return: object created from json dictionary
+        """
         attributes = data['vzEntry']['attributes']
         entry = cls(name=str(attributes.get('name')),
                     parent=parent)
@@ -2121,6 +2161,9 @@ class PortChannel(BaseInterface):
 
 
 class Endpoint(BaseACIObject):
+    """
+    Endpoint class
+    """
     def __init__(self, name, parent):
         if not isinstance(parent, EPG):
             raise TypeError('Parent must be of EPG class')
@@ -2217,6 +2260,17 @@ class Endpoint(BaseACIObject):
     @staticmethod
     def _get(session, endpoint_name, interfaces, endpoints,
              apic_endpoint_class, endpoint_path):
+        """
+        Internal function to get all of the Endpoints
+
+        :param session: Session object to connect to the APIC
+        :param endpoint_name: string containing the name of the endpoint
+        :param interfaces: list of interfaces
+        :param endpoints: list of endpoints
+        :param apic_endpoint_class: class of endpoint
+        :param endpoint_path: interface of the endpoint
+        :return: list of Endpoints
+        """
         # Get all of the Endpoints
         if endpoint_name is None:
             endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
@@ -2285,7 +2339,11 @@ class Endpoint(BaseACIObject):
 
         return endpoints
 
+
 class PhysDomain(BaseACIObject):
+    """
+    Physical Network domain
+    """
     def __init__(self, name, parent):
         """
         :param name: String containing the PhysDomain name
@@ -2305,7 +2363,7 @@ class PhysDomain(BaseACIObject):
         """
         attr = self._generate_attributes()
         return super(PhysDomain, self).get_json(self._get_apic_classes()[0],
-                                            attributes=attr)
+                                                attributes=attr)
 
     def _generate_attributes(self):
         """
@@ -2401,6 +2459,9 @@ class PhysDomain(BaseACIObject):
 
 
 class VmmDomain(BaseACIObject):
+    """
+    VMMDomain class
+    """
     def __init__(self, name, parent):
         """
         :param name: String containing the VMM Domain name
@@ -2420,7 +2481,7 @@ class VmmDomain(BaseACIObject):
         """
         attr = self._generate_attributes()
         return super(VmmDomain, self).get_json(self._get_apic_classes()[0],
-                                            attributes=attr)
+                                               attributes=attr)
 
     def _generate_attributes(self):
         """
@@ -2518,6 +2579,9 @@ class VmmDomain(BaseACIObject):
 
 
 class L2ExtDomain(BaseACIObject):
+    """
+    L2ExtDomain class
+    """
     def __init__(self, name, parent):
         """
         :param name: String containing the L2ExtDomain name
@@ -2537,7 +2601,7 @@ class L2ExtDomain(BaseACIObject):
         """
         attr = self._generate_attributes()
         return super(L2ExtDomain, self).get_json(self._get_apic_classes()[0],
-                                            attributes=attr)
+                                                 attributes=attr)
 
     def _generate_attributes(self):
         """
@@ -2637,6 +2701,9 @@ class L2ExtDomain(BaseACIObject):
 
 
 class L3ExtDomain(BaseACIObject):
+    """
+    L3ExtDomain class
+    """
     def __init__(self, name, parent):
         """
         :param name: String containing the name of the external routed domain
@@ -2656,7 +2723,7 @@ class L3ExtDomain(BaseACIObject):
         """
         attr = self._generate_attributes()
         return super(L3ExtDomain, self).get_json(self._get_apic_classes()[0],
-                                            attributes=attr)
+                                                 attributes=attr)
 
     def _generate_attributes(self):
         """
@@ -2757,6 +2824,9 @@ class L3ExtDomain(BaseACIObject):
 
 
 class EPGDomain(BaseACIObject):
+    """
+    EPGDomain class
+    """
     def __init__(self, name, parent):
         """
         :param name: String containing the name of a source relation to an
@@ -3042,6 +3112,11 @@ class VMM(BaseACIObject):
         self.network_pool = network_pool
 
     def _get_path(self):
+        """
+        Get the URL of the VMM
+
+        :return: string containing URL
+        """
         return 'uni/vmmp-%s/dom-%s' % (self.vswitch_info.vendor,
                                        self.vswitch_info.vswitch_name)
 
@@ -3308,6 +3383,13 @@ class MonitorPolicy(BaseMonitorClass):
 
     @staticmethod
     def _getClass(session, aciClass):
+        """
+        Get the class from the APIC
+
+        :param session: Session object instance
+        :param aciClass: string containing classname
+        :return: JSON dictionary containing class instances
+        """
         prefix = '/api/node/class/'
         suffix = '.json?query-target=self'
         class_query_url = prefix + aciClass + suffix
@@ -3317,6 +3399,14 @@ class MonitorPolicy(BaseMonitorClass):
 
     @classmethod
     def _getPolicy(cls, policyObject, session, dn):
+        """
+        Get the policy
+
+        :param policyObject: policyObject
+        :param session: Session class instance
+        :param dn: string containing the distinguished name
+        :return: None
+        """
         children = cls._getChildren(session, dn)
         for child in children:
             if child[0] == 'statsHierColl':
@@ -3374,6 +3464,13 @@ class MonitorPolicy(BaseMonitorClass):
 
     @classmethod
     def _getChildren(cls, session, dn):
+        """
+        Get the children
+
+        :param session: Session instance object
+        :param dn: string containing the distinguished name
+        :return: json dictionary containing the children objects
+        """
         result = []
         mo_query_url = '/api/mo/' + dn + '.json?query-target=children'
         ret = session.get(mo_query_url)
@@ -3414,6 +3511,9 @@ class MonitorPolicy(BaseMonitorClass):
                   indexed by counter family and granularity.
         """
         class Policy(object):
+            """
+            Policy class
+            """
             def __init__(self):
                 self.adminState = 'disabled'
                 self.retention = 'none'
