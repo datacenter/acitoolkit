@@ -142,7 +142,14 @@ class TestBaseRelation(unittest.TestCase):
 
 
 class MockACIObject(BaseACIObject):
+    """
+    Test object to test inheriting from BaseACIObject
+    """
     def get_json(self):
+        """
+        Get the JSON
+        :return: None
+        """
         attr = self._generate_attributes()
         super(MockACIObject, self).get_json('mock', attributes=attr)
 
@@ -154,28 +161,49 @@ class MockACIObject(BaseACIObject):
 
 
 class TestBaseACIObject(unittest.TestCase):
+    """
+    Test the BaseACIObject class
+    """
     def test_create_valid(self):
+        """
+        Create a valid object inheriting from BaseACIObject
+        """
         obj = MockACIObject('mock')
         self.assertTrue(isinstance(obj, MockACIObject))
 
     def test_create_invalid_name_is_none(self):
+        """
+        Create an invalid BaseACIObject object that has no name
+        """
         self.assertRaises(TypeError, MockACIObject)
 
     def test_create_invalid_name_is_not_string(self):
+        """
+        Create an invalid BaseACIObject object that has a non-string name
+        """
         name = 53
         self.assertRaises(TypeError, MockACIObject, name)
 
     def test_create_invalid_parent_as_string(self):
+        """
+        Create an invalid BaseACIObject object that has a parent as a string
+        """
         name = 'valid'
         invalid_parent = 'parent'
         self.assertRaises(TypeError, MockACIObject, name, invalid_parent)
 
     def test_string_transform(self):
+        """
+        Test the ability to convert the object to a string
+        """
         obj = MockACIObject('mock')
         object_as_string = str(obj)
         self.assertTrue(isinstance(object_as_string, str))
 
     def test_attach(self):
+        """
+        Test attaching one object to another
+        """
         obj1 = MockACIObject('mock')
         obj2 = MockACIObject('mock')
         obj1.attach(obj2)
@@ -183,16 +211,25 @@ class TestBaseACIObject(unittest.TestCase):
         return obj1, obj2
 
     def test_double_attach(self):
+        """
+        Test attaching one object to another twice is still attached
+        """
         obj1, obj2 = self.test_attach()
         obj1.attach(obj2)
         self.assertTrue(obj1.is_attached(obj2))
 
     def test_detach(self):
+        """
+        Test detaching one object from another
+        """
         obj1, obj2 = self.test_attach()
         obj1.detach(obj2)
         self.assertFalse(obj1.is_attached(obj2))
 
     def test_detach_unattached(self):
+        """
+        Test detaching one object from another twice
+        """
         obj1 = MockACIObject('mock')
         obj2 = MockACIObject('mock')
         self.assertFalse(obj1.is_attached(obj2))
@@ -204,7 +241,6 @@ class TestTenant(unittest.TestCase):
     """
     Tenant class tests.  These do not communicate with APIC
     """
-
     def test_create(self):
         """
         Tenant creation
@@ -237,7 +273,6 @@ class TestAppProfile(unittest.TestCase):
     """
     AppProfile class tests.  These do not communicate with APIC
     """
-
     def test_create(self):
         """
         AppProfile creation
@@ -571,6 +606,9 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd.get_context() is None)
 
     def test_remove_context(self):
+        """
+        Test removing the context
+        """
         tenant, bd = self.create_bd()
         context = Context('ctx', tenant)
         bd.add_context(context)
@@ -579,44 +617,77 @@ class TestBridgeDomain(unittest.TestCase):
 
 
 class TestL2Interface(unittest.TestCase):
+    """
+    Test the L2Interface class
+    """
     def test_create_valid_vlan(self):
+        """
+        Test a valid vlan encap on an L2Interface object
+        """
         l2if = L2Interface('vlan5_on_eth1/1/1/1', 'vlan', '5')
         self.assertTrue(l2if is not None)
         self.assertTrue(l2if.get_encap_type() == 'vlan')
         self.assertTrue(l2if.get_encap_id() == '5')
 
     def test_create_valid_nvgre(self):
+        """
+        Test a valid nvgre encap on an L2Interface object
+        """
         l2if = L2Interface('vlan5_on_eth1/1/1/1', 'nvgre', '5')
         self.assertTrue(l2if is not None)
 
     def test_create_valid_vxlan(self):
+        """
+        Test a valid vxlan encap on an L2Interface object
+        """
         l2if = L2Interface('vlan5_on_eth1/1/1/1', 'vxlan', '5')
         self.assertTrue(l2if is not None)
 
     def test_invalid_create_bad_encap_type(self):
+        """
+        Test an invalid encap type on an L2Interface object
+        """
         self.assertRaises(ValueError, L2Interface,
                           'vlan5_on_eth1/1/1/1', 'invalid_encap', '5')
 
     def test_invalid_create_bad_encap_id_non_number(self):
+        """
+        Test an invalid encap value on an L2Interface object
+        """
         self.assertRaises(ValueError, L2Interface,
                           'vlan5_on_eth1/1/1/1', 'invalid_encap', 'vlan')
 
     def test_invalid_create_bad_encap_id_none(self):
+        """
+        Test an invalid encap on an L2Interface object
+        """
         self.assertRaises(ValueError, L2Interface,
                           'vlan5_on_eth1/1/1/1', 'invalid_encap', None)
 
     def test_invalid_create_bad_name_none(self):
+        """
+        Test an invalid name on an L2Interface object
+        """
         self.assertRaises(TypeError, L2Interface, None, 'vlan', '5')
 
     def test_invalid_create_bad_name_not_string(self):
+        """
+        Test an non-string name on an L2Interface object
+        """
         random_object = Tenant('foo')
         self.assertRaises(TypeError, L2Interface, random_object, 'vlan', '5')
 
     def test_is_interface(self):
+        """
+        Test is_interface on an L2Interface object
+        """
         l2if = L2Interface('vlan5_on_eth1/1/1/1', 'vlan', '5')
         self.assertTrue(l2if.is_interface())
 
     def test_path(self):
+        """
+        Test path assignment on an L2Interface object
+        """
         l2if = L2Interface('vlan5_on_eth1/1/1/1', 'vlan', '5')
         self.assertTrue(l2if._get_path() is None)
 
@@ -1448,7 +1519,7 @@ class TestLiveSubscription(TestLiveAPIC):
         # Create the tenant and push to APIC
         new_tenant = Tenant(tenant_name)
         resp = session.push_to_apic(new_tenant.get_url(),
-            data=new_tenant.get_json())
+                                    data=new_tenant.get_json())
         self.assertTrue(resp.ok)
 
         # Wait for the event to come through the subscription
@@ -1468,7 +1539,7 @@ class TestLiveSubscription(TestLiveAPIC):
 
         new_tenant.mark_as_deleted()
         resp = session.push_to_apic(new_tenant.get_url(),
-            data=new_tenant.get_json())
+                                    data=new_tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_resubscribe(self):
@@ -2001,13 +2072,13 @@ class TestLiveOSPF(TestLiveAPIC):
         outside.attach(ospfif)
         session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(),
-            data=tenant.get_json())
+                                    data=tenant.get_json())
         self.assertTrue(resp.ok)
 
         # Cleanup
         tenant.mark_as_deleted()
         resp = session.push_to_apic(tenant.get_url(),
-            data=tenant.get_json())
+                                    data=tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_authenticated(self):
@@ -2046,13 +2117,13 @@ class TestLiveOSPF(TestLiveAPIC):
 
         session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(),
-            data=tenant.get_json())
+                                    data=tenant.get_json())
         self.assertTrue(resp.ok)
 
         # Cleanup
         tenant.mark_as_deleted()
         resp = session.push_to_apic(tenant.get_url(),
-            data=tenant.get_json())
+                                    data=tenant.get_json())
         self.assertTrue(resp.ok)
 
 
