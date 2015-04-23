@@ -1380,6 +1380,7 @@ class Subnet(BaseACIObject):
             raise TypeError('Parent of Subnet class must be BridgeDomain')
         super(Subnet, self).__init__(subnet_name, parent)
         self._addr = None
+        self._scope = None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1411,6 +1412,24 @@ class Subnet(BaseACIObject):
             raise TypeError('Address can not be set to None')
         self._addr = addr
 
+    def get_scope(self):
+        """
+        Get the subnet scope
+
+        :returns: The subnet scope as a string
+        """
+        return self._scope
+
+    def set_scope(self, scope):
+        """
+        Set the subnet address
+
+        :param scope: The subnet scope. It can be either "public", "private" or "shared".
+        """
+        if scope is None:
+            raise TypeError('Scope can not be set to None')
+        self._scope = scope
+        
     def get_json(self):
         """
         Returns json representation of the subnet
@@ -1421,6 +1440,8 @@ class Subnet(BaseACIObject):
         if self.get_addr() is None:
             raise ValueError('Subnet address is not set')
         attributes['ip'] = self.get_addr()
+        if self.get_scope() is not None:
+			attributes['scope'] = self.get_scope()
         return super(Subnet, self).get_json('fvSubnet', attributes=attributes)
 
     def _populate_from_attributes(self, attributes):
