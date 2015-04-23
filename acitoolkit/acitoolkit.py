@@ -495,6 +495,7 @@ class EPG(CommonEPG):
             if not isinstance(parent, AppProfile):
                 raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
+        self._deployment_immediacy = None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -599,6 +600,14 @@ class EPG(CommonEPG):
                   a BridgeDomain.
         """
         return self._has_any_relation(BridgeDomain)
+        
+    def set_deployment_immediacy(self, immediacy):
+        """
+        Set the deployment immediacy of the EPG
+
+        :param immediacy: String containing either "immediate" or "lazy"
+        """
+        self._deployment_immediacy = immediacy
 
     def _extract_relationships(self, data):
         app_profile = self.get_parent()
@@ -664,6 +673,8 @@ class EPG(CommonEPG):
                                      'tDn': interface._get_path()}}}
             if interface.encap_mode:
                 text['fvRsPathAtt']['attributes']['mode'] = interface.encap_mode
+            if self._deployment_immediacy:
+                text['fvRsPathAtt']['attributes']['instrImedcy'] = self._deployment_immediacy
             children.append(text)
 
             for ep in interface.get_all_attachments(Endpoint):
