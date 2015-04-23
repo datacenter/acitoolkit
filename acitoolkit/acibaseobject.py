@@ -421,9 +421,8 @@ class BaseACIObject(object):
         :param item:  Object to be attached.
         """
         if self.is_attached(item):
-            return
-            # self._relations.remove(BaseRelation(item, 'attached'))
-            # item._attachments.remove(BaseRelation(self, 'attached'))
+            self._relations.remove(BaseRelation(item, 'attached'))
+            item._attachments.remove(BaseRelation(self, 'attached'))
         self._relations.append(BaseRelation(item, 'attached'))
         item._attachments.append(BaseRelation(self, 'attached'))
 
