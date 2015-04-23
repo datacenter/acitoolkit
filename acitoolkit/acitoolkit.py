@@ -277,7 +277,7 @@ class L2Interface(BaseACIObject):
         attached to a physical interface. This interface defines the L2\
         encapsulation i.e. VLAN, VXLAN, or NVGRE
     """
-    def __init__(self, name, encap_type, encap_id):
+    def __init__(self, name, encap_type, encap_id, encap_mode=None):
         """
         :param name: String containing the L2Interface instance name
         :param encap_type: String containing the encapsulation type.\
@@ -292,7 +292,7 @@ class L2Interface(BaseACIObject):
                              " 'vxlan', or 'nvgre'")
         self.encap_type = encap_type
         self.encap_id = encap_id
-        self.encap_mode = None
+        self.encap_mode = encap_mode
 
     def is_interface(self):
         """
@@ -495,6 +495,7 @@ class EPG(CommonEPG):
             if not isinstance(parent, AppProfile):
                 raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
+        self._deployment_immediacy = None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -599,6 +600,14 @@ class EPG(CommonEPG):
                   a BridgeDomain.
         """
         return self._has_any_relation(BridgeDomain)
+        
+    def set_deployment_immediacy(self, immediacy):
+        """
+        Set the deployment immediacy of the EPG
+
+        :param immediacy: String containing either "immediate" or "lazy"
+        """
+        self._deployment_immediacy = immediacy
 
     def _extract_relationships(self, data):
         app_profile = self.get_parent()
@@ -664,6 +673,8 @@ class EPG(CommonEPG):
                                      'tDn': interface._get_path()}}}
             if interface.encap_mode:
                 text['fvRsPathAtt']['attributes']['mode'] = interface.encap_mode
+            if self._deployment_immediacy:
+                text['fvRsPathAtt']['attributes']['instrImedcy'] = self._deployment_immediacy
             children.append(text)
 
             for ep in interface.get_all_attachments(Endpoint):
@@ -682,9 +693,12 @@ class EPG(CommonEPG):
                     text['fvStCEp']['attributes']['status'] = 'deleted'
                 children.append(text)
         if is_interfaces:
-            text = {'fvRsDomAtt': {'attributes':
-                                   {'tDn': 'uni/phys-allvlans'}}}
-            children.append(text)
+            # Only add the all-vlans physical domain if nobody has
+            # attached any other domain
+            if len(self.get_children(only_class=EPGDomain))==0:
+                text = {'fvRsDomAtt': {'attributes':
+                                       {'tDn': 'uni/phys-allvlans'}}}
+                children.append(text)
 
         is_vmms = False
         for vmm in self.get_all_attached(VMM):
@@ -1380,6 +1394,7 @@ class Subnet(BaseACIObject):
             raise TypeError('Parent of Subnet class must be BridgeDomain')
         super(Subnet, self).__init__(subnet_name, parent)
         self._addr = None
+        self._scope = None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1411,6 +1426,24 @@ class Subnet(BaseACIObject):
             raise TypeError('Address can not be set to None')
         self._addr = addr
 
+    def get_scope(self):
+        """
+        Get the subnet scope
+
+        :returns: The subnet scope as a string
+        """
+        return self._scope
+
+    def set_scope(self, scope):
+        """
+        Set the subnet address
+
+        :param scope: The subnet scope. It can be either "public", "private" or "shared".
+        """
+        if scope is None:
+            raise TypeError('Scope can not be set to None')
+        self._scope = scope
+        
     def get_json(self):
         """
         Returns json representation of the subnet
@@ -1421,6 +1454,8 @@ class Subnet(BaseACIObject):
         if self.get_addr() is None:
             raise ValueError('Subnet address is not set')
         attributes['ip'] = self.get_addr()
+        if self.get_scope() is not None:
+            attributes['scope'] = self.get_scope()
         return super(Subnet, self).get_json('fvSubnet', attributes=attributes)
 
     def _populate_from_attributes(self, attributes):
