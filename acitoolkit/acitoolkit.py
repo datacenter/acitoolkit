@@ -693,9 +693,12 @@ class EPG(CommonEPG):
                     text['fvStCEp']['attributes']['status'] = 'deleted'
                 children.append(text)
         if is_interfaces:
-            text = {'fvRsDomAtt': {'attributes':
-                                   {'tDn': 'uni/phys-allvlans'}}}
-            children.append(text)
+			# Only add the all-vlans physical domain if nobody has
+			# attached any other domain
+			if len(self.get_children(only_class=EPGDomain))==0:
+				text = {'fvRsDomAtt': {'attributes':
+									   {'tDn': 'uni/phys-allvlans'}}}
+				children.append(text)
 
         is_vmms = False
         for vmm in self.get_all_attached(VMM):
