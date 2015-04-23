@@ -2223,7 +2223,7 @@ class ConcreteOverlay(BaseACIPhysObject):
 
         :return: str
         """
-        return 'Concrete_Portchannel' + self.attr.get('id')
+        return 'Concrete_Overlay'
 
     def __eq__(self, other):
 
