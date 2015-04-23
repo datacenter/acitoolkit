@@ -277,7 +277,7 @@ class L2Interface(BaseACIObject):
         attached to a physical interface. This interface defines the L2\
         encapsulation i.e. VLAN, VXLAN, or NVGRE
     """
-    def __init__(self, name, encap_type, encap_id):
+    def __init__(self, name, encap_type, encap_id, encap_mode=None):
         """
         :param name: String containing the L2Interface instance name
         :param encap_type: String containing the encapsulation type.\
@@ -292,7 +292,7 @@ class L2Interface(BaseACIObject):
                              " 'vxlan', or 'nvgre'")
         self.encap_type = encap_type
         self.encap_id = encap_id
-        self.encap_mode = None
+        self.encap_mode = encap_mode
 
     def is_interface(self):
         """
