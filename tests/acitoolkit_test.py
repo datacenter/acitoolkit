@@ -697,38 +697,66 @@ class TestL2Interface(unittest.TestCase):
 
 
 class TestL3Interface(unittest.TestCase):
+    """
+    Test L3Interface class
+    """
     def test_create_valid(self):
+        """
+        Test basic create
+        """
         l3if = L3Interface('l3ifname')
+        self.assertTrue(isinstance(l3if, L3Interface))
 
     def test_create_invalid_no_name(self):
+        """
+        Test invalid create that doesn't pass a name
+        """
         self.assertRaises(TypeError, L3Interface)
 
     def test_is_interface(self):
+        """
+        Test that a call to is_instance on L3Interface will return True
+        """
         l3if = L3Interface('l3ifname')
         self.assertTrue(l3if.is_interface())
 
     def test_set_addr(self):
+        """
+        Test setting address on L3Interface
+        """
         l3if = L3Interface('l3ifname')
         self.assertEqual(l3if.get_addr(), None)
         l3if.set_addr('1.2.3.4/24')
         self.assertEqual(l3if.get_addr(), '1.2.3.4/24')
 
     def test_set_l3if_type(self):
+        """
+        Test set_l3if_type method with correct parameters
+        """
         l3if = L3Interface('l3ifname')
         l3if.set_l3if_type('l3-port')
         self.assertEqual(l3if.get_l3if_type(), 'l3-port')
 
     def test_set_l3if_type_invalid(self):
+        """
+        Test set_l3if_type method with incorrect parameters
+        """
         l3if = L3Interface('l3ifname')
         self.assertRaises(ValueError, l3if.set_l3if_type, 'invalid')
 
     def test_add_context(self):
+        """
+        Test adding a context to a L3Interface
+        """
         l3if = L3Interface('l3ifname')
         ctx = Context('ctx')
         l3if.add_context(ctx)
         self.assertEqual(l3if.get_context(), ctx)
 
     def test_add_context_twice(self):
+        """
+        Test adding a context twice to a L3Interface
+        """
         l3if = L3Interface('l3ifname')
         ctx = Context('ctx')
         l3if.add_context(ctx)
@@ -738,6 +766,9 @@ class TestL3Interface(unittest.TestCase):
         self.assertIsNone(l3if.get_context())
 
     def test_add_context_different(self):
+        """
+        Test adding a different context to a L3Interface
+        """
         l3if = L3Interface('l3ifname')
         ctx1 = Context('ctx1')
         ctx2 = Context('ctx2')
@@ -747,6 +778,9 @@ class TestL3Interface(unittest.TestCase):
         self.assertTrue(l3if.has_context())
 
     def test_remove_context(self):
+        """
+        Test removing a context from a L3Interface
+        """
         l3if = L3Interface('l3ifname')
         ctx = Context('ctx')
         l3if.add_context(ctx)
@@ -756,22 +790,37 @@ class TestL3Interface(unittest.TestCase):
 
 
 class TestBaseContract(unittest.TestCase):
+    """
+    Test the BaseContract class
+    """
     def test_get_contract_code(self):
+        """
+        Test the _get_contract_code method raises not implemented exception
+        """
         contract = BaseContract('contract')
         self.assertRaises(NotImplementedError,
                           contract._get_contract_code)
 
     def test_get_subject_code(self):
+        """
+        Test the _get_subject_code method raises not implemented exception
+        """
         contract = BaseContract('contract')
         self.assertRaises(NotImplementedError,
                           contract._get_subject_code)
 
     def test_get_subject_relation_code(self):
+        """
+        Test the _get_subject_relation_code method raises not implemented exception
+        """
         contract = BaseContract('contract')
         self.assertRaises(NotImplementedError,
                           contract._get_subject_relation_code)
 
     def test_set_scope(self):
+        """
+        Test the set_scope method
+        """
         contract = BaseContract('contract')
         valid_scopes = ['context', 'global', 'tenant', 'application-profile']
         for scope in valid_scopes:
@@ -781,31 +830,59 @@ class TestBaseContract(unittest.TestCase):
 
 
 class TestContract(unittest.TestCase):
+    """
+    Test the Contract class
+    """
     def test_create(self):
+        """
+        Test basic Contract creation
+        """
         contract = Contract('contract')
+        self.assertTrue(isinstance(contract, Contract))
 
     def test_internal_get_contract_code(self):
+        """
+        Test _get_contract_code method
+        """
         self.assertEqual(Contract._get_contract_code(), 'vzBrCP')
 
     def test_internal_get_subject_code(self):
+        """
+        Test _get_subject_code method
+        """
         self.assertEqual(Contract._get_subject_code(), 'vzSubj')
 
     def test_internal_get_subject_relation_code(self):
+        """
+        Test _get_subject_relation_code method
+        """
         self.assertEqual(Contract._get_subject_relation_code(),
                          'vzRsSubjFiltAtt')
 
     def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
         self.assertEquals(Contract._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
+        """
+        Test _get_parent_dn method
+        """
         dn = 'uni/tn-tenant/brc-test'
         self.assertEquals(Contract._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
+        """
+        Test getting the contract name from _get_parent_dn method
+        """
         dn = 'uni/tn-tenant/brc-test'
         self.assertEquals(Contract._get_name_from_dn(dn), 'test')
 
     def test_internal_generate_attributes(self):
+        """
+        Test _generate_attributes method
+        """
         contract = Contract('contract')
         contract.set_scope('tenant')
         attributes = contract._generate_attributes()
@@ -814,39 +891,73 @@ class TestContract(unittest.TestCase):
 
 
 class TestTaboo(unittest.TestCase):
+    """
+    Test Taboo class
+    """
     def test_create(self):
+        """
+        Test basic Taboo class creation
+        """
         taboo = Taboo('taboo')
+        self.assertTrue(isinstance(taboo, Taboo))
 
     def test_internal_get_contract_code(self):
+        """
+        Test _get_contract_code method
+        """
         self.assertEqual(Taboo._get_contract_code(), 'vzTaboo')
 
     def test_internal_get_subject_code(self):
+        """
+        Test _get_subject_code method
+        """
         self.assertEqual(Taboo._get_subject_code(), 'vzTSubj')
 
     def test_internal_get_subject_relation_code(self):
+        """
+        Test _get_subject_relation_code method
+        """
         self.assertEqual(Taboo._get_subject_relation_code(),
                          'vzRsDenyRule')
 
     def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
         self.assertEquals(Taboo._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
+        """
+        Test _get_parent_dn method
+        """
         dn = 'uni/tn-tenant/taboo-test'
         self.assertEquals(Taboo._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
+        """
+        Test _get_name_from_dn method
+        """
         dn = 'uni/tn-tenant/taboo-test'
         self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
 
 
 class TestEPG(unittest.TestCase):
+    """
+    Test EPG class
+    """
     def create_epg(self):
+        """
+        Method to create basic EPG used by test cases
+        """
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
         return tenant, app, epg
 
     def create_epg_with_bd(self):
+        """
+        Method to create basic EPG with a BridgeDomain used by test cases
+        """
         tenant, app, epg = self.create_epg()
         self.assertFalse(epg.has_bd())
         bd = BridgeDomain('bd', tenant)
@@ -854,6 +965,9 @@ class TestEPG(unittest.TestCase):
         return tenant, app, epg, bd
 
     def test_valid_create(self):
+        """
+        Test basic EPG creation
+        """
         tenant, app, epg = self.create_epg()
         self.assertTrue(isinstance(epg, EPG))
 
@@ -861,38 +975,65 @@ class TestEPG(unittest.TestCase):
     #    self.assertRaises(TypeError, EPG, 'epg', None)
 
     def test_invalid_create_parent_wrong_class(self):
+        """
+        Test EPG creation with wrong parent class
+        """
         tenant = Tenant('tenant')
         self.assertRaises(TypeError, EPG, 'epg', tenant)
 
     def test_get_parent_class(self):
+        """
+        Test EPG parent class is AppProfile
+        """
         self.assertEquals(EPG._get_parent_class(), AppProfile)
 
     def test_get_parent_dn(self):
+        """
+        Test _get_parent_dn method
+        """
         dn = 'uni/tn-tenant/ap-app/epg-test'
         self.assertEquals(EPG._get_parent_dn(dn), 'uni/tn-tenant/ap-app')
 
     def test_get_name_from_dn(self):
+        """
+        Test _get_name_from_dn method
+        """
         dn = 'uni/tn-tenant/ap-app/epg-test'
         self.assertEquals(EPG._get_name_from_dn(dn), 'test')
 
     def test_valid_add_bd(self):
+        """
+        Test add_bd method
+        """
         tenant, app, epg, bd = self.create_epg_with_bd()
         self.assertTrue(epg.has_bd())
         self.assertTrue(epg.get_bd() == bd)
 
     def test_valid_add_bd_json(self):
+        """
+        Test add_bd method produces correct JSON
+        """
         tenant, app, epg, bd = self.create_epg_with_bd()
         self.assertTrue('fvRsBd' in str(tenant.get_json()))
 
     def test_invalid_add_bd_as_none(self):
+        """
+        Test add_bd method raises exception for BD as None
+        """
         tenant, app, epg = self.create_epg()
         self.assertRaises(TypeError, epg.add_bd, None)
 
     def test_invalid_add_bd_wrong_class(self):
+        """
+        Test add_bd method raises exception for BD as wrong class
+        """
         tenant, app, epg = self.create_epg()
         self.assertRaises(TypeError, epg.add_bd, tenant)
 
     def test_add_bd_twice(self):
+        """
+        Test add_bd method when adding BD twice
+        """
         tenant, app, epg, bd = self.create_epg_with_bd()
         # Add the BD again
         epg.add_bd(bd)
@@ -903,6 +1044,9 @@ class TestEPG(unittest.TestCase):
         self.assertTrue(epg.get_bd() is None)
 
     def test_add_bd_two_different(self):
+        """
+        Test add_bd method cleans up when changing BD
+        """
         tenant, app, epg, bd = self.create_epg_with_bd()
         # Add a different BD
         bd2 = BridgeDomain('bd2', tenant)
@@ -914,12 +1058,18 @@ class TestEPG(unittest.TestCase):
         self.assertFalse(epg.has_bd())
 
     def test_valid_remove_bd(self):
+        """
+        Test remove_bd method
+        """
         tenant, app, epg, bd = self.create_epg_with_bd()
         epg.remove_bd()
         self.assertFalse(epg.has_bd())
         self.assertFalse(epg.get_bd() == bd)
 
     def test_tag_add(self):
+        """
+        Test add_tag method
+        """
         tenant, app, epg = self.create_epg()
         self.assertFalse(epg.has_tags())
         epg.add_tag('secure')
@@ -929,6 +1079,9 @@ class TestEPG(unittest.TestCase):
         self.assertTrue(epg.has_tag('secure'))
 
     def test_tag_remove(self):
+        """
+        Test remove_tag method
+        """
         tenant, app, epg = self.create_epg()
         self.assertFalse(epg.has_tags())
         epg.add_tag('secure')
@@ -940,6 +1093,9 @@ class TestEPG(unittest.TestCase):
         self.assertFalse(epg.has_tags())
 
     def test_epg_provide(self):
+        """
+        Test provide method
+        """
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         epg = EPG('epg1', app)
@@ -961,6 +1117,9 @@ class TestEPG(unittest.TestCase):
         self.assertTrue('fvRsProv' in str(output))
 
     def test_epg_consume(self):
+        """
+        Test consume method
+        """
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         epg = EPG('epg1', app)
@@ -970,6 +1129,9 @@ class TestEPG(unittest.TestCase):
         self.assertTrue('fvRsCons' in str(output))
 
     def test_epg_provide_consume(self):
+        """
+        Test provide and consume method together
+        """
         tenant = Tenant('tenant')
         app = AppProfile('app', tenant)
         epg = EPG('epg1', app)
@@ -1020,6 +1182,9 @@ class TestEPG(unittest.TestCase):
         self.assertTrue(epg.get_all_consumed() == [])
 
     def test_attach_epg(self):
+        """
+        Test attaching an EPG to an L2Interface
+        """
         tenant, app, epg = self.create_epg()
         interface = Interface('eth', '1', '1', '1', '1')
         vlan_intf = L2Interface('v5', 'vlan', '5')
@@ -1028,6 +1193,9 @@ class TestEPG(unittest.TestCase):
         self.assertTrue('fvRsPathAtt' in str(tenant.get_json()))
 
     def test_detach_epg(self):
+        """
+        Test detaching an EPG from an L2Interface
+        """
         tenant, app, epg = self.create_epg()
         interface = Interface('eth', '1', '1', '1', '1')
         vlan_intf = L2Interface('v5', 'vlan', '5')
@@ -1039,15 +1207,27 @@ class TestEPG(unittest.TestCase):
 
 
 class TestOutsideEPG(unittest.TestCase):
+    """
+    Test OutsideEPG class
+    """
     def test_create(self):
+        """
+        Test basic OutsideEPG creation
+        """
         tenant = Tenant('cisco')
         outside_epg = OutsideEPG('internet', tenant)
         self.assertTrue(isinstance(outside_epg, OutsideEPG))
 
     def test_invalid_create(self):
+        """
+        Test invalid OutsideEPG creation
+        """
         self.assertRaises(TypeError, OutsideEPG, 'internet', 'cisco')
 
     def test_basic_json(self):
+        """
+        Test OutsideEPG JSON creation
+        """
         tenant = Tenant('cisco')
         outside_epg = OutsideEPG('internet', tenant)
         self.assertTrue('l3extOut' in str(outside_epg.get_json()))
@@ -1159,7 +1339,13 @@ class TestEndpoint(unittest.TestCase):
 
 
 class TestJson(unittest.TestCase):
+    """
+    Class for testing JSON creation
+    """
     def test_simple_3tier_app(self):
+        """
+        Test a simple 3-tier app example
+        """
         tenant = Tenant('cisco')
         app = AppProfile('ordersystem', tenant)
         web_epg = EPG('web', app)
@@ -1174,6 +1360,9 @@ class TestJson(unittest.TestCase):
                             'Did not find %s in returned json' % check)
 
     def test_epg_attach_to_VLAN_interface(self):
+        """
+        Test attaching an EPG to a L2Interface
+        """
         expected_json = ("{'fvTenant': {'attributes': {'name': 'cisco'}, 'chil"
                          "dren': [{'fvAp': {'attributes': {'name': 'ordersyste"
                          "m'}, 'children': [{'fvAEPg': {'attributes': {'name':"
@@ -1195,7 +1384,13 @@ class TestJson(unittest.TestCase):
 
 
 class TestPortChannel(unittest.TestCase):
+    """
+    Test the PortChannel class
+    """
     def create_pc(self):
+        """
+        Create a basic PortChannel used as setup for test cases
+        """
         if1 = Interface('eth', '1', '101', '1', '8')
         if2 = Interface('eth', '1', '101', '1', '9')
         pc = PortChannel('pc1')
@@ -1204,6 +1399,9 @@ class TestPortChannel(unittest.TestCase):
         return pc
 
     def test_create_pc(self):
+        """
+        Test creating a PortChannel
+        """
         pc = self.create_pc()
         self.assertTrue(pc.is_interface())
         self.assertFalse(pc.is_vpc())
@@ -1249,6 +1447,9 @@ class TestPortChannel(unittest.TestCase):
         self.assertIsNone(fabric)
 
     def test_create_3rd_interface_as_vpc(self):
+        """
+        Test creating a VPC
+        """
         pc = self.create_pc()
         path = pc._get_path()
         self.assertTrue(isinstance(path, str))
@@ -1272,10 +1473,16 @@ class TestPortChannel(unittest.TestCase):
         self.assertTrue(fabric is None)
 
     def test_internal_get_nodes(self):
+        """
+        Test _get_nodes class
+        """
         pc = self.create_pc()
         nodes = pc._get_nodes()
 
     def test_delete_vpc(self):
+        """
+        Test deleting VPC
+        """
         pc = self.create_pc()
         pc.mark_as_deleted()
         fabric, infra = pc.get_json()
@@ -1283,24 +1490,42 @@ class TestPortChannel(unittest.TestCase):
 
 
 class TestContext(unittest.TestCase):
+    """
+    Test Context class
+    """
     def test_get_json(self):
+        """
+        Test JSON creation for a Context
+        """
         tenant = Tenant('cisco')
         context = Context('ctx-cisco', tenant)
         context_json = context.get_json()
         self.assertTrue('fvCtx' in context_json)
 
     def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
         self.assertEquals(Context._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
+        """
+        Test _get_parent_dn method
+        """
         dn = 'uni/tn-tenant/ctx-test'
         self.assertEquals(Context._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
+        """
+        Test _get_name_from_dn method
+        """
         dn = 'uni/tn-tenant/ctx-test'
         self.assertEquals(Context._get_name_from_dn(dn), 'test')
 
     def test_set_allow_all(self):
+        """
+        Test set_allow_all method
+        """
         tenant = Tenant('cisco')
         context = Context('ctx-cisco', tenant)
         context_json = context.get_json()
@@ -1313,7 +1538,13 @@ class TestContext(unittest.TestCase):
 
 
 class TestBGP(unittest.TestCase):
+    """
+    Test BGPSession class
+    """
     def test_bgp_router(self):
+        """
+        Test basic BGPSession creation
+        """
         tenant = Tenant('bgp-tenant')
         context = Context('bgp-test', tenant)
         outside = OutsideEPG('out-1', tenant)
@@ -1340,7 +1571,13 @@ class TestBGP(unittest.TestCase):
 
 
 class TestOspf(unittest.TestCase):
+    """
+    Test OSPFInterface class
+    """
     def test_ospf_router_port(self):
+        """
+        Test basic OSPFInterface creation
+        """
         tenant = Tenant('aci-toolkit-test')
         context = Context('ctx-cisco', tenant)
         outside = OutsideEPG('out-1', tenant)
@@ -1372,10 +1609,13 @@ class TestOspf(unittest.TestCase):
 
 class TestMonitorPolicy(unittest.TestCase):
     """
-    Tests the monitoriing policy
+    Tests the monitoring policy
     """
 
     def test_create(self):
+        """
+        Test basic MonitorPolicy creation
+        """
         m_policy = MonitorPolicy('fabric', 'policy-name')
         self.assertEqual(m_policy.name, 'policy-name')
         self.assertEqual(m_policy.policyType, 'fabric')
@@ -1386,6 +1626,9 @@ class TestMonitorPolicy(unittest.TestCase):
 
 
 class TestLiveAPIC(unittest.TestCase):
+    """
+    Test with a live APIC
+    """
     def login_to_apic(self):
         """Login to the APIC
            RETURNS:  Instance of class Session
@@ -1397,13 +1640,22 @@ class TestLiveAPIC(unittest.TestCase):
 
 
 class TestLiveTenant(TestLiveAPIC):
+    """
+    Tenant tests on a live APIC
+    """
     def get_all_tenants(self):
+        """
+        Test Tenant.get
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         self.assertTrue(len(tenants) > 0)
         return tenants
 
     def get_all_tenant_names(self):
+        """
+        Test getting Tenant names
+        """
         tenants = self.get_all_tenants()
         names = []
         for tenant in tenants:
@@ -1411,6 +1663,9 @@ class TestLiveTenant(TestLiveAPIC):
         return names
 
     def test_get_tenants(self):
+        """
+        Test getting tenants
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         self.assertTrue(len(tenants) > 0)
@@ -1419,6 +1674,9 @@ class TestLiveTenant(TestLiveAPIC):
             self.assertTrue(isinstance(tenant.name, str))
 
     def test_get_deep_tenants(self):
+        """
+        Test Tenant.get_deep
+        """
         session = self.login_to_apic()
         tenants = Tenant.get_deep(session)
         self.assertTrue(len(tenants) > 0)
@@ -1427,12 +1685,18 @@ class TestLiveTenant(TestLiveAPIC):
             self.assertTrue(isinstance(tenant.name, str))
 
     def test_exists_tenant(self):
+        """
+        Test exists method with valid tenant
+        """
         session = self.login_to_apic()
         tenants = self.get_all_tenants()
         for tenant in tenants:
             self.assertTrue(Tenant.exists(session, tenant))
 
     def test_no_exists_tenant(self):
+        """
+        Test exists method with invalid tenant
+        """
         session = self.login_to_apic()
         tenants = self.get_all_tenants()
         # Pick a non-existing tenant.
@@ -1445,6 +1709,9 @@ class TestLiveTenant(TestLiveAPIC):
         self.assertFalse(Tenant.exists(session, non_existing_tenant))
 
     def test_create_tenant(self):
+        """
+        Test basic tenant creation
+        """
         session = self.login_to_apic()
 
         # Get all of the existing tenants
@@ -1478,6 +1745,9 @@ class TestLiveTenant(TestLiveAPIC):
 
 
 class TestLiveSubscription(TestLiveAPIC):
+    """
+    Test Subscriptions
+    """
     def test_create_class_subscription(self):
         session = self.login_to_apic()
         Tenant.subscribe(session)
