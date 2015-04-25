@@ -31,6 +31,7 @@
 This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
+from aciSearch import AciSearch
 
 
 class BaseRelation(object):
@@ -83,7 +84,7 @@ class BaseRelation(object):
                 self.relation_type == other.relation_type)
 
 
-class BaseACIObject(object):
+class BaseACIObject(AciSearch):
     """
     This class defines functionality common to all ACI objects.
     Functions may be overwritten by inheriting classes.

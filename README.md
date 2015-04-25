@@ -1,4 +1,4 @@
-# acitoolkit [![Documentation Status](https://readthedocs.org/projects/acitoolkit/badge/?version=latest)](https://readthedocs.org/projects/acitoolkit/?badge=latest) [![Build Status](https://api.shippable.com/projects/54ea96315ab6cc13528d52ad/badge?branchName=master)](https://app.shippable.com/projects/54ea96315ab6cc13528d52ad/builds/latest)
+# acitoolkit [![Documentation Status](https://readthedocs.org/projects/acitoolkit/badge/?version=latest)](https://readthedocs.org/projects/acitoolkit/?badge=latest) [![Build Status](https://api.shippable.com/projects/54ea96315ab6cc13528d52ad/badge?branchName=master)](https://app.shippable.com/projects/54ea96315ab6cc13528d52ad/builds/latest) [![Code Health](https://landscape.io/github/datacenter/acitoolkit/master/landscape.svg?style=flat)](https://landscape.io/github/datacenter/acitoolkit/master)
 
 
 # Description
@@ -18,8 +18,6 @@ Required
 
 * Python 2.7+
 * [setuptools package](https://pypi.python.org/pypi/setuptools)
-* [requests library](http://docs.python-requests.org/en/latest/user/install/#install)
-* [websocket-client library](https://github.com/liris/websocket-client)
 
 ## Downloading
 
@@ -59,7 +57,7 @@ the Documentation section found at
 
 # License
 
-Copyright 2014 Cisco Systems, Inc.
+Copyright 2015 Cisco Systems, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

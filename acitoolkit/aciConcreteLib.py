@@ -8,8 +8,8 @@
 # #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may   #
 # not use this file except in compliance with the License. You may obtain   #
-#    a copy of the License at                                                  #
-#                                                                              #
+# a copy of the License at                                                  #
+# #
 #         http://www.apache.org/licenses/LICENSE-2.0                           #
 #                                                                              #
 #    Unless required by applicable law or agreed to in writing, software       #
@@ -19,12 +19,17 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
+"""
+This is a library of all the Concrete classes that are on a switch.
+"""
+"""
+"""
 # all the import
 from acibaseobject import BaseACIPhysObject
+import acitoolkit as ACI
 import copy
 from aciTable import Table
-#from aciSearch import AciSearch, Searchable
-import acitoolkit as ACI
+from aciSearch import Searchable
 
 
 class ConcreteArp(BaseACIPhysObject):
@@ -65,6 +70,7 @@ class ConcreteArp(BaseACIPhysObject):
             if 'arpInst' in data:
                 arp = cls()
                 arp.attr['adminSt'] = data['arpInst']['attributes']['adminSt']
+                arp.attr['dn'] = data['arpInst']['attributes']['dn']
                 if 'children' in data['arpInst']:
                     arp.get_arp_domain(data['arpInst']['children'])
                 result.append(arp)
@@ -164,25 +170,33 @@ class ConcreteArp(BaseACIPhysObject):
 
         return result
 
-    # def _define_searchables(self):
-    #     """
-    #     Create all of the searchable terms
-    #
-    #     """
-    #     result = []
-    #     for domain in self.domain:
-    #         if 'entry' in domain:
-    #             for entry in domain['entry']:
-    #                 if entry['ip'] is not None:
-    #                     result.append(Searchable('ipv4', entry['ip'], 'indirect'))
-    #                 if entry['mac'] is not None:
-    #                     result.append(Searchable('mac', entry['mac'], 'indirect'))
-    #                 if entry['physical_interface'] is not None:
-    #                     result.append(Searchable('interface', entry['physical_interface']))
-    #         if domain['name']:
-    #             result.append(Searchable('context', domain['name'], 'indirect'))
-    #             result.append(Searchable('name', domain['name'], 'direct'))
-    #     return result
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = [Searchable('arp')]
+
+        for domain in self.domain:
+            if 'entry' in domain:
+                for entry in domain['entry']:
+                    if entry['ip'] is not None:
+                        result.append(Searchable('ipv4', entry['ip'], 'indirect'))
+                    if entry['mac'] is not None:
+                        result.append(Searchable('mac', entry['mac'], 'indirect'))
+                    if entry['physical_interface'] is not None:
+                        result.append(Searchable('interface', entry['physical_interface']))
+            if domain['name']:
+                result.append(Searchable('context', domain['name'], 'indirect'))
+                result.append(Searchable('name', domain['name'], 'primary'))
+        return result
+
+    def __str__(self):
+        return 'ConcreteARP'
+
+    def __eq__(self, other):
+
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteVpc(BaseACIPhysObject):
@@ -218,7 +232,7 @@ class ConcreteVpc(BaseACIPhysObject):
                 vpc = cls()
                 vpc._populate_from_attributes(vpc_d['vpcEntity']['attributes'])
                 vpc._populate_from_inst(top)
-                vpc.member_ports = ConcreteVpcIf.get(top)
+                vpc.member_ports = ConcreteVpcIf.get(top, vpc)
                 result.append(vpc)
             if parent:
                 vpc._parent = parent
@@ -305,7 +319,7 @@ class ConcreteVpc(BaseACIPhysObject):
                              ['Local MAC', vpc.attr['local_mac']],
                              ['System MAC', vpc.attr['sys_mac']]])
 
-                table = Table(data, title=super_title + 'Virtual Port Channel (VPC)')
+                table = Table(data, title=super_title + 'Virtual Port Channel (VPC)', columns=2)
                 result.append(table)
             else:
                 data.append(['Admin State', vpc.attr['admin_st']])
@@ -313,6 +327,48 @@ class ConcreteVpc(BaseACIPhysObject):
                 table = Table(data, title=super_title + 'Virtual Port Channel (VPC)')
                 result.append(table)
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = [Searchable('vpc')]
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'virtual_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['virtual_mac']))
+
+        if 'local_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['local_mac']))
+
+        if 'sys_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['sys_mac']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'role' in self.attr:
+            result.append(Searchable('role', self.attr['role']))
+
+        if 'mac' in self.peer_info:
+            result.append(Searchable('mac', self.peer_info['mac'], 'indirect'))
+
+        if 'ip' in self.peer_info:
+            result.append(Searchable('ipv4', self.peer_info['ip'].split('/')[0], 'indirect'))
+
+        if 'virtual_ip' in self.attr:
+            result.append(Searchable('ipv4', self.attr['virtual_ip'].split('/')[0]))
+
+        return result
+
+    def __str__(self):
+        return 'VPC_' + self.attr['id']
+
+    def __eq__(self, other):
+
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteVpcIf(BaseACIPhysObject):
@@ -364,6 +420,7 @@ class ConcreteVpcIf(BaseACIPhysObject):
         self.attr['remote_oper_st'] = attr['remoteOperSt']
         self.attr['susp_vlans'] = attr['suspVlans']
         self.attr['up_vlans'] = attr['upVlans']
+        self.attr['dn'] = attr['dn']
 
     def _get_interface(self, top, dname):
         """
@@ -384,7 +441,7 @@ class ConcreteVpcIf(BaseACIPhysObject):
         result = []
 
         headers = ['ID', 'Interface', 'Oper St', 'Remote Oper State',
-                   'Up VLANS', 'Remote Up VLANs']
+                   'Up VLANS', 'Remote Up VLANs', 'Suspended VLANs']
         data = []
         for intf in vpc_ifs:
             data.append([
@@ -393,11 +450,79 @@ class ConcreteVpcIf(BaseACIPhysObject):
                 str(intf.attr.get('oper_st')),
                 str(intf.attr.get('remote_oper_st')),
                 str(intf.attr.get('up_vlans')),
-                str(intf.attr.get('remote_up_vlans'))])
+                str(intf.attr.get('remote_up_vlans')),
+                str(intf.attr.get('susp_vlans'))])
 
         data = sorted(data)
         result.append(Table(data, headers, title=super_title + 'VPC Interfaces'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'interface' in self.attr:
+            result.append(Searchable('interface', self.attr['interface']))
+
+        if 'up_vlans' in self.attr:
+            vlan_list = self.expand_vlans(self.attr['up_vlans'].replace(' ', ''))
+            for vlan in vlan_list:
+                result.append(Searchable('vlan', str(vlan)))
+        if 'remote_up_vlans' in self.attr:
+            vlan_list = self.expand_vlans(self.attr['remote_up_vlans'].replace(' ', ''))
+            for vlan in vlan_list:
+                result.append(Searchable('vlan', str(vlan), 'indirect'))
+
+        if 'access_vlan' in self.attr:
+            result.append(Searchable('vlan', self.attr['access_vlan']))
+
+        if 'susp_vlans' in self.attr:
+            vlan_list = self.expand_vlans(self.attr['susp_vlans'].replace(' ', ''))
+            for vlan in vlan_list:
+                result.append(Searchable('vlan', str(vlan)))
+
+        return result
+
+    @staticmethod
+    def expand_vlans(vlans):
+        """
+        Will expand a comma separated list of vlan ids into a list of discrete vlan ids
+        :rtype : list
+        :param vlans: str of comma separated vlan lists
+        """
+        vlan_ranges = vlans.split(',')
+        vlan_list = []
+        for v_range in vlan_ranges:
+            if '-' in v_range:
+                [v_low, v_hi] = v_range.split('-')
+                vlan_list.extend(range(int(v_low), int(v_hi) + 1))
+            else:
+                vlan_list.append(v_range)
+        return vlan_list
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'VPC_Interface' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteContext(BaseACIPhysObject):
@@ -497,11 +622,51 @@ class ConcreteContext(BaseACIPhysObject):
         table = Table(data, headers, title=super_title + 'Contexts (VRFs)')
         return [table, ]
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+            result.append(Searchable('context', self.attr['name']))
+
+        if 'vnid' in self.attr:
+            result.append(Searchable('vnid', self.attr['vnid']))
+
+        if 'scope' in self.attr:
+            result.append(Searchable('scope', self.attr['scope']))
+
+        if 'mcst_class_id' in self.attr:
+            result.append(Searchable('class', self.attr['mcst_class_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Context' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
+
 
 class ConcreteSVI(BaseACIPhysObject):
     """
-    The SVIs a switch.  This is derived from
-    the concrete model
+    The SVIs on a switch.  This is derived from
+    the concrete model in the switch
     """
 
     def __init__(self, parent=None):
@@ -517,9 +682,8 @@ class ConcreteSVI(BaseACIPhysObject):
         This will get all the SVIs on the switch
 
         :param parent:
-       :param top: the topSystem level json object
-       :param top:  json record of entire switch config
-       :returns: list of SVI
+        :param top:  json record of entire switch config
+        :returns: list of SVI
         """
         result = []
 
@@ -553,6 +717,56 @@ class ConcreteSVI(BaseACIPhysObject):
         self.attr['vlan_id'] = attr['vlanId']
         self.attr['vlan_type'] = attr['vlanT']
         self.attr['dn'] = attr['dn']
+
+    @staticmethod
+    def get_table(aci_object, title=''):
+        # todo: implement this table
+        """
+        Create table object for concrete SVI
+        :param aci_object:
+        :param title:
+        """
+        pass
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'mac' in self.attr:
+            result.append(Searchable('mac', self.attr['mac']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'vlan_id' in self.attr:
+            result.append(Searchable('vlan', self.attr['vlan_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_SVI' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
+
 
 class ConcreteLoopback(BaseACIPhysObject):
     """
@@ -611,6 +825,36 @@ class ConcreteLoopback(BaseACIPhysObject):
             self.attr['oper_st'] = obj['ethpmLbRtdIf']['attributes']['operSt']
             self.attr['oper_st_qual'] = obj['ethpmLbRtdIf']['attributes']['operStQual']
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Loopback' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
+
 
 class ConcreteBD(BaseACIPhysObject):
     """
@@ -661,6 +905,7 @@ class ConcreteBD(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
+        self.attr['dn'] = attr['dn']
         self.attr['oper_st'] = attr['operSt']
         self.attr['create_time'] = attr['createTs']
         self.attr['admin_st'] = attr['adminSt']
@@ -773,6 +1018,52 @@ class ConcreteBD(BaseACIPhysObject):
         data = sorted(data)
         result.append(Table(data, headers, title=super_title + 'Bridge Domains (BDs)'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if ':' in self.attr['name']:
+            result.append(Searchable('name', self.attr['name'].split(':')[-1]))
+        else:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'context_name' in self.attr:
+            if ':' in self.attr['context_name']:
+                tenant = self.attr['context_name'].split(':')[0]
+                context = self.attr['context_name'].split(':')[1]
+                result.append(Searchable('context', context))
+                result.append(Searchable('tenant', tenant))
+            else:
+                result.append(Searchable('context', self.attr['context_name']))
+
+        if 'vnid' in self.attr:
+            result.append(Searchable('vnid', self.attr['vnid']))
+        if 'flood_gipo' in self.attr:
+            result.append(Searchable('ipv4', self.attr['flood_gipo']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_BD' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteAccCtrlRule(BaseACIPhysObject):
@@ -920,6 +1211,63 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
 
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'tenant' in self.attr:
+            result.append(Searchable('tenant', self.attr['tenant']))
+
+        if 'context' in self.attr:
+            result.append(Searchable('context', self.attr['context']))
+
+        if 'scope' in self.attr:
+            result.append(Searchable('scope', self.attr['scope']))
+
+        if 's_epg' in self.attr:
+            result.append(Searchable('epg', self.attr['s_epg']))
+
+        if 'd_epg' in self.attr:
+            result.append(Searchable('epg', self.attr['d_epg']))
+
+        if 'dclass' in self.attr:
+            result.append(Searchable('class', self.attr['dclass']))
+
+        if 'sclass' in self.attr:
+            result.append(Searchable('class', self.attr['sclass']))
+
+        if 'scope' in self.attr:
+            result.append(Searchable('scope', self.attr['scope']))
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'filter_id' in self.attr:
+            result.append(Searchable('filter', self.attr['filter_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Access_Rule' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
+
 
 class ConcreteFilter(BaseACIPhysObject):
     """
@@ -999,7 +1347,7 @@ class ConcreteFilter(BaseACIPhysObject):
         """
         result = []
 
-        headers = ['Filter', 'Name', 'Status', 'Entry #', 'EtherType',
+        headers = ['Filter', 'Name', 'Status', 'Entry #', 'Filter Name', 'EtherType',
                    'Protocol/Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags']
 
         table = []
@@ -1015,6 +1363,7 @@ class ConcreteFilter(BaseACIPhysObject):
                 str(acc_filter.attr.get('name')),
                 str(acc_filter.attr.get('status')),
                 str(sorted_entries[0].attr['id']),
+                str(sorted_entries[0].attr['filter_name']),
                 str(sorted_entries[0].attr['ether_type']),
                 str(sorted_entries[0].attr['protocol']),
                 dst_port,
@@ -1029,6 +1378,7 @@ class ConcreteFilter(BaseACIPhysObject):
                                                     sorted_entry.attr['src_to_port'])
                 table.append(['', '', '',
                               str(sorted_entry.attr['id']),
+                              str(sorted_entry.attr['filter_name']),
                               str(sorted_entry.attr['ether_type']),
                               str(sorted_entry.attr['protocol']),
                               dst_port,
@@ -1047,8 +1397,38 @@ class ConcreteFilter(BaseACIPhysObject):
             return from_port
         return '{0}-{1}'.format(from_port, to_port)
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        return result
+
     def __str__(self):
-        return self.attr['name']
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Filter' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteFilterEntry(BaseACIPhysObject):
@@ -1124,12 +1504,41 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         """
         self.attr['id'] = self.attr['name'].split('_')[-1]
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'filter_name' in self.attr:
+            result.append(Searchable('name', self.attr['filter_name']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Filter_Entry' + self.attr.get('id')
+
     def __eq__(self, other):
+
         """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
         """
-        if type(self) != type(other):
-            return False
-        return self.attr['dn'] == other.attr['dn']
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteEp(BaseACIPhysObject):
@@ -1443,10 +1852,45 @@ class ConcreteEp(BaseACIPhysObject):
 
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'context' in self.attr:
+            result.append(Searchable('context', self.attr['context']))
+
+        if 'bridge_domain' in self.attr:
+            result.append(Searchable('bridgedomain', self.attr['bridge_domain']))
+
+        if 'mac' in self.attr:
+            result.append(Searchable('mac', self.attr['mac']))
+        if 'ip' in self.attr:
+            result.append(Searchable('ipv4', self.attr['ip']))
+        if 'interface_id' in self.attr:
+            result.append(Searchable('interface', self.attr['interface_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Endpoint' + 'MAC-{0} IP-{1}'.format(self.attr.get('mac'), self.attr.get('ip'))
+
     def __eq__(self, other):
+
         """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
         """
-        return self.attr['dn'] == other.attr['dn']
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcretePortChannel(BaseACIPhysObject):
@@ -1492,6 +1936,7 @@ class ConcretePortChannel(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
+        self.attr['dn'] = attr['dn']
         self.attr['active_ports'] = attr['activePorts']
         self.attr['admin_st'] = attr['adminSt']
         self.attr['auto_neg'] = attr['autoNeg']
@@ -1585,7 +2030,7 @@ class ConcretePortChannel(BaseACIPhysObject):
                           ['Router MAC', pch.attr['router_mac']],
                           ['Backplane MAC', pch.attr['backplane_mac']]])
 
-            result.append(Table(table, title=super_title + 'Port Channel:{0}'.format(pch.attr['id'])))
+            result.append(Table(table, title=super_title + 'Port Channel:{0}'.format(pch.attr['id']), columns=2))
 
             headers = ['Interface', 'PC State', 'Admin State', 'Oper State',
                        'Oper Qualifier', 'Usage']
@@ -1600,9 +2045,52 @@ class ConcretePortChannel(BaseACIPhysObject):
                               member['usage']])
 
             result.append(Table(table, headers, title=super_title +
-                                   'Port Channel "{0}" Link Members'.format(pch.attr['id'])))
+                                'Port Channel "{0}" Link Members'.format(pch.attr['id'])))
 
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'router_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['router_mac']))
+
+        if 'backplane_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['backplane_mac']))
+
+        for member in self.members:
+            if 'id' in member:
+                result.append(Searchable('interface', member['id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Portchannel' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteOverlay(BaseACIPhysObject):
@@ -1631,7 +2119,7 @@ class ConcreteOverlay(BaseACIPhysObject):
        :returns: Single overlay object
         """
         data = top.get_class('tunnelIf')
-        ovly = cls(parent)
+        ovly = cls()
         tunnels = []
         for obj in data:
             if 'tunnelIf' in obj:
@@ -1640,6 +2128,9 @@ class ConcreteOverlay(BaseACIPhysObject):
             ovly.tunnels = sorted(tunnels, key=lambda x: (x['id']))
         else:
             ovly.tunnels = tunnels
+        if parent:
+            ovly._parent = parent
+            ovly._parent.add_child(ovly)
 
         return ovly
 
@@ -1655,7 +2146,8 @@ class ConcreteOverlay(BaseACIPhysObject):
                   'oper_st': attr['operSt'],
                   'oper_st_qual': attr['operStQual'],
                   'context': attr['vrfName'],
-                  'type': attr['type']}
+                  'type': attr['type'],
+                  'dn': attr['dn']}
 
         if 'proxy-acast-mac' in tunnel['type']:
             self.attr['proxy_ip_mac'] = tunnel['dest_tep_ip']
@@ -1672,8 +2164,8 @@ class ConcreteOverlay(BaseACIPhysObject):
         :param overlay:
         :param super_title:
         """
+        result = []
         for ovly in overlay:
-            result = []
             table = [['Source TEP address:', ovly.attr.get('src_tep_ip')],
                      ['IPv4 Proxy address:', ovly.attr.get('proxy_ip_v4')],
                      ['IPv6 Proxy address:', ovly.attr.get('proxy_ip_v6')],
@@ -1692,4 +2184,53 @@ class ConcreteOverlay(BaseACIPhysObject):
                               tunnel['oper_st_qual']])
             result.append(Table(table, headers, title=super_title + 'Overlay Tunnels'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = [Searchable('overlay')]
+        if 'src_tep_ip' in self.attr:
+            result.append(Searchable('ipv4', self.attr['src_tep_ip']))
+
+        if 'proxy_ip_v4' in self.attr:
+            result.append(Searchable('ipv4', self.attr['proxy_ip_v4'], 'indirect'))
+
+        if 'proxy_ip_v6' in self.attr:
+            result.append(Searchable('ipv4', self.attr['proxy_ip_v6'], 'indirect'))
+
+        if 'proxy_ip_mac' in self.attr:
+            result.append(Searchable('ipv4', self.attr['proxy_ip_mac'], 'indirect'))
+
+        for tunnel in self.tunnels:
+            result.append(Searchable('tunnel'))
+            if 'id' in tunnel:
+                result.append(Searchable('id', tunnel['id']))
+
+            if 'context' in tunnel:
+                result.append(Searchable('context', tunnel['context']))
+
+            if 'dest_tep_ip' in tunnel:
+                result.append(Searchable('ipv4', tunnel['dest_tep_ip'], 'indirect'))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Overlay'
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
