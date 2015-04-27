@@ -55,6 +55,7 @@ creds.add_argument('-powersupply', action="store_true", help='Show Power Supply 
 creds.add_argument('-arp', action="store_true", help='Show ARP info')
 creds.add_argument('-context', action="store_true", help='Show Context (VRF) info')
 creds.add_argument('-bridgedomain', action="store_true", help='Show Bridge Domain info')
+creds.add_argument('-svi', action="store_true", help='Show SVI info')
 creds.add_argument('-accessrule', action="store_true", help='Show Access Rule and Filter info')
 creds.add_argument('-endpoint', action="store_true", help='Show End Point info')
 creds.add_argument('-portchannel', action="store_true", help='Show Port Channel and Virtual Port Channel info')
@@ -141,6 +142,9 @@ def render_text_switch(switch):
     if args.all or args.bridgedomain:
         text_string += render_tables(switch, ConcreteBD, title)
 
+    if args.all or args.svi:
+        text_string += render_tables(switch, ConcreteSVI, title)
+
     if args.all or args.accessrule:
         text_string += render_tables(switch, ConcreteAccCtrlRule, title)
         text_string += render_tables(switch, ConcreteFilter, title)
@@ -154,7 +158,13 @@ def render_text_switch(switch):
     if args.all or args.portchannel:
         text_string += render_tables(switch, ConcretePortChannel, title)
         text_string += render_tables(switch, ConcreteVpc, title)
-
+        vpc_ifs = []
+        for vpc in switch.get_children(ConcreteVpc):
+            vpc_ifs.extend(vpc.get_children(ConcreteVpcIf))
+        if vpc_ifs:
+            tables = ConcreteVpcIf.get_table(vpc_ifs, title)
+            for table in tables:
+                text_string += table.get_text(tablefmt='fancy_grid') + '\n'
     return text_string
 
 
@@ -163,8 +173,8 @@ def render_tables(switch, concrete_class, title):
     Will create a table and return it as a string
     with the title
 
+    :param switch:
     :param title: Title string for table
-    :param top: Source of json data
     :param concrete_class:  Concrete class to build the table for
     :return: String version of the table
     """
@@ -203,6 +213,7 @@ if (args.all or
         args.arp or
         args.context or
         args.bridgedomain or
+        args.svi or
         args.accessrule or
         args.endpoint or
         args.portchannel or
