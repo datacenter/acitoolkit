@@ -219,7 +219,7 @@ class TestNode(unittest.TestCase):
         node = Node('1', '2', 'Leaf1', role='leaf')
         self.assertEqual(node.get_chassis_type(), None)
         node.model = 'N9K-C9396PX'
-        self.assertEqual(node.get_model(), 'N9K-C9396PX')
+        self.assertEqual(node.model, 'N9K-C9396PX')
         self.assertEqual(node.get_chassis_type(), 'n9k')
 
     def test_node_parent(self):
