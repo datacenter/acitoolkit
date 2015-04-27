@@ -37,6 +37,7 @@ from .acicounters import AtomicCountersOnGoing, InterfaceStats
 import logging
 import re
 import copy
+from aciSearch import Searchable
 
 
 class Systemcontroller(BaseACIPhysModule):
@@ -906,6 +907,7 @@ class Node(BaseACIPhysObject):
                     pod_id = parent
         else:
             pod_id = '1'
+
         if node_id:
             if not isinstance(node_id, str):
                 raise TypeError('The node_id must be a string such as "101".')
@@ -1216,14 +1218,6 @@ class Node(BaseACIPhysObject):
 
         return self._children
 
-    def get_model(self):
-        """Returns the model string of the node'
-
-        :returns: model of node of type str
-        """
-
-        return self.model
-
     def get_chassis_type(self):
         """Returns the chassis type of this node.  The chassis
         type is derived from the model number.
@@ -1232,16 +1226,12 @@ class Node(BaseACIPhysObject):
 
         :returns: chassis type of node of type str
         """
-        model = self.get_model()
-        if model:
-            fields = re.split('-', self.get_model())
-        else:
-            fields = []
-
-        if len(fields) > 0:
+        if self.model:
+            fields = re.split('-', self.model)
             chassis_type = fields[0].lower()
         else:
             chassis_type = None
+
         return chassis_type
 
     @staticmethod
@@ -1273,6 +1263,32 @@ class Node(BaseACIPhysObject):
             ['System Uptime:', switch.system_uptime],
             ['Dynamic Load Balancing:', switch.dynamic_load_balancing_mode]]
         result = [Table(table, title=super_title + 'Basic Information for {0}'.format(switch.name), columns=2)]
+        return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if self.name:
+            result.append(Searchable('name', self.name))
+            result.append(Searchable('switch', self.name))
+            result.append(Searchable('node', self.name))
+        if self.node:
+            result.append(Searchable('switch', self.node))
+            result.append(Searchable('node', self.node))
+        if self.serial:
+            result.append(Searchable('serial', self.serial))
+        if self.model:
+            result.append(Searchable('model', self.model))
+        if self.firmware:
+            result.append(Searchable('firmware', self.firmware))
+        if self.role:
+            result.append(Searchable('role', self.role))
+
         return result
 
 
@@ -2351,13 +2367,14 @@ class SwitchJson(object):
         else:
             self.json = None
 
-        self._index_objects()
+        if 'error' not in self.json:
+            self._index_objects()
 
-        self.vnid_dict = {}
-        self.ctx_dict = {}
-        self.bd_dict = {}
+            self.vnid_dict = {}
+            self.ctx_dict = {}
+            self.bd_dict = {}
 
-        self.build_vnid_dictionary()
+            self.build_vnid_dictionary()
 
     def _index_objects(self):
         """
@@ -2400,8 +2417,10 @@ class SwitchJson(object):
         if branch:
             for apic_class in branch:
                 if 'dn' not in branch[apic_class]['attributes']:
+                    if 'rn' not in branch[apic_class]['attributes']:
+                        pass
                     branch[apic_class]['attributes']['dn'] = dn_root + \
-                                                             '/' + branch[apic_class]['attributes']['rn']
+                        '/' + branch[apic_class]['attributes']['rn']
                 new_root_dn = branch[apic_class]['attributes']['dn']
                 if 'children' in branch[apic_class]:
                     for child in branch[apic_class]['children']:
@@ -2495,3 +2514,144 @@ class SwitchJson(object):
 
             # and opposite dictionary
             self.bd_dict[name] = vnid
+
+
+class Process(BaseACIPhysObject):
+    """
+    Class to hold information about a process running on a node - either switch or controller
+    """
+    def __init__(self):
+        """
+
+        :param parent:
+        :return:
+        """
+        super(Process, self).__init__(name='', parent=None)
+        self.id = None
+        self.name = None
+        self.oper_st = None
+        self.cpu_execution_time_ave = None
+        self.cpu_invoked = None
+        self.cpu_execution_time_max = None
+        self.cpu_usage_last = None
+        self.cpu_usage_avg = None
+        self.mem_alloc_avg = None
+        self.mem_alloc_last = None
+        self.mem_alloc_max = None
+        self.mem_used_avg = None
+        self.mem_used_last = None
+        self.mem_used_max = None
+
+    @staticmethod
+    def get(session, parent):
+        """
+
+        :param session:
+        :param parent:
+        :return:
+        """
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+
+        if not isinstance(parent, Node):
+            raise TypeError('An instance of Node as the parent is required')
+
+        result = []
+        pod = parent.pod
+        node = parent.node
+
+        node_dn = 'topology/pod-{0}/node-{1}'.format(pod, node)
+        node_query_url = '/api/mo/' + node_dn + '/sys/procsys.json?query-target=children&rsp-subtree-include=stats' \
+                                                '&rsp-subtree-class=statsCurr'
+
+        ret = session.get(node_query_url)
+        processes = ret.json()['imdata']
+        for child in processes:
+            if child['procProc']:
+                process = Process()
+                process._populate_from_attributes(child['procProc']['attributes'])
+                process._populate_stats(child['procProc']['children'])
+
+                if parent:
+                    process._parent = parent
+                    process._parent.add_child(process)
+                result.append(process)
+        return result
+
+    def _populate_from_attributes(self, attr):
+        """
+
+        :param attr:
+        :return:
+        """
+        self.id = attr['id']
+        self.name = attr['name']
+        self.oper_st = attr['operSt']
+        self.dn = attr['dn']
+
+    def _populate_stats(self, children):
+        """
+        Will read the most current stats and populate parameters accordingly
+        :param children:
+        :return:
+        """
+        for child in children:
+
+            if 'procProcCPU5min' in child:
+                attr = child['procProcCPU5min']['attributes']
+                self.cpu_avg_execution_time_avg = attr['avgExecAvg']
+                self.cpu_avg_execution_time_max = attr['avgExecMax']
+                self.cpu_avg_execution_time_last = attr['avgExecLast']
+                self.cpu_max_execution_time_avg = attr['maxExecAvg']
+                self.cpu_max_execution_time_max = attr['maxExecMax']
+                self.cpu_max_execution_time_last = attr['maxExecLast']
+                self.cpu_invoked_avg = attr['invokedAvg']
+                self.cpu_invoked_max = attr['invokedMax']
+                self.cpu_invoked_last = attr['invokedLast']
+                self.cpu_usage_avg = attr['usageAvg']
+                self.cpu_usage_max = attr['usageMax']
+                self.cpu_usage_last = attr['usageLast']
+
+            if 'procProcMem5min' in child:
+                attr = child['procProcMem5min']['attributes']
+                self.mem_alloc_avg = attr['allocedAvg']
+                self.mem_alloc_max = attr['allocedMax']
+                self.mem_alloc_last = attr['allocedLast']
+                self.mem_used_avg = attr['usedAvg']
+                self.mem_used_max = attr['usedMax']
+                self.mem_used_last = attr['usedLast']
+
+    @staticmethod
+    def get_table(aci_objects, title='Process'):
+        """
+
+        :param aci_objects: list of process objects to build table for
+        :param title: Title of the table
+        :return: Table
+        """
+        result = []
+
+        headers = ['Name', 'id','Oper State', 'Avg CPU Exec Avg', 'Avg CPU Exec Last',
+                   'CPU Usage Avg', 'CPU Usage Last', 'Mem Alloc Avg', 'Mem Alloc Last',
+                   'Mem Used Avg', 'Mem Used Last']
+
+        table = []
+        for aci_object in aci_objects:
+            table.append([
+                aci_object.name,
+                aci_object.id,
+                aci_object.oper_st,
+                aci_object.cpu_avg_execution_time_avg,
+                aci_object.cpu_avg_execution_time_last,
+                aci_object.cpu_usage_avg,
+                aci_object.cpu_usage_last,
+                aci_object.mem_alloc_avg,
+                aci_object.mem_alloc_last,
+                aci_object.mem_used_avg,
+                aci_object.mem_used_last
+                ])
+
+        table = sorted(table, key=lambda x: (x[0], x[1]))
+        result.append(Table(table, headers, title=title + 'Process CPU and MEM'))
+
+        return result
