@@ -152,14 +152,23 @@ class Tenant(BaseACIObject):
         return resp
 
     @classmethod
-    def get(cls, session):
+    def get(cls, session, parent=None):
         """
         Gets all of the tenants from the APIC.
 
+        :param parent: Parent object of the Tenant
         :param session: the instance of Session used for APIC communication
         :returns: a list of Tenant objects
         """
-        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0])
+        tenants = BaseACIObject.get(session, cls, cls._get_apic_classes()[0])
+
+        if parent:
+            if isinstance(parent, LogicalModel):
+                for tenant in tenants:
+                    parent.add_child(tenant)
+
+        return tenants
+
 
     @classmethod
     def exists(cls, session, tenant):
@@ -3870,3 +3879,57 @@ class CollectionPolicy(BaseMonitorClass):
             self.modified = True
 
         self.retention = retention
+
+
+class LogicalModel(BaseACIObject):
+    """
+    This is the root class for the logical part of the network.  It's corrolary is the PhysicalModel class.
+    It is a container that can hold all of logical model instances such as Tenants.
+
+    From this class, you can populate all of the children classes.
+    """
+    def __init__(self, session=None, parent=None):
+        """
+        Initialization method that sets up the Fabric.
+        :return:
+        """
+        if session:
+            assert isinstance(session, Session)
+
+        # if parent:
+        #     assert isinstance(parent, Fabric)
+
+        super(LogicalModel, self).__init__(name='', parent=parent)
+
+        self.session = session
+
+    @classmethod
+    def get(cls, session=None, parent=None):
+        """
+        Method to get all of the PhysicalModels.  It will get one and return it in a list.
+        :param session:
+        :param parent:
+        :return: list of PhysicalModel
+        """
+        logical_model = LogicalModel(session=session, parent=parent)
+        return [logical_model]
+
+    def populate_children(self, deep=False, include_concrete=False):
+        """
+        This method will populate the children of the fabric.  If deep is set
+        to True, it will populate the entire object tree, both physical and logical.
+
+        If include_concrete is set to True, it will also include the concrete models
+        on the network switches.
+
+        :param deep:
+        :param include_concrete:
+        :return: list of immediate children objects
+        """
+        Tenant.get(self.session, self)
+
+        if deep:
+            for child in self._children:
+                child.populate_children(deep, include_concrete)
+
+        return self._children
