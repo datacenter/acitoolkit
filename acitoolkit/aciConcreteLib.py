@@ -119,10 +119,10 @@ class ConcreteArp(BaseACIPhysObject):
         return entry
 
     @staticmethod
-    def get_table(arps, super_title=None):
+    def get_table(arps, title=None):
         """
         Returns arp information in a displayable format.
-        :param super_title:
+        :param title:
         :param arps:
         """
         result = []
@@ -151,7 +151,7 @@ class ConcreteArp(BaseACIPhysObject):
                 ])
 
             data = sorted(data)
-            result.append(Table(data, headers, title=super_title + 'ARP Stats'))
+            result.append(Table(data, headers, title=title + 'ARP Stats'))
 
             headers = ['Context', 'MAC Address', 'IP Address',
                        'Physical I/F', 'Interface ID', 'Oper Status']
@@ -166,7 +166,7 @@ class ConcreteArp(BaseACIPhysObject):
                         entry.get('interface_id'),
                         entry.get('oper_st')
                     ])
-            result.append(Table(data, headers, title=super_title + 'ARP Entries'))
+            result.append(Table(data, headers, title=title + 'ARP Entries'))
 
         return result
 
@@ -288,10 +288,10 @@ class ConcreteVpc(BaseACIPhysObject):
                 self.attr['virtual_mac'] = attr['vpcMAC']
 
     @staticmethod
-    def get_table(vpcs, super_title=None):
+    def get_table(vpcs, title=None):
         """
         Will create table of switch VPC information
-        :param super_title:
+        :param title:
         :param vpcs:
         """
         result = []
@@ -319,12 +319,12 @@ class ConcreteVpc(BaseACIPhysObject):
                              ['Local MAC', vpc.attr['local_mac']],
                              ['System MAC', vpc.attr['sys_mac']]])
 
-                table = Table(data, title=super_title + 'Virtual Port Channel (VPC)', columns=2)
+                table = Table(data, title=title + 'Virtual Port Channel (VPC)', columns=2)
                 result.append(table)
             else:
                 data.append(['Admin State', vpc.attr['admin_st']])
                 data.append(['Oper State', vpc.attr['oper_st']])
-                table = Table(data, title=super_title + 'Virtual Port Channel (VPC)')
+                table = Table(data, title=title + 'Virtual Port Channel (VPC)')
                 result.append(table)
         return result
 
@@ -408,7 +408,13 @@ class ConcreteVpcIf(BaseACIPhysObject):
         self.attr['compat_st'] = attr['compatSt']
         self.attr['id'] = attr['id']
         self.attr['remote_oper_st'] = attr['remoteOperSt']
-        self.attr['access_vlan'] = attr['cfgdAccessVlan']
+
+        if attr['cfgdAccessVlan']:
+            if 'vlan-' in attr['cfgdAccessVlan']:
+                self.attr['access_vlan'] = attr['cfgdAccessVlan'].split('-')[1]
+            else:
+                self.attr['access_vlan'] = attr['cfgdAccessVlan']
+
         self.attr['trunk_vlans'] = attr['cfgdTrunkVlans']
         self.attr['vlans'] = attr['cfgdVlans']
         self.attr['compat_qual'] = attr['compatQual']
@@ -431,17 +437,17 @@ class ConcreteVpcIf(BaseACIPhysObject):
             self.attr['interface'] = vpc_data['vpcRsVpcConf']['attributes']['tSKey']
 
     @staticmethod
-    def get_table(vpc_ifs, super_title=None):
+    def get_table(vpc_ifs, title=None):
         """
         Will generate a text report for a list of vpc_ifs.
-        :param super_title:
+        :param title:
         :param vpc_ifs:
         """
 
         result = []
 
         headers = ['ID', 'Interface', 'Oper St', 'Remote Oper State',
-                   'Up VLANS', 'Remote Up VLANs', 'Suspended VLANs']
+                   'Access VLAN', 'Up VLANS', 'Remote Up VLANs', 'Suspended VLANs']
         data = []
         for intf in vpc_ifs:
             data.append([
@@ -449,12 +455,13 @@ class ConcreteVpcIf(BaseACIPhysObject):
                 str(intf.attr.get('interface')),
                 str(intf.attr.get('oper_st')),
                 str(intf.attr.get('remote_oper_st')),
+                intf.attr.get('access_vlan'),
                 str(intf.attr.get('up_vlans')),
                 str(intf.attr.get('remote_up_vlans')),
                 str(intf.attr.get('susp_vlans'))])
 
         data = sorted(data)
-        result.append(Table(data, headers, title=super_title + 'VPC Interfaces'))
+        result.append(Table(data, headers, title=title + 'VPC Interfaces'))
         return result
 
     def _define_searchables(self):
@@ -596,10 +603,10 @@ class ConcreteContext(BaseACIPhysObject):
             self.attr['vnid'] = None
 
     @staticmethod
-    def get_table(contexts, super_title=None):
+    def get_table(contexts, title=None):
         """
         Will create table of switch context information
-        :param super_title:
+        :param title:
         :param contexts:
         """
 
@@ -619,7 +626,7 @@ class ConcreteContext(BaseACIPhysObject):
                 context.attr.get('modified_time')])
 
         data = sorted(data)
-        table = Table(data, headers, title=super_title + 'Contexts (VRFs)')
+        table = Table(data, headers, title=title + 'Contexts (VRFs)')
         return [table, ]
 
     def _define_searchables(self):
@@ -719,14 +726,31 @@ class ConcreteSVI(BaseACIPhysObject):
         self.attr['dn'] = attr['dn']
 
     @staticmethod
-    def get_table(aci_object, title=''):
-        # todo: implement this table
+    def get_table(aci_objects, title=''):
         """
         Create table object for concrete SVI
-        :param aci_object:
+        :param aci_objects:
         :param title:
         """
-        pass
+        result = []
+
+        headers = ['Name', 'ID', 'VLAN', 'Router MAC', 'Bandwidth', 'Admin State', 'Oper State', 'Oper Qualifier']
+        data = []
+        for aci_object in aci_objects:
+            data.append([
+                aci_object.attr.get('name'),
+                aci_object.attr.get('id'),
+                aci_object.attr.get('vlan_id'),
+                aci_object.attr.get('mac'),
+                aci_object.attr.get('bw'),
+                aci_object.attr.get('admin_st'),
+                aci_object.attr.get('oper_st'),
+                aci_object.attr.get('oper_st_qual')
+                ])
+
+        data = sorted(data, key=lambda x: (x[0], x[1]))
+        result.append(Table(data, headers, title=title + 'SVI (Router Interfaces)'))
+        return result
 
     def _define_searchables(self):
         """
@@ -734,7 +758,7 @@ class ConcreteSVI(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = [(Searchable('svi'))]
 
         if 'name' in self.attr:
             result.append(Searchable('name', self.attr['name']))
@@ -979,10 +1003,10 @@ class ConcreteBD(BaseACIPhysObject):
                 return None
 
     @staticmethod
-    def get_table(bridge_domains, super_title=None):
+    def get_table(bridge_domains, title=None):
         """
         Will create table of switch bridge domain information
-        :param super_title:
+        :param title:
         :param bridge_domains:
         """
         result = []
@@ -1016,7 +1040,7 @@ class ConcreteBD(BaseACIPhysObject):
                 str(bdomain.attr.get('oper_st'))])
 
         data = sorted(data)
-        result.append(Table(data, headers, title=super_title + 'Bridge Domains (BDs)'))
+        result.append(Table(data, headers, title=title + 'Bridge Domains (BDs)'))
         return result
 
     def _define_searchables(self):
@@ -1181,10 +1205,10 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         self.attr['node'] = str(name[2].split('-')[1])
 
     @staticmethod
-    def get_table(data, super_title=None):
+    def get_table(data, title=None):
         """
         Will create table of access rule
-        :param super_title:
+        :param title:
         :param data:
         """
         result = []
@@ -1207,7 +1231,7 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
                 str(rule.attr.get('priority'))])
 
         table = sorted(table, key=lambda x: (x[10], x[0], x[1]))
-        result.append(Table(table, headers, title=super_title + 'Access Rules (Contracts/Access Policies)'))
+        result.append(Table(table, headers, title=title + 'Access Rules (Contracts/Access Policies)'))
 
         return result
 
@@ -1339,10 +1363,10 @@ class ConcreteFilter(BaseACIPhysObject):
         self.attr['node'] = str(name[2].split('-')[1])
 
     @staticmethod
-    def get_table(data, super_title=None):
+    def get_table(data, title=None):
         """
         Will create table of access filter
-        :param super_title:
+        :param title:
         :param data:
         """
         result = []
@@ -1384,7 +1408,7 @@ class ConcreteFilter(BaseACIPhysObject):
                               dst_port,
                               src_port,
                               str(sorted_entry.attr['tcp_rules'])])
-        result.append(Table(table, headers, title=super_title + 'Access Filters'))
+        result.append(Table(table, headers, title=title + 'Access Filters'))
         return result
 
     @staticmethod
@@ -1696,10 +1720,10 @@ class ConcreteEp(BaseACIPhysObject):
         self.attr['dn'] = attr['dn']
 
     @staticmethod
-    def get_table(end_points, super_title=None):
+    def get_table(end_points, title=None):
         """
         Will create table of switch end point information
-        :param super_title:
+        :param title:
         :param end_points:
         """
         result = []
@@ -1731,7 +1755,7 @@ class ConcreteEp(BaseACIPhysObject):
                 str(ept.attr.get('interface_id')),
                 str(ept.attr.get('flags'))])
 
-        result.append(Table(data, headers, title=super_title + 'Local External End Points'))
+        result.append(Table(data, headers, title=title + 'Local External End Points'))
 
         headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
                    'Interface', 'Flags']
@@ -1761,7 +1785,7 @@ class ConcreteEp(BaseACIPhysObject):
                 str(ept.attr.get('interface_id')),
                 str(ept.attr.get('flags'))])
 
-        result.append(Table(data, headers, title=super_title + 'Remote (vpc-peer) External End Points'))
+        result.append(Table(data, headers, title=title + 'Remote (vpc-peer) External End Points'))
 
         headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
                    'Interface', 'Flags']
@@ -1790,7 +1814,7 @@ class ConcreteEp(BaseACIPhysObject):
                 str(ept.attr.get('interface_id')),
                 str(ept.attr.get('flags'))])
 
-        result.append(Table(data, headers, title=super_title + 'SVI End Points (default gateway endpoint)'))
+        result.append(Table(data, headers, title=title + 'SVI End Points (default gateway endpoint)'))
 
         def flt_lb(end_point):
             """
@@ -1818,7 +1842,7 @@ class ConcreteEp(BaseACIPhysObject):
                 str(ept.attr.get('interface_id')),
                 str(ept.attr.get('flags'))])
 
-        result.append(Table(data, headers, title=super_title + 'Loopback End Points'))
+        result.append(Table(data, headers, title=title + 'Loopback End Points'))
         headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
                    'Interface', 'Flags']
 
@@ -1848,7 +1872,7 @@ class ConcreteEp(BaseACIPhysObject):
                 ept.attr.get('interface_id'),
                 ept.attr.get('flags')])
 
-        result.append(Table(data, headers, title=super_title + 'Other End Points'))
+        result.append(Table(data, headers, title=title + 'Other End Points'))
 
         return result
 
@@ -1990,11 +2014,11 @@ class ConcretePortChannel(BaseACIPhysObject):
             self.members.append(member)
 
     @staticmethod
-    def get_table(port_ch, super_title=None):
+    def get_table(port_ch, title=None):
         """
         Will create table of switch port channel information
         :param port_ch:
-        :param super_title:
+        :param title:
         """
         result = []
 
@@ -2030,7 +2054,7 @@ class ConcretePortChannel(BaseACIPhysObject):
                           ['Router MAC', pch.attr['router_mac']],
                           ['Backplane MAC', pch.attr['backplane_mac']]])
 
-            result.append(Table(table, title=super_title + 'Port Channel:{0}'.format(pch.attr['id']), columns=2))
+            result.append(Table(table, title=title + 'Port Channel:{0}'.format(pch.attr['id']), columns=2))
 
             headers = ['Interface', 'PC State', 'Admin State', 'Oper State',
                        'Oper Qualifier', 'Usage']
@@ -2044,7 +2068,7 @@ class ConcretePortChannel(BaseACIPhysObject):
                               member['oper_st_qual'],
                               member['usage']])
 
-            result.append(Table(table, headers, title=super_title +
+            result.append(Table(table, headers, title=title +
                                 'Port Channel "{0}" Link Members'.format(pch.attr['id'])))
 
         return result
@@ -2158,11 +2182,11 @@ class ConcreteOverlay(BaseACIPhysObject):
         return tunnel
 
     @staticmethod
-    def get_table(overlay, super_title=None):
+    def get_table(overlay, title=None):
         """
         Create print string for overlay information
         :param overlay:
-        :param super_title:
+        :param title:
         """
         result = []
         for ovly in overlay:
@@ -2170,7 +2194,7 @@ class ConcreteOverlay(BaseACIPhysObject):
                      ['IPv4 Proxy address:', ovly.attr.get('proxy_ip_v4')],
                      ['IPv6 Proxy address:', ovly.attr.get('proxy_ip_v6')],
                      ['MAC Proxy address:', ovly.attr.get('proxy_ip_mac')]]
-            result.append(Table(table, title=super_title + 'Overlay Config'))
+            result.append(Table(table, title=title + 'Overlay Config'))
 
             headers = ['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
                        'Oper State Qualifier']
@@ -2182,7 +2206,7 @@ class ConcreteOverlay(BaseACIPhysObject):
                               tunnel['type'],
                               tunnel['oper_st'],
                               tunnel['oper_st_qual']])
-            result.append(Table(table, headers, title=super_title + 'Overlay Tunnels'))
+            result.append(Table(table, headers, title=title + 'Overlay Tunnels'))
         return result
 
     def _define_searchables(self):
@@ -2233,4 +2257,3 @@ class ConcreteOverlay(BaseACIPhysObject):
         :return: True if equal
         """
         return self.attr.get('dn') == other.attr.get('dn')
-

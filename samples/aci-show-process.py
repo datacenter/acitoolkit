@@ -29,48 +29,45 @@
 #                                                                              #
 ################################################################################
 """
-Simple application that logs on to the APIC and displays all
-of the physical nodes; both belonging to and connected to the
-fabric.
+Simple application that shows all of the processes running on a switch
 """
 import sys
-from acitoolkit.acitoolkit import Session, Credentials
-from acitoolkit.aciphysobject import Node, ExternalSwitch
+import acitoolkit.acitoolkit as ACI
+import acitoolkit.aciphysobject as ACI_PHYS
+from acitoolkit.acitoolkitlib import Credentials
 
 
 def main():
     """
-    Main execution routine
-
+    Main show Process routine
     :return: None
     """
-    # Take login credentials from the command line if provided
-    # Otherwise, take them from your environment variables file ~/.profile
-    description = ('Simple application that logs on to the APIC and displays all'
-                   ' of the physical nodes; both belonging to and connected to the fabric.')
+    description = 'Simple application that logs on to the APIC and displays process information for a switch'
     creds = Credentials('apic', description)
+
+    creds.add_argument('-s', '--switch',
+                       type=str,
+                       default=None,
+                       help='Specify a particular switch id, e.g. "102"')
     args = creds.get()
 
-    # Login to APIC
-    session = Session(args.url, args.login, args.password)
+    session = ACI.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print('%% Could not login to APIC')
+        print '%% Could not login to APIC'
         sys.exit(0)
 
-    # List of classes to get and print
-    phy_classes = (Node, ExternalSwitch)
+    switches = ACI_PHYS.Node.get(session, '1', args.switch)
+    for switch in switches:
+        if switch.role != 'controller':
+            processes = ACI_PHYS.Process.get(session, switch)
+            tables = ACI_PHYS.Process.get_table(processes, 'Process list for Switch ' + switch.name + '::')
+            for table in tables:
+                print table.get_text(tablefmt='fancy_grid') + '\n'
 
-    for phy_class in phy_classes:
-        # Print the class name
-        class_name = phy_class.__name__
-        print(class_name)
-        print('=' * len(class_name))
-
-        # Get and print all of the items from the APIC
-        items = phy_class.get(session)
-        for item in items:
-            print(item.info())
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
