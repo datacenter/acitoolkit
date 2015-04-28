@@ -35,7 +35,7 @@ fabric.
 """
 import sys
 from acitoolkit.acitoolkit import Session, Credentials
-from acitoolkit.aciphysobject import Node, ENode
+from acitoolkit.aciphysobject import Node, ExternalSwitch
 
 
 def main():
@@ -59,7 +59,7 @@ def main():
         sys.exit(0)
 
     # List of classes to get and print
-    phy_classes = (Node, ENode)
+    phy_classes = (Node, ExternalSwitch)
 
     for phy_class in phy_classes:
         # Print the class name
