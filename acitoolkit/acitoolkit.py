@@ -600,7 +600,7 @@ class EPG(CommonEPG):
                   a BridgeDomain.
         """
         return self._has_any_relation(BridgeDomain)
-        
+
     def set_deployment_immediacy(self, immediacy):
         """
         Set the deployment immediacy of the EPG
@@ -695,7 +695,7 @@ class EPG(CommonEPG):
         if is_interfaces:
             # Only add the all-vlans physical domain if nobody has
             # attached any other domain
-            if len(self.get_children(only_class=EPGDomain))==0:
+            if len(self.get_children(only_class=EPGDomain)) == 0:
                 text = {'fvRsDomAtt': {'attributes':
                                        {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
@@ -1443,7 +1443,7 @@ class Subnet(BaseACIObject):
         if scope is None:
             raise TypeError('Scope can not be set to None')
         self._scope = scope
-        
+
     def get_json(self):
         """
         Returns json representation of the subnet
