@@ -48,6 +48,13 @@ except ImportError:
     # Python3 naming
     from queue import Queue
 
+try:
+    import urllib3
+except ImportError:
+    pass
+else:
+    urllib3.disable_warnings()
+
 # Time before login timer expiration to send refresh
 TIMEOUT_GRACE_SECONDS = 10
 
@@ -357,6 +364,11 @@ class Session(object):
             self.subscription_thread.subscribe(url)
 
     def resubscribe(self):
+        """
+        Resubscribe to the current subscriptions.  Used by the login thread after a re-login
+
+        :return: None
+        """
         if self._subscription_enabled:
             self.subscription_thread._resubscribe()
 
