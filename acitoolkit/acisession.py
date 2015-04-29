@@ -53,7 +53,10 @@ try:
 except ImportError:
     pass
 else:
-    urllib3.disable_warnings()
+    try:
+        urllib3.disable_warnings()
+    except AttributeError:
+        pass
 
 # Time before login timer expiration to send refresh
 TIMEOUT_GRACE_SECONDS = 10
