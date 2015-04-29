@@ -48,6 +48,16 @@ except ImportError:
     # Python3 naming
     from queue import Queue
 
+try:
+    import urllib3
+except ImportError:
+    pass
+else:
+    try:
+        urllib3.disable_warnings()
+    except AttributeError:
+        pass
+
 # Time before login timer expiration to send refresh
 TIMEOUT_GRACE_SECONDS = 10
 
