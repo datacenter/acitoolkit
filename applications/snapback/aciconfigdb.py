@@ -165,11 +165,9 @@ class SnapshotScheduler(threading.Thread):
                             addnl_hours = addnl_hours % 24
                     if granularity == 'days':
                         addnl_days = self._schedule['interval']
-                    next_snapshot = datetime.datetime(cur_time.year,
-                                                      cur_time.month,
-                                                      cur_time.day + addnl_days,
-                                                      cur_time.hour + addnl_hours,
-                                                      cur_time.minute + addnl_minutes)
+                    next_snapshot = cur_time + datetime.timedelta(days=addnl_days,
+                                                                  hours=addnl_hours,
+                                                                  minutes=addnl_minutes)
                     self._next_snapshot_time = next_snapshot
                     print 'Next snapshot in', self._next_snapshot_time
                     time.sleep(seconds)
