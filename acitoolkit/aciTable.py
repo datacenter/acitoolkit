@@ -31,9 +31,21 @@ import copy
 
 class Table(object):
     """
-    Table object that holds the table data, headers, titles, and other switches
+    Table object that holds the table data, headers, titles, and other control
     and then calls "tabulate" to format tables in various formats as needed and
     allows the data to be accessed in other formats.
+
+    The headers are passed in as a list of strings.  One string for each column.
+    The data is passed in as a list of rows where each rows is a list of values to
+    be displayed in the same order as the headers.
+
+    In some cases, a conventional table with a header row and data rows below it
+    is not the ideal format.  Instead, it might be more desireable to have a list
+    where the first column is the "header" or description, and the subsequent
+    columns are the data.  To generate this kind of table, set the table_orientation
+    attribute to "vertical".  The default is a traditional "horizontal" layout.
+
+    The headers list is optional.
 
     Various plain-text table formats (`tablefmt`) are supported:
     'plain', 'simple', 'grid', 'pipe', 'orgtbl', 'rst', 'mediawiki',
@@ -46,7 +58,7 @@ class Table(object):
 
     def __init__(self, data=None, headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
                  stralign="center",
-                 missingval="", columns = 1, table_type = 'table'):
+                 missingval="", columns = 1, table_orientation = 'horizontal'):
         """
 
         :param data: list of table data.  Each row is a list and each table is a list of rows
@@ -58,10 +70,10 @@ class Table(object):
         :param stralign: alignment for strings - right, center, left - default is 'center'
         :param missingval: alternate to use when a value is 'None' - default is ''
         :param columns: Number of columns to display table in.  Default is 1.  2 is implemented.
-        :param table_type: Kind of table, 'table' or 'list'. Default is 'table'
+        :param table_orientation: Orientation - 'Horizontal' or 'Vertical'. Default is 'Horizontal'
         """
-
-        # TODO: truly separate data and headers for list view and allow table_type to drive display format
+        # TODO: make table_orientation dynamic, i.e. determined based on the number of rows vs. number of columns.
+        # TODO: truly separate data and headers for list view and allow table_orientation to drive display format
         self.data = data
         self.headers = headers
         self.tablefmt = tablefmt
@@ -71,12 +83,15 @@ class Table(object):
         self.missingval = missingval
         self.title = title
         self.columns = columns
-        self.table_type = 'table'
+        assert(table_orientation in ['horizontal', 'vertical'])
+        self.table_orientation = table_orientation
 
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
-                 missingval=None, supresstitle=False, columns=None):
+                 missingval=None, supresstitle=False, columns=None, table_orientation = 'horizontal'):
         """
 
+
+        :param columns: Number of columns to target when table_orientation is "vertical"
         :param title: optional title string will over-ride configured title
         :param supresstitle: optional flag to supress title (default False)
         :param tablefmt: optional table format over-ride
@@ -84,6 +99,7 @@ class Table(object):
         :param numalign: optional number format specifier over-ride
         :param stralign: optional string alignment specifier over-ride
         :param missingval: optional missing value default specifier over-ride
+        :param table_orientation: optional table orientation over-ride
         :return: str of the formatted table
         """
         if tablefmt is None:
@@ -100,21 +116,43 @@ class Table(object):
             title = self.title
         if columns is None:
             columns = self.columns
+        if table_orientation is None:
+            table_orientation = self.table_orientation
 
         result = ''
+        if table_orientation == 'vertical':
+
+            if self.headers:
+                assert(len(self.headers) == len(self.data[0]))
+
+            # rotate table
+            table_data = []
+            row_len = len(self.data[0])
+            for index in range(row_len):
+                new_row = []
+                if self.headers:
+                    new_row.append(self.headers[index])
+                for row in self.data:
+                    new_row.append(row[index])
+                table_data.append(new_row)
+
+            header_data = []
+        else:
+            table_data = self.data
+            header_data = self.headers
 
         if columns == 1:
-            result += tabulate(self.data, self.headers, tablefmt=tablefmt, floatfmt=floatfmt,
+            result += tabulate(table_data, header_data, tablefmt=tablefmt, floatfmt=floatfmt,
                                numalign=numalign, stralign=stralign, missingval=missingval)+'\n'
         else:
-            table1_len = (len(self.data)+1)/2
-            table2_len = len(self.data) - table1_len
+            table1_len = (len(table_data)+1)/2
+            table2_len = len(table_data) - table1_len
 
-            data1 = self.data[0:table1_len]
-            data2 = self.data[table1_len:]
-            result1 = tabulate(data1, self.headers, tablefmt=tablefmt, floatfmt=floatfmt,
+            data1 = table_data[0:table1_len]
+            data2 = table_data[table1_len:]
+            result1 = tabulate(data1, header_data, tablefmt=tablefmt, floatfmt=floatfmt,
                                numalign=numalign, stralign=stralign, missingval=missingval)
-            result2 = tabulate(data2, self.headers, tablefmt=tablefmt, floatfmt=floatfmt,
+            result2 = tabulate(data2, header_data, tablefmt=tablefmt, floatfmt=floatfmt,
                                numalign=numalign, stralign=stralign, missingval=missingval)
             t1 = result1.split('\n')
             t2 = result2.split('\n')
