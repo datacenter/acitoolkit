@@ -248,7 +248,7 @@ class Linecard(BaseACIPhysModule):
         return None
 
     @staticmethod
-    def get_table(linecards, super_title=None):
+    def get_table(linecards, super_title=''):
         """
         Will create table of line card information
         :param super_title:
@@ -339,7 +339,7 @@ class Supervisorcard(BaseACIPhysModule):
         self.modify_time = str(attributes['modTs'])
 
     @staticmethod
-    def get_table(modules, super_title=None):
+    def get_table(modules, super_title=''):
         """
         Will create table of supervisor information
         :param super_title:
@@ -448,7 +448,7 @@ class Fantray(BaseACIPhysModule):
         return None
 
     @staticmethod
-    def get_table(modules, super_title=None):
+    def get_table(modules, super_title=''):
         """
         Will create table of fantry information
         :param super_title:
@@ -663,7 +663,7 @@ class Powersupply(BaseACIPhysModule):
         #     return None
 
     @staticmethod
-    def get_table(modules, super_title=None):
+    def get_table(modules, super_title=''):
         """
         Will create table of power supply information
         :param super_title:
@@ -915,7 +915,8 @@ class Node(BaseACIPhysObject):
                     pod_id = parent
         else:
             pod_id = '1'
-
+        if isinstance(node_id, unicode):
+            node_id = str(node_id)
         if node_id:
             if not isinstance(node_id, str):
                 raise TypeError('The node_id must be a string such as "101".')
@@ -1246,34 +1247,50 @@ class Node(BaseACIPhysObject):
         return chassis_type
 
     @staticmethod
-    def get_table(switch, super_title=None):
+    def get_table(switch, title=''):
         """
             Creates report of basic switch information
             :param switch:
-            :param super_title:
+            :param title:
             """
-        table = [
-            ['Name:', switch.name],
-            ['Pod ID:', switch.pod],
-            ['Node ID:', switch.node],
-            ['Serial Number:', switch.serial],
-            ['Model:', switch.model],
-            ['Role:', switch.role],
-            ['State:', switch.state],
-            ['Firmware:', switch.firmware],
-            ['Health:', switch.health],
-            ['In-band managment IP:', switch.inb_mgmt_ip],
-            ['Out-of-band managment IP:', switch.oob_mgmt_ip],
-            ['Number of ports:', switch.num_ports],
-            ['Number of Linecards (inserted):', str(switch.num_lc_slots) + '(' + str(switch.num_lc_modules) + ')'],
-            ['Number of Sups (inserted):', str(switch.num_sup_slots) + '(' + str(switch.num_sup_modules) + ')'],
-            ['Number of Fans (inserted):', str(switch.num_fan_slots) +
-             '(' + str(switch.num_fan_modules) + ')'],
-            ['Number of Power Supplies (inserted):', str(switch.num_ps_slots) +
-             '(' + str(switch.num_ps_modules) + ')'],
-            ['System Uptime:', switch.system_uptime],
-            ['Dynamic Load Balancing:', switch.dynamic_load_balancing_mode]]
-        result = [Table(table, title=super_title + 'Basic Information for {0}'.format(switch.name), columns=2)]
+        headers = ['Name',
+                   'Pod ID',
+                   'Node ID',
+                   'Serial Number',
+                   'Model',
+                   'Role',
+                   'State',
+                   'Firmware',
+                   'Health',
+                   'In-band managment IP',
+                   'Out-of-band managment IP',
+                   'Number of ports',
+                   'Number of Linecards (inserted)',
+                   'Number of Sups (inserted)',
+                   'Number of Fans (inserted)',
+                   'Number of Power Supplies (inserted)',
+                   'System Uptime',
+                   'Dynamic Load Balancing']
+        table = [[switch.name,
+                 switch.pod,
+                 switch.node,
+                 switch.serial,
+                 switch.model,
+                 switch.role,
+                 switch.state,
+                 switch.firmware,
+                 switch.health,
+                 switch.inb_mgmt_ip,
+                 switch.oob_mgmt_ip,
+                 switch.num_ports,
+                 str(switch.num_lc_slots) + '(' + str(switch.num_lc_modules) + ')',
+                 str(switch.num_sup_slots) + '(' + str(switch.num_sup_modules) + ')',
+                 str(switch.num_fan_slots) + '(' + str(switch.num_fan_modules) + ')',
+                 str(switch.num_ps_slots) + '(' + str(switch.num_ps_modules) + ')',
+                 switch.system_uptime,
+                 switch.dynamic_load_balancing_mode]]
+        result = [Table(table, headers, title=str(title) + 'Basic Information for {0}'.format(switch.name),
+                        table_orientation='vertical', columns=2)]
         return result
 
     def _define_searchables(self):
@@ -1824,21 +1841,6 @@ class Link(BaseACIPhysObject):
         link = str(name[2].split('-')[1])
 
         return pod, link
-
-
-class AccessPolicyConcrete(BaseACIObject):
-    """
-    Access policy in the switch
-    """
-
-    def __init__(self):
-        self.scope = None
-        self.action = None
-        self.dclass_id = None
-        self.sclass_id = None
-        self.direction = None
-        self.filter_id = None
-        self.mask_dscp = None
 
 
 class Interface(BaseInterface):
