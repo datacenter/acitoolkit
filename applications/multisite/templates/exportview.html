@@ -1,0 +1,23 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{%  block head %}
+{{  super() }}
+<style>
+ul {
+    list-style-type: none;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+{#
+<form class="form" method="post" role="form">
+{{ wtf.form_field(form.sites) }}
+{{ form.csrf_token }}
+{{ wtf.form_field(form.submit) }}
+</form>
+#}
+{{ wtf.quick_form(form, form_type='inline') }}
+
+{% endblock %}
