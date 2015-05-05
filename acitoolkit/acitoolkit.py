@@ -785,6 +785,7 @@ class L3Interface(BaseACIObject):
         self._addr = None
         self._l3if_type = None
         self._mtu = 'inherit'
+        self.networks = []
 
     def is_interface(self):
         """
