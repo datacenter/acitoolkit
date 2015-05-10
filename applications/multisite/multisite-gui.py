@@ -5,7 +5,7 @@ from flask import Flask, render_template, session, redirect, url_for, render_tem
 from flask.ext.admin import Admin, AdminIndexView
 from wtforms import PasswordField
 from wtforms.validators import Required, IPAddress
-from multisite import MultisiteCollector, SiteLoginCredentials, Site
+from multisite import MultisiteCollector, SiteLoginCredentials, Site, ContractDB, ContractDBEntry
 from flask import flash, send_from_directory, request
 from flask.ext.sqlalchemy import SQLAlchemy
 from requests import Timeout
@@ -23,6 +23,7 @@ from wtforms.validators import Required, IPAddress, NumberRange
 from wtforms.validators import ValidationError, Optional
 from wtforms.widgets import TextInput
 from wtforms import widgets
+#from flask_wtf.csrf import CsrfProtect
 
 # Create application
 app = Flask(__name__, static_folder='static')
@@ -59,6 +60,7 @@ class SiteCredentials(db.Model):
     use_https = db.Column(db.Boolean())
     local = db.Column(db.Boolean())
 
+
 class CustomView(ModelView):
     list_template = 'list.html'
 
@@ -94,9 +96,26 @@ class SiteCredentialsView(CustomView):
         print '****MICHSMIT**** on_model_delete', model.site_name, 'is being deleted'
         collector.delete_site(model.site_name)
         collector.print_sites()
+        # TODO: On model delete, for local remove all contracts.
+        # TODO: For remote remove the remote from the site list and check back in if not empty
+        # TODO: If empty, delete the entry
 
-    def get_num_sites(self):
-        return collector.get_num_sites()
+        if model.local:
+            local_contracts = SiteContracts.query.filter_by(export_state='local')
+            for local_contract in local_contracts:
+                db.session.delete(local_contract)
+            db.session.commit()
+
+    # # @action('delete', 'Delete', 'Are you sure you want to delete the selected sites?')
+    # # def action_delete(self, ids):
+    # #     print 'Called action delete'
+    # #     pass
+    #
+    # def delete_model(self, model):
+    #     print 'delete_model called'
+
+    #def get_num_sites(self):
+    #    return collector.get_num_sites()
 
     def get_title(self):
         return 'Site credentials'
@@ -120,18 +139,17 @@ class ExportView(BaseView):
 
     @expose('/', methods=['GET', 'POST'])
     def index(self):
+        print '***EXPORT CONTRACTS VIEW CALLED***'
         contract_ids = session.get('export_contracts')
         default_sites = []
         contract_data = []
         for contract_id in contract_ids:
             contract = SiteContracts.query.get(contract_id)
-            print 'REMOTE SITES FOR', contract.contract_name, 'ARE', contract.remote_sites
             contract_data.append((contract.contract_name, contract.tenant_name))
             selected_sites = contract.remote_sites.split('.')
             for selected_site in selected_sites:
                 if selected_site not in default_sites:
                     default_sites.append(selected_site)
-        print 'DEFAULT SITES', default_sites
         remote_sites = collector.get_sites(remote_only=True)
         site_choices = []
         for remote_site in remote_sites:
@@ -147,28 +165,32 @@ class ExportView(BaseView):
         form = MyExportForm()
 
         if form.validate_on_submit() and form.submit.data:
-            collector.export_contracts(contract_data, form.sites.data)
-            first = True
-            remote_site_list = ''
-            for site in form.sites.data:
-                if first:
-                    remote_site_list = site
-                    first = False
-                else:
-                    remote_site_list += '.' + site
-
             for contract in contract_data:
                 (contract_name, tenant_name) = contract
+
+                # Get rid of the old contract entry in the GUI database
                 old_db_entries= SiteContracts.query.filter_by(contract_name=contract_name,
                                                               tenant_name=tenant_name)
                 for old_db_entry in old_db_entries:
                     db.session.delete(old_db_entry)
+                db.session.commit()
+
+                # Export the contract
+                local_site = collector.get_local_site()
+                problem_sites = local_site.export_contract(contract_name, tenant_name, form.sites.data)
+                for problem_site in problem_sites:
+                    flash('Could not export contract %s to site %s' % (contract_name, problem_site), 'error')
+
+                # Store the new entries in the GUI database
+                contract_entry = local_site.get_contract(tenant_name, contract_name)
+                assert contract_entry is not None
                 new_entry = SiteContracts()
-                (new_entry.tenant_name, new_entry.contract_name,
-                 new_entry.export_state, new_entry.remote_sites) = (tenant_name, contract_name,
-                                                                    'exported', remote_site_list)
+                new_entry.tenant_name = contract_entry.tenant_name
+                new_entry.contract_name = contract_entry.contract_name
+                new_entry.export_state = contract_entry.export_state
+                new_entry.remote_sites = contract_entry.get_remote_sites_as_string()
                 db.session.add(new_entry)
-            db.session.commit()
+                db.session.commit()
             return redirect(url_for('sitecontractsview.index_view'))
 
         #return render_template_string('<form>{{ form.sites')
@@ -230,11 +252,17 @@ def update_contract_db(site):
     if not site.local:
         return
     local_site = collector.get_site(site.site_name)
-    contracts = local_site.get_contracts()
-    for contract in contracts:
+
+    # TODO initialize the info from APIC but should learn to rely on Monitor and use a callback to update GUI db
+    local_site.initialize_from_apic()
+
+    contract_db = local_site.get_contracts()
+    for contract in contract_db:
         dbcontract = SiteContracts()
-        (dbcontract.tenant_name, dbcontract.contract_name,
-         dbcontract.export_state, dbcontract.remote_sites) = contract
+        dbcontract.tenant_name = contract.tenant_name
+        dbcontract.contract_name = contract.contract_name
+        dbcontract.export_state = contract.export_state
+        dbcontract.remote_sites = contract.get_remote_sites_as_string()
         db.session.add(dbcontract)
     db.session.commit()
 

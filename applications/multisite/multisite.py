@@ -1,6 +1,62 @@
 from acitoolkit.acitoolkit import *
 import json
 import re
+import threading
+
+class MultisiteMonitor(threading.Thread):
+    """
+    Monitor thread responsible for subscribing for local Endpoints and EPG notifications.
+    """
+    def __init__(self, session, local_site):
+        threading.Thread.__init__(self)
+        self._session = session
+        self._local_site = local_site
+        self._exit = False
+        self.remote_sites = []
+
+    def exit(self):
+        """
+        Indicate that the thread should exit.
+        """
+        self._exit = True
+
+    def run(self):
+        Endpoint.subscribe(self._session)
+        while not self._exit:
+            if Endpoint.has_events(self._session):
+                print 'Endpoint Event received'
+                ep = Endpoint.get_event(self._session)
+                epg = ep.get_parent()
+                app = epg.get_parent()
+                tenant = app.get_parent()
+                if self._local_site.exports_epg(epg):
+
+                    # TODO clean up this section and also handle ep.is_deleted() == True
+
+
+                    tenant = Tenant('site2')
+                    outside = OutsideEPG('site2-l3out', tenant)
+                    tenant = Tenant('site2')
+                    outside = OutsideEPG('site2-l3out', tenant)
+                    l3if1 = L3Interface('l3if1')
+                    l3if1.networks.append(ep.ip)
+                    l3if1.set_l3if_type('ext-svi')
+                    outside.attach(l3if1)
+                    for contract_db_entry in self._local_site.get_all_provided_contracts(epg):
+                        contract = Contract(contract_db_entry.contract_name, tenant)
+                        outside.provide(contract)
+                    phyif = Interface('eth', '1', '102', '1', '25')
+                    l2if = L2Interface('eth 1/102/1/25', 'vlan', '500')
+                    l2if.attach(phyif)
+                    l3if1.attach(l2if)
+                    #for remote_site in self.remote_sites:
+                        #resp = tenant.push_to_apic(remote_site.session)
+                        #if not resp.ok:
+                        #    print "couldn't export", resp, resp.text
+                    print '*****CONFIG FOR ENDPOINT*****'
+                    print json.dumps(tenant.get_json(), indent=4, separators=(',', ':'))
+                    print 'Exported endpoint'
+
 
 
 class ContractCollector(object):
@@ -148,8 +204,22 @@ class ContractCollector(object):
                 if 'children' in data[key]:
                     self._rename_classes(data[key]['children'])
 
+    def _get_tag(self, contract_name, site_name, exported=True):
+        if exported:
+            export_state = 'exported'
+        else:
+            export_state = 'imported'
+        tag = 'multisite:%s:contract:' % export_state + contract_name + ':site:' + site_name
+        return tag
+
+    def get_local_tag(self, contract_name, site_name):
+        return self._get_tag(contract_name, site_name, exported=True)
+
+    def get_remote_tag(self, contract_name, site_name):
+        return self._get_tag(contract_name, site_name, exported=False)
+
     def _tag_local_config(self, data, contract_name):
-        tag = {'tagInst': {'attributes': {'name': 'multisite:exported:contract:' + contract_name + ':sites:' + self.local_site_name}}}
+        tag = {'tagInst': {'attributes': {'name': self.get_local_tag(contract_name, self.local_site_name)}}}
         data['fvTenant']['fvAEPg']['children'].append(tag)
 
 
@@ -161,20 +231,25 @@ class ContractCollector(object):
             for key in data:
                 if key in ContractCollector.classes_to_tag:
                     assert 'children' in data[key]
-                    tag = {'tagInst': {'attributes': {'name': 'multisite:imported:contract:' + contract_name + ':sites:' + self.local_site_name}}}
+                    tag = {'tagInst': {'attributes': {'name': self.get_remote_tag(contract_name, self.local_site_name)}}}
                     data[key]['children'].append(tag)
                 if 'children' in data[key]:
                     self._tag_remote_config(data[key]['children'],
                                             contract_name)
 
     def export_contract_config(self, tenant_json, contract_name, remote_site):
+        print '*****export_contract_config*****', contract_name
         self._rename_classes(tenant_json)
+        #tenant_json['fvTenant']['attributes']['name'] = 'site2' # TODO hard code the tenant name right now to make up for bad config
         self._tag_remote_config(tenant_json, contract_name)
-        self._pprint_json(tenant_json)
         resp = remote_site.session.push_to_apic(Tenant.get_url(), tenant_json)
         if not resp.ok:
             print resp, resp.text
+            print remote_site.name
+            print Tenant.get_url()
+            print tenant_json
             print '%% Could not export to remote APIC'
+        return resp
 
 class SiteLoginCredentials(object):
     def __init__(self, ip_address, user_name, password, use_https):
@@ -189,6 +264,7 @@ class Site(object):
         self.local = local
         self.credentials = credentials
         self.session = None
+        self.logged_in = False
 
     def get_credentials(self):
         return self.credentials
@@ -218,104 +294,267 @@ class Site(object):
             print('%% Could not login to APIC on Site', self.name)
         else:
             print('%% Logged into Site', self.name)
+            self.logged_in = True
         print 'MICHSMIT STARTING SITE', self.name
+        return resp
+
+class ContractDBEntry(object):
+    def __init__(self):
+        self.tenant_name = None
+        self.contract_name = None
+        self.export_state = None
+        self.remote_sites = []
+
+    def is_local(self):
+        return self.export_state == 'local'
+
+    def is_exported(self):
+        return self.export_state == 'exported'
+
+    def is_imported(self):
+        return self.export_state == 'imported'
+
+    def __eq__(self, other):
+        if self.tenant_name == other.tenant_name and self.contract_name == other.contract_name:
+            return True
+        else:
+            return False
+
+    def add_remote_site(self, export_state, remote_site):
+        self.export_state = export_state
+        if remote_site not in self.remote_sites:
+            self.remote_sites.append(remote_site)
+
+    def get_remote_sites_as_string(self):
+        resp = ''
+        for remote_site in self.remote_sites:
+            resp += remote_site + ', '
+        return resp[:-2]
+
+class ContractDB(object):
+    def __init__(self):
+        self._db = []
+
+    def find_entry(self, tenant_name, contract_name):
+        search_entry = ContractDBEntry()
+        search_entry.tenant_name = tenant_name
+        search_entry.contract_name = contract_name
+        for entry in self._db:
+            if entry == search_entry:
+                return entry
+        return None
+
+    def add_entry(self, entry):
+        self._db.append(entry)
+
+    def add_remote_site(self, tenant_name, contract_name, export_state, remote_site_name):
+        entry = self.find_entry(tenant_name, contract_name)
+        entry.add_remote_site(export_state, remote_site_name)
+
+class EpgDBEntry(object):
+    def __init__(self):
+        self.tenant_name = None
+        self.app_name = None
+        self.epg_name = None
+        self.contract_name = None
+
+class EpgDB(object):
+    def __init__(self):
+        self._db = []
+
+    def add_entry(self, entry):
+        self._db.append(entry)
+
+    def find_entries(self, tenant_name, app_name, epg_name):
+        resp = []
+        for entry in self._db:
+            if entry.tenant_name == tenant_name and entry.app_name == app_name and entry.epg_name == epg_name:
+                resp.append(entry)
         return resp
 
 class LocalSite(Site):
     def __init__(self, name, credentials, parent):
         super(LocalSite, self).__init__(name, credentials, local=True)
         self.contract_collector = None
-        self.parent = parent
+        self.my_collector = parent
+        self.monitor = None
+        self.contract_db = ContractDB()
+        self.epg_db = EpgDB()
 
     def start(self):
         resp = super(LocalSite, self).start()
         if resp.ok:
             self.contract_collector = ContractCollector(self.session, self.name)
+            self.monitor = MultisiteMonitor(self.session, self)
+            self.monitor.daemon = True
+            self.monitor.start()
         return resp
 
-    def get_contracts(self):
+    def _populate_contracts_from_apic(self):
         resp = []
-        tenants = Tenant.get_deep(self.session)
+        tenants = Tenant.get_deep(self.session, limit_to=['vzBrCP', 'fvTenant', 'tagInst'])
         for tenant in tenants:
             contracts = tenant.get_children(Contract)
             for contract in contracts:
-                export_state = 'local'
-                remote_site_names = ''
-                if tenant.has_tags():
-                    tags = tenant.get_tags()
-                    for tag in tags:
-                        match = re.match(r'multisite:.*:contract:.*:sites:.*', tag)
-                        if match:
-                            split_tag = tag.split(':')
-                            assert len(split_tag) == 6
-                            if split_tag[3] != contract.name:
-                                continue
-                            export_state = split_tag[1]
-                            remote_site_names = split_tag[5]
-                resp.append((tenant.name, contract.name, export_state, remote_site_names))
+                db_entry = ContractDBEntry()
+                db_entry.tenant_name = tenant.name
+                db_entry.contract_name = contract.name
+                db_entry.export_state = 'local'
+                self.contract_db.add_entry(db_entry)
+            if tenant.has_tags():
+                tags = tenant.get_tags()
+                for tag in tags:
+                    match = re.match(r'multisite:.*:contract:.*:site:.*', tag)
+                    if match:
+                        split_tag = tag.split(':')
+                        assert len(split_tag) == 6
+                        contract_name = split_tag[3]
+                        export_state = split_tag[1]
+                        remote_site_name = split_tag[5]
+                        self.contract_db.add_remote_site(tenant.name, contract_name,
+                                                         export_state, remote_site_name)
+
+    def get_contracts(self):
+        return self.contract_db._db
+
+    def get_contract(self, tenant_name, contract_name):
+        return self.contract_db.find_entry(tenant_name, contract_name)
+
+    def exports_epg(self, epg):
+        """
+        Checks if a site is exporting a given EPG
+
+        :param epg: Instance of EPG class to check if being exported
+        :returns:  True or False.  True if the site is exporting the EPG, False otherwise.
+        """
+        app = epg.get_parent()
+        tenant = app.get_parent()
+        epg_db_entries = self.epg_db.find_entries(tenant.name, app.name, epg.name)
+        if len(epg_db_entries) == 0:
+            return False
+        for epg_db_entry in epg_db_entries:
+            contract_db_entry = self.contract_db.find_entry(tenant.name, epg_db_entry.contract_name)
+            if contract_db_entry is None:
+                continue
+            if contract_db_entry.is_exported():
+                return True
+        return False
+
+    def get_all_provided_contracts(self, epg):
+        resp = []
+        app = epg.get_parent()
+        tenant = app.get_parent()
+        epg_db_entries = self.epg_db.find_entries(tenant.name, app.name, epg.name)
+        for epg_db_entry in epg_db_entries:
+            contract_db_entry = self.contract_db.find_entry(tenant.name, epg_db_entry.contract_name)
+            resp.append(epg_db_entry)
         return resp
+
+    def _populate_epgs_from_apic(self):
+        resp = []
+        contracts = self.get_contracts()
+        tenants = Tenant.get_deep(self.session,
+                                  limit_to=['vzBrCP', 'fvTenant', 'fvAp',
+                                            'fvAEPg', 'fvRsProv', 'fvRsCons'])
+        for contract in contracts:
+            if contract.is_exported() or contract.is_imported():
+                for tenant in tenants:
+                    if tenant.name == contract.tenant_name:
+                        contract_objs = tenant.get_children(Contract)
+                        for contract_obj in contract_objs:
+                            if contract_obj.name == contract.contract_name:
+                                break
+                        apps = tenant.get_children(AppProfile)
+                        for app in apps:
+                            epgs = app.get_children(EPG)
+                            for epg in epgs:
+                                if (contract.is_exported() and epg.does_provide(contract_obj)) or \
+                                        (contract.is_imported() and epg.does_consume(contract_obj)):
+                                    entry = EpgDBEntry()
+                                    entry.tenant_name = tenant.name
+                                    entry.app_name = app.name
+                                    entry.epg_name = epg.name
+                                    entry.contract_name = contract_obj.name
+                                    self.epg_db.add_entry(entry)
+
+    def get_epgs(self):
+        return self.epg_db._db
+
+    def _populate_endpoints_from_apic(self):
+        pass
+
+    def initialize_from_apic(self):
+        assert self.logged_in
+
+        # Clear existing DB data
+        self.contract_db = ContractDB()
+        self.epg_db = EpgDB()
+
+        # Get the latest data from the APIC
+        self._populate_contracts_from_apic()
+        self._populate_epgs_from_apic()
+        self._populate_endpoints_from_apic()
+
+    # def get_contract_names(self, tenant, app, epg):
+    #     resp = []
+    #     print 'get_contract_names', self.exported_epgs
+    #     print 'looking for', tenant, app, epg
+    #     for my_epg in self.exported_epgs:
+    #         (tenant_name, app_name, epg_name, contract_name, remote_site_names) = my_epg
+    #         # TODO ignoring tenant name for now due to hardcoded difference
+    #         if app_name == app and epg_name == epg:
+    #             resp.append(contract_name)
+    #     return resp
 
     def extract_contract(self, contract_name, tenant_name):
         pass
 
-    def export_contracts(self, contract_data, exported_sites):
-        """
-        Export the contracts
+    def unexport_contract(self, contract_name, tenant_name, remote_site):
 
-        :param contract_data: list of tuples containing contract_name and tenant_name
-        :param exported_sites: list of remote_site_names
-        """
-        # # Reorganize the contract_data for easier access
-        # contracts = {}
-        # for data in contract_data:
-        #     (contract_name, tenant_name) = data
-        #     if tenant_name not in contracts:
-        #         contracts[tenant_name] = []
-        #     contracts[tenant_name].append(contract_name)
-        #
-        # # Get the RemoteSite instances
-        # remote_sites = []
-        # for remote_site in self.get_sites(remote_only=True):
-        #     if remote_site.name in exported_sites:
-        #         remote_sites.append(remote_site)
+        # Need to know the site, contract, and EPGs
+        pass
 
-        old_contracts = self.get_contracts()
-        prev_contracts = {}
-        for old_contract in old_contracts:
-            (prev_tenant_name,
-             prev_contract_name,
-             prev_export_state, prev_remote_site_names) = old_contract
-            prev_contracts[(prev_contract_name, prev_tenant_name)] = prev_remote_site_names
+    def export_contract(self, contract_name, tenant_name, remote_sites):
+        problem_sites = []
 
-        for contract in contract_data:
-            if contract in prev_contracts:
-                for old_exported_site in prev_contracts[contract].split('.'):
-                    if old_exported_site not in exported_sites:
-                        print '****DELETE*** Delete this site', old_exported_site
-                        # TODO delete the contract from the old site
-                first = True
-                for exported_site in exported_sites:
-                    if first:
-                        remote_site_list = exported_site
-                    else:
-                        first = False
-                        remote_site_list += '.' + exported_site
-                for exported_site in exported_sites:
-                    if exported_site not in prev_contracts[contract]:
-                        print 'Export this site'
-                        (contract_name, tenant_name) = contract
-                        contract_json = self.contract_collector.get_contract_config(str(tenant_name),
-                                                                                    str(contract_name))
-                        self.contract_collector.export_contract_config(contract_json,
-                                                                       contract_name,
-                                                                       self.parent.get_site(exported_site))
-                        #self.contract_collector._pprint_json(contract_json)
+        # get the old contract data
+        old_entry = self.contract_db.find_entry(tenant_name, contract_name)
+        contract_json = None
 
-                        # Now tag the local tenant
-                        tenant = Tenant(str(tenant_name))
-                        print '****TAGGING**** with ', remote_site_list
-                        tenant.add_tag('multisite:exported:contract:' + contract_name + ':sites:' + remote_site_list)
-                        tenant.push_to_apic(self.session)
+        # compare new remote sites list to old list for new sites to export
+        for remote_site in remote_sites:
+            if remote_site in old_entry.remote_sites:
+                continue
+            if remote_site not in old_entry.remote_sites:
+                # New site that needs to be exported
+                if contract_json is None:
+                    # only grab the contract configuration once
+                    contract_json = self.contract_collector.get_contract_config(str(tenant_name),
+                                                                                str(contract_name))
+                # Export to the remote site
+                resp = self.contract_collector.export_contract_config(contract_json,
+                                                                      contract_name,
+                                                                      self.my_collector.get_site(remote_site))
+                if not resp.ok:
+                    problem_sites.append(remote_site)
+                else:
+                    # Now tag the local tenant
+                    tenant = Tenant(str(tenant_name))
+                    tenant.add_tag(self.contract_collector.get_local_tag(contract_name, remote_site))
+                    tenant.push_to_apic(self.session)
+
+        # compare old site list with new for sites no longer being exported to
+        for old_site in old_entry.remote_sites:
+            if old_site not in remote_sites:
+                raise NotImplementedError  # TODO
+                pass
+
+        # update the ContractDB
+        for problem_site in problem_sites:
+            remote_sites.remove(problem_site)
+        for remote_site in remote_sites:
+            old_entry.add_remote_site('exported', remote_site)
+        return problem_sites
 
 
 class RemoteSite(Site):
@@ -347,6 +586,13 @@ class MultisiteCollector(object):
         else:
             return self.sites
 
+    def get_local_site(self):
+        local_sites = self.get_sites(local_only=True)
+        if len(local_sites):
+            return local_sites[0]
+        else:
+            return None
+
     def get_site(self, name):
         for site in self.sites:
             if site.name == name:
@@ -361,7 +607,10 @@ class MultisiteCollector(object):
             site = LocalSite(name, credentials, self)
         else:
             site = RemoteSite(name, credentials)
-
+            # TODO temporary hack to pass RemoteSite to Monitor
+            for previous_site in self.sites:
+                if isinstance(previous_site, LocalSite):
+                    previous_site.monitor.remote_sites.append(site)
         self.sites.append(site)
         site.start()
 
@@ -375,20 +624,6 @@ class MultisiteCollector(object):
         print '****MICHSMIT**** Number of sites:', len(self.sites)
         for site in self.sites:
             print site.name, site.credentials.ip_address
-
-    def export_contracts(self, contract_data, exported_sites):
-        """
-        Export the contracts to the remote sites
-
-        :param contract_data: list of tuples containing contract_name and tenant_name
-        :param exported_sites: list of remote_site_names
-        """
-
-        local_site = self.get_sites(local_only=True)[0]
-        # TODO : there is an assumption here that there is only one local site
-        assert(len(self.get_sites(local_only=True)) == 1)
-        local_site.export_contracts(contract_data, exported_sites)
-
 
 def main():
     """
