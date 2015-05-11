@@ -23,6 +23,7 @@ from wtforms.validators import Required, IPAddress, NumberRange
 from wtforms.validators import ValidationError, Optional
 from wtforms.widgets import TextInput
 from wtforms import widgets
+from acitoolkit.acitoolkit import Credentials
 #from flask_wtf.csrf import CsrfProtect
 
 # Create application
@@ -332,6 +333,10 @@ def dbfile_exists():
         return True
 
 if __name__ == '__main__':
+    description = ('ACI Multisite tool.')
+    creds = Credentials('server', description)
+    args = creds.get()
+
     if dbfile_exists():
         # Discard contract table as we will repopulate from APIC since it may be stale
         SiteContracts.query.delete()
@@ -351,4 +356,4 @@ if __name__ == '__main__':
         build_db()
 
     # Start app
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=False, host=args.ip, port=int(args.port))
