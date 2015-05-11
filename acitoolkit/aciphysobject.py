@@ -448,10 +448,10 @@ class Fantray(BaseACIPhysModule):
         return None
 
     @staticmethod
-    def get_table(modules, super_title=''):
+    def get_table(modules, title=''):
         """
         Will create table of fantry information
-        :param super_title:
+        :param title:
         :param modules:
         """
         result = []
@@ -474,14 +474,17 @@ class Fantray(BaseACIPhysModule):
                           first_fan.serial])
             for fan in sorted(fans, key=lambda x: x.id):
                 if fan != first_fan:
-                    table.append(['', '', '', '',
+                    table.append([fantray.slot,
+                                  fantray.model,
+                                  fantray.name,
+                                  fantray.serial,
                                   'fan-' + fan.id,
                                   fan.oper_st,
                                   fan.direction,
                                   fan.speed,
                                   fan.serial])
 
-        result.append(Table(table, headers, title=super_title + 'Fan Trays'))
+        result.append(Table(table, headers, title=title + 'Fan Trays'))
         return result
 
 
@@ -559,8 +562,8 @@ class Fan(BaseACIPhysModule):
                             if stat_data[0]['eqptFan']['children']:
                                 if 'eqptFanStats5min' in stat_data[0]['eqptFan']['children'][0]:
                                     fan.speed = \
-                                        stat_data[0]['eqptFan']['children'][0]['eqptFanStats5min']['attributes'][
-                                            'speedLast']
+                                        str(stat_data[0]['eqptFan']['children'][0]['eqptFanStats5min']['attributes'][
+                                            'speedLast'])
 
                 if parent:
                     fan._parent = parent
@@ -1274,12 +1277,12 @@ class Node(BaseACIPhysObject):
         table = [[switch.name,
                  switch.pod,
                  switch.node,
-                 switch.serial,
-                 switch.model,
+                 str(switch.serial),
+                 str(switch.model),
                  switch.role,
                  switch.state,
-                 switch.firmware,
-                 switch.health,
+                 str(switch.firmware),
+                 str(switch.health),
                  switch.inb_mgmt_ip,
                  switch.oob_mgmt_ip,
                  switch.num_ports,
@@ -1288,7 +1291,7 @@ class Node(BaseACIPhysObject):
                  str(switch.num_fan_slots) + '(' + str(switch.num_fan_modules) + ')',
                  str(switch.num_ps_slots) + '(' + str(switch.num_ps_modules) + ')',
                  switch.system_uptime,
-                 switch.dynamic_load_balancing_mode]]
+                 str(switch.dynamic_load_balancing_mode)]]
         result = [Table(table, headers, title=str(title) + 'Basic Information for {0}'.format(switch.name),
                         table_orientation='vertical', columns=2)]
         return result
@@ -2510,8 +2513,8 @@ class SwitchJson(object):
             else:
                 class_id = 'l3Inst'
 
-            vnid = ctx[class_id]['attributes']['encap'].split('-')[1]
-            name = ctx[class_id]['attributes']['name']
+            vnid = str(ctx[class_id]['attributes']['encap'].split('-')[1])
+            name = str(ctx[class_id]['attributes']['name'])
             record = {'name': name, 'type': 'context'}
             self.vnid_dict[vnid] = record
 
@@ -2520,18 +2523,18 @@ class SwitchJson(object):
         # pull in bridge domains next
         bd_data = self.get_class('l2BD')
         for l2bd in bd_data:
-            vnid = l2bd['l2BD']['attributes']['fabEncap'].split('-')[1]
-            name = l2bd['l2BD']['attributes']['name'].split(':')[-1]
+            vnid = str(l2bd['l2BD']['attributes']['fabEncap'].split('-')[1])
+            name = str(l2bd['l2BD']['attributes']['name'].split(':')[-1])
             if not name:
                 name = vnid
-            dname = l2bd['l2BD']['attributes']['dn']
+            dname = str(l2bd['l2BD']['attributes']['dn'])
             fields = dname.split('/')
             context_dn = '/'.join(fields[0:-1])
             ctx_data = self.get_object(context_dn)
             if 'l3Ctx' in ctx_data:
-                context = ctx_data['l3Ctx']['attributes']['name']
+                context = str(ctx_data['l3Ctx']['attributes']['name'])
             elif 'l3Inst' in ctx_data:
-                context = ctx_data['l3Inst']['attributes']['name']
+                context = str(ctx_data['l3Inst']['attributes']['name'])
             else:
                 context = None
 
