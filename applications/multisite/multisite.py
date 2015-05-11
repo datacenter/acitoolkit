@@ -408,6 +408,9 @@ class ContractDB(object):
                 return entry
         return None
 
+    def find_all(self):
+        return self._db
+
     def add_entry(self, entry):
         self._db.append(entry)
 
@@ -439,6 +442,9 @@ class EpgDB(object):
             if entry.tenant_name == tenant_name and entry.app_name == app_name and entry.epg_name == epg_name:
                 resp.append(entry)
         return resp
+
+    def find_all(self):
+        return self._db
 
     def print_db(self):
         print 'EPG Database'
@@ -527,12 +533,12 @@ class LocalSite(Site):
                 print 'tenant:', tenant.name, 'contract:', contract.name
                 contract_count += 1
         print 'FROM DB'
-        for db_entry in self.contract_db._db:
+        for db_entry in self.contract_db.find_all():
             print 'tenant:', db_entry.tenant_name, 'contract:', db_entry.contract_name
-        assert contract_count == len(self.contract_db._db)
+        assert contract_count == len(self.contract_db.find_all())
 
     def get_contracts(self):
-        return self.contract_db._db
+        return self.contract_db.find_all()
 
     def get_contract(self, tenant_name, contract_name):
         return self.contract_db.find_entry(tenant_name, contract_name)
@@ -585,17 +591,17 @@ class LocalSite(Site):
                         for app in apps:
                             epgs = app.get_children(EPG)
                             for epg in epgs:
-                                if (contract.is_exported() and epg.does_provide(contract_obj)) or \
-                                        (contract.is_imported() and epg.does_consume(contract_obj)):
+                                if epg.does_provide(contract_obj) or epg.does_consume(contract_obj):
                                     entry = EpgDBEntry()
                                     entry.tenant_name = tenant.name
                                     entry.app_name = app.name
                                     entry.epg_name = epg.name
                                     entry.contract_name = contract_obj.name
-                                    self.epg_db.add_entry(entry)
+                                    if entry not in self.epg_db.find_all():
+                                        self.epg_db.add_entry(entry)
 
     def get_epgs(self):
-        return self.epg_db._db
+        return self.epg_db.find_all()
 
     def _populate_endpoints_from_apic(self):
         pass
