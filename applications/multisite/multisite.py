@@ -67,6 +67,9 @@ class MultisiteTag(object):
     def get_export_state(self):
         return self._export_state
 
+    # def set_remote_site_name(self, site_name):
+    #     self._remote_site = site_name
+
 
 class MultisiteMonitor(threading.Thread):
     """
@@ -443,6 +446,13 @@ class EpgDB(object):
                 resp.append(entry)
         return resp
 
+    def find_epgs_using_contract(self, tenant_name, contract_name):
+        resp = []
+        for db_entry in self._db:
+            if db_entry.contract_name == contract_name and db_entry.tenant_name == tenant_name:
+                resp.append(db_entry)
+        return resp
+
     def find_all(self):
         return self._db
 
@@ -639,6 +649,32 @@ class LocalSite(Site):
 
     def unexport_contract(self, contract_name, tenant_name, remote_site):
 
+        # Remove providing EPGs from remote site
+        epg_db_entries = self.epg_db.find_epgs_using_contract(tenant_name, contract_name)
+        unexport_tenant = Tenant(tenant_name)
+        for epg_db_entry in epg_db_entries:
+            for app in unexport_tenant.get_children(AppProfile):
+                app_already_added = False
+                if epg_db_entry.app_name == app.name:
+                    unexport_epg = EPG(epg_db_entry.epg_name, app)
+                    app_already_added = True
+            if not app_already_added:
+                unexport_app = AppProfile(epg_db_entry.app_name, unexport_tenant)
+                unexport_epg = EPG(epg_db_entry.epg_name, unexport_app)
+            unexport_epg.mark_as_deleted()
+
+        print 'EPGs to delete:', unexport_tenant.get_json()
+
+        # Remove contract from remote site
+        unexport_contract = Contract(contract_name, unexport_tenant)
+        unexport_contract.mark_as_deleted()
+
+        # TODO: Filters need to be removed
+
+        # Remove tag from tenant in remote site
+
+        # Remove tag locally from tenant
+
         # Need to know the site, contract, and EPGs
         raise NotImplementedError  # TODO
         pass
@@ -666,14 +702,14 @@ class LocalSite(Site):
                                 export_tenant = Tenant(tenant.name)
                                 export_app = AppProfile(app.name, export_tenant)
                                 export_epg = EPG(epg.name, export_app)
-                                export_tag = MultisiteTag(contract.name, 'imported', mtag.get_remote_site_name())
+                                export_tag = MultisiteTag(contract.name, 'imported', self.name)
                                 export_epg.add_tag(str(export_tag))
                                 export_contract = Contract(export_tag.get_contract_name(), export_tenant)
                                 export_epg.consume(export_contract)
-                                export_site = self.my_collector.get_site(mtag.get_remote_site_name()) # TODO this is a bug. needs to be the local site
-                                print mtag.get_remote_site_name()
+                                export_site = self.my_collector.get_site(mtag.get_remote_site_name())
                                 if export_site is not None:
-                                    export_tenant.push_to_apic(export_site.session)
+                                    resp = export_tenant.push_to_apic(export_site.session)
+                                    print resp, resp.text
         self.epg_db.print_db()
 
     def export_contract(self, contract_name, tenant_name, remote_sites):
@@ -714,7 +750,12 @@ class LocalSite(Site):
         for problem_site in problem_sites:
             remote_sites.remove(problem_site)
         for remote_site in remote_sites:
-            old_entry.add_remote_site('exported', remote_site)
+            mtag = MultisiteTag(contract_name, 'exported', remote_site)
+            old_entry.add_remote_site(mtag)
+
+        # Update the EPG DB
+        self._populate_epgs_from_apic()
+
         return problem_sites
 
 
