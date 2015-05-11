@@ -73,7 +73,6 @@ class Table(object):
         :param table_orientation: Orientation - 'Horizontal' or 'Vertical'. Default is 'Horizontal'
         """
         # TODO: make table_orientation dynamic, i.e. determined based on the number of rows vs. number of columns.
-        # TODO: truly separate data and headers for list view and allow table_orientation to drive display format
         self.data = data
         self.headers = headers
         self.tablefmt = tablefmt
@@ -86,8 +85,15 @@ class Table(object):
         assert(table_orientation in ['horizontal', 'vertical'])
         self.table_orientation = table_orientation
 
+        for row_index in range(len(self.data)):
+            for column_index in range(len(self.data[row_index])):
+                if self.data[row_index][column_index] is None:
+                    self.data[row_index][column_index] = ''
+                if type(self.data[row_index][column_index]) is not str:
+                    self.data[row_index][column_index] = str(self.data[row_index][column_index])
+
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
-                 missingval=None, supresstitle=False, columns=None, table_orientation = 'horizontal'):
+                 missingval=None, supresstitle=False, columns=None, table_orientation=None):
         """
 
 
@@ -168,6 +174,15 @@ class Table(object):
         if title and not supresstitle:
             result = title + '\n' + result
         return result
+
+    @property
+    def title_flask(self):
+        """
+        returns a flask friendly version of the title, i.e. enclosed in quotes.
+
+        :return: "title"
+        """
+        return '\"'+self.title+'\"'
 
     def multi_column(self, table_text):
         """
