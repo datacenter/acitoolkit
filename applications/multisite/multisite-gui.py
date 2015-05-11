@@ -118,7 +118,7 @@ class SiteCredentialsView(CustomView):
     #    return collector.get_num_sites()
 
     def get_title(self):
-        return 'Site credentials'
+        return 'Site Credentials'
 
 
 class SiteContracts(db.Model):
@@ -196,6 +196,9 @@ class ExportView(BaseView):
         #return render_template_string('<form>{{ form.sites')
         return self.render('exportview.html', form=form)
 
+    def get_title(self):
+        return 'Export Contracts'
+
 
 class SiteContractsView(CustomView):
     can_create = False
@@ -205,7 +208,7 @@ class SiteContractsView(CustomView):
     column_filters = ('tenant_name', 'contract_name', 'export_state', 'remote_sites')
 
     def get_title(self):
-        return 'Site contracts'
+        return 'Site Contracts'
 
     def get_create_button_text(self):
         return 'Export'
@@ -224,6 +227,47 @@ class SiteContractsView(CustomView):
             flash('Please select at least one contract to export')
 
 
+class SiteEpgs(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_name = db.Column(db.Unicode(64))
+    app_name = db.Column(db.Unicode(64))
+    epg_name = db.Column(db.Unicode(64))
+    contract_name = db.Column(db.Unicode(64))
+
+
+class SiteEpgsView(CustomView):
+    can_create = False
+    can_edit = False
+    can_delete = False
+    column_searchable_list = ('tenant_name', 'app_name', 'epg_name', 'contract_name')
+    column_filters = ('tenant_name', 'app_name', 'epg_name', 'contract_name')
+
+    def get_title(self):
+        return 'Site Exported/Imported EPGs'
+
+
+class FeedbackForm(Form):
+    category = SelectField('', choices=[('bug', 'Bug'),
+                                        ('enhancement', 'Enhancement Request'),
+                                        ('question', 'General Question'),
+                                        ('comment', 'General Comment')])
+    comment = TextAreaField('Comment', validators=[Required()])
+    submit = SubmitField('Submit')
+
+
+class Feedback(BaseView):
+    @expose('/')
+    def index(self):
+        form = FeedbackForm()
+        return self.render('feedback.html', form=form)
+
+
+class About(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('about.html')
+
+
 # Create admin with custom base template
 homepage_view = AdminIndexView(name='Home', template='admin/index.html',
                                url='/')
@@ -236,7 +280,11 @@ admin = Admin(app, name='ACI Multisite',
 admin.add_view(SiteCredentialsView(SiteCredentials, db.session, name='Site Credentials'))
 admin.add_view(SiteContractsView(SiteContracts, db.session, name='Site Contracts',
                                  endpoint='sitecontractsview'))
+admin.add_view(SiteEpgsView(SiteEpgs, db.session, name='EPGs',
+                                 endpoint='siteepgsview'))
 admin.add_view(ExportView(name='Export Contracts'))
+admin.add_view(About(name='About'))
+admin.add_view(Feedback(name='Feedback'))
 
 
 def build_db():
@@ -266,6 +314,17 @@ def update_contract_db(site):
         db.session.add(dbcontract)
     db.session.commit()
 
+    epg_db = local_site.get_epgs()
+    for epg in epg_db:
+        dbepg = SiteEpgs()
+        dbepg.tenant_name = epg.tenant_name
+        dbepg.app_name = epg.app_name
+        dbepg.epg_name = epg.epg_name
+        dbepg.contract_name = epg.contract_name
+        db.session.add(dbepg)
+    db.session.commit()
+
+
 def dbfile_exists():
     app_dir = op.realpath(os.path.dirname(__file__))
     database_path = op.join(app_dir, app.config['DATABASE_FILE'])
@@ -277,6 +336,8 @@ if __name__ == '__main__':
         # Discard contract table as we will repopulate from APIC since it may be stale
         SiteContracts.query.delete()
         db.session.commit()
+        SiteEpgs.query.delete()
+        db.session.commit()
 
         # Initialize the collector if database file already exists at initial run
         sites = SiteCredentials.query.all()
@@ -284,6 +345,7 @@ if __name__ == '__main__':
             creds = SiteLoginCredentials(site.ip_address, site.user_name, site.password,
                                          site.use_https)
             collector.add_site(site.site_name, creds, site.local)
+        for site in sites:
             update_contract_db(site)
     else:
         build_db()

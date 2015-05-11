@@ -273,7 +273,7 @@ class BaseACIObject(object):
         return parent_obj
 
     @classmethod
-    def get_deep(cls, full_data, working_data, parent=None):
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=[], subtree='full', config_only=False):
         """
         Gets all instances of this class from the APIC and gets all of the
         children as well.
@@ -298,7 +298,10 @@ class BaseACIObject(object):
                                 else:
                                     class_map[apic_class].get_deep(full_data=full_data,
                                                                    working_data=[child],
-                                                                   parent=obj)
+                                                                   parent=obj,
+                                                                   limit_to=limit_to,
+                                                                   subtree=subtree,
+                                                                   config_only=config_only)
         return obj
 
     @classmethod

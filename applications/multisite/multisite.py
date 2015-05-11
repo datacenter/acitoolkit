@@ -3,6 +3,71 @@ import json
 import re
 import threading
 
+
+def strip_illegal_characters(name):
+    chars_all_good = True
+    for character in name:
+        if character.isalnum() or character in ('_', '.', ':', '-'):
+            continue
+        chars_all_good = False
+        name = name.replace(character, '')
+    if chars_all_good:
+        return name
+    return strip_illegal_characters(name)
+
+
+class MultisiteTag(object):
+    def __init__(self, contract_name, export_state, remote_site):
+        # Remove the local site from the contract if present
+        if ':' in contract_name:
+            names = contract_name.split(':')
+            assert len(names) == 2
+            contract_name = names[1]
+        self._contract_name = contract_name
+        self._export_state = export_state
+        self._remote_site = remote_site
+
+    @staticmethod
+    def is_multisite_tag(tag):
+        return re.match(r'multisite:.*:contract:.*:site:.*', tag)
+
+    @classmethod
+    def fromstring(cls, tag):
+        if not cls.is_multisite_tag(tag):
+            assert cls.is_multisite_tag(tag)
+            return None
+        tag_data = tag.split(':')
+        export_state = tag_data[1]
+        contract_name = tag_data[3]
+        remote_site_name = tag_data[5]
+        new_tag = cls(contract_name, export_state, remote_site_name)
+        return new_tag
+
+    def __str__(self):
+        return 'multisite:' + self._export_state + ':contract:' + self._contract_name + ':site:' + self._remote_site
+
+    def is_imported(self):
+        if self._export_state == 'imported':
+            return True
+        return False
+
+    def get_local_contract_name(self):
+        if self.is_imported():
+            local_contract_name = strip_illegal_characters(self._remote_site) + ':' + self._contract_name
+            return local_contract_name
+        return self._contract_name
+
+
+    def get_contract_name(self):
+        return self._contract_name
+
+    def get_remote_site_name(self):
+        return self._remote_site
+
+    def get_export_state(self):
+        return self._export_state
+
+
 class MultisiteMonitor(threading.Thread):
     """
     Monitor thread responsible for subscribing for local Endpoints and EPG notifications.
@@ -181,17 +246,6 @@ class ContractCollector(object):
     def get_exported_contracts(self):
         pass
 
-    def strip_illegal_characters(self, name):
-        chars_all_good = True
-        for character in name:
-            if character.isalnum() or character in ('_', '.', ':', '-'):
-                continue
-            chars_all_good = False
-            name = name.replace(character, '')
-        if chars_all_good:
-            return name
-        return self.strip_illegal_characters(name)
-
     def _rename_classes(self, data):
         if isinstance(data, list):
             for item in data:
@@ -200,7 +254,7 @@ class ContractCollector(object):
             for key in data:
                 if key in ContractCollector.classes_to_rename:
                     local_name = data[key]['attributes'][ContractCollector.classes_to_rename[key]]
-                    data[key]['attributes'][ContractCollector.classes_to_rename[key]] = self.strip_illegal_characters(self.local_site_name) + ':' + local_name
+                    data[key]['attributes'][ContractCollector.classes_to_rename[key]] = strip_illegal_characters(self.local_site_name) + ':' + local_name
                 if 'children' in data[key]:
                     self._rename_classes(data[key]['children'])
 
@@ -305,6 +359,15 @@ class ContractDBEntry(object):
         self.export_state = None
         self.remote_sites = []
 
+    @classmethod
+    def from_multisite_tag(cls, tenant_name, mtag):
+        db_entry = cls()
+        db_entry.tenant_name = tenant_name
+        db_entry.contract_name = mtag.get_local_contract_name()
+        db_entry.export_state = mtag.get_export_state()
+        db_entry.remote_sites.append(mtag.get_remote_site_name())
+        return db_entry
+
     def is_local(self):
         return self.export_state == 'local'
 
@@ -320,8 +383,9 @@ class ContractDBEntry(object):
         else:
             return False
 
-    def add_remote_site(self, export_state, remote_site):
-        self.export_state = export_state
+    def add_remote_site(self, mtag):
+        self.export_state = mtag.get_export_state()
+        remote_site = mtag.get_remote_site_name()
         if remote_site not in self.remote_sites:
             self.remote_sites.append(remote_site)
 
@@ -347,9 +411,13 @@ class ContractDB(object):
     def add_entry(self, entry):
         self._db.append(entry)
 
-    def add_remote_site(self, tenant_name, contract_name, export_state, remote_site_name):
-        entry = self.find_entry(tenant_name, contract_name)
-        entry.add_remote_site(export_state, remote_site_name)
+    def add_remote_site(self, tenant_name, mtag):
+        entry = self.find_entry(tenant_name, mtag.get_local_contract_name())
+        if entry is None:
+            print 'No contract found for ', tenant_name, mtag.get_local_contract_name()
+            assert False
+        entry.add_remote_site(mtag)
+
 
 class EpgDBEntry(object):
     def __init__(self):
@@ -372,6 +440,11 @@ class EpgDB(object):
                 resp.append(entry)
         return resp
 
+    def print_db(self):
+        print 'EPG Database'
+        for entry in self._db:
+            print 'tenant:', entry.tenant_name, 'app:', entry.app_name, 'epg:', entry.epg_name, 'contract:', entry.contract_name
+
 class LocalSite(Site):
     def __init__(self, name, credentials, parent):
         super(LocalSite, self).__init__(name, credentials, local=True)
@@ -390,29 +463,73 @@ class LocalSite(Site):
             self.monitor.start()
         return resp
 
+    # def is_multisite_tag(self, tag):
+    #     return re.match(r'multisite:.*:contract:.*:site:.*', tag)
+    #
+    # def is_imported_tag(self, tag):
+    #     if self.is_multisite_tag(tag):
+    #         data = tag.split(':')
+    #         export_state = data[1]
+    #         if export_state == 'imported':
+    #             return True
+    #     return False
+    #
+    # def get_contract_name_from_tag(self, tag):
+    #     if not self.is_multisite_tag(tag):
+    #         return None
+    #     tag_data = tag.split(':')
+    #     contract_name = tag_data[3]
+    #     return contract_name
+    #
+    # def get_site_name_from_tag(self, tag):
+    #     if not self.is_multisite_tag(tag):
+    #         return None
+    #     tag_data = tag.split(':')
+    #     remote_site_name = tag_data[5]
+    #     return remote_site_name
+
     def _populate_contracts_from_apic(self):
         resp = []
         tenants = Tenant.get_deep(self.session, limit_to=['vzBrCP', 'fvTenant', 'tagInst'])
+
+        # First handle imported and exported contracts through the tags
         for tenant in tenants:
-            contracts = tenant.get_children(Contract)
-            for contract in contracts:
-                db_entry = ContractDBEntry()
-                db_entry.tenant_name = tenant.name
-                db_entry.contract_name = contract.name
-                db_entry.export_state = 'local'
-                self.contract_db.add_entry(db_entry)
             if tenant.has_tags():
                 tags = tenant.get_tags()
                 for tag in tags:
-                    match = re.match(r'multisite:.*:contract:.*:site:.*', tag)
-                    if match:
-                        split_tag = tag.split(':')
-                        assert len(split_tag) == 6
-                        contract_name = split_tag[3]
-                        export_state = split_tag[1]
-                        remote_site_name = split_tag[5]
-                        self.contract_db.add_remote_site(tenant.name, contract_name,
-                                                         export_state, remote_site_name)
+                    if MultisiteTag.is_multisite_tag(tag):
+                        mtag = MultisiteTag.fromstring(tag)
+                        db_entry = self.contract_db.find_entry(tenant.name, mtag.get_local_contract_name())
+                        if db_entry is None:
+                            db_entry = ContractDBEntry.from_multisite_tag(tenant.name, mtag)
+                            self.contract_db.add_entry(db_entry)
+                        else:
+                            self.contract_db.add_remote_site(tenant.name, mtag)
+
+        # Next, handle the non-exported local contracts
+        for tenant in tenants:
+            contracts = tenant.get_children(Contract)
+            for contract in contracts:
+                db_entry = self.contract_db.find_entry(tenant.name, contract.name)
+                if db_entry is None:
+                    db_entry = ContractDBEntry()
+                    db_entry.tenant_name = tenant.name
+                    db_entry.contract_name = contract.name
+                    db_entry.export_state = 'local'
+                    self.contract_db.add_entry(db_entry)
+
+        # Sanity check : This can be removed later
+        contract_count = 0
+        print 'FROM CONTRACTS'
+        for tenant in tenants:
+            contracts = tenant.get_children(Contract)
+            for contract in contracts:
+                print 'tenant:', tenant.name, 'contract:', contract.name
+                contract_count += 1
+        print 'FROM DB'
+        for db_entry in self.contract_db._db:
+            print 'tenant:', db_entry.tenant_name, 'contract:', db_entry.contract_name
+        assert contract_count == len(self.contract_db._db)
 
     def get_contracts(self):
         return self.contract_db._db
@@ -495,6 +612,10 @@ class LocalSite(Site):
         self._populate_epgs_from_apic()
         self._populate_endpoints_from_apic()
 
+        # Push the EPGs for imported contracts
+        # (in case they were imported during a downtime)
+        self.export_epgs_consuming_imported_contract()
+
     # def get_contract_names(self, tenant, app, epg):
     #     resp = []
     #     print 'get_contract_names', self.exported_epgs
@@ -506,13 +627,48 @@ class LocalSite(Site):
     #             resp.append(contract_name)
     #     return resp
 
-    def extract_contract(self, contract_name, tenant_name):
-        pass
+    # def extract_contract(self, contract_name, tenant_name):
+    #
+    #     pass
 
     def unexport_contract(self, contract_name, tenant_name, remote_site):
 
         # Need to know the site, contract, and EPGs
+        raise NotImplementedError  # TODO
         pass
+
+    def export_epgs_consuming_imported_contract(self):
+        print 'export_epgs_consuming_imported_contract'
+        tenants = Tenant.get_deep(self.session, limit_to=['fvTenant', 'tagInst', 'vzBrCP',
+                                                          'fvAp', 'fvAEPg', 'fvRsCons'],
+                                  config_only=True)
+        for tenant in tenants:
+            tags = tenant.get_tags()
+            for tag in tags:
+                if not MultisiteTag.is_multisite_tag(tag):
+                    continue
+                mtag = MultisiteTag.fromstring(tag)
+                if mtag.is_imported():
+                    print 'Need to export EPGs for ', tenant.name, 'contract', mtag.get_local_contract_name()
+                    for contract in tenant.get_children(Contract):
+                        if contract.name == mtag.get_local_contract_name():
+                            break
+                    for app in tenant.get_children(AppProfile):
+                        for epg in app.get_children(EPG):
+                            if epg.does_consume(contract):
+                                print 'EPG ', epg.name, 'does consume contract', contract.name
+                                export_tenant = Tenant(tenant.name)
+                                export_app = AppProfile(app.name, export_tenant)
+                                export_epg = EPG(epg.name, export_app)
+                                export_tag = MultisiteTag(contract.name, 'imported', mtag.get_remote_site_name())
+                                export_epg.add_tag(str(export_tag))
+                                export_contract = Contract(export_tag.get_contract_name(), export_tenant)
+                                export_epg.consume(export_contract)
+                                export_site = self.my_collector.get_site(mtag.get_remote_site_name()) # TODO this is a bug. needs to be the local site
+                                print mtag.get_remote_site_name()
+                                if export_site is not None:
+                                    export_tenant.push_to_apic(export_site.session)
+        self.epg_db.print_db()
 
     def export_contract(self, contract_name, tenant_name, remote_sites):
         problem_sites = []
@@ -546,8 +702,7 @@ class LocalSite(Site):
         # compare old site list with new for sites no longer being exported to
         for old_site in old_entry.remote_sites:
             if old_site not in remote_sites:
-                raise NotImplementedError  # TODO
-                pass
+                self.unexport_contract(contract_name, tenant_name, old_site)
 
         # update the ContractDB
         for problem_site in problem_sites:
