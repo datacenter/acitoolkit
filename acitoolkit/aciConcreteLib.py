@@ -1437,7 +1437,7 @@ class ConcreteFilter(BaseACIPhysObject):
         table = []
         for acc_filter in sorted(data, key=lambda x: (x.attr['id'])):
             sorted_entries = sorted(acc_filter.entries,
-                                    key=lambda x: (x.attr['filter_name'], x.attr['id'], x.attr['relative_priority']))
+                                    key=lambda x: (x.attr['filter_name'], x.attr['relative_priority'], x.attr['id']))
             for sorted_entry in sorted_entries:
                 dst_port = ConcreteFilter._get_port(sorted_entry.attr['dst_from_port'],
                                                     sorted_entry.attr['dst_to_port'])
@@ -1572,7 +1572,7 @@ class ConcreteFilterEntry(BaseACIPhysObject):
                     'proto': 5,
                     'frag': 6,
                     'def': 7}
-        self.attr['relative_priority'] = str(prio_map.get(self.attr['priority'], 'unknown'))+' '+self.attr['priority']
+        self.attr['relative_priority'] = prio_map.get(self.attr['priority'], 'unknown')
 
     def _get_filter_name(self):
         """
