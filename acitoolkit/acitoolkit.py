@@ -37,6 +37,21 @@ from .acitoolkitlib import Credentials
 import logging
 
 
+def cmdline_login_to_apic(description=''):
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    creds = Credentials('apic', description)
+    args = creds.get()
+
+    # Login to APIC
+    session = Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
+        sys.exit(0)
+    return session
+
+
 class Tenant(BaseACIObject):
     """
     The Tenant class is used to represent the tenants within the acitoolkit
@@ -1781,6 +1796,8 @@ class Contract(BaseContract):
         for child in contract_data['children']:
             if 'vzSubj' in child:
                 subject = child['vzSubj']
+                if 'children' not in subject:
+                    continue
                 for subj_child in subject['children']:
                     if 'vzRsSubjFiltAtt' in subj_child:
                         filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
