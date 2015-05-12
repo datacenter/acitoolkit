@@ -1,5 +1,5 @@
 ################################################################################
-#                                  _    ____ ___                               #
+# _    ____ ___                               #
 #                                 / \  / ___|_ _|                              #
 #                                / _ \| |    | |                               #
 #                               / ___ \ |___ | |                               #
@@ -119,10 +119,10 @@ class Systemcontroller(BaseACIPhysModule):
         ret = self._session.get(mo_query_url)
         node_data = ret.json()['imdata']
 
+        firmware = None
         if node_data:
-            firmware = str(node_data[0]['firmwareCtrlrRunning']['attributes']['version'])
-        else:
-            firmware = None
+            if 'firmwareCtrlrRunning' in node_data[0]:
+                firmware = str(node_data[0]['firmwareCtrlrRunning']['attributes']['version'])
 
         bios = None
         return firmware, bios
@@ -751,14 +751,15 @@ class Pod(BaseACIPhysObject):
         ret = session.get(class_query_url)
         pod_data = ret.json()['imdata']
         for apic_pod in pod_data:
-            attributes = {'dist_name': str(apic_pod['fabricPod']['attributes']['dn']),
-                          'pod_id': str(apic_pod['fabricPod']['attributes']['id'])}
-            pod = Pod(attributes['pod_id'], attributes=attributes)
-            pod._session = session
-            if parent:
-                pod._parent = parent
-                pod._parent.add_child(pod)
-            pods.append(pod)
+            if 'fabricPod' in apic_pod:
+                attributes = {'dist_name': str(apic_pod['fabricPod']['attributes']['dn']),
+                              'pod_id': str(apic_pod['fabricPod']['attributes']['id'])}
+                pod = Pod(attributes['pod_id'], attributes=attributes)
+                pod._session = session
+                if parent:
+                    pod._parent = parent
+                    pod._parent.add_child(pod)
+                pods.append(pod)
         return pods
 
     def populate_children(self, deep=False, include_concrete=False):
@@ -941,47 +942,48 @@ class Node(BaseACIPhysObject):
         ret = session.get(node_query_url)
         node_data = ret.json()['imdata']
         for apic_node in node_data:
-            dist_name = str(apic_node['fabricNode']['attributes']['dn'])
-            node_name = str(apic_node['fabricNode']['attributes']['name'])
-            (pod, node_id) = cls._parse_dn(dist_name)
-            node_role = str(apic_node['fabricNode']['attributes']['role'])
-            node = cls(pod, node_id, node_name, node_role)
-            node._session = session
-            node._populate_from_attributes(apic_node['fabricNode']['attributes'])
-            node._get_topsystem_info()
+            if 'fabricNode' in apic_node:
+                dist_name = str(apic_node['fabricNode']['attributes']['dn'])
+                node_name = str(apic_node['fabricNode']['attributes']['name'])
+                (pod, node_id) = cls._parse_dn(dist_name)
+                node_role = str(apic_node['fabricNode']['attributes']['role'])
+                node = cls(pod, node_id, node_name, node_role)
+                node._session = session
+                node._populate_from_attributes(apic_node['fabricNode']['attributes'])
+                node._get_topsystem_info()
 
-            # check for pod match if specified
-            pod_match = False
-            if parent:
-                if isinstance(parent, Pod):
-                    if node.pod == parent.pod:
-                        pod_match = True
-                        node._parent = parent
+                # check for pod match if specified
+                pod_match = False
+                if parent:
+                    if isinstance(parent, Pod):
+                        if node.pod == parent.pod:
+                            pod_match = True
+                            node._parent = parent
+                    else:
+                        # pod is a number string
+                        if node.pod == parent:
+                            pod_match = True
                 else:
-                    # pod is a number string
-                    if node.pod == parent:
-                        pod_match = True
-            else:
-                pod_match = True
+                    pod_match = True
 
-            # check for node match if specified
-            node_match = False
-            if node_id:
-                if node_id == node.node:
+                # check for node match if specified
+                node_match = False
+                if node_id:
+                    if node_id == node.node:
+                        node_match = True
+                else:
                     node_match = True
-            else:
-                node_match = True
 
-            if node_match and pod_match:
-                if node.role == 'leaf':
-                    node._add_vpc_info()
-                node.get_health()
-                node.get_firmware()
+                if node_match and pod_match:
+                    if node.role == 'leaf':
+                        node._add_vpc_info()
+                    node.get_health()
+                    node.get_firmware()
 
-                if isinstance(parent, Pod):
-                    node._parent.add_child(node)
+                    if isinstance(parent, Pod):
+                        node._parent.add_child(node)
 
-                nodes.append(node)
+                    nodes.append(node)
 
         return nodes
 
@@ -995,7 +997,8 @@ class Node(BaseACIPhysObject):
             ret = self._session.get(query_url)
             data = ret.json()['imdata']
             if data:
-                self.firmware = data[0]['firmwareCardRunning']['attributes']['version']
+                if 'firmwareCardRunning' in data[0]:
+                    self.firmware = data[0]['firmwareCardRunning']['attributes']['version']
 
     def get_health(self):
         """
@@ -1007,7 +1010,9 @@ class Node(BaseACIPhysObject):
             ret = self._session.get(mo_query_url)
             data = ret.json()['imdata']
             if data:
-                self.health = data[0]['topSystem']['children'][0]['fabricNodeHealth5min']['attributes']['healthLast']
+                if 'topSystem' in data[0]:
+                    self.health = data[0]['topSystem']['children'][0] \
+                        ['fabricNodeHealth5min']['attributes']['healthLast']
 
     def _add_vpc_info(self):
         """
@@ -1100,94 +1105,102 @@ class Node(BaseACIPhysObject):
         node_data = ret.json()['imdata']
 
         if len(node_data) > 0:
-            self.ipAddress = str(node_data[0]['topSystem']['attributes']['address'])
-            self.tep_ip = self.ipAddress
-            self.macAddress = str(node_data[0]['topSystem']['attributes']['fabricMAC'])
-            self.state = str(node_data[0]['topSystem']['attributes']['state'])
-            self.mode = str(node_data[0]['topSystem']['attributes']['mode'])
-            self.oob_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('oobMgmtAddr'))
-            self.inb_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('inbMgmtAddr'))
-            self.system_uptime = str(node_data[0]['topSystem']['attributes'].get('systemUpTime'))
+            if 'topSystem' in node_data[0]:
 
-            # now get eqptCh for even more info
-            ch_mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
-            ret = self._session.get(ch_mo_query_url)
-            node_data = ret.json()['imdata']
+                self.ipAddress = str(node_data[0]['topSystem']['attributes']['address'])
+                self.tep_ip = self.ipAddress
+                self.macAddress = str(node_data[0]['topSystem']['attributes']['fabricMAC'])
+                self.state = str(node_data[0]['topSystem']['attributes']['state'])
+                self.mode = str(node_data[0]['topSystem']['attributes']['mode'])
+                self.oob_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('oobMgmtAddr'))
+                self.inb_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('inbMgmtAddr'))
+                self.system_uptime = str(node_data[0]['topSystem']['attributes'].get('systemUpTime'))
 
-            if len(node_data) > 0:
-                self.operSt = str(node_data[0]['eqptCh']['attributes']['operSt'])
-                self.operStQual = str(node_data[0]['eqptCh']['attributes']['operStQual'])
-                self.descr = str(node_data[0]['eqptCh']['attributes']['descr'])
+                # now get eqptCh for even more info
+                ch_mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
+                ret = self._session.get(ch_mo_query_url)
+                node_data = ret.json()['imdata']
 
-            # get the total number of ports = number of l1PhysIf
-            mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=l1PhysIf'
-            ret = self._session.get(mo_query_url)
-            node_data = ret.json()['imdata']
-            self.num_ports = len(node_data)
+                if node_data:
+                    if 'eqptCh' in node_data[0]:
+                        self.operSt = str(node_data[0]['eqptCh']['attributes']['operSt'])
+                        self.operStQual = str(node_data[0]['eqptCh']['attributes']['operStQual'])
+                        self.descr = str(node_data[0]['eqptCh']['attributes']['descr'])
 
-            # get the total number of ports = number of fan slots
-            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptFtSlot'
-            ret = self._session.get(mo_query_url)
-            node_data = ret.json()['imdata']
-            self.num_fan_slots = len(node_data)
-            self.num_fan_modules = 0
-            if node_data:
-                for slot in node_data:
-                    if slot['eqptFtSlot']['attributes']['operSt'] == 'inserted':
-                        self.num_fan_modules += 1
+                # get the total number of ports = number of l1PhysIf
+                mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=l1PhysIf'
+                ret = self._session.get(mo_query_url)
+                node_data = ret.json()['imdata']
+                if node_data:
+                    if 'l1PhysIf' in node_data[0]:
+                        self.num_ports = len(node_data)
 
-            # get the total number of ports = number of linecard slots
-            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptLCSlot'
-            ret = self._session.get(mo_query_url)
-            node_data = ret.json()['imdata']
-            self.num_lc_slots = len(node_data)
-            self.num_lc_modules = 0
-            if node_data:
-                for slot in node_data:
-                    if slot['eqptLCSlot']['attributes']['operSt'] == 'inserted':
-                        self.num_lc_modules += 1
+                # get the total number of ports = number of fan slots
+                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptFtSlot'
+                ret = self._session.get(mo_query_url)
+                node_data = ret.json()['imdata']
+                if node_data:
+                    if 'eqptFtSlot' in node_data[0]:
+                        self.num_fan_slots = len(node_data)
 
-            # get the total number of ports = number of power supply slots
-            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptPsuSlot'
-            ret = self._session.get(mo_query_url)
-            node_data = ret.json()['imdata']
-            self.num_ps_slots = len(node_data)
-            self.num_ps_modules = 0
-            if node_data:
-                for slot in node_data:
-                    if slot['eqptPsuSlot']['attributes']['operSt'] == 'inserted':
-                        self.num_ps_modules += 1
+                self.num_fan_modules = 0
+                if node_data:
+                    for slot in node_data:
+                        if slot['eqptFtSlot']['attributes']['operSt'] == 'inserted':
+                            self.num_fan_modules += 1
 
-            # get the total number of ports = number of supervisor slots
-            mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptSupCSlot'
-            ret = self._session.get(mo_query_url)
-            node_data = ret.json()['imdata']
-            self.num_sup_slots = len(node_data)
-            self.num_sup_modules = 0
-            if node_data:
-                for slot in node_data:
-                    if slot['eqptSupCSlot']['attributes']['operSt'] == 'inserted':
-                        self.num_sup_modules += 1
+                # get the total number of ports = number of linecard slots
+                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptLCSlot'
+                ret = self._session.get(mo_query_url)
+                node_data = ret.json()['imdata']
+                self.num_lc_slots = len(node_data)
+                self.num_lc_modules = 0
+                if node_data:
+                    for slot in node_data:
+                        if slot['eqptLCSlot']['attributes']['operSt'] == 'inserted':
+                            self.num_lc_modules += 1
 
-            # get dynamic load balancing config
-            mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoctrlLbP'
-            ret = self._session.get(mo_query_url)
-            lb_data = ret.json()['imdata']
-            self.dynamic_load_balancing_mode = 'unknown'
+                # get the total number of ports = number of power supply slots
+                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptPsuSlot'
+                ret = self._session.get(mo_query_url)
+                node_data = ret.json()['imdata']
+                self.num_ps_slots = len(node_data)
+                self.num_ps_modules = 0
+                if node_data:
+                    for slot in node_data:
+                        if slot['eqptPsuSlot']['attributes']['operSt'] == 'inserted':
+                            self.num_ps_modules += 1
 
-            for lb_info in lb_data:
-                if 'topoctrlLbP' in lb_info:
-                    self.dynamic_load_balancing_mode = lb_info['topoctrlLbP']['attributes']['dlbMode']
+                # get the total number of ports = number of supervisor slots
+                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptSupCSlot'
+                ret = self._session.get(mo_query_url)
+                node_data = ret.json()['imdata']
+                self.num_sup_slots = len(node_data)
+                self.num_sup_modules = 0
+                if node_data:
+                    for slot in node_data:
+                        if slot['eqptSupCSlot']['attributes']['operSt'] == 'inserted':
+                            self.num_sup_modules += 1
 
-            # get vxlan info
-            mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoVxlanP'
-            ret = self._session.get(mo_query_url)
-            data = ret.json()['imdata']
-            self.ivxlan_udp_port = 'unknown'
+                # get dynamic load balancing config
+                mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoctrlLbP'
+                ret = self._session.get(mo_query_url)
+                lb_data = ret.json()['imdata']
+                self.dynamic_load_balancing_mode = 'unknown'
 
-            for info in data:
-                if 'topoctrlVxlanP' in info:
-                    self.ivxlan_udp_port = info['topoctrVxlanP']['attributes']['udpPort']
+                for lb_info in lb_data:
+                    if 'topoctrlLbP' in lb_info:
+                        self.dynamic_load_balancing_mode = lb_info['topoctrlLbP']['attributes']['dlbMode']
+
+                # get vxlan info
+                mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoVxlanP'
+                ret = self._session.get(mo_query_url)
+                data = ret.json()['imdata']
+                self.ivxlan_udp_port = 'unknown'
+
+                for info in data:
+                    if 'topoctrlVxlanP' in info:
+                        self.ivxlan_udp_port = info['topoctrVxlanP']['attributes']['udpPort']
 
     def populate_children(self, deep=False, include_concrete=False):
         """Will populate all of the children modules such as
@@ -1262,6 +1275,7 @@ class Node(BaseACIPhysObject):
                    'Serial Number',
                    'Model',
                    'Role',
+                   'Fabric State',
                    'State',
                    'Firmware',
                    'Health',
@@ -1275,23 +1289,24 @@ class Node(BaseACIPhysObject):
                    'System Uptime',
                    'Dynamic Load Balancing']
         table = [[switch.name,
-                 switch.pod,
-                 switch.node,
-                 str(switch.serial),
-                 str(switch.model),
-                 switch.role,
-                 switch.state,
-                 str(switch.firmware),
-                 str(switch.health),
-                 switch.inb_mgmt_ip,
-                 switch.oob_mgmt_ip,
-                 switch.num_ports,
-                 str(switch.num_lc_slots) + '(' + str(switch.num_lc_modules) + ')',
-                 str(switch.num_sup_slots) + '(' + str(switch.num_sup_modules) + ')',
-                 str(switch.num_fan_slots) + '(' + str(switch.num_fan_modules) + ')',
-                 str(switch.num_ps_slots) + '(' + str(switch.num_ps_modules) + ')',
-                 switch.system_uptime,
-                 str(switch.dynamic_load_balancing_mode)]]
+                  switch.pod,
+                  switch.node,
+                  str(switch.serial),
+                  str(switch.model),
+                  switch.role,
+                  switch.fabricSt,
+                  switch.state,
+                  str(switch.firmware),
+                  str(switch.health),
+                  switch.inb_mgmt_ip,
+                  switch.oob_mgmt_ip,
+                  switch.num_ports,
+                  str(switch.num_lc_slots) + '(' + str(switch.num_lc_modules) + ')',
+                  str(switch.num_sup_slots) + '(' + str(switch.num_sup_modules) + ')',
+                  str(switch.num_fan_slots) + '(' + str(switch.num_fan_modules) + ')',
+                  str(switch.num_ps_slots) + '(' + str(switch.num_ps_modules) + ')',
+                  switch.system_uptime,
+                  str(switch.dynamic_load_balancing_mode)]]
         result = [Table(table, headers, title=str(title) + 'Basic Information for {0}'.format(switch.name),
                         table_orientation='vertical', columns=2)]
         return result
@@ -1645,25 +1660,26 @@ class Link(BaseACIPhysObject):
         ret = session.get(interface_query_url)
         link_data = ret.json()['imdata']
         for apic_link in link_data:
-            dist_name = str(apic_link['fabricLink']['attributes']['dn'])
-            link_n1 = str(apic_link['fabricLink']['attributes']['n1'])
-            link_s1 = str(apic_link['fabricLink']['attributes']['s1'])
-            link_p1 = str(apic_link['fabricLink']['attributes']['p1'])
-            link_n2 = str(apic_link['fabricLink']['attributes']['n2'])
-            link_s2 = str(apic_link['fabricLink']['attributes']['s2'])
-            link_p2 = str(apic_link['fabricLink']['attributes']['p2'])
-            (pod, link) = Link._parse_dn(dist_name)
-            link = Link(pod, link, link_n1, link_s1, link_p1, link_n2, link_s2, link_p2)
-            link._session = session
-            link._populate_from_attributes(apic_link['fabricLink']['attributes'])
-            if pod_id:
-                if link.pod == pod_id:
-                    if isinstance(parent_pod, Pod):
-                        link._parent = parent_pod
-                        link._parent.add_child(link)
+            if 'fabricLink' in apic_link:
+                dist_name = str(apic_link['fabricLink']['attributes']['dn'])
+                link_n1 = str(apic_link['fabricLink']['attributes']['n1'])
+                link_s1 = str(apic_link['fabricLink']['attributes']['s1'])
+                link_p1 = str(apic_link['fabricLink']['attributes']['p1'])
+                link_n2 = str(apic_link['fabricLink']['attributes']['n2'])
+                link_s2 = str(apic_link['fabricLink']['attributes']['s2'])
+                link_p2 = str(apic_link['fabricLink']['attributes']['p2'])
+                (pod, link) = Link._parse_dn(dist_name)
+                link = Link(pod, link, link_n1, link_s1, link_p1, link_n2, link_s2, link_p2)
+                link._session = session
+                link._populate_from_attributes(apic_link['fabricLink']['attributes'])
+                if pod_id:
+                    if link.pod == pod_id:
+                        if isinstance(parent_pod, Pod):
+                            link._parent = parent_pod
+                            link._parent.add_child(link)
+                        links.append(link)
+                else:
                     links.append(link)
-            else:
-                links.append(link)
         return links
 
     def _populate_from_attributes(self, attributes):
@@ -1688,7 +1704,7 @@ class Link(BaseACIPhysObject):
         if type(self) is not type(other):
             return False
         return (self.pod == other.pod) and (self.node1 == other.node1) \
-            and (self.slot1 == other.slot1) and (self.port1 == other.port1)
+               and (self.slot1 == other.slot1) and (self.port1 == other.port1)
 
     def get_node1(self):
         """Returns the Node object that corresponds to the first
@@ -1993,7 +2009,7 @@ class Interface(BaseInterface):
         # Physical Domain json
         vlan_ns_dn = 'uni/infra/vlanns-allvlans-static'
         vlan_ns_ref = {'infraRsVlanNs': {'attributes':
-                                         {'tDn': vlan_ns_dn},
+                                             {'tDn': vlan_ns_dn},
                                          'children': []}}
         phys_domain = {'physDomP': {'attributes': {'name': 'allvlans'},
                                     'children': [vlan_ns_ref]}}
@@ -2041,7 +2057,7 @@ class Interface(BaseInterface):
         phys_dom_dn = 'uni/phys-allvlans'
         rs_dom_p = {'infraRsDomP': {'attributes': {'tDn': phys_dom_dn}}}
         infra_att_entity_p = {'infraAttEntityP': {'attributes':
-                                                  {'name': 'allvlans'},
+                                                      {'name': 'allvlans'},
                                                   'children': [rs_dom_p]}}
         infra['infraInfra']['children'].append(infra_att_entity_p)
 
@@ -2066,16 +2082,16 @@ class Interface(BaseInterface):
             else:
                 adminstatus_attributes['lc'] = 'blacklist'
             adminstatus_json = {'fabricRsOosPath':
-                                {'attributes': adminstatus_attributes,
-                                 'children': []}}
+                                    {'attributes': adminstatus_attributes,
+                                     'children': []}}
             fabric = {'fabricOOServicePol': {'children': [adminstatus_json]}}
 
         fvns_encap_blk = {'fvnsEncapBlk': {'attributes': {'name': 'encap',
                                                           'from': 'vlan-1',
                                                           'to': 'vlan-4092'}}}
         fvns_vlan_inst_p = {'fvnsVlanInstP': {'attributes':
-                                              {'name': 'allvlans',
-                                               'allocMode': 'static'},
+                                                  {'name': 'allvlans',
+                                                   'allocMode': 'static'},
                                               'children': [fvns_encap_blk]}}
         infra['infraInfra']['children'].append(fvns_vlan_inst_p)
 
@@ -2164,11 +2180,12 @@ class Interface(BaseInterface):
         ret = session.get(query_url)
         prot_data = ret.json()['imdata']
         for policy in prot_data:
-            attributes = policy['%s' % prot_class]['attributes']
-            if prot == 'cdp':
-                prot_policies[attributes['name']] = attributes['adminSt']
-            else:
-                prot_policies[attributes['name']] = attributes['adminTxSt']
+            if ('%s' % prot_class) in policy:
+                attributes = policy['%s' % prot_class]['attributes']
+                if prot == 'cdp':
+                    prot_policies[attributes['name']] = attributes['adminSt']
+                else:
+                    prot_policies[attributes['name']] = attributes['adminTxSt']
         return prot_policies
 
     @staticmethod
@@ -2189,23 +2206,24 @@ class Interface(BaseInterface):
         ret = session.get(query_url)
         prot_data = ret.json()['imdata']
         for prot_relation in prot_data:
-            attributes = prot_relation[prot_relation_class]['attributes']
-            policy_name = attributes['tDn'].split(prot_relation_dn_class)[1]
-            intf_dn = attributes['dn'].split(prot_relation_dn)[0]
-            search_intf = Interface(*Interface._parse_physical_dn(intf_dn))
-            for intf in interfaces:
-                if intf == search_intf:
-                    if prot_policies[policy_name] == 'enabled':
-                        if prot == 'cdp':
-                            intf.enable_cdp()
+            if prot_relation_class in prot_relation:
+                attributes = prot_relation[prot_relation_class]['attributes']
+                policy_name = attributes['tDn'].split(prot_relation_dn_class)[1]
+                intf_dn = attributes['dn'].split(prot_relation_dn)[0]
+                search_intf = Interface(*Interface._parse_physical_dn(intf_dn))
+                for intf in interfaces:
+                    if intf == search_intf:
+                        if prot_policies[policy_name] == 'enabled':
+                            if prot == 'cdp':
+                                intf.enable_cdp()
+                            else:
+                                intf.enable_lldp()
                         else:
-                            intf.enable_lldp()
-                    else:
-                        if prot == 'cdp':
-                            intf.disable_cdp()
-                        else:
-                            intf.disable_lldp()
-                    break
+                            if prot == 'cdp':
+                                intf.disable_cdp()
+                            else:
+                                intf.disable_lldp()
+                        break
         return interfaces
 
     @staticmethod
@@ -2279,47 +2297,48 @@ class Interface(BaseInterface):
             eth_data_dict[obj['ethpmPhysIf']['attributes']['dn']] = obj['ethpmPhysIf']['attributes']
 
         for interface in interface_data:
-            attributes = {}
-            dist_name = str(interface['l1PhysIf']['attributes']['dn'])
-            attributes['dist_name'] = dist_name
-            porttype = str(interface['l1PhysIf']['attributes']['portT'])
-            attributes['porttype'] = porttype
-            adminstatus = str(interface['l1PhysIf']['attributes']['adminSt'])
-            attributes['adminstatus'] = adminstatus
-            speed = str(interface['l1PhysIf']['attributes']['speed'])
-            attributes['speed'] = speed
-            mtu = str(interface['l1PhysIf']['attributes']['mtu'])
-            attributes['mtu'] = mtu
-            identifier = str(interface['l1PhysIf']['attributes']['id'])
-            attributes['id'] = identifier
-            attributes['monPolDn'] = str(interface['l1PhysIf']['attributes']['monPolDn'])
-            attributes['name'] = str(interface['l1PhysIf']['attributes']['name'])
-            attributes['descr'] = str(interface['l1PhysIf']['attributes']['descr'])
-            attributes['usage'] = str(interface['l1PhysIf']['attributes']['usage'])
-            (interface_type, pod, node,
-             module, port) = Interface.parse_dn(dist_name)
-            attributes['interface_type'] = interface_type
-            attributes['pod'] = pod
-            attributes['node'] = node
-            attributes['module'] = module
-            attributes['port'] = port
-            attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
-            interface_obj = Interface(interface_type, pod, node, module, port,
-                                      parent=None, session=session,
-                                      attributes=attributes)
-            interface_obj.porttype = porttype
-            interface_obj.adminstatus = adminstatus
-            interface_obj.speed = speed
-            interface_obj.mtu = mtu
+            if 'l1PhysIf' in interface:
+                attributes = {}
+                dist_name = str(interface['l1PhysIf']['attributes']['dn'])
+                attributes['dist_name'] = dist_name
+                porttype = str(interface['l1PhysIf']['attributes']['portT'])
+                attributes['porttype'] = porttype
+                adminstatus = str(interface['l1PhysIf']['attributes']['adminSt'])
+                attributes['adminstatus'] = adminstatus
+                speed = str(interface['l1PhysIf']['attributes']['speed'])
+                attributes['speed'] = speed
+                mtu = str(interface['l1PhysIf']['attributes']['mtu'])
+                attributes['mtu'] = mtu
+                identifier = str(interface['l1PhysIf']['attributes']['id'])
+                attributes['id'] = identifier
+                attributes['monPolDn'] = str(interface['l1PhysIf']['attributes']['monPolDn'])
+                attributes['name'] = str(interface['l1PhysIf']['attributes']['name'])
+                attributes['descr'] = str(interface['l1PhysIf']['attributes']['descr'])
+                attributes['usage'] = str(interface['l1PhysIf']['attributes']['usage'])
+                (interface_type, pod, node,
+                 module, port) = Interface.parse_dn(dist_name)
+                attributes['interface_type'] = interface_type
+                attributes['pod'] = pod
+                attributes['node'] = node
+                attributes['module'] = module
+                attributes['port'] = port
+                attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
+                interface_obj = Interface(interface_type, pod, node, module, port,
+                                          parent=None, session=session,
+                                          attributes=attributes)
+                interface_obj.porttype = porttype
+                interface_obj.adminstatus = adminstatus
+                interface_obj.speed = speed
+                interface_obj.mtu = mtu
 
-            if not isinstance(pod_parent, str) and pod_parent:
-                if interface_obj.pod == pod_parent.pod and interface_obj.node == pod_parent.node and \
-                        interface_obj.module == pod_parent.slot:
-                    interface_obj._parent = pod_parent
-                    interface_obj._parent.add_child(interface_obj)
+                if not isinstance(pod_parent, str) and pod_parent:
+                    if interface_obj.pod == pod_parent.pod and interface_obj.node == pod_parent.node and \
+                                    interface_obj.module == pod_parent.slot:
+                        interface_obj._parent = pod_parent
+                        interface_obj._parent.add_child(interface_obj)
+                        resp.append(interface_obj)
+                else:
                     resp.append(interface_obj)
-            else:
-                resp.append(interface_obj)
 
         resp = Interface._get_discoveryprot_relations(session, resp, 'cdp', cdp_policies)
         resp = Interface._get_discoveryprot_relations(session, resp, 'lldp', lldp_policies)
@@ -2336,10 +2355,10 @@ class Interface(BaseInterface):
         if type(self) != type(other):
             return False
         if (self.attributes['interface_type'] == other.attributes.get('interface_type') and
-                self.attributes['pod'] == other.attributes.get('pod') and
-                self.attributes['node'] == other.attributes.get('node') and
-                self.attributes['module'] == other.attributes.get('module') and
-                self.attributes['port'] == other.attributes.get('port')):
+                    self.attributes['pod'] == other.attributes.get('pod') and
+                    self.attributes['node'] == other.attributes.get('node') and
+                    self.attributes['module'] == other.attributes.get('module') and
+                    self.attributes['port'] == other.attributes.get('port')):
             return True
         return False
 
@@ -2449,7 +2468,7 @@ class SwitchJson(object):
                     if 'rn' not in branch[apic_class]['attributes']:
                         pass
                     branch[apic_class]['attributes']['dn'] = dn_root + \
-                        '/' + branch[apic_class]['attributes']['rn']
+                                                             '/' + branch[apic_class]['attributes']['rn']
                 new_root_dn = branch[apic_class]['attributes']['dn']
                 if 'children' in branch[apic_class]:
                     for child in branch[apic_class]['children']:
