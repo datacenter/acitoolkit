@@ -92,19 +92,19 @@ necessary to compare them in both directions ::
 If multiple ports are specified in the link object with minPorts and
 maxPorts attributes (see Cable Plan XML Syntax below), it is possible
 that a link object in the first cable plan is only partially met by
-the link objects in the second cable plan.  The ``remainingNeed()``
-method of the CP_LINK object.::
+the link objects in the second cable plan.  The ``remaining_need()``
+method of the CpLink object.::
   
   missing_links = cp1.difference_link(cp2)
   for link in missing_links :
      print 'Link',link.get_name(), 'still
-     needs',link.remainingNeed(),'links to satisfy its mimimum
+     needs',link.remaining_need(),'links to satisfy its mimimum
      requirement'
 
-There is a similar method, ``remainingAvail()`` that returns the
+There is a similar method, ``remaining_avail()`` that returns the
 number of physical links the link object could match.
 
-The ``remainingNeed()`` and ``remainingAvail()`` values are reset when
+The ``remaining_need()`` and ``remaining_avail()`` values are reset when
 the ``difference_link()`` method is invoked.
 
 It might be necessary to compare cable plans when the names of the
