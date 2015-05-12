@@ -1147,26 +1147,27 @@ class BaseACIPhysModule(BaseACIPhysObject):
         ret = session.get(interface_query_url)
         card_data = ret.json()['imdata']
         for apic_obj in card_data:
-            dist_name = str(apic_obj[apic_class]['attributes']['dn'])
-            (pod, node_id, slot) = cls._parse_dn(dist_name)
-            if not isinstance(parent_node, str):
-                card = cls(pod, node_id, slot, parent_node)
-            else:
-                card = cls(pod, node_id, slot)
-            card._session = session
-            card._apic_class = apic_class
-            card._populate_from_attributes(apic_obj[apic_class]['attributes'])
+            if apic_class in apic_obj:
+                dist_name = str(apic_obj[apic_class]['attributes']['dn'])
+                (pod, node_id, slot) = cls._parse_dn(dist_name)
+                if not isinstance(parent_node, str):
+                    card = cls(pod, node_id, slot, parent_node)
+                else:
+                    card = cls(pod, node_id, slot)
+                card._session = session
+                card._apic_class = apic_class
+                card._populate_from_attributes(apic_obj[apic_class]['attributes'])
 
-            (card.firmware, card.bios) = card._get_firmware(dist_name)
-            card.modify_time = str(apic_obj[apic_class]['attributes']['modTs'])
-            if parent_node:
-                if card.node == parent_node.node:
-                    if card._parent.has_child(card):
-                        card._parent.remove_child(card)
-                    card._parent.add_child(card)
+                (card.firmware, card.bios) = card._get_firmware(dist_name)
+                card.modify_time = str(apic_obj[apic_class]['attributes']['modTs'])
+                if parent_node:
+                    if card.node == parent_node.node:
+                        if card._parent.has_child(card):
+                            card._parent.remove_child(card)
+                        card._parent.add_child(card)
+                        cards.append(card)
+                else:
                     cards.append(card)
-            else:
-                cards.append(card)
 
         return cards
 
