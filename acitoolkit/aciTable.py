@@ -129,7 +129,9 @@ class Table(object):
         if table_orientation == 'vertical':
 
             if self.headers:
-                assert(len(self.headers) == len(self.data[0]))
+                assert(len(self.headers) == len(self.data[0]),
+                       'Headers and Data have different lenghts - {0} and {1} respectively'
+                       .format(len(self.headers), len(self.data[0])))
 
             # rotate table
             table_data = []
