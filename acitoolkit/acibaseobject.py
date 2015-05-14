@@ -109,8 +109,10 @@ class BaseACIObject(object):
         self._tags = []
         self._parent = parent
         self.descr = None
-        self.subscribe = self._instance_subscribe
-        self.unsubscribe = self._instance_unsubscribe
+        #self.subscribe = self._instance_subscribe
+        #self.unsubscribe = self._instance_unsubscribe
+        #self.has_events = self._instance_has_events
+        #self.get_event = self._instance_get_event
         logging.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
@@ -366,13 +368,68 @@ class BaseACIObject(object):
                 return True
         return False
 
-    def _instance_subscribe(self, session):
+    def _instance_subscribe(self, session, extension=''):
         """
         not yet fully implemented
         """
-        url = self._get_instance_subscription_url()
-        resp = session.subscribe(url)
+        print '_instance_subscribe for ', self.name
+        urls = self._get_instance_subscription_urls()
+        for url in urls:
+            resp = session.subscribe(url + extension)
+            print 'Subscribed to ', url + extension, resp, resp.text
+            if not resp.ok:
+                return resp
         return resp
+
+    def _instance_has_events(self, session, extension=''):
+        """
+        Check for pending events from the APIC that pertain to this specific instance
+
+        :param session:  the instance of Session used for APIC communication
+        :param extension: Optional string that can be used to extend the URL
+        :returns: True or False.  True if there are events pending.
+        """
+        urls = self._get_instance_subscription_urls()
+        for url in urls:
+            if session.has_events(url + extension):
+                return True
+        return False
+
+
+    def _instance_get_event(self, session, extension=''):
+        """
+        Gets the event that is pending for this instance.  Events are
+        returned in the form of objects.  Objects that have been deleted
+        are marked as such.
+
+        :param session:  the instance of Session used for APIC communication
+        :param extension: Optional string that can be used to extend the URL
+        :returns: list of objects
+        """
+        urls = self._get_instance_subscription_urls()
+        for url in urls:
+            url += extension
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in self.__class__._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0][class_name]['attributes']
+            status = str(attributes['status'])
+            dn = str(attributes['dn'])
+            parent = self.__class__._get_parent_from_dn(self.__class__._get_parent_dn(dn))
+            if status == 'created':
+                name = str(attributes['name'])
+            else:
+                name = self.__class__._get_name_from_dn(dn)
+            obj = self.__class__(name, parent=parent)
+            obj._populate_from_attributes(attributes)
+            if status == 'deleted':
+                obj.mark_as_deleted()
+            return obj
+
+
 
     @classmethod
     def unsubscribe(cls, session):

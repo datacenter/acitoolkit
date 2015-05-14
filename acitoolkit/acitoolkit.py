@@ -64,8 +64,10 @@ class Tenant(BaseACIObject):
         """
         return None
 
-    def _get_instance_subscription_url(self):
-        return '/api/mo/uni/tn-%s.json?subscription=yes' % self.name
+    def _get_instance_subscription_urls(self):
+        resp = []
+        resp.append('/api/mo/uni/tn-%s.json?subscription=yes' % self.name)
+        return resp
 
     @staticmethod
     def _get_name_from_dn(dn):
@@ -705,6 +707,12 @@ class EPG(CommonEPG):
                                          children=children)
 
 
+class OutsideNetwork(CommonEPG):
+    def __init__(self, network):
+        self.network = network
+        name = '.'.join([i for i in network.split('/')])
+        super(OutsideNetwork, self).__init__(name)
+
 class OutsideEPG(CommonEPG):
     """Represents the EPG for external connectivity
     """
@@ -806,12 +814,15 @@ class OutsideEPG(CommonEPG):
                 text = {"bgpExtP": {"attributes": {}}}
                 children.append(text)
 
-            text = {'l3extInstP': {'attributes': {'name': self.name},
-                                   'children': []}}
             for network in interface.networks:
-                subnet = {'l3extSubnet': {'attributes': {'ip': network},
+                if isinstance(network, str):
+                    network = OutsideNetwork(network)
+                text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
+                                       'children': []}}
+                subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
                                           'children': []}}
-                contracts = super(OutsideEPG, self)._get_common_json()
+                contracts = network._get_common_json()
+                #contracts = super(OutsideEPG, self)._get_common_json()
                 text['l3extInstP']['children'].append(subnet)
                 for contract in contracts:
                     text['l3extInstP']['children'].append(contract)

@@ -143,8 +143,14 @@ class Subscriber(threading.Thread):
         :param url: URL string to issue the subscription
         """
         resp = self._apic.get(url)
-        subscription_id = json.loads(resp.text)['subscriptionId']
+        resp_data = json.loads(resp.text)
+        subscription_id = resp_data['subscriptionId']
         self._subscriptions[url] = subscription_id
+        while int(resp_data['totalCount']):
+            event = {"totalCount":"1","subscriptionId":[resp_data['subscriptionId']],"imdata":[resp_data["imdata"][0]]}
+            self._event_q.put(json.dumps(event))
+            resp_data['totalCount'] = str(int(resp_data['totalCount']) - 1)
+            resp_data["imdata"].remove(resp_data["imdata"][0])
         return resp
 
     def refresh_subscriptions(self):
@@ -153,8 +159,8 @@ class Subscriber(threading.Thread):
         """
         for subscription in self._subscriptions:
             subscription_id = self._subscriptions[subscription]
-            refresh_url = '/api/subscriptionRefresh.json?id=' + subscription_id
-            self._apic.get(refresh_url)
+            refresh_url = '/api/subscriptionRefresh.json?id=' + str(subscription_id)
+            resp = self._apic.get(refresh_url)
 
     def _open_web_socket(self, use_secure=True):
         """
@@ -234,7 +240,8 @@ class Subscriber(threading.Thread):
             if not self._ws.connected:
                 self._open_web_socket('https://' in url)
 
-        return self._send_subscription(url)
+        resp = self._send_subscription(url)
+        return resp
 
     def has_events(self, url):
         """
@@ -276,7 +283,7 @@ class Subscriber(threading.Thread):
 
     def run(self):
         while not self._exit:
-            # Sleep for some interval (60sec) and send subscription list
+            # Sleep for some interval and send subscription list
             time.sleep(self._refresh_time)
             self.refresh_subscriptions()
 
@@ -364,11 +371,12 @@ class Session(object):
         :param url:  URL string to issue subscription
         """
         if self._subscription_enabled:
-            self.subscription_thread.subscribe(url)
+            resp = self.subscription_thread.subscribe(url)
+            return resp
 
     def resubscribe(self):
         if self._subscription_enabled:
-            self.subscription_thread._resubscribe()
+            return self.subscription_thread._resubscribe()
 
     def has_events(self, url):
         """
@@ -430,7 +438,7 @@ class Session(object):
         """
         get_url = self.api + url
         logging.debug(get_url)
-        resp = self.session.get(get_url)
+        resp = self.session.get(get_url, verify=self.verify_ssl)
         logging.debug(resp)
         logging.debug(resp.text)
         return resp

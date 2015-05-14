@@ -88,9 +88,91 @@ class MultisiteMonitor(threading.Thread):
         """
         self._exit = True
 
+
+    def handle_contract_relation_event(self, event, provides=True):
+        if provides:
+            apic_class = 'fvRsProv'
+            apic_dn_class = 'rsprov'
+        else:
+            apic_class = 'fvRsCons'
+            apic_dn_class = 'rscons'
+
+        event_attributes = event['imdata'][0][apic_class]['attributes']
+        if 'status' in event_attributes:
+            status = event_attributes['status']
+        else:
+            status = 'created'
+        dn = event_attributes['dn']
+        tenant_name = str(dn.split('uni/tn-')[1].split('/')[0])
+        contract_name = str(dn.split('/%s-' % apic_dn_class)[1])
+        cdb_entry = self._local_site.contract_db.find_entry(tenant_name, contract_name)
+        app_name = str(dn.split('/ap-')[1].split('/')[0])
+        epg_name = str(dn.split('/epg-')[1].split('/')[0])
+        if provides and (cdb_entry is None or not cdb_entry.is_exported()):
+            # TODO handle imported contracts here - these are contracts that have been imported at runtime
+
+            # Ignore this event
+            return
+        elif not provides and (cdb_entry is None or cdb_entry.is_exported()):
+            # Ignore this event
+            return
+        # Need to export this EPG
+        export_tenant = Tenant(tenant_name)
+        export_app = AppProfile(app_name, export_tenant)
+        export_epg = EPG(epg_name, export_app)
+        if status == 'deleted':
+            # If this is the last contract that this EPG is providing, delete the EPG
+            if len(self._local_site.epg_db.find_entries(tenant_name, app_name, epg_name)) == 1:
+                export_epg.mark_as_deleted()
+        export_contract = Contract(contract_name, export_tenant)
+        if provides:
+            export_epg.provide(export_contract)
+            if status == 'deleted':
+                export_epg.dont_provide(export_contract)
+        else:
+            export_epg.consume(export_contract)
+            if status == 'deleted':
+                export_epg.dont_consume(export_contract)
+        tenant_json = export_tenant.get_json()
+        for remote_site in cdb_entry.remote_sites:
+            print 'Exporting EPG to remote site', remote_site
+            site_obj = self._local_site.my_collector.get_site(remote_site)
+            if site_obj is None:
+                return
+            self._local_site.contract_collector.export_epg(tenant_json,
+                                                           contract_name,
+                                                           site_obj)
+
+
+    def handle_provided_contract_event(self, event):
+        print 'handle_provided_contract_event'
+        return self.handle_contract_relation_event(event, True)
+
+
+    def handle_consumed_contract_event(self, event):
+        print 'handle_consumed_contract_event'
+        return self.handle_contract_relation_event(event, False)
+
     def run(self):
+        # Subscribe to endpoints
         Endpoint.subscribe(self._session)
+
+        # Subscribe to fvRsProv (EPGs providing Contracts)
+        provides_url = '/api/class/fvRsProv.json?subscription=yes'
+        resp = self._session.subscribe(provides_url)
+        print 'response is', resp
+
+        # Subscribe to fvRsCons (EPGs consuming Contracts)
+        consumes_url = '/api/class/fvRsCons.json?subscription=yes'
+        print 'response is', self._session.subscribe(provides_url)
+
         while not self._exit:
+            if self._session.has_events(provides_url):
+                self.handle_provided_contract_event(self._session.get_event(provides_url))
+
+            if self._session.has_events(consumes_url):
+                self.handle_provided_contract_event(self._session.get_event(consumes_url))
+
             if Endpoint.has_events(self._session):
                 print 'Endpoint Event received'
                 ep = Endpoint.get_event(self._session)
@@ -294,7 +376,12 @@ class ContractCollector(object):
                     self._tag_remote_config(data[key]['children'],
                                             contract_name)
 
+    def export_epg(self, tenant_json, contract_name, remote_site):
+        print '***export_providing_epg***'
+        self.export_contract_config(tenant_json, contract_name, remote_site)
+
     def export_contract_config(self, tenant_json, contract_name, remote_site):
+        assert remote_site is not None
         print '*****export_contract_config*****', contract_name
         self._rename_classes(tenant_json)
         #tenant_json['fvTenant']['attributes']['name'] = 'site2' # TODO hard code the tenant name right now to make up for bad config
@@ -410,6 +497,11 @@ class ContractDB(object):
             if entry == search_entry:
                 return entry
         return None
+
+    def has_entry(self, tenant_name, contract_name):
+        if self.find_entry(tenant_name, contract_name) is not None:
+            return True
+        return False
 
     def find_all(self):
         return self._db
@@ -648,10 +740,11 @@ class LocalSite(Site):
     #     pass
 
     def unexport_contract(self, contract_name, tenant_name, remote_site):
-
+        print 'unexport_contract'
+        print 'tenant:', type(tenant_name), tenant_name, 'remote site:', remote_site
         # Remove providing EPGs from remote site
         epg_db_entries = self.epg_db.find_epgs_using_contract(tenant_name, contract_name)
-        unexport_tenant = Tenant(tenant_name)
+        unexport_tenant = Tenant(str(tenant_name))
         for epg_db_entry in epg_db_entries:
             for app in unexport_tenant.get_children(AppProfile):
                 app_already_added = False
@@ -677,6 +770,10 @@ class LocalSite(Site):
 
         # Need to know the site, contract, and EPGs
         raise NotImplementedError  # TODO
+        pass
+
+    def export_epg_providing_contract(self):
+        # need tenant/app/epg, contract provided, remote_site
         pass
 
     def export_epgs_consuming_imported_contract(self):
