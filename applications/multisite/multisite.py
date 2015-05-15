@@ -105,8 +105,25 @@ class MultisiteMonitor(threading.Thread):
         cdb_entry = self._local_site.contract_db.find_entry(tenant_name, contract_name)
         if cdb_entry is None:
             # This is a contract that snuck by us at runtime. Need to check if it is imported.
-            # TODO
-            return
+            tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
+                                      subtree='children', config_only=True)
+            found_tag = False
+            for tenant in tenants:
+                for tag in tenant.get_tags():
+                    if MultisiteTag.is_multisite_tag(tag):
+                        mtag = MultisiteTag.fromstring(tag)
+                        if contract_name == mtag.get_local_contract_name():
+                            cdb_entry = ContractDBEntry.from_multisite_tag(tenant.name, mtag)
+                            self._local_site.contract_db.add_entry(cdb_entry)
+                            found_tag = True
+            # If it's not tagged then it must be a non-exported (local) contract
+            if not found_tag:
+                cdb_entry = ContractDBEntry()
+                cdb_entry.tenant_name = tenant_name
+                cdb_entry.contract_name = contract_name
+                cdb_entry.export_state = 'local'
+                self._local_site.contract_db.add_entry(cdb_entry)
+                return
         if '/ap-' not in dn and '/out-' in dn:
             # Event is for the OutsideEPG, ignore it
             return
@@ -127,32 +144,6 @@ class MultisiteMonitor(threading.Thread):
         epg_entry.contract_name = contract_name
         self._local_site.epg_db.add_entry(epg_entry)
 
-        # export_tenant = Tenant(tenant_name)
-        # export_app = AppProfile(app_name, export_tenant)
-        # export_epg = EPG(epg_name, export_app)
-        # if status == 'deleted':
-        #     # If this is the last contract that this EPG is providing, delete the EPG
-        #     if len(self._local_site.epg_db.find_entries(tenant_name, app_name, epg_name)) == 1:
-        #         export_epg.mark_as_deleted()
-        # export_contract = Contract(contract_name, export_tenant)
-        # if provides:
-        #     export_epg.provide(export_contract)
-        #     if status == 'deleted':
-        #         export_epg.dont_provide(export_contract)
-        # else:
-        #     export_epg.consume(export_contract)
-        #     if status == 'deleted':
-        #         export_epg.dont_consume(export_contract)
-        # tenant_json = export_tenant.get_json()
-        # for remote_site in cdb_entry.remote_sites:
-        #     print 'Exporting EPG to remote site', remote_site
-        #     site_obj = self._local_site.my_collector.get_site(remote_site)
-        #     if site_obj is None:
-        #         return
-        #     self._local_site.contract_collector.export_epg(tenant_json,
-        #                                                    contract_name,
-        #                                                    site_obj)
-
     def handle_provided_contract_event(self, event):
         print 'handle_provided_contract_event'
         return self.handle_contract_relation_event(event, True)
@@ -169,11 +160,10 @@ class MultisiteMonitor(threading.Thread):
         # Subscribe to fvRsProv (EPGs providing Contracts)
         provides_url = '/api/class/fvRsProv.json?subscription=yes'
         resp = self._session.subscribe(provides_url)
-        print 'response is', resp
 
         # Subscribe to fvRsCons (EPGs consuming Contracts)
         consumes_url = '/api/class/fvRsCons.json?subscription=yes'
-        print 'response is', self._session.subscribe(consumes_url)
+        resp = self._session.subscribe(consumes_url)
 
         while not self._exit:
             if self._session.has_events(provides_url):
@@ -207,25 +197,19 @@ class MultisiteMonitor(threading.Thread):
                         tenant = Tenant(tenant.name)
                         network = OutsideNetwork(ep.ip)
                         for contract in remote_contracts[remote_site]['provides']:
-                            print 'Providing contract', contract
                             network.provide(Contract(contract, tenant))
                         for contract in remote_contracts[remote_site]['consumes']:
                             network.consume(Contract(contract, tenant))
                         outside = OutsideEPG('multisite-l3out', tenant)  # TODO: Hardcoded for now
                         outside.networks.append(network)
                         tenant_json = tenant.get_json()
-                        print 'Before contract removal', tenant_json
                         # Remove the contracts
                         for child in tenant_json['fvTenant']['children']:
                             if 'vzBrCP' in child:
                                 tenant_json['fvTenant']['children'].remove(child)
-                        print 'JSON before renaming:', tenant_json
                         self._local_site.contract_collector._rename_classes(tenant_json)
-                        print 'JSON after renaming:', tenant_json
                         remote_site_obj = self._local_site.my_collector.get_site(remote_site)
-                        if remote_site_obj is None:
-                            print '****Remote site', remote_site, 'is None'
-                        else:
+                        if remote_site_obj is not None:
                             remote_session = remote_site_obj.session
                             resp = remote_session.push_to_apic(tenant.get_url(), tenant_json)
                             print 'Pushed Endpoint to remote site', tenant_json
@@ -317,48 +301,12 @@ class ContractCollector(object):
             filter_json = ret.json()['imdata']
             if len(filter_json):
                 tenant_json['fvTenant']['children'].append(filter_json[0])
-
-        # # Get the EPGs providing the contract
-        # query_url = '/api/mo/uni/tn-%s/brc-%s.json?query-target=subtree&target-subtree-class=vzRtProv' % (tenant.name, contract)
-        # ret = self._session.get(query_url)
-        # epgs = ret.json()['imdata']
-        # epg_children_to_collect = ['fvRsProv', 'tagInst', 'fvRsProtBy' ]
-        # url_extension = '.json?query-target=self&rsp-subtree=full&rsp-prop-include=config-only'
-        # for child_class in epg_children_to_collect:
-        #     url_extension += '&rsp-subtree-class=%s' % child_class
-        # for epg in epgs:
-        #     query_url = '/api/mo/' + epg['vzRtProv']['attributes']['tDn'] + url_extension
-        #     epg_json = self._session.get(query_url).json()['imdata']
-        #     if 'fvAEPg' not in epg_json[0]:
-        #         print epg_json
-        #         assert False
-        #     app_name = epg_json[0]['fvAEPg']['attributes']['dn'].split('tn-%s/ap-' % tenant.name)[1]
-        #     app_name = str(app_name.split('/')[0])
-        #     existing_apps = tenant.get_children(AppProfile)
-        #     app_already_exists = False
-        #     for existing_app in existing_apps:
-        #         if existing_app.name == app_name:
-        #             app_already_exists = True
-        #     if not app_already_exists:
-        #         app = AppProfile(app_name, tenant)
-        #         tenant_json['fvTenant']['children'].append(app.get_json())
-        #     for child in tenant_json['fvTenant']['children']:
-        #         if 'fvAp' in child:
-        #             if child['fvAp']['attributes']['name'] == app_name:
-        #                 assert 'children' in child['fvAp']
-        #                 child['fvAp']['children'].append(epg_json)
         self._strip_dn(tenant_json)
         return tenant_json
 
     @staticmethod
     def _pprint_json(data):
         print json.dumps(data, indent=4, separators=(',', ':'))
-
-    # def get_imported_contracts(self):
-    #     pass
-    #
-    # def get_exported_contracts(self):
-    #     pass
 
     def _rename_classes(self, data):
         if isinstance(data, list):
@@ -369,6 +317,9 @@ class ContractCollector(object):
                 if key in ContractCollector.classes_to_rename:
                     local_name = data[key]['attributes'][ContractCollector.classes_to_rename[key]]
                     data[key]['attributes'][ContractCollector.classes_to_rename[key]] = strip_illegal_characters(self.local_site_name) + ':' + local_name
+                elif key == 'fvRsCons':
+                    if ':' in data[key]['attributes']['tnVzBrCPName']:
+                        data[key]['attributes']['tnVzBrCPName'] = data[key]['attributes']['tnVzBrCPName'].split(':')[1]
                 if 'children' in data[key]:
                     self._rename_classes(data[key]['children'])
 
@@ -469,7 +420,6 @@ class Site(object):
         else:
             print('%% Logged into Site', self.name)
             self.logged_in = True
-        print 'MICHSMIT STARTING SITE', self.name
         return resp
 
 class ContractDBEntry(object):
@@ -537,7 +487,8 @@ class ContractDB(object):
         return self._db
 
     def add_entry(self, entry):
-        self._db.append(entry)
+        if entry not in self._db:
+            self._db.append(entry)
 
     def add_remote_site(self, tenant_name, mtag):
         entry = self.find_entry(tenant_name, mtag.get_local_contract_name())
@@ -602,31 +553,6 @@ class LocalSite(Site):
             self.monitor.start()
         return resp
 
-    # def is_multisite_tag(self, tag):
-    #     return re.match(r'multisite:.*:contract:.*:site:.*', tag)
-    #
-    # def is_imported_tag(self, tag):
-    #     if self.is_multisite_tag(tag):
-    #         data = tag.split(':')
-    #         export_state = data[1]
-    #         if export_state == 'imported':
-    #             return True
-    #     return False
-    #
-    # def get_contract_name_from_tag(self, tag):
-    #     if not self.is_multisite_tag(tag):
-    #         return None
-    #     tag_data = tag.split(':')
-    #     contract_name = tag_data[3]
-    #     return contract_name
-    #
-    # def get_site_name_from_tag(self, tag):
-    #     if not self.is_multisite_tag(tag):
-    #         return None
-    #     tag_data = tag.split(':')
-    #     remote_site_name = tag_data[5]
-    #     return remote_site_name
-
     def _populate_contracts_from_apic(self):
         resp = []
         tenants = Tenant.get_deep(self.session, limit_to=['vzBrCP', 'fvTenant', 'tagInst'])
@@ -668,6 +594,7 @@ class LocalSite(Site):
         print 'FROM DB'
         for db_entry in self.contract_db.find_all():
             print 'tenant:', db_entry.tenant_name, 'contract:', db_entry.contract_name
+        print 'contract_count', contract_count, len(self.contract_db.find_all())
         assert contract_count == len(self.contract_db.find_all())
 
     def get_contracts(self):
@@ -678,10 +605,11 @@ class LocalSite(Site):
 
     def uses_multisite_contract(self, epg):
         """
-        Checks if a site is exporting a given EPG
+        Checks if a site is importing or exporting a given EPG
 
-        :param epg: Instance of EPG class to check if being exported
-        :returns:  True or False.  True if the site is exporting the EPG, False otherwise.
+        :param epg: Instance of EPG class to check if being imported or exported
+        :returns:  True or False.  True if the site is importing or exporting the
+                   EPG, False otherwise.
         """
         app = epg.get_parent()
         tenant = app.get_parent()
