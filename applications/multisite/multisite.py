@@ -173,14 +173,14 @@ class MultisiteMonitor(threading.Thread):
 
         # Subscribe to fvRsCons (EPGs consuming Contracts)
         consumes_url = '/api/class/fvRsCons.json?subscription=yes'
-        print 'response is', self._session.subscribe(provides_url)
+        print 'response is', self._session.subscribe(consumes_url)
 
         while not self._exit:
             if self._session.has_events(provides_url):
                 self.handle_provided_contract_event(self._session.get_event(provides_url))
 
             if self._session.has_events(consumes_url):
-                self.handle_provided_contract_event(self._session.get_event(consumes_url))
+                self.handle_consumed_contract_event(self._session.get_event(consumes_url))
 
             if Endpoint.has_events(self._session):
                 print 'Endpoint Event received'
