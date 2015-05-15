@@ -723,6 +723,7 @@ class OutsideEPG(CommonEPG):
                        the tenant owning this OutsideEPG.
         """
         self.context_name = None
+        self.networks = []
 
         if not isinstance(parent, Tenant):
             raise TypeError('Parent is not set to Tenant')
@@ -800,6 +801,20 @@ class OutsideEPG(CommonEPG):
             context = {'l3extRsEctx': {'attributes': {'tnFvCtxName':
                                                       self.context_name}}}
             children.append(context)
+        for network in self.networks: # TODO clean this up - duplicate of code below
+            if isinstance(network, str):
+                network = OutsideNetwork(network)
+            text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
+                                   'children': []}}
+            subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
+                                      'children': []}}
+            contracts = network._get_common_json()
+            #contracts = super(OutsideEPG, self)._get_common_json()
+            text['l3extInstP']['children'].append(subnet)
+            for contract in contracts:
+                text['l3extInstP']['children'].append(contract)
+            children.append(text)
+
         for interface in self.get_interfaces():
 
             if hasattr(interface, 'is_ospf'):
