@@ -88,7 +88,7 @@ class SiteCredentialsView(CustomView):
         creds = SiteLoginCredentials(model.ip_address, model.user_name, model.password,
                                      model.use_https)
         collector.add_site(model.site_name, creds, model.local)
-        update_contract_db(model)
+        update_db(model)
         print '****MICHSMIT**** after_model_change:', model, type(model), is_created
         print model.site_name, model.ip_address, model.local
         collector.print_sites()
@@ -297,15 +297,11 @@ def build_db():
     db.session.commit()
     return
 
-def update_contract_db(site):
-    if not site.local:
-        return
-    local_site = collector.get_site(site.site_name)
-
-    # TODO initialize the info from APIC but should learn to rely on Monitor and use a callback to update GUI db
-    local_site.initialize_from_apic()
-
+def update_contract_db():
+    local_site = collector.get_local_site()
     contract_db = local_site.get_contracts()
+    SiteContracts.query.delete()
+    db.session.commit()
     for contract in contract_db:
         dbcontract = SiteContracts()
         dbcontract.tenant_name = contract.tenant_name
@@ -315,7 +311,11 @@ def update_contract_db(site):
         db.session.add(dbcontract)
     db.session.commit()
 
+def update_epg_db():
+    local_site = collector.get_local_site()
     epg_db = local_site.get_epgs()
+    SiteEpgs.query.delete()
+    db.session.commit()
     for epg in epg_db:
         dbepg = SiteEpgs()
         dbepg.tenant_name = epg.tenant_name
@@ -324,6 +324,19 @@ def update_contract_db(site):
         dbepg.contract_name = epg.contract_name
         db.session.add(dbepg)
     db.session.commit()
+
+def update_db(site):
+    if not site.local:
+        return
+    local_site = collector.get_site(site.site_name)
+
+    # TODO initialize the info from APIC but should learn to rely on Monitor and use a callback to update GUI db
+    local_site.initialize_from_apic()
+
+    local_site.register_for_callbacks('contracts', update_contract_db)
+    update_contract_db()
+    local_site.register_for_callbacks('epgs', update_epg_db)
+    update_epg_db()
 
 
 def dbfile_exists():
@@ -351,7 +364,7 @@ if __name__ == '__main__':
                                          site.use_https)
             collector.add_site(site.site_name, creds, site.local)
         for site in sites:
-            update_contract_db(site)
+            update_db(site)
     else:
         build_db()
 

@@ -86,6 +86,25 @@ class MultisiteMonitor(threading.Thread):
         self._exit = True
 
 
+    def handle_contract(self, tenant_name, contract_name):
+        tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
+                                  subtree='children', config_only=True)
+        for tenant in tenants:
+            for tag in tenant.get_tags():
+                if MultisiteTag.is_multisite_tag(tag):
+                    mtag = MultisiteTag.fromstring(tag)
+                    if contract_name == mtag.get_local_contract_name():
+                        cdb_entry = ContractDBEntry.from_multisite_tag(tenant.name, mtag)
+                        self._local_site.contract_db.add_entry(cdb_entry)
+                        return cdb_entry
+        # If it's not tagged then it must be a non-exported (local) contract
+        cdb_entry = ContractDBEntry()
+        cdb_entry.tenant_name = tenant_name
+        cdb_entry.contract_name = contract_name
+        cdb_entry.export_state = 'local'
+        self._local_site.contract_db.add_entry(cdb_entry)
+        return cdb_entry
+
     def handle_contract_relation_event(self, event, provides=True):
         if provides:
             apic_class = 'fvRsProv'
@@ -105,24 +124,8 @@ class MultisiteMonitor(threading.Thread):
         cdb_entry = self._local_site.contract_db.find_entry(tenant_name, contract_name)
         if cdb_entry is None:
             # This is a contract that snuck by us at runtime. Need to check if it is imported.
-            tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
-                                      subtree='children', config_only=True)
-            found_tag = False
-            for tenant in tenants:
-                for tag in tenant.get_tags():
-                    if MultisiteTag.is_multisite_tag(tag):
-                        mtag = MultisiteTag.fromstring(tag)
-                        if contract_name == mtag.get_local_contract_name():
-                            cdb_entry = ContractDBEntry.from_multisite_tag(tenant.name, mtag)
-                            self._local_site.contract_db.add_entry(cdb_entry)
-                            found_tag = True
-            # If it's not tagged then it must be a non-exported (local) contract
-            if not found_tag:
-                cdb_entry = ContractDBEntry()
-                cdb_entry.tenant_name = tenant_name
-                cdb_entry.contract_name = contract_name
-                cdb_entry.export_state = 'local'
-                self._local_site.contract_db.add_entry(cdb_entry)
+            cdb_entry = self.handle_contract(tenant_name, contract_name)
+            if cdb_entry.export_state == 'local':
                 return
         if '/ap-' not in dn and '/out-' in dn:
             # Event is for the OutsideEPG, ignore it
@@ -165,12 +168,21 @@ class MultisiteMonitor(threading.Thread):
         consumes_url = '/api/class/fvRsCons.json?subscription=yes'
         resp = self._session.subscribe(consumes_url)
 
+        # Subscribe to Contract events
+        resp = Contract.subscribe(self._session)
+
         while not self._exit:
             if self._session.has_events(provides_url):
                 self.handle_provided_contract_event(self._session.get_event(provides_url))
 
             if self._session.has_events(consumes_url):
                 self.handle_consumed_contract_event(self._session.get_event(consumes_url))
+
+            if Contract.has_events(self._session):
+                print 'Contract event received'
+                contract = Contract.get_event(self._session)
+                tenant = contract.get_parent()
+                self.handle_contract(tenant.name, contract.name)
 
             if Endpoint.has_events(self._session):
                 print 'Endpoint Event received'
@@ -467,9 +479,35 @@ class ContractDBEntry(object):
             resp += remote_site + ', '
         return resp[:-2]
 
-class ContractDB(object):
+class MultisiteDB(object):
     def __init__(self):
         self._db = []
+        self.callbacks = []
+
+    def find_all(self):
+        return self._db
+
+    def register_callback(self, callback_function):
+        if callback_function not in self.callbacks:
+            self.callbacks.append(callback_function)
+
+    def deregister_callback(self, callback_function):
+        if callback_function in self.callbacks:
+            self.callbacks.remove(callback_function)
+
+    def trigger_callback(self):
+        for callback in self.callbacks:
+            callback()
+
+    def add_entry(self, entry):
+        if entry not in self._db:
+            self._db.append(entry)
+            self.trigger_callback()
+
+
+class ContractDB(MultisiteDB):
+    def __init__(self):
+        super(ContractDB, self).__init__()
 
     def find_entry(self, tenant_name, contract_name):
         search_entry = ContractDBEntry()
@@ -484,13 +522,6 @@ class ContractDB(object):
         if self.find_entry(tenant_name, contract_name) is not None:
             return True
         return False
-
-    def find_all(self):
-        return self._db
-
-    def add_entry(self, entry):
-        if entry not in self._db:
-            self._db.append(entry)
 
     def add_remote_site(self, tenant_name, mtag):
         entry = self.find_entry(tenant_name, mtag.get_local_contract_name())
@@ -507,13 +538,9 @@ class EpgDBEntry(object):
         self.epg_name = None
         self.contract_name = None
 
-class EpgDB(object):
+class EpgDB(MultisiteDB):
     def __init__(self):
-        self._db = []
-
-    def add_entry(self, entry):
-        if entry not in self._db:
-            self._db.append(entry)
+        super(EpgDB, self).__init__()
 
     def find_entries(self, tenant_name, app_name, epg_name):
         resp = []
@@ -529,9 +556,6 @@ class EpgDB(object):
                 resp.append(db_entry)
         return resp
 
-    def find_all(self):
-        return self._db
-
     def print_db(self):
         print 'EPG Database'
         for entry in self._db:
@@ -545,6 +569,34 @@ class LocalSite(Site):
         self.monitor = None
         self.contract_db = ContractDB()
         self.epg_db = EpgDB()
+        self.callbacks = {}
+
+    def register_for_callbacks(self, key, callback_function):
+        """
+        Register to get a callback when certain events occur.  Mainly when
+        the various DBs are updated.
+
+        :param key: String containing type of callback. Valid values are 'epgs' and 'contracts'
+        :param callback_function: The function to be called upon changes
+        :return: None
+        """
+        if key == 'contracts':
+            self.contract_db.register_callback(callback_function)
+        elif key == 'epgs':
+            self.epg_db.register_callback(callback_function)
+
+    def deregister_from_callbacks(self, key, callback_function):
+        """
+        Deregister the callback.
+
+        :param key: String containing type of callback. Valid values are 'epgs' and 'contracts'
+        :param callback_function: The function to be called upon changes
+        :return: None
+        """
+        if key == 'contracts':
+            self.contract_db.deregister_callback(callback_function)
+        elif key == 'epgs':
+            self.epg_db.deregister_callback(callback_function)
 
     def start(self):
         resp = super(LocalSite, self).start()
