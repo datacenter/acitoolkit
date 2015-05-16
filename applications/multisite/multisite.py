@@ -77,7 +77,7 @@ class MultisiteMonitor(threading.Thread):
         self._session = session
         self._local_site = local_site
         self._exit = False
-        self.remote_sites = []
+        #self.remote_sites = []
 
     def exit(self):
         """
@@ -288,6 +288,8 @@ class ContractCollector(object):
         query_url += '&rsp-prop-include=config-only'
 
         ret = self._session.get(query_url)
+        if not len(ret.json()['imdata']):
+            return
         contract_json = ret.json()['imdata'][0]
         tenant_json['fvTenant']['children'].append(contract_json)
 
@@ -624,26 +626,6 @@ class LocalSite(Site):
                 return True
         return False
 
-    # def exports_epg(self, epg):
-    #     """
-    #     Checks if a site is exporting a given EPG
-    #
-    #     :param epg: Instance of EPG class to check if being exported
-    #     :returns:  True or False.  True if the site is exporting the EPG, False otherwise.
-    #     """
-    #     app = epg.get_parent()
-    #     tenant = app.get_parent()
-    #     epg_db_entries = self.epg_db.find_entries(tenant.name, app.name, epg.name)
-    #     if len(epg_db_entries) == 0:
-    #         return False
-    #     for epg_db_entry in epg_db_entries:
-    #         contract_db_entry = self.contract_db.find_entry(tenant.name, epg_db_entry.contract_name)
-    #         if contract_db_entry is None:
-    #             continue
-    #         if contract_db_entry.is_exported():
-    #             return True
-    #     return False
-
     def get_all_provided_contracts(self, epg):
         resp = []
         app = epg.get_parent()
@@ -702,21 +684,6 @@ class LocalSite(Site):
         # Push the EPGs for imported contracts
         # (in case they were imported during a downtime)
         self.export_epgs_consuming_imported_contract()
-
-    # def get_contract_names(self, tenant, app, epg):
-    #     resp = []
-    #     print 'get_contract_names', self.exported_epgs
-    #     print 'looking for', tenant, app, epg
-    #     for my_epg in self.exported_epgs:
-    #         (tenant_name, app_name, epg_name, contract_name, remote_site_names) = my_epg
-    #         # TODO ignoring tenant name for now due to hardcoded difference
-    #         if app_name == app and epg_name == epg:
-    #             resp.append(contract_name)
-    #     return resp
-
-    # def extract_contract(self, contract_name, tenant_name):
-    #
-    #     pass
 
     def unexport_contract(self, contract_name, tenant_name, remote_site):
         print 'unexport_contract'
@@ -805,6 +772,8 @@ class LocalSite(Site):
                     # only grab the contract configuration once
                     contract_json = self.contract_collector.get_contract_config(str(tenant_name),
                                                                                 str(contract_name))
+                    if contract_json is None:
+                        return remote_sites
                 # Export to the remote site
                 resp = self.contract_collector.export_contract_config(contract_json,
                                                                       contract_name,
@@ -886,9 +855,9 @@ class MultisiteCollector(object):
         else:
             site = RemoteSite(name, credentials)
             # TODO temporary hack to pass RemoteSite to Monitor
-            for previous_site in self.sites:
-                if isinstance(previous_site, LocalSite):
-                    previous_site.monitor.remote_sites.append(site)
+            #for previous_site in self.sites:
+            #    if isinstance(previous_site, LocalSite):
+            #        previous_site.monitor.remote_sites.append(site)
         self.sites.append(site)
         site.start()
 
