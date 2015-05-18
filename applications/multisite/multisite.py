@@ -190,12 +190,15 @@ class MultisiteMonitor(threading.Thread):
                     remote_contracts[remote_site]['consumes'].append(contract_db_entry.contract_name)
         for remote_site in remote_contracts:
             tenant = Tenant(tenant.name)
-            network = OutsideNetwork(ep.ip)
+            network = OutsideNetwork(ep.ip + '/32')
             for contract in remote_contracts[remote_site]['provides']:
                 network.provide(Contract(contract, tenant))
             for contract in remote_contracts[remote_site]['consumes']:
                 network.consume(Contract(contract, tenant))
             outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant.name, remote_site)
+            if outside_epg_name is None:
+                # Likely, a site that is not up yet or old config
+                continue
             outside = OutsideEPG(outside_epg_name, tenant) # TODO: Hardcoded for now
             outside.networks.append(network)
             tenant_json = tenant.get_json()
@@ -599,8 +602,9 @@ class OutsideDBEntry(object):
             return False
 
 class OutsideDB(MultisiteDB):
-    def __init__(self):
+    def __init__(self, local_site):
         super(OutsideDB, self).__init__()
+        self.local_site = local_site
 
     def add_entry(self, tenant_name, remote_site_name, outside_epg_name):
         db_entry = OutsideDBEntry()
@@ -620,7 +624,9 @@ class OutsideDB(MultisiteDB):
             if db_entry == search_entry:
                 return db_entry.outside_epg_name
         # Don't have it.  Go get it from APIC
-        self.update_from_apic(tenant_name, remote_site_name)
+        remote_site_obj = self.local_site.my_collector.get_site(remote_site_name)
+        if remote_site_obj is not None:
+            self.update_from_apic(tenant_name, remote_site_obj)
 
     def has_entry(self, tenant_name, remote_site_name):
         return tenant_name in self._db
@@ -641,6 +647,10 @@ class OutsideDB(MultisiteDB):
         :param remote_site: Instance of RemoteSite
         :return: None
         """
+        if isinstance(remote_site, str):
+            remote_site = self.my_collector.get_site(remote_site)
+        if remote_site is None:
+            return
         tenant = Tenant(tenant_name)
         outside_epgs = OutsideEPG.get(remote_site.session, parent=tenant, tenant=tenant)
         if len(outside_epgs):
@@ -654,7 +664,7 @@ class LocalSite(Site):
         self.monitor = None
         self.contract_db = ContractDB()
         self.epg_db = EpgDB()
-        self.outside_db = OutsideDB()
+        self.outside_db = OutsideDB(self)
 
     def register_for_callbacks(self, key, callback_function):
         """
@@ -924,7 +934,7 @@ class LocalSite(Site):
                     tenant.add_tag(self.contract_collector.get_local_tag(contract_name, remote_site))
                     tenant.push_to_apic(self.session)
                     # Update the OutsideDB if necessary
-                    self.outside_db.update_from_apic(tenant_name, remote_site_obj)
+                    self.outside_db.update_from_apic(str(tenant_name), remote_site_obj)
 
         # compare old site list with new for sites no longer being exported to
         for old_site in old_entry.remote_sites:
