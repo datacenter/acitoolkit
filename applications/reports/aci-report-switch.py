@@ -39,7 +39,7 @@ from acitoolkit.acitoolkitlib import Credentials
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
-description = 'Simple application that logs on to the APIC and displays stats for all of the Interfaces.'
+description = 'Simple application that logs on to the APIC and displays reports for the switches.'
 creds = Credentials('apic', description)
 creds.add_argument('-s', '--switch',
                    type=str,
@@ -77,31 +77,15 @@ def show_switch_short(switch_id):
 
     :param switch_id: Optional switch Id to select a specific switch.  If ommitted, will be all switches.
     """
-    template = "{0:^7} | {1:^14} | {2:^11} | {3:^15} | {4:^5} | {5:^16} |"\
-               "{6:^6} | {7:^20} | {8:^20} | {9:^8} | {10:^11}"
-    line_template = "{0:-^7}-+-{0:-^14}-+-{0:-^11}-+-{0:-^15}-+-{0:-^5}-+-"\
-                    "{0:-^16}-+-{0:-^6}-+-{0:-^20}-+-{0:-^20}-+-{0:-^8}-+-{0:-^11}"
-    print template.format("Node ID", "Name", "Role", "Model", "Ports", "State", "Health", "In-Band Mgmt IP",
-                          "Out-of-band Mgmt IP", "Firmware", "Serial")
-    print line_template.format("")
 
     if switch_id:
         switches = ACI_PHYS.Node.get(session, '1', switch_id)
     else:
         switches = ACI_PHYS.Node.get(session)
-    for switch in sorted(switches, key=lambda x: x.node):
-        if switch.role != 'controller':
-            print template.format(switch.node,
-                                  switch.name,
-                                  switch.role,
-                                  switch.model,
-                                  switch.num_ports,
-                                  switch.state,
-                                  switch.health,
-                                  switch.inb_mgmt_ip,
-                                  switch.oob_mgmt_ip,
-                                  switch.firmware,
-                                  switch.serial)
+
+    tables = ACI_PHYS.Node.get_table(switches, title='All Switches')
+    text_string = tables[0].get_text(tablefmt='fancy_grid') + '\n'
+    print text_string
 
 
 def render_text_switch(switch):
@@ -114,7 +98,7 @@ def render_text_switch(switch):
     title = 'Switch:{0} ("{1}") - '.format(switch.node, switch.name)
     text_string = ''
     if args.all or args.basic:
-        tables = ACI_PHYS.Node.get_table(switch, title)
+        tables = ACI_PHYS.Node.get_table([switch], title)
         text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
 
     if args.all or args.supervisor:
