@@ -59,6 +59,7 @@ class ReportDB(object):
         self.args = None
         self.timeout = 2
         self.switches = {}
+        self.all_switches = []
 
     def clear_switch_info(self):
         """
@@ -78,9 +79,9 @@ class ReportDB(object):
         """
         result = []
         if not self.switches:
-            switches = ACI_PHYS.Node.get(self.session)
+            self.all_switches = ACI_PHYS.Node.get(self.session)
 
-            for switch in switches:
+            for switch in self.all_switches:
                 if switch.role != 'controller':
                     switch_id = switch.node
                     self.switches[switch_id] = switch
@@ -90,6 +91,14 @@ class ReportDB(object):
             s_tuple = (switch_id, '{0:>3} : {1}'.format(switch_id, switch_name))
             result.append(s_tuple)
         return sorted(result, key=lambda x: x[0])
+
+    def get_switch_summary(self):
+        """
+
+        :return:
+        """
+        tables = ACI_PHYS.Node.get_table(self.all_switches)
+        return tables
 
     def get_reports(self):
 
@@ -116,7 +125,7 @@ class ReportDB(object):
         result = {}
         switch = self.switches[switch_id]
         switch.populate_children(deep=True, include_concrete=True)
-        result['basic'] = switch.get_table(switch)
+        result['basic'] = switch.get_table([switch])
 
         children_modules = switch.get_children(ACI_PHYS.Linecard)
         if children_modules:
@@ -239,17 +248,4 @@ class ReportDB(object):
             self.built_switches[switch_id] = switch_record
 
         return self.built_switches[switch_id][report_id]
-
-    def add_switch_report(self, switch_id, report):
-        """
-        This will take the switch report and add its fields
-        to the form.
-        :param report: Which report table to return
-        :param switch_id:
-        :return:
-        """
-
-        aci_table = self.get_table(switch_id, report)
-
-        return aci_table
 
