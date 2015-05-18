@@ -199,7 +199,7 @@ class MultisiteMonitor(threading.Thread):
             if outside_epg_name is None:
                 # Likely, a site that is not up yet or old config
                 continue
-            outside = OutsideEPG(outside_epg_name, tenant) # TODO: Hardcoded for now
+            outside = OutsideEPG(outside_epg_name, tenant)
             outside.networks.append(network)
             tenant_json = tenant.get_json()
             # Remove the contracts
@@ -396,7 +396,6 @@ class ContractCollector(object):
         assert remote_site is not None
         print '*****export_contract_config*****', contract_name
         self._rename_classes(tenant_json)
-        #tenant_json['fvTenant']['attributes']['name'] = 'site2' # TODO hard code the tenant name right now to make up for bad config
         self._tag_remote_config(tenant_json, contract_name)
         resp = remote_site.session.push_to_apic(Tenant.get_url(), tenant_json)
         print 'Pushing config', tenant_json
@@ -1004,10 +1003,6 @@ class MultisiteCollector(object):
             site = LocalSite(name, credentials, self)
         else:
             site = RemoteSite(name, credentials)
-            # TODO temporary hack to pass RemoteSite to Monitor
-            #for previous_site in self.sites:
-            #    if isinstance(previous_site, LocalSite):
-            #        previous_site.monitor.remote_sites.append(site)
         self.sites.append(site)
         site.start()
 
