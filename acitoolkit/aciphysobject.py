@@ -1,6 +1,6 @@
 ################################################################################
 # _    ____ ___                               #
-#                                 / \  / ___|_ _|                              #
+# / \  / ___|_ _|                              #
 #                                / _ \| |    | |                               #
 #                               / ___ \ |___ | |                               #
 #                         _____/_/   \_\____|___|_ _                           #
@@ -1263,11 +1263,11 @@ class Node(BaseACIPhysObject):
         return chassis_type
 
     @staticmethod
-    def get_table(switch, title=''):
+    def get_table(switches, title=''):
         """
             Creates report of basic switch information
-            :param switch:
-            :param title:
+            :param switches: Array of Node objects
+            :param title: optional title for this table
             """
         headers = ['Name',
                    'Pod ID',
@@ -1288,27 +1288,34 @@ class Node(BaseACIPhysObject):
                    'Number of Power Supplies (inserted)',
                    'System Uptime',
                    'Dynamic Load Balancing']
-        table = [[switch.name,
-                  switch.pod,
-                  switch.node,
-                  str(switch.serial),
-                  str(switch.model),
-                  switch.role,
-                  switch.fabricSt,
-                  switch.state,
-                  str(switch.firmware),
-                  str(switch.health),
-                  switch.inb_mgmt_ip,
-                  switch.oob_mgmt_ip,
-                  switch.num_ports,
-                  str(switch.num_lc_slots) + '(' + str(switch.num_lc_modules) + ')',
-                  str(switch.num_sup_slots) + '(' + str(switch.num_sup_modules) + ')',
-                  str(switch.num_fan_slots) + '(' + str(switch.num_fan_modules) + ')',
-                  str(switch.num_ps_slots) + '(' + str(switch.num_ps_modules) + ')',
-                  switch.system_uptime,
-                  str(switch.dynamic_load_balancing_mode)]]
-        result = [Table(table, headers, title=str(title) + 'Basic Information for {0}'.format(switch.name),
-                        table_orientation='vertical', columns=2)]
+        table = []
+        for switch in sorted(switches, key=lambda x: x.node):
+            table.append([switch.name,
+                          switch.pod,
+                          switch.node,
+                          switch.serial,
+                          switch.model,
+                          switch.role,
+                          switch.fabricSt,
+                          switch.state,
+                          switch.firmware,
+                          switch.health,
+                          switch.inb_mgmt_ip,
+                          switch.oob_mgmt_ip,
+                          switch.num_ports,
+                          str(switch.num_lc_slots) + '(' + str(switch.num_lc_modules) + ')',
+                          str(switch.num_sup_slots) + '(' + str(switch.num_sup_modules) + ')',
+                          str(switch.num_fan_slots) + '(' + str(switch.num_fan_modules) + ')',
+                          str(switch.num_ps_slots) + '(' + str(switch.num_ps_modules) + ')',
+                          switch.system_uptime,
+                          switch.dynamic_load_balancing_mode])
+        if len(table) > 3:
+            columns = 1
+        else:
+            columns = 2
+        result = [Table(table, headers,
+                        title=str(title) + '' if (title != '') else '' + 'Basic Information',
+                        table_orientation='vertical', columns=columns)]
         return result
 
     def _define_searchables(self):
