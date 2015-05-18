@@ -112,6 +112,7 @@ class SelectSwitchView(BaseView):
 
         try:
             form.category.choices = rdb.get_switches()
+            report = rdb.get_switch_summary()
         except Timeout:
             flash('Connection timeout when trying to reach the APIC', 'error')
             return redirect(url_for('switchreportadmin.index_view'))
@@ -139,9 +140,7 @@ class SelectSwitchView(BaseView):
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
 
-            return self.render('select_switch.html', form=form,
-                               report=report)
-        return self.render('select_switch.html', form=form)
+        return self.render('select_switch.html', form=form, report=report)
 
 
 class About(BaseView):
