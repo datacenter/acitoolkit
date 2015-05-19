@@ -32,7 +32,8 @@ from acitoolkitvisualizationslib import *
 from acitoolkit.acitoolkitlib import Credentials
 
 description = 'Simple set of visualization examples.'
-creds = Credentials(('mysql'), description)
+#creds = Credentials(('mysql'), description)
+creds = Credentials(['mysql', 'server'], description)
 args = creds.get()
 
 app = flask.Flask(__name__)
@@ -82,4 +83,5 @@ def endpoint_epg_tree():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    #app.run(debug=True)
+    app.run(debug=True, host=args.ip, port=int(args.port))

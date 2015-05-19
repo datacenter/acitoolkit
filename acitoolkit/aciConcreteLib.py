@@ -2221,6 +2221,8 @@ class ConcreteOverlay(BaseACIPhysObject):
         """
         super(ConcreteOverlay, self).__init__(name='', parent=parent)
         self.attr = {}
+        #adding VPC VTEP info to the Overlay Class
+        self.attr['vpc_tep_ip']= None
         self.tunnels = []
 
     @classmethod
@@ -2235,6 +2237,12 @@ class ConcreteOverlay(BaseACIPhysObject):
         data = top.get_class('tunnelIf')
         ovly = cls()
         tunnels = []
+
+        ###Adding the VPC VTEP to the list to help figure Tunnel endpoints
+        if parent.vpc_info:
+            if parent.vpc_info['oper_state']=='active':
+                ovly.attr['vpc_tep_ip']=parent.vpc_info['vtep_ip'].split('/')[0]
+
         for obj in data:
             if 'tunnelIf' in obj:
                 tunnels.append(ovly._populate_from_attributes(obj['tunnelIf']['attributes']))
@@ -2280,11 +2288,13 @@ class ConcreteOverlay(BaseACIPhysObject):
         """
         result = []
         for ovly in overlay:
-            headers = ['Source TEP address:',
+            headers = ['Source VPC TEP address',
+                       'Source TEP address:',
                        'IPv4 Proxy address:',
                        'IPv6 Proxy address:',
                        'MAC Proxy address:']
-            table = [[ovly.attr.get('src_tep_ip', ''),
+            table = [[ovly.attr.get('vpc_tep_ip', ''),
+                      ovly.attr.get('src_tep_ip', ''),
                       ovly.attr.get('proxy_ip_v4', ''),
                       ovly.attr.get('proxy_ip_v6', ''),
                       ovly.attr.get('proxy_ip_mac', '')]]
