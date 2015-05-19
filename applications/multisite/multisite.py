@@ -161,6 +161,25 @@ class MultisiteMonitor(threading.Thread):
         print 'handle_consumed_contract_event'
         return self.handle_contract_relation_event(event, False)
 
+    def _remove_contracts_from_json(self, tenant_json):
+        # Remove the contracts
+        for child in tenant_json['fvTenant']['children']:
+            if 'vzBrCP' in child:
+                tenant_json['fvTenant']['children'].remove(child)
+
+    def get_remote_sites_using_epg(self, epg):
+        remote_sites = []
+        app = epg.get_parent()
+        tenant = app.get_parent()
+        epg_db = self._local_site.epg_db
+        contract_db = self._local_site.contract_db
+        epgdb_entries = epg_db.find_entries(tenant.name, app.name, epg.name)
+        for epgdb_entry in epgdb_entries:
+            contract_db_entry = contract_db.find_entry(tenant.name, epgdb_entry.contract_name)
+            for remote_site in contract_db_entry.remote_sites:
+                remote_sites.append(remote_site)
+        return remote_sites
+
     def handle_endpoint_event(self):
         ep = Endpoint.get_event(self._session)
         epg = ep.get_parent()
@@ -172,8 +191,30 @@ class MultisiteMonitor(threading.Thread):
         tenant = app.get_parent()
         if ep.is_deleted():
             print 'Endpoint has been deleted'
-            # TODO Implement this
-            pass
+            remote_sites = self.get_remote_sites_using_epg(epg)
+            for remote_site in remote_sites:
+                tenant = Tenant(tenant.name)
+                network = OutsideNetwork(ep.name)
+                outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant.name, remote_site)
+                if outside_epg_name is None:
+                    # Likely, a site that is not up yet or old config
+                    return
+                outside = OutsideEPG(outside_epg_name, tenant)
+                outside.networks.append(network)
+                tenant_json = tenant.get_json()
+                self._remove_contracts_from_json(tenant_json)
+                # Manually go in and delete the l3extInstP
+                l3extInstP = tenant_json['fvTenant']['children'][0]['l3extOut']['children'][0]['l3extInstP']
+                l3extInstP['attributes']['status'] = 'deleted'
+                for child in l3extInstP['children']:
+                    l3extInstP['children'].remove(child)
+                remote_site_obj = self._local_site.my_collector.get_site(remote_site)
+                if remote_site_obj is not None:
+                    remote_session = remote_site_obj.session
+                    resp = remote_session.push_to_apic(tenant.get_url(), tenant_json)
+                    print 'Pushed Endpoint delete to remote site', tenant_json
+                    print resp, resp.text
+            return # Done handling deleted Endpoint
         # Need to push this to the remote sites
         remote_contracts = {}
         epgdb_entries = self._local_site.epg_db.find_entries(tenant.name, app.name, epg.name)
@@ -191,6 +232,7 @@ class MultisiteMonitor(threading.Thread):
         for remote_site in remote_contracts:
             tenant = Tenant(tenant.name)
             network = OutsideNetwork(ep.ip + '/32')
+            network.name = ep.mac
             for contract in remote_contracts[remote_site]['provides']:
                 network.provide(Contract(contract, tenant))
             for contract in remote_contracts[remote_site]['consumes']:
@@ -203,9 +245,7 @@ class MultisiteMonitor(threading.Thread):
             outside.networks.append(network)
             tenant_json = tenant.get_json()
             # Remove the contracts
-            for child in tenant_json['fvTenant']['children']:
-                if 'vzBrCP' in child:
-                    tenant_json['fvTenant']['children'].remove(child)
+            self._remove_contracts_from_json(tenant_json)
             self._local_site.contract_collector._rename_classes(tenant_json)
             remote_site_obj = self._local_site.my_collector.get_site(remote_site)
             if remote_site_obj is not None:
