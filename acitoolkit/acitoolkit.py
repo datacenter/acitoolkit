@@ -1,6 +1,6 @@
 ###############################################################################
-#                                  _    ____ ___                              #
-#                                 / \  / ___|_ _|                             #
+# _    ____ ___                              #
+# / \  / ___|_ _|                             #
 #                                / _ \| |    | |                              #
 #                               / ___ \ |___ | |                              #
 #                         _____/_/   \_\____|___|_ _                          #
@@ -30,6 +30,8 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
+import sys
+from aciTable import Table
 from .aciphysobject import Interface
 from .acibaseobject import BaseACIObject, BaseRelation, BaseInterface
 from .acisession import Session
@@ -58,6 +60,7 @@ class Tenant(BaseACIObject):
     object model.  In the APIC model, this class is roughly equivalent to
     the fvTenant class.
     """
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -126,7 +129,7 @@ class Tenant(BaseACIObject):
         :returns: Requests Response code
         """
         resp = session.push_to_apic(self.get_url(),
-                                    self.get_json())
+            self.get_json())
         return resp
 
     @classmethod
@@ -213,6 +216,25 @@ class Tenant(BaseACIObject):
         """
         return '/api/mo/uni.' + fmt
 
+    @staticmethod
+    def get_table(tenants, title=''):
+        """
+        Will create table of switch context information
+        :param title:
+        :param tenants:
+        """
+
+        headers = ['Tenant', 'Description']
+        data = []
+        for tenant in sorted(tenants):
+            data.append([
+                tenant.name,
+                tenant.descr])
+
+        data = sorted(data)
+        table = Table(data, headers, title=title + 'Tenant')
+        return [table, ]
+
 
 class AppProfile(BaseACIObject):
     """
@@ -220,6 +242,7 @@ class AppProfile(BaseACIObject):
     the acitoolkit object model.  In the APIC model, this class is roughly
     equivalent to the fvAp class.
     """
+
     def __init__(self, name, parent):
         """
         :param name: String containing the Application Profile name
@@ -295,12 +318,37 @@ class AppProfile(BaseACIObject):
     def _get_url_extension(self):
         return '/ap-%s' % self.name
 
+    @staticmethod
+    def get_table(app_profiles, title=''):
+        """
+        Will create table of app_profile information for a given tenant
+        :param title:
+        :param app_profiles:
+        """
+        result = []
+        headers = ['Tenant', 'App Profile', 'Description',
+                   'EPGs']
+
+        data = []
+        for app_profile in sorted(app_profiles, key=lambda x: (x.name)):
+            data = []
+            for epg in sorted(app_profile.get_children(EPG), key=lambda x: x.name):
+                data.append([
+                    app_profile.get_parent().name,
+                    app_profile.name,
+                    app_profile.descr,
+                    epg.name,
+                ])
+            result.append(Table(data, headers, title=title + 'Application Profile: {0}'.format(app_profile.name)))
+        return result
+
 
 class L2Interface(BaseACIObject):
     """ The L2Interface class creates an logical L2 interface that can be\
         attached to a physical interface. This interface defines the L2\
         encapsulation i.e. VLAN, VXLAN, or NVGRE
     """
+
     def __init__(self, name, encap_type, encap_id, encap_mode=None):
         """
         :param name: String containing the L2Interface instance name
@@ -362,6 +410,7 @@ class CommonEPG(BaseACIObject):
     Base class for EPG and OutsideEPG.
     Not meant to be instantiated directly
     """
+
     def __init__(self, epg_name, parent=None):
         """
         :param epg_name: String containing the name of this EPG
@@ -478,11 +527,11 @@ class CommonEPG(BaseACIObject):
         children = []
         for contract in self.get_all_provided():
             text = {'fvRsProv': {'attributes': {'tnVzBrCPName':
-                                                contract.name}}}
+                                                    contract.name}}}
             children.append(text)
         for contract in self.get_all_consumed():
             text = {'fvRsCons': {'attributes': {'tnVzBrCPName':
-                                                contract.name}}}
+                                                    contract.name}}}
             children.append(text)
         return children
 
@@ -504,6 +553,7 @@ class CommonEPG(BaseACIObject):
 
 class EPG(CommonEPG):
     """ EPG :  roughly equivalent to fvAEPg """
+
     def __init__(self, epg_name, parent=None):
         """
         Initializes the EPG with a name and, optionally,
@@ -685,7 +735,7 @@ class EPG(CommonEPG):
         children = super(EPG, self)._get_common_json()
         if self.has_bd():
             text = {'fvRsBd': {'attributes': {'tnFvBDName':
-                                              self.get_bd().name}}}
+                                                  self.get_bd().name}}}
             children.append(text)
         is_interfaces = False
         for interface in self.get_interfaces():
@@ -693,8 +743,8 @@ class EPG(CommonEPG):
             encap_text = '%s-%s' % (interface.encap_type,
                                     interface.encap_id)
             text = {'fvRsPathAtt': {'attributes':
-                                    {'encap': encap_text,
-                                     'tDn': interface._get_path()}}}
+                                        {'encap': encap_text,
+                                         'tDn': interface._get_path()}}}
             if interface.encap_mode:
                 text['fvRsPathAtt']['attributes']['mode'] = interface.encap_mode
             if self._deployment_immediacy:
@@ -704,15 +754,15 @@ class EPG(CommonEPG):
             for ep in interface.get_all_attachments(Endpoint):
                 path = interface._get_path()
                 text = {'fvStCEp': {'attributes':
-                                    {'ip': ep.ip,
-                                     'mac': ep.mac,
-                                     'name': ep.name,
-                                     'encap': encap_text,
-                                     'type': 'silent-host'},
+                                        {'ip': ep.ip,
+                                         'mac': ep.mac,
+                                         'name': ep.name,
+                                         'encap': encap_text,
+                                         'type': 'silent-host'},
                                     'children': [{'fvRsStCEpToPathEp':
-                                                  {'attributes':
-                                                   {'tDn': path},
-                                                   'children': []}}]}}
+                                                      {'attributes':
+                                                           {'tDn': path},
+                                                       'children': []}}]}}
                 if ep.is_deleted():
                     text['fvStCEp']['attributes']['status'] = 'deleted'
                 children.append(text)
@@ -721,33 +771,88 @@ class EPG(CommonEPG):
             # attached any other domain
             if len(self.get_children(only_class=EPGDomain)) == 0:
                 text = {'fvRsDomAtt': {'attributes':
-                                       {'tDn': 'uni/phys-allvlans'}}}
+                                           {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
 
         is_vmms = False
         for vmm in self.get_all_attached(VMM):
             is_vmms = True
             text = {'fvRsDomAtt': {'attributes':
-                                   {'tDn': vmm._get_path(),
-                                    'resImedcy': 'immediate'}}}
+                                       {'tDn': vmm._get_path(),
+                                        'resImedcy': 'immediate'}}}
             children.append(text)
 
         for interface in self.get_interfaces('detached'):
             text = {'fvRsPathAtt': {'attributes':
-                                    {'encap': '%s-%s' % (interface.encap_type,
-                                                         interface.encap_id),
-                                     'status': 'deleted',
-                                     'tDn': interface._get_path()}}}
+                                        {'encap': '%s-%s' % (interface.encap_type,
+                                                             interface.encap_id),
+                                         'status': 'deleted',
+                                         'tDn': interface._get_path()}}}
             children.append(text)
         attr = self._generate_attributes()
         return super(EPG, self).get_json(self._get_apic_classes()[0],
                                          attributes=attr,
                                          children=children)
 
+    @staticmethod
+    def get_table(epgs, title=''):
+        """
+        Will create table of app_profile information for a given tenant
+        :param title:
+        :param app_profiles:
+        """
+
+        headers = ['Tenant', 'App Profile', 'EPG',
+                   'Context', 'Bridge Domain',
+                   'Provides', 'Consumes', 'Scope',
+                   'Class ID', 'Match Type',
+                   'Deployment Immed.']
+
+        data = []
+        for epg in sorted(epgs, key=lambda x: (x.name)):
+            context = 'None'
+            bd = 'None'
+            if epg.has_bd():
+                bd = epg.get_bd().name
+                if epg.get_bd().has_context():
+                    context = epg.get_bd().get_context().name
+            consumes = epg.get_all_consumed()
+            provides = epg.get_all_provided()
+
+            index_max = max(len(consumes), len(provides))
+            for index in range(index_max):
+                if index < len(consumes):
+                    consume = consumes[index]
+                else:
+                    consume = ''
+
+                if index < len(provides):
+                    provide = provides[index]
+                else:
+                    provide = ''
+
+                data.append([
+                    epg.get_parent().get_parent().name,
+                    epg.get_parent().name,
+                    epg.name,
+                    context,
+                    bd,
+                    provide,
+                    consume,
+                    'tbi',  # epg.scope,
+                    'tbi',  # epg.class_id,
+                    'tbi',  # epg.match_type,
+                    epg._deployment_immediacy,
+                ])
+        data = sorted(data)
+        table = Table(data, headers, title=title + 'EPGs')
+        return [table, ]
+
 
 class OutsideEPG(CommonEPG):
     """Represents the EPG for external connectivity
     """
+
     def __init__(self, epg_name, parent=None):
         """
         :param epg_name: String containing the name of this OutsideEPG
@@ -790,7 +895,7 @@ class OutsideEPG(CommonEPG):
         """
         children = []
         context = {'l3extRsEctx': {'attributes': {'tnFvCtxName':
-                                                  self.context_name},
+                                                      self.context_name},
                                    'children': []}}
         children.append(context)
         for interface in self.get_interfaces():
@@ -832,6 +937,7 @@ class L3Interface(BaseACIObject):
     Creates an L3 interface that can be attached to an L2 interface.
     This interface defines the L3 address i.e. IPv4
     """
+
     def __init__(self, name):
         """
         :param name:  String containing the name of this L3Interface object.
@@ -950,14 +1056,14 @@ class L3Interface(BaseACIObject):
         :returns: json dictionary of L3Interface
         """
         text = {'l3extRsPathL3OutAtt':
-                {'attributes':
-                 {'encap': '%s-%s' % (self.get_interfaces()[0].encap_type,
-                                      self.get_interfaces()[0].encap_id),
-                  'ifInstT': self.get_l3if_type(),
-                  'addr': self.get_addr(),
-                  'mtu': self.get_mtu(),
-                  'tDn': self.get_interfaces()[0]._get_path()},
-                 'children': []}}
+                    {'attributes':
+                         {'encap': '%s-%s' % (self.get_interfaces()[0].encap_type,
+                                              self.get_interfaces()[0].encap_id),
+                          'ifInstT': self.get_l3if_type(),
+                          'addr': self.get_addr(),
+                          'mtu': self.get_mtu(),
+                          'tDn': self.get_interfaces()[0]._get_path()},
+                     'children': []}}
         return text
 
 
@@ -965,6 +1071,7 @@ class OSPFInterfacePolicy(BaseACIObject):
     """
     Represents the interface settings of an OSPF interface
     """
+
     def __init__(self, name, parent=None):
         """
         param name: String containing the name of this OSPF interface policy
@@ -1046,6 +1153,7 @@ class OSPFRouter(BaseACIObject):
     """
     Represents the global settings of the OSPF Router
     """
+
     def __init__(self, name):
         """
         :param name:  String containing the name of this OSPFRouter object.
@@ -1100,6 +1208,7 @@ class OSPFInterface(BaseACIObject):
     Creates an OSPF router interface that can be attached to a L3 interface.
     This interface defines the OSPF area, authentication, etc.
     """
+
     def __init__(self, name, router=None, area_id=None):
         """
         :param name:  String containing the name of this OSPFInterface object.
@@ -1160,6 +1269,7 @@ class BGPSession(BaseACIObject):
     Creates an BGP router interface that can be attached to a L3 interface.
     This interface defines the BGP AS, authentication, etc.
     """
+
     def __init__(self, name, router_id=None, peer_ip=None, node_id=None):
         """
         :param name:  String containing the name of this BGPSession object.
@@ -1220,6 +1330,7 @@ class BridgeDomain(BaseACIObject):
     """
     BridgeDomain :  roughly equivalent to fvBD
     """
+
     def __init__(self, bd_name, parent=None):
         """
         :param bd_name:  String containing the name of this BridgeDomain\
@@ -1277,7 +1388,7 @@ class BridgeDomain(BaseACIObject):
         children = []
         if self.has_context():
             text = {'fvRsCtx': {'attributes':
-                                {'tnFvCtxName': self.get_context().name}}}
+                                    {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
@@ -1405,9 +1516,54 @@ class BridgeDomain(BaseACIObject):
     def _get_url_extension(self):
         return '/BD-%s' % self.name
 
+    @staticmethod
+    def get_table(bridge_domains, title=''):
+        """
+        Will create table of context information
+        :param title:
+        :param bridge_domains:
+        """
+
+        headers = ['Tenant',
+                   'Context',
+                   'Bridge Domain',
+                   'Subnets',
+                   'VNID',
+                   'Scope',
+                   'Class ID',
+                   'Known Multicast', 'Modified Time',
+                   ]
+        data = []
+        for bridge_domain in sorted(bridge_domains):
+            context = 'Unset'
+            if bridge_domain.has_context():
+                context = bridge_domain.get_context().name
+
+            subnets = bridge_domain.get_subnets()
+            subnet_str = []
+            for subnet in subnets:
+                subnet_str.append(subnet.get_addr())
+
+            data.append([
+                bridge_domain.get_parent().name,
+                context,
+                bridge_domain.name,
+                ', '.join(subnet_str),
+                'tbi',  # context.vnid,
+                'tbi',  # context.scope,
+                'tbi',  # context.class_id,
+                'tbi',  # context.known_mcast,
+                'tbi',  # context.modified_time
+            ])
+
+        data = sorted(data)
+        table = Table(data, headers, title=title + 'Bridge Domains')
+        return [table, ]
+
 
 class Subnet(BaseACIObject):
     """ Subnet :  roughly equivalent to fvSubnet """
+
     def __init__(self, subnet_name, parent=None):
         """
         :param subnet_name: String containing the name of this Subnet instance.
@@ -1512,6 +1668,7 @@ class Subnet(BaseACIObject):
 
 class Context(BaseACIObject):
     """ Context :  roughly equivalent to fvCtx """
+
     def __init__(self, context_name, parent=None):
         """
         :param context_name: String containing the Context name
@@ -1636,9 +1793,41 @@ class Context(BaseACIObject):
         return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
                                  tenant, tenant)
 
+    @staticmethod
+    def get_table(contexts, title=''):
+        """
+        Will create table of context information
+        :param title:
+        :param contexts:
+        """
+
+        headers = ['Tenant',
+                   'Context',
+                   'VNID', 'Scope', 'Class ID',
+                   'Allow All',
+                   'Known Multicast', 'Modified Time',
+                   ]
+        data = []
+        for context in sorted(contexts):
+            data.append([
+                'tbi',  # context.tenant,
+                context.name,
+                'tbi',  # context.vnid,
+                'tbi',  # context.scope,
+                'tbi',  # context.class_id,
+                context.allow_all,
+                'tbi',  # context.known_mcast,
+                'tbi',  # context.modified_time
+            ])
+
+        data = sorted(data)
+        table = Table(data, headers, title=title + 'Context')
+        return [table, ]
+
 
 class BaseContract(BaseACIObject):
     """ BaseContract :  Base class for Contracts and Taboos """
+
     def __init__(self, contract_name, parent=None):
         super(BaseContract, self).__init__(contract_name, parent)
         self._scope = 'context'
@@ -1736,7 +1925,7 @@ class BaseContract(BaseACIObject):
             subject = {subj_code: {'attributes': {'name': subject_name}}}
             filt_name = subject_name
             filt = {subj_relation_code:
-                    {'attributes': {'tnVzFilterName': filt_name}}}
+                        {'attributes': {'tnVzFilterName': filt_name}}}
             subject[subj_code]['children'] = [filt]
             subjects.append(subject)
         contract[self._get_contract_code()]['children'] = subjects
@@ -1750,6 +1939,7 @@ class BaseContract(BaseACIObject):
 
 class Contract(BaseContract):
     """ Contract :  Class for Contracts """
+
     def __init__(self, contract_name, parent=None):
         super(Contract, self).__init__(contract_name, parent)
 
@@ -1817,9 +2007,32 @@ class Contract(BaseContract):
         return BaseACIObject.get(session, cls, cls._get_contract_code(),
                                  tenant, tenant)
 
+    @staticmethod
+    def get_table(contracts, title=''):
+        """
+        Will create of each contract
+        :param title:
+        :param contracts:
+        """
+        result = []
+        headers = ['Tenant', 'Contract', 'Scope', 'Filter']
+        for contract in sorted(contracts, key=lambda x: (x.name)):
+            data = []
+            for filter in contract.get_children(FilterEntry):
+                data.append([
+                    contract.get_parent().name,
+                    contract.name,
+                    contract.get_scope(),
+                    filter.name,
+                ])
+
+            result.append(Table(data, headers, title=title + 'Contract:{0}'.format(contract.name)))
+        return result
+
 
 class Taboo(BaseContract):
     """ Taboo :  Class for Taboos """
+
     def __init__(self, contract_name, parent=None):
         super(Taboo, self).__init__(contract_name, parent)
 
@@ -1849,9 +2062,31 @@ class Taboo(BaseContract):
         name = dn.split('/taboo-')[1].split('/')[0]
         return name
 
+    @staticmethod
+    def get_table(taboos, title=''):
+        """
+        Will create table of taboo information for a given tenant
+        :param title:
+        :param taboos:
+        """
+
+        result = []
+        headers = ['Tenant', 'Taboo', 'Scope']
+        data = []
+        for taboo in sorted(taboos, key=lambda x: (x.name)):
+            data.append([
+                taboo.get_parent().name,
+                taboo.name,
+                taboo.get_scope(),
+            ])
+
+            result.append(Table(data, headers, title=title + 'Taboo:{0}'.format(taboo.name)))
+        return result
+
 
 class FilterEntry(BaseACIObject):
     """ FilterEntry :  roughly equivalent to vzEntry """
+
     def __init__(self, name, parent, applyToFrag='0', arpOpc='0',
                  dFromPort='0', dToPort='0', etherT='0', prot='0',
                  sFromPort='0', sToPort='0', tcpRules='0'):
@@ -1956,7 +2191,10 @@ class FilterEntry(BaseACIObject):
             dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
             tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
             tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
-            if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class)-1:] == dn.split('/')[3][5:] and dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
+            if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class) - 1:] == dn.split('/')[3][
+                                                                                                 5:] and dn.split('/')[
+                                                                                                             3][5:] == \
+                    tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
                 name = str(object_data[apic_class]['attributes']['tRn'][4:])
                 if name[:len(parent.name)] == parent.name and name[len(parent.name):] != '':
                     obj = cls(name[len(parent.name):], parent)
@@ -1980,9 +2218,70 @@ class FilterEntry(BaseACIObject):
         entry._extract_attributes(attributes)
         return entry
 
+    @staticmethod
+    def get_table(filters, title=''):
+        """
+        Will create table of filter information for a given tenant
+        :param title:
+        :param filters:
+        """
+
+        headers = ['Filter', 'EtherType',
+                   'Protocol', 'Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags', 'Apply to Fragment']
+
+        data = []
+        for filter in sorted(filters, key=lambda x: (x.name)):
+            data.append([
+                filter.name,
+                filter.etherT,
+                filter.prot,
+                filter.arpOpc,
+                FilterEntry._get_port(filter.dFromPort, filter.dToPort),
+                FilterEntry._get_port(filter.sFromPort, filter.sToPort),
+                filter.tcpRules,
+                filter.applyToFrag,
+            ])
+        data = sorted(data)
+        table = Table(data, headers, title=title + 'Filters')
+        return [table, ]
+
+    @staticmethod
+    def _get_port(from_port, to_port):
+        """
+        will build a string that is a port range or a port number
+        depending upon the from_port and to_port value
+        """
+        if from_port == to_port:
+            return str(from_port)
+        return '{0}-{1}'.format(str(from_port), str(to_port))
+
+    def __eq__(self, other):
+        if type(self) is not type(other):
+            return False
+        if self.applyToFrag != other.applyToFrag:
+            return False
+        if self.arpOpc != other.arpOpc:
+            return False
+        if self.dFromPort != other.dFromPort:
+            return False
+        if self.dToPort != other.dToPort:
+            return False
+        if self.etherT != other.etherT:
+            return False
+        if self.prot != other.prot:
+            return False
+        if self.sFromPort != other.sFromPort:
+            return False
+        if self.sToPort != other.sToPort:
+            return False
+        if self.tcpRules != other.tcpRules:
+            return False
+        return True
+
 
 class TunnelInterface(object):
     """This class describes a tunnel interface"""
+
     def __init__(self, if_type, pod, node, tunnel):
         self.interface_type = str(if_type)
         self.pod = str(pod)
@@ -1994,6 +2293,7 @@ class TunnelInterface(object):
 
 class FexInterface(object):
     """This class describes a physical interface on a FEX device"""
+
     def __init__(self, if_type, pod, node, fex, module, port):
         self.interface_type = str(if_type)
         self.pod = str(pod)
@@ -2010,6 +2310,7 @@ class InterfaceFactory(object):
     """
     Factory class to generate interface objects
     """
+
     @classmethod
     def create_from_dn(cls, dn):
         """
@@ -2074,6 +2375,7 @@ class PortChannel(BaseInterface):
     """
     This class defines a port channel interface.
     """
+
     def __init__(self, name):
         super(PortChannel, self).__init__(name)
         self._interfaces = []
@@ -2169,9 +2471,9 @@ class PortChannel(BaseInterface):
             infra['infraInfra']['children'].append(accport_selector)
         # Add the actual port-channel
         accbndlgrp = {'infraAccBndlGrp':
-                      {'attributes':
-                       {'name': self.name, 'lagT': pc_mode},
-                       'children': []}}
+                          {'attributes':
+                               {'name': self.name, 'lagT': pc_mode},
+                           'children': []}}
         if self.is_deleted():
             accbndlgrp['infraAccBndlGrp']['attributes']['status'] = 'deleted'
         infrafuncp = {'infraFuncP': {'attributes': {},
@@ -2194,11 +2496,11 @@ class PortChannel(BaseInterface):
             fabric_node = {'fabricNodePEp': {'attributes': {'id': node}}}
             fabric_nodes.append(fabric_node)
         fabric_group = {'fabricExplicitGEp':
-                        {'attributes':
-                         {'name': 'vpc' + unique_id, 'id': unique_id},
-                         'children': fabric_nodes}}
+                            {'attributes':
+                                 {'name': 'vpc' + unique_id, 'id': unique_id},
+                             'children': fabric_nodes}}
         fabric_prot_pol = {'fabricProtPol': {'attributes':
-                                             {'name': 'vpc' + unique_id},
+                                                 {'name': 'vpc' + unique_id},
                                              'children': [fabric_group]}}
 
         return fabric_prot_pol, infra
@@ -2225,6 +2527,7 @@ class Endpoint(BaseACIObject):
     """
     Endpoint class
     """
+
     def __init__(self, name, parent):
         if not isinstance(parent, EPG):
             raise TypeError('Parent must be of EPG class')
@@ -2400,11 +2703,49 @@ class Endpoint(BaseACIObject):
 
         return endpoints
 
+    @staticmethod
+    def get_table(endpoints, title=''):
+        """
+        Will create table of taboo information for a given tenant
+        :param title:
+        :param endpoints:
+        """
+
+        result = []
+        headers = ['Tenant', 'Context', 'Bridge Domain', 'App Profile', 'EPG', 'Name', 'MAC', 'IP', 'Interface',
+                   'Encap']
+        data = []
+        for endpoint in sorted(endpoints, key=lambda x: (x.name)):
+            epg = endpoint.get_parent()
+            bd = 'Not Set'
+            context = 'Not Set'
+            if epg.has_bd():
+                bd = epg.get_bd().name
+                if epg.get_bd().has_context():
+                    context = epg.get_bd().get_context().name
+
+            data.append([
+                endpoint.get_parent().get_parent().get_parent().name,
+                context,
+                bd,
+                endpoint.get_parent().get_parent().name,
+                endpoint.get_parent().name,
+                endpoint.name,
+                endpoint.mac,
+                endpoint.ip,
+                endpoint.if_name,
+                endpoint.encap
+            ])
+        data = sorted(data, key=lambda x: (x[1], x[2], x[3], x[4]))
+        result.append(Table(data, headers, title=title + 'Endpoints'))
+        return result
+
 
 class PhysDomain(BaseACIObject):
     """
     Physical Network domain
     """
+
     def __init__(self, name, parent):
         """
         :param name: String containing the PhysDomain name
@@ -2523,6 +2864,7 @@ class VmmDomain(BaseACIObject):
     """
     VMMDomain class
     """
+
     def __init__(self, name, parent):
         """
         :param name: String containing the VMM Domain name
@@ -2643,6 +2985,7 @@ class L2ExtDomain(BaseACIObject):
     """
     L2ExtDomain class
     """
+
     def __init__(self, name, parent):
         """
         :param name: String containing the L2ExtDomain name
@@ -2765,6 +3108,7 @@ class L3ExtDomain(BaseACIObject):
     """
     L3ExtDomain class
     """
+
     def __init__(self, name, parent):
         """
         :param name: String containing the name of the external routed domain
@@ -2888,6 +3232,7 @@ class EPGDomain(BaseACIObject):
     """
     EPGDomain class
     """
+
     def __init__(self, name, parent):
         """
         :param name: String containing the name of a source relation to an
@@ -3099,6 +3444,7 @@ class EPGDomain(BaseACIObject):
 class NetworkPool(BaseACIObject):
     """This class defines a pool of network ids
     """
+
     def __init__(self, name, encap_type, start_id, end_id, mode):
         super(NetworkPool, self).__init__(name)
         valid_encap_types = ['vlan', 'vxlan']
@@ -3135,6 +3481,7 @@ class VMMCredentials(BaseACIObject):
     """This class defines the credentials used to login to a Virtual
        Machine Manager
     """
+
     def __init__(self, name, uid, pwd):
         super(VMMCredentials, self).__init__(name)
         self.uid = uid
@@ -3152,6 +3499,7 @@ class VMMvSwitchInfo(object):
     """This class contains the information necessary for creating the
        vSwitch on the Virtual Machine Manager
     """
+
     def __init__(self, vendor, container_name, vswitch_name):
         valid_vendors = ['VMware', 'Microsoft']
         if vendor not in valid_vendors:
@@ -3165,6 +3513,7 @@ class VMM(BaseACIObject):
     """This class defines an instance of connectivity to a
        Virtual Machine Manager (such as VMware vCenter)
     """
+
     def __init__(self, name, ipaddr, credentials, vswitch_info, network_pool):
         super(VMM, self).__init__(name)
         self.ipaddr = ipaddr
@@ -3229,6 +3578,7 @@ class Search(BaseACIObject):
        all objects with matching attributes in the object hierarchy at and
        below where the find is invoked.
     """
+
     def __init__(self):
         pass
 
@@ -3237,6 +3587,7 @@ class BaseMonitorClass(object):
     """ Base class for monitoring policies.  These are methods that can be
         used on all monitoring objects.
     """
+
     def set_name(self, name):
         """
         Sets the name of the MonitorStats.
@@ -3380,6 +3731,7 @@ class MonitorPolicy(BaseMonitorClass):
 
     A description may be optionally added to the policy.
     """
+
     def __init__(self, policyType, name):
         """
         The MonitorPolicy is initialized with simply a policy type and a name.
@@ -3571,10 +3923,12 @@ class MonitorPolicy(BaseMonitorClass):
         :returns: Dictionary of statistic administrative state and retentions
                   indexed by counter family and granularity.
         """
+
         class Policy(object):
             """
             Policy class
             """
+
             def __init__(self):
                 self.adminState = 'disabled'
                 self.retention = 'none'
@@ -3653,6 +4007,7 @@ class MonitorTarget(BaseMonitorClass):
     "monitor_stats" that is indexed by the name of the statistics family,
     e.g. 'ingrBytes', 'ingrPkts', etc.
     """
+
     def __init__(self, parent, target):
         """
         The MonitorTarget object is initialized with a parent of type
@@ -3905,6 +4260,7 @@ class LogicalModel(BaseACIObject):
 
     From this class, you can populate all of the children classes.
     """
+
     def __init__(self, session=None, parent=None):
         """
         Initialization method that sets up the Fabric.
