@@ -1432,7 +1432,7 @@ class ConcreteFilter(BaseACIPhysObject):
         result = []
 
         headers = ['Filter', 'Entry #', 'EtherType',
-                   'Protocol/Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags', 'Priority']
+                   'Protocol/Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags', 'Apply to Frag', 'Priority']
 
         table = []
         for acc_filter in sorted(data, key=lambda x: (x.attr['id'])):
@@ -1450,6 +1450,7 @@ class ConcreteFilter(BaseACIPhysObject):
                               dst_port,
                               src_port,
                               sorted_entry.attr.get('tcp_rules', ''),
+                              sorted_entry.attr.get('apply_to_frag', ''),
                               sorted_entry.attr.get('relative_priority', '')])
         result.append(Table(table, headers, title=title + 'Access Filters'))
         return result
