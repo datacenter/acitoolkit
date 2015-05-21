@@ -192,15 +192,6 @@ class BaseACIObject(AciSearch):
         """
         return {}
 
-    def _extract_attributes(self, attributes):
-        """
-        Used internally by get_deep to populate the attributes
-        Will be overridden when necessary
-
-        :param attributes: data to extract attributes from
-        """
-        pass
-
     def _extract_relationships(self, data):
         """
         Used internally by get_deep to populate the relationships
@@ -286,8 +277,9 @@ class BaseACIObject(AciSearch):
         for item in working_data:
             for key in item:
                 if key in cls._get_apic_classes():
-                    obj = cls(str(item[key]['attributes']['name']), parent)
-                    obj._extract_attributes(item[key]['attributes'])
+                    attribute_data = item[key]['attributes']
+                    obj = cls(str(attribute_data['name']), parent)
+                    obj._populate_from_attributes(attribute_data)
                     if 'children' in item[key]:
                         for child in item[key]['children']:
                             for apic_class in child:

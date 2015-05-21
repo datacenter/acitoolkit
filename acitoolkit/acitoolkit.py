@@ -1487,9 +1487,6 @@ class Subnet(BaseACIObject):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.set_addr(attributes.get('ip'))
-
-    def _extract_attributes(self, attributes):
         self.set_addr(str(attributes.get('ip')))
 
     @classmethod
@@ -1559,16 +1556,6 @@ class Context(BaseACIObject):
     def _get_name_from_dn(dn):
         return dn.split('/ctx-')[1].split('/')[0]
 
-    @staticmethod
-    def _get_tenant_from_dn(dn):
-        """
-        Get the tenant name from the DN
-
-        :param dn: String containing the DN
-        :return: string containing the tenant name
-        """
-        return dn.split('/tn-')[1].split('/')[0]
-
     def _populate_from_attributes(self, attributes):
         """
         Sets the attributes when creating objects from the APIC.
@@ -1581,11 +1568,7 @@ class Context(BaseACIObject):
         self.class_id = attributes.get('pcTag')
         self.scope = attributes.get('scope')
         self.vnid = attributes.get('seg')
-        self._extract_attributes(attributes)
-        self.tenant = self._get_tenant_from_dn(attributes.get('dn'))
-
-    def _extract_attributes(self, attributes):
-        if attributes['pcEnfPref'] == 'unenforced':
+        if attributes.get('pcEnfPref') == 'unenforced':
             allow_all = True
         else:
             allow_all = False
@@ -1900,7 +1883,7 @@ class FilterEntry(BaseACIObject):
         attributes['tcpRules'] = self.tcpRules
         return attributes
 
-    def _extract_attributes(self, attributes):
+    def _populate_from_attributes(self, attributes):
         self.applyToFrag = str(attributes['applyToFrag'])
         self.arpOpc = str(attributes['arpOpc'])
         self.dFromPort = str(attributes['dFromPort'])
@@ -1977,7 +1960,7 @@ class FilterEntry(BaseACIObject):
         attributes = data['vzEntry']['attributes']
         entry = cls(name=str(attributes.get('name')),
                     parent=parent)
-        entry._extract_attributes(attributes)
+        entry._populate_from_attributes(attributes)
         return entry
 
 
