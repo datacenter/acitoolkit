@@ -1713,6 +1713,17 @@ class Context(BaseACIObject):
     def _get_name_from_dn(dn):
         return dn.split('/ctx-')[1].split('/')[0]
 
+    @staticmethod
+    def _get_tenant_from_dn(dn):
+        """
+        Get the tenant name from the DN
+
+        :param dn: String containing the DN
+        :return: string containing the tenant name
+        """
+        return dn.split('/tn-')[1].split('/')[0]
+
+
     def _populate_from_attributes(self, attributes):
         """
         Sets the attributes when creating objects from the APIC.
@@ -1725,6 +1736,11 @@ class Context(BaseACIObject):
         self.class_id = attributes.get('pcTag')
         self.scope = attributes.get('scope')
         self.vnid = attributes.get('seg')
+        dn = attributes.get('dn')
+        if dn is not None:
+            self.tenant = self._get_tenant_from_dn(dn)
+        else:
+            self.tenant = None
         if attributes.get('pcEnfPref') == 'unenforced':
             allow_all = True
         else:
