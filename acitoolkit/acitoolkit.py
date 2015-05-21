@@ -2194,10 +2194,21 @@ class FilterEntry(BaseACIObject):
                                                                                                  5:] and dn.split('/')[
                                                                                                              3][5:] == \
                     tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
-                name = str(object_data[apic_class]['attributes']['tRn'][4:])
-                if name[:len(parent.name)] == parent.name and name[len(parent.name):] != '':
-                    obj = cls(name[len(parent.name):], parent)
-                    attribute_data = object_data[apic_class]['attributes']
+                filter_name = str(object_data[apic_class]['attributes']['tRn'][4:])
+                contract_name = filter_name[:len(parent.name)]
+                entry_name = filter_name[len(parent.name):]
+                if contract_name == parent.name and entry_name != '':
+                    query_url = ('/api/mo/uni%s/flt-%s.json?query-target=subtree&'
+                                 'target-subtree-class=vzEntry&'
+                                 'query-target-filter=eq(vzEntry.name,"%s")' % (tenant_url, filter_name, entry_name))
+                    ret = session.get(query_url)
+                    data = ret.json()['imdata']
+                    if len(data) == 0:
+                        continue
+                    logging.debug('response returned %s', data)
+                    resp = []
+                    obj = cls(entry_name, parent)
+                    attribute_data = data[0]['vzEntry']['attributes']
                     obj._populate_from_attributes(attribute_data)
                     resp.append(obj)
         return resp
