@@ -56,6 +56,7 @@ class ReportDB(object):
         self._session = None
         self.resp = None
         self.built_switches = {}
+        self.built_tenants = {}
         self.args = None
         self.timeout = 2
         self.switches = {}
@@ -92,6 +93,18 @@ class ReportDB(object):
             result.append(s_tuple)
         return sorted(result, key=lambda x: x[0])
 
+    def get_tenants(self):
+        """
+        Return list of tenant names
+        :return:
+        """
+        result = []
+        tenants = ACI.Tenant.get(self.session)
+        for tenant in tenants:
+            result.append((tenant.name, tenant.name))
+        return result
+
+
     def get_switch_summary(self):
         """
 
@@ -100,8 +113,8 @@ class ReportDB(object):
         tables = ACI_PHYS.Node.get_table(self.all_switches)
         return tables
 
-    def get_reports(self):
-
+    @staticmethod
+    def get_switch_reports():
 
         return [('basic', 'Basic'),
                 ('supervisorcard', 'Supervisor Card'),
@@ -116,6 +129,19 @@ class ReportDB(object):
                 ('accessrule', 'Access Rule'),
                 ('arp', 'ARP'),
                 ('portchannel', 'Port Channel (incl. VPC)')]
+
+    @staticmethod
+    def get_tenant_reports():
+
+        return [('context', 'Context'),
+                ('bridgedomain', 'Bridge Domain'),
+                ('contract', 'Contract'),
+                ('taboo', 'Taboo'),
+                ('filter', 'Filter'),
+                ('app_profile', 'Application Profile'),
+                ('epg', 'Endpoint Group'),
+                ('endpoint', 'Endpoint'),
+                ]
 
     def build_switch(self, switch_id=None):
         """
@@ -171,6 +197,48 @@ class ReportDB(object):
         result['portchannel'] = self.load_table(switch, ACI_CON.ConcretePortChannel)
         result['portchannel'].extend(self.load_table(switch, ACI_CON.ConcreteVpc))
         result['overlay'] = self.load_table(switch, ACI_CON.ConcreteOverlay)
+
+        return result
+
+    def build_tenant(self, tenant_name=None):
+        """
+        Will build table data structure for a tenant
+        :param tenant_name:
+        """
+        result = {}
+        tenant = ACI.Tenant.get_deep(self.session, names=[tenant_name])[0]
+        child_name_object_map = {ACI.Context:'context',
+                                 ACI.BridgeDomain:'bridgedomain',
+                                 ACI.Contract:'contract',
+                                 ACI.Taboo:'taboo',
+                                 ACI.AppProfile:'app_profile',
+                                 }
+
+        for tk_class in child_name_object_map:
+            key = child_name_object_map[tk_class]
+            objs = tenant.get_children(tk_class)
+            result[key] = tk_class.get_table(objs)
+
+        filters = []
+        contracts = tenant.get_children(ACI.Contract)
+        for contract in contracts:
+            filter_entry = contract.get_children(ACI.FilterEntry)
+            for filter in filter_entry:
+                if filter not in filters:
+                    filters.append(filter)
+        result['filter'] = ACI.FilterEntry.get_table(filters)
+
+        epgs = []
+        app_profiles = tenant.get_children(ACI.AppProfile)
+        for app_profile in app_profiles:
+            epgs.extend(app_profile.get_children(ACI.EPG))
+        result['epg'] = ACI.EPG.get_table(epgs)
+
+        endpoints = []
+        for epg in epgs:
+            endpoints.extend(epg.get_children(ACI.Endpoint))
+
+        result['endpoint'] = ACI.Endpoint.get_table(endpoints)
 
         return result
 
@@ -235,7 +303,7 @@ class ReportDB(object):
         data = ret.json()
         return data
 
-    def get_table(self, switch_id, report_id):
+    def get_switch_table(self, switch_id, report_id):
         """
         Will return a list of tables corresponding to the switch_id and report_id.
 
@@ -249,3 +317,16 @@ class ReportDB(object):
 
         return self.built_switches[switch_id][report_id]
 
+    def get_tenant_table(self, tenant_id, report_id):
+        """
+        Will cause the tenant info to be retrieved and then return the specified report
+
+        :param tenant_id:
+        :param report_id:
+        :return:
+        """
+
+        if tenant_id not in self.built_tenants:
+            tenant_record = self.build_tenant(tenant_id)
+            self.built_tenants[tenant_id] = tenant_record
+        return self.built_tenants[tenant_id][report_id]
