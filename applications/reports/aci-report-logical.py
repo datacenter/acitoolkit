@@ -153,10 +153,6 @@ def render_text_tenant(tenant):
         for table in tables:
             text_string += table.get_text(tablefmt='fancy_grid') + '\n'
 
-    #
-    #     if args.all or args.endpoint:
-    #         text_string += render_tables(tenant, ConcreteEp, title)
-    #
     return text_string
 
 
