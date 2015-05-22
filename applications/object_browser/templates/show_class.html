@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block body %}
+  <ul class=mo>
+    <table>
+      
+  {% for object in aciObjects %}
+      <tr>
+	<td align="right">{{ object[0] }}==</td>
+	<td><a href="{{ url_for('managed_object', mo=object[1])}}">{{ object[1] }}</td>
+      </tr>
+  {% endfor %}
+      </table>
+  </ul>
+{% endblock %}

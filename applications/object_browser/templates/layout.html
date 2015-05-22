@@ -1,0 +1,46 @@
+<!doctype html>
+<title>ACI</title>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<div class=page>
+  <h1>ACI Object Browser</h1>
+  {% for message in get_flashed_messages() %}
+    <div class=flash>{{ message }}</div>
+  {% endfor %}
+    <div align="right">
+    <form action="{{ url_for('history') }}" class=class-object>
+    <select name="history">
+      {% for hist in history %}
+         <option value={{ hist[0]+"?"+hist[1]|safe }}> {{ hist[0] }}:{{ hist[1] }}</option>
+      {% endfor %}
+    </select>
+    <input type=submit value="GoTo">
+    </form>
+    </div>
+    <hr>
+    <div style="clear: both;"></div>
+
+    <div style="float:left;">
+    <form action="{{ url_for('class_object') }}" method=post class=class-object>
+      <dl>
+        <dt>Class:
+        <dd><input type=text size=30 name=aciClass>
+        <dd><input type=submit value="Show Class">
+      </dl>
+    </form>
+    </div>
+    <div style="float:left;">
+    <form action="{{ url_for('managed_object') }}" method=post class=class-object>
+      <dl>
+        <dt>MO:
+        <dd><input type=text size=30 name=mo>
+        <dd><input type=submit value="Show MO">
+      </dl>
+    </form>
+    </div>
+    
+    
+    <div style="clear: both;"></div>
+      
+    
+  {% block body %}{% endblock %}
+</div>
