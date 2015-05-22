@@ -22,7 +22,6 @@ tool.
 """
 from flask import Flask, session, redirect, url_for
 from flask import flash
-from requests import Timeout
 from flask.ext import admin
 from flask.ext.admin import BaseView, AdminIndexView, expose
 from flask.ext.admin.actions import action
@@ -67,10 +66,6 @@ class APICArgs(object):
             self.url = None
         self.modified = True  # flag to indicate that the credentials have changed
 
-#args = APICArgs('172.31.216.100', 'admin', True, 'ins3965!')
-#args = APICArgs('172.16.176.176', 'admin', False, 'ins3965!')
-#rdb.set_login_credentials(args)
-
 
 class Feedback(BaseView):
     """
@@ -96,7 +91,63 @@ class SelectSwitchForm(Form):
     submit = SubmitField('Select')
 
 
-# class SelectSwitchView(BaseView):
+class SelectTenantForm(Form):
+    """
+    Base form for showing the select tenant form.
+    """
+    category = SelectField('Tenant', choices=[], validators=[])
+    detail = SelectField('Report Type', choices=[])
+    submit = SubmitField('Select')
+
+
+class SelectTenantView(BaseView):
+    """
+    The actual select tenant page generator.
+    """
+    @expose('/', methods=['GET', 'POST'])
+    def index(self):
+        """
+        Allow user to select which report to show.
+
+        :return:
+        """
+        form = SelectTenantForm()
+
+        try:
+            form.category.choices = rdb.get_tenants()
+            form.detail.choices = rdb.get_tenant_reports()
+        except Timeout:
+            flash('Connection timeout when trying to reach the APIC', 'error')
+            return redirect(url_for('switchreportadmin.index_view'))
+        except LoginError:
+            flash('Unable to login to the APIC', 'error')
+            return redirect(url_for('credentialsview.index'))
+        except ConnectionError:
+            flash('Connection failure.  Perhaps \'secure\' setting is wrong')
+            return redirect(url_for('credentialsview.index'))
+
+        prompt = 'Select which switch you want to see the report for.'
+        if form.validate_on_submit() and form.submit.data:
+
+            # report = DynamicTableForm()
+            try:
+                report = rdb.get_tenant_table(form.data['category'], form.data['detail'])
+            except Timeout:
+                flash('Connection timeout when trying to reach the APIC', 'error')
+                return redirect(url_for('switchreportadmin.index_view'))
+            except LoginError:
+                flash('Unable to login to the APIC', 'error')
+                return redirect(url_for('credentialsview.index'))
+            except ConnectionError:
+                flash('Connection failure.  Perhaps \'secure\' setting is wrong')
+                return redirect(url_for('credentialsview.index'))
+            if not report:
+                report = 'empty'
+            return self.render('select_switch.html', prompt=prompt, form=form, report=report)
+
+        return self.render('select_switch.html', prompt=prompt, form=form)
+
+
 class SelectSwitchView(BaseView):
     """
     The actual select switch page generator.
@@ -123,13 +174,13 @@ class SelectSwitchView(BaseView):
             flash('Connection failure.  Perhaps \'secure\' setting is wrong')
             return redirect(url_for('credentialsview.index'))
 
-        form.detail.choices = rdb.get_reports()
+        form.detail.choices = rdb.get_switch_reports()
 
         if form.validate_on_submit() and form.submit.data:
 
             # report = DynamicTableForm()
             try:
-                report = rdb.get_table(form.data['category'], form.data['detail'])
+                report = rdb.get_switch_table(form.data['category'], form.data['detail'])
             except Timeout:
                 flash('Connection timeout when trying to reach the APIC', 'error')
                 return redirect(url_for('switchreportadmin.index_view'))
@@ -140,7 +191,8 @@ class SelectSwitchView(BaseView):
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
 
-        return self.render('select_switch.html', form=form, report=report)
+        prompt = 'Select which switch you want to see the report for.'
+        return self.render('select_switch.html', prompt=prompt, form=form, report=report)
 
 
 class About(BaseView):
@@ -176,9 +228,9 @@ class CredentialsView(BaseView):
             old_secure = session.get('secure')
             old_password = session.get('password')
             if ((old_ipaddr is not None and old_ipaddr != form.ipaddr.data) or
-                  (old_username is not None and old_username != form.username.data) or
-                  (old_secure is not None and old_secure != form.secure.data) or
-                  (old_password is not None and old_password != form.password.data)):
+                 (old_username is not None and old_username != form.username.data) or
+                 (old_secure is not None and old_secure != form.secure.data) or
+                 (old_password is not None and old_password != form.password.data)):
                 flash('APIC Credentials have been updated')
             session['ipaddr'] = form.ipaddr.data
             session['secure'] = form.secure.data
@@ -199,7 +251,7 @@ class CredentialsView(BaseView):
                            reset_form=reset_form,
                            ipaddr=session.get('ipaddr'),
                            username=session.get('username'),
-                           security=session.get('secure','False'))
+                           security=session.get('secure', 'False'))
 
 
 # Customized admin interface
@@ -254,7 +306,8 @@ admin = admin.Admin(app,
 admin.add_view(CredentialsView(name='Credentials'))
 admin.add_view(About(name='About'))
 admin.add_view(Feedback(name='Feedback'))
-admin.add_view(SelectSwitchView(name='Select'))
+admin.add_view(SelectSwitchView(name='Switch Reports'))
+admin.add_view(SelectTenantView(name='Tenant Reports'))
 
 if __name__ == '__main__':
     description = 'ACI Report Viewer Tool.'
