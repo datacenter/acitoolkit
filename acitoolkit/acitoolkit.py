@@ -161,6 +161,7 @@ class Tenant(BaseACIObject):
             query_url = ('/api/mo/uni/tn-%s.json?query-target=self&'
                          'rsp-subtree=full' % name)
             ret = session.get(query_url)
+            ret._content = ret._content.replace("\\\'", "'")
             data = ret.json()['imdata']
             obj = super(Tenant, cls).get_deep(full_data=data,
                                               working_data=data,
@@ -797,7 +798,7 @@ class EPG(CommonEPG):
     @staticmethod
     def get_table(epgs, title=''):
         """
-        Will create table of app_profile information for a given tenant
+        Will create table of EPG information for a given tenant
         :param title:
         :param app_profiles:
         """
@@ -819,7 +820,7 @@ class EPG(CommonEPG):
             consumes = epg.get_all_consumed()
             provides = epg.get_all_provided()
 
-            index_max = max(len(consumes), len(provides))
+            index_max = max(len(consumes), len(provides), 1)
             for index in range(index_max):
                 if index < len(consumes):
                     consume = consumes[index]
@@ -839,9 +840,9 @@ class EPG(CommonEPG):
                     bd,
                     provide,
                     consume,
-                    'tbi',  # epg.scope,
-                    'tbi',  # epg.class_id,
-                    'tbi',  # epg.match_type,
+                    epg.scope,
+                    epg.class_id,
+                    epg.match_type,
                     epg._deployment_immediacy,
                 ])
         data = sorted(data)
@@ -1516,6 +1517,22 @@ class BridgeDomain(BaseACIObject):
     def _get_url_extension(self):
         return '/BD-%s' % self.name
 
+    def _populate_from_attributes(self, attributes):
+        """
+        Populates various attributes
+        :param attributes:
+        :return:
+        """
+        self.class_id = attributes.get('pcTag')
+        self.scope = attributes.get('scope')
+        self.vnid = attributes.get('seg')
+        self.mtu = attributes.get('mtu')
+        self.mac = attributes.get('mac')
+        self.route = attributes.get('unicastRoute')
+        self.unknown_unicast = attributes.get('unkMacUcastAct')
+        self.unknown_multicast = attributes.get('unkMcastAct')
+        self.modified_time = attributes.get('modTs')
+
     @staticmethod
     def get_table(bridge_domains, title=''):
         """
@@ -1528,10 +1545,14 @@ class BridgeDomain(BaseACIObject):
                    'Context',
                    'Bridge Domain',
                    'Subnets',
+                   'MAC',
+                   'Route',
+                   'Unknown UCST',
+                   'Unknown MCST',
                    'VNID',
                    'Scope',
                    'Class ID',
-                   'Known Multicast', 'Modified Time',
+                   'MTU',
                    ]
         data = []
         for bridge_domain in sorted(bridge_domains):
@@ -1549,11 +1570,14 @@ class BridgeDomain(BaseACIObject):
                 context,
                 bridge_domain.name,
                 ', '.join(subnet_str),
-                'tbi',  # context.vnid,
-                'tbi',  # context.scope,
-                'tbi',  # context.class_id,
-                'tbi',  # context.known_mcast,
-                'tbi',  # context.modified_time
+                bridge_domain.mac,
+                bridge_domain.route,
+                bridge_domain.unknown_unicast,
+                bridge_domain.unknown_multicast,
+                bridge_domain.vnid,
+                bridge_domain.scope,
+                bridge_domain.class_id,
+                bridge_domain.mtu
             ])
 
         data = sorted(data)
@@ -1804,19 +1828,19 @@ class Context(BaseACIObject):
                    'Context',
                    'VNID', 'Scope', 'Class ID',
                    'Allow All',
-                   'Known Multicast', 'Modified Time',
+                   'Known MCST', 'Modified Time',
                    ]
         data = []
         for context in sorted(contexts):
             data.append([
-                'tbi',  # context.tenant,
+                context.get_parent().name,
                 context.name,
-                'tbi',  # context.vnid,
-                'tbi',  # context.scope,
-                'tbi',  # context.class_id,
+                context.vnid,
+                context.scope,
+                context.class_id,
                 context.allow_all,
-                'tbi',  # context.known_mcast,
-                'tbi',  # context.modified_time
+                context.known_mcast,
+                context.modified_time
             ])
 
         data = sorted(data)
