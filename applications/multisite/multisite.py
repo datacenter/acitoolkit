@@ -57,7 +57,6 @@ class MultisiteTag(object):
             return local_contract_name
         return self._contract_name
 
-
     def get_contract_name(self):
         return self._contract_name
 
@@ -84,7 +83,6 @@ class MultisiteMonitor(threading.Thread):
         Indicate that the thread should exit.
         """
         self._exit = True
-
 
     def handle_contract(self, tenant_name, contract_name):
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
@@ -147,15 +145,50 @@ class MultisiteMonitor(threading.Thread):
         epg_entry.contract_name = contract_name
         if status == 'deleted':
             self._local_site.epg_db.remove_entry(epg_entry)
-            # TODO need to remove fvRsProv/fvRsCons for Endpoints installed in remote site
-            # (If last one, delete EP from remote site)
+            for remote_site_name in cdb_entry.remote_sites:
+                # First get all of the Endpoint entries providing this contract
+                query_url = '/api/mo/uni/tn-%s' % tenant_name
+                outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant_name, remote_site_name)
+                if outside_epg_name is None:
+                    continue
+                query_url += '/out-%s' % outside_epg_name
+                query_url += '.json?query-target=subtree&target-subtree-class=%s' % apic_class
+                query_url += '&query-target-filter=eq(%s.tnVzBrCPName,"' % apic_class
+                if provides:
+                    remote_contract_name = strip_illegal_characters(self._local_site.name) + ':' + contract_name
+                elif ':' in contract_name:
+                    remote_contract_name = contract_name.split(':')[1]
+                else:
+                    remote_contract_name = contract_name
+                query_url += remote_contract_name + '")&rsp-prop-include=config-only'
+                remote_site = self._local_site.my_collector.get_site(remote_site_name)
+                resp = remote_site.session.get(query_url)
+                data = resp.json()['imdata']
+
+                # Next, mark as deleted
+                dn = '/api/mo/' + data[0][apic_class]['attributes']['dn'] + '.json'
+                data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
+                # Push to APIC
+                resp = remote_site.session.push_to_apic(dn, data_json)
+
+                # Read back and see if any remaining contracts provided or consumed
+                # If none, delete the l3extInstP
+                query_url = dn + '?query-target=subtree&target-subtree-class=fvRsProv,fvRsCons&'
+                site_name = strip_illegal_characters(self._local_site.name) + ':'
+                query_url += 'query-target-filter=or(wcard(fvRsProv.tnVzBrCPName,"%s"),' % site_name
+                query_url += 'wcard(fvRsProv.tnVzBrCPName,"%s"))&rsp-prop-include=config-only' % site_name
+                resp = remote_site.session.get(query_url)
+                if int(resp.json()['totalCount']) == 0:
+                    dn = dn.split('/%s-' % apic_dn_class)[0]
+                    instp_name = dn.split('/instP-')[1].split('/')[0]
+                    data_json = {'l3extInstP': {'attributes': {'name': instp_name, 'status': 'deleted'}}}
+                    resp = remote_site.session.push_to_apic(dn + '.json', data_json)
         else:
             self._local_site.epg_db.add_entry(epg_entry)
 
     def handle_provided_contract_event(self, event):
         print 'handle_provided_contract_event'
         return self.handle_contract_relation_event(event, True)
-
 
     def handle_consumed_contract_event(self, event):
         print 'handle_consumed_contract_event'
@@ -181,7 +214,8 @@ class MultisiteMonitor(threading.Thread):
         return remote_sites
 
     def handle_endpoint_event(self):
-        ep = Endpoint.get_event(self._session)
+        # TODO: loop to batch the events and collect JSON before pushing it to APIC
+        ep = Endpoint.get_event(self._session, with_relations=False)
         epg = ep.get_parent()
         if not self._local_site.uses_multisite_contract(epg):
             # Ignore this event.  Endpoint uses only local contracts
@@ -229,6 +263,7 @@ class MultisiteMonitor(threading.Thread):
                     remote_contracts[remote_site]['provides'].append(contract_db_entry.contract_name)
                 else:
                     remote_contracts[remote_site]['consumes'].append(contract_db_entry.contract_name)
+        # TODO : need to document these loops better
         for remote_site in remote_contracts:
             tenant = Tenant(tenant.name)
             network = OutsideNetwork(ep.ip + '/32')
@@ -287,7 +322,6 @@ class MultisiteMonitor(threading.Thread):
                 self.handle_endpoint_event()
 
 
-
 class ContractCollector(object):
     """
     Class to collect the Contract from the APIC, along with all of the providing EPGs
@@ -301,7 +335,7 @@ class ContractCollector(object):
                          'vzRsSubjFiltAtt': 'tnVzFilterName',
                          'vzRsDenyRule': 'tnVzFilterName'}
 
-    classes_to_tag = [#'fvAEPg',
+    classes_to_tag = [  #'fvAEPg',
                        'fvTenant']
 
     def __init__(self, session, local_site_name):
@@ -351,7 +385,7 @@ class ContractCollector(object):
         tenant_json = tenant.get_json()
 
         # Grab the Contract
-        contract_children_to_migrate = ['vzSubj', 'vzRsSubjFiltAtt' ]
+        contract_children_to_migrate = ['vzSubj', 'vzRsSubjFiltAtt']
         query_url = '/api/mo/uni/tn-%s/brc-%s.json?query-target=self&rsp-subtree=full' % (tenant, contract)
         for child_class in contract_children_to_migrate:
             query_url += '&rsp-subtree-class=%s' % child_class
@@ -413,7 +447,6 @@ class ContractCollector(object):
         tag = {'tagInst': {'attributes': {'name': self.get_local_tag(contract_name, self.local_site_name)}}}
         data['fvTenant']['fvAEPg']['children'].append(tag)
 
-
     def _tag_remote_config(self, data, contract_name):
         if isinstance(data, list):
             for item in data:
@@ -447,12 +480,14 @@ class ContractCollector(object):
             print '%% Could not export to remote APIC'
         return resp
 
+
 class SiteLoginCredentials(object):
     def __init__(self, ip_address, user_name, password, use_https):
         self.ip_address = ip_address
         self.user_name = user_name
         self.password = password
         self.use_https = use_https
+
 
 class Site(object):
     def __init__(self, name, credentials, local=False):
@@ -640,6 +675,7 @@ class OutsideDBEntry(object):
         else:
             return False
 
+
 class OutsideDB(MultisiteDB):
     def __init__(self, local_site):
         super(OutsideDB, self).__init__()
@@ -655,17 +691,24 @@ class OutsideDB(MultisiteDB):
         self._db.append(db_entry)
         self.trigger_callback()
 
+    def get_entry(self, search_entry):
+        for db_entry in self._db:
+            if db_entry == search_entry:
+                return db_entry.outside_epg_name
+        return None
+
     def get_outside_epg_name(self, tenant_name, remote_site_name):
         search_entry = OutsideDBEntry()
         search_entry.tenant_name = tenant_name
         search_entry.remote_site_name = remote_site_name
-        for db_entry in self._db:
-            if db_entry == search_entry:
-                return db_entry.outside_epg_name
+        db_entry = self.get_entry(search_entry)
+        if db_entry is not None:
+            return db_entry
         # Don't have it.  Go get it from APIC
         remote_site_obj = self.local_site.my_collector.get_site(remote_site_name)
         if remote_site_obj is not None:
             self.update_from_apic(tenant_name, remote_site_obj)
+            return self.get_entry(search_entry)
 
     def has_entry(self, tenant_name, remote_site_name):
         return tenant_name in self._db
@@ -694,6 +737,7 @@ class OutsideDB(MultisiteDB):
         outside_epgs = OutsideEPG.get(remote_site.session, parent=tenant, tenant=tenant)
         if len(outside_epgs):
             self.add_entry(tenant_name, remote_site.name, outside_epgs[0].name)
+
 
 class LocalSite(Site):
     def __init__(self, name, credentials, parent):
@@ -1056,6 +1100,7 @@ class MultisiteCollector(object):
         print '****MICHSMIT**** Number of sites:', len(self.sites)
         for site in self.sites:
             print site.name, site.credentials.ip_address
+
 
 def main():
     """
