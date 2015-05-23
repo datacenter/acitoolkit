@@ -2273,7 +2273,7 @@ class Endpoint(BaseACIObject):
         self.encap = str(attributes.get('encap'))
 
     @classmethod
-    def get_event(cls, session):
+    def get_event(cls, session, with_relations=True):
         urls = cls._get_subscription_urls()
         for url in urls:
             if not session.has_events(url):
@@ -2297,7 +2297,7 @@ class Endpoint(BaseACIObject):
                 obj.mac = name
             if status == 'deleted':
                 obj.mark_as_deleted()
-            else:
+            elif with_relations:
                 obj = cls.get(session, name)[0]
             return obj
 
