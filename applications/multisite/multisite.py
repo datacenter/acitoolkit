@@ -71,11 +71,12 @@ class MultisiteMonitor(threading.Thread):
     """
     Monitor thread responsible for subscribing for local Endpoints and EPG notifications.
     """
-    def __init__(self, session, local_site):
+    def __init__(self, session, local_site, my_collector):
         threading.Thread.__init__(self)
         self._session = session
         self._local_site = local_site
         self._exit = False
+        self._my_collector = my_collector
         #self.remote_sites = []
 
     def exit(self):
@@ -83,6 +84,13 @@ class MultisiteMonitor(threading.Thread):
         Indicate that the thread should exit.
         """
         self._exit = True
+
+    def _push_to_remote_site(self, remote_site_name, url, data_json):
+        remote_site_obj = self.my_collector.get_site(remote_site_name)
+        if remote_site_obj is not None:
+            remote_session = remote_site_obj.session
+            resp = remote_session.push_to_apic(url, data_json)
+            return resp
 
     def handle_contract(self, tenant_name, contract_name):
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
@@ -161,7 +169,7 @@ class MultisiteMonitor(threading.Thread):
                 else:
                     remote_contract_name = contract_name
                 query_url += remote_contract_name + '")&rsp-prop-include=config-only'
-                remote_site = self._local_site.my_collector.get_site(remote_site_name)
+                remote_site = self.my_collector.get_site(remote_site_name)
                 resp = remote_site.session.get(query_url)
                 data = resp.json()['imdata']
 
@@ -185,6 +193,22 @@ class MultisiteMonitor(threading.Thread):
                     resp = remote_site.session.push_to_apic(dn + '.json', data_json)
         else:
             self._local_site.epg_db.add_entry(epg_entry)
+
+    def _get_contracts_using_epg(self, tenant_name, app_name, epg_name):
+        remote_contracts = {}
+        epgdb_entries = self._local_site.epg_db.find_entries(tenant_name, app_name, epg_name)
+        for epgdb_entry in epgdb_entries:
+            contract_db_entry = self._local_site.contract_db.find_entry(tenant_name, epgdb_entry.contract_name)
+            for remote_site in contract_db_entry.remote_sites:
+                if remote_site not in remote_contracts:
+                    remote_contracts[remote_site] = {}
+                    remote_contracts[remote_site]['provides'] = []
+                    remote_contracts[remote_site]['consumes'] = []
+                if contract_db_entry.is_exported():
+                    remote_contracts[remote_site]['provides'].append(contract_db_entry.contract_name)
+                else:
+                    remote_contracts[remote_site]['consumes'].append(contract_db_entry.contract_name)
+        return remote_contracts
 
     def handle_provided_contract_event(self, event):
         print 'handle_provided_contract_event'
@@ -213,9 +237,26 @@ class MultisiteMonitor(threading.Thread):
                 remote_sites.append(remote_site)
         return remote_sites
 
+    def _add_endpoint_subnet(self, tenant, endpoint, remote_site,
+                             remote_contracts={}):
+        network = OutsideNetwork(endpoint.name)
+        network.network = endpoint.ip + '/32'
+        if remote_site in remote_contracts:
+            for contract in remote_contracts[remote_site]['provides']:
+                network.provide(Contract(contract, tenant))
+            for contract in remote_contracts[remote_site]['consumes']:
+                network.consume(Contract(contract, tenant))
+        outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant.name, remote_site)
+        if outside_epg_name is None:
+            # Likely, a site that is not up yet or old config
+            return
+        outside = OutsideEPG(outside_epg_name, tenant)
+        outside.networks.append(network)
+
     def handle_endpoint_event(self):
         # TODO: loop to batch the events and collect JSON before pushing it to APIC
         ep = Endpoint.get_event(self._session, with_relations=False)
+        print 'endpoint name:', ep.name
         epg = ep.get_parent()
         if not self._local_site.uses_multisite_contract(epg):
             # Ignore this event.  Endpoint uses only local contracts
@@ -228,13 +269,7 @@ class MultisiteMonitor(threading.Thread):
             remote_sites = self.get_remote_sites_using_epg(epg)
             for remote_site in remote_sites:
                 tenant = Tenant(tenant.name)
-                network = OutsideNetwork(ep.name)
-                outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant.name, remote_site)
-                if outside_epg_name is None:
-                    # Likely, a site that is not up yet or old config
-                    return
-                outside = OutsideEPG(outside_epg_name, tenant)
-                outside.networks.append(network)
+                self._add_endpoint_subnet(tenant, ep, remote_site)
                 tenant_json = tenant.get_json()
                 self._remove_contracts_from_json(tenant_json)
                 # Manually go in and delete the l3extInstP
@@ -242,52 +277,19 @@ class MultisiteMonitor(threading.Thread):
                 l3extInstP['attributes']['status'] = 'deleted'
                 for child in l3extInstP['children']:
                     l3extInstP['children'].remove(child)
-                remote_site_obj = self._local_site.my_collector.get_site(remote_site)
-                if remote_site_obj is not None:
-                    remote_session = remote_site_obj.session
-                    resp = remote_session.push_to_apic(tenant.get_url(), tenant_json)
-                    print 'Pushed Endpoint delete to remote site', tenant_json
-                    print resp, resp.text
+                self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
             return # Done handling deleted Endpoint
         # Need to push this to the remote sites
-        remote_contracts = {}
-        epgdb_entries = self._local_site.epg_db.find_entries(tenant.name, app.name, epg.name)
-        for epgdb_entry in epgdb_entries:
-            contract_db_entry = self._local_site.contract_db.find_entry(tenant.name, epgdb_entry.contract_name)
-            for remote_site in contract_db_entry.remote_sites:
-                if remote_site not in remote_contracts:
-                    remote_contracts[remote_site] = {}
-                    remote_contracts[remote_site]['provides'] = []
-                    remote_contracts[remote_site]['consumes'] = []
-                if contract_db_entry.is_exported():
-                    remote_contracts[remote_site]['provides'].append(contract_db_entry.contract_name)
-                else:
-                    remote_contracts[remote_site]['consumes'].append(contract_db_entry.contract_name)
-        # TODO : need to document these loops better
+        # remote_contracts is a dictionary indexed by remote_site
+        # Each dictionary entry contains 2 lists; provided contracts and consumed contracts
+        remote_contracts = self._get_contracts_using_epg(tenant.name, app.name, epg.name)
         for remote_site in remote_contracts:
             tenant = Tenant(tenant.name)
-            network = OutsideNetwork(ep.ip + '/32')
-            network.name = ep.mac
-            for contract in remote_contracts[remote_site]['provides']:
-                network.provide(Contract(contract, tenant))
-            for contract in remote_contracts[remote_site]['consumes']:
-                network.consume(Contract(contract, tenant))
-            outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant.name, remote_site)
-            if outside_epg_name is None:
-                # Likely, a site that is not up yet or old config
-                continue
-            outside = OutsideEPG(outside_epg_name, tenant)
-            outside.networks.append(network)
+            self._add_endpoint_subnet(tenant, ep, remote_site, remote_contracts)
             tenant_json = tenant.get_json()
-            # Remove the contracts
             self._remove_contracts_from_json(tenant_json)
             self._local_site.contract_collector._rename_classes(tenant_json)
-            remote_site_obj = self._local_site.my_collector.get_site(remote_site)
-            if remote_site_obj is not None:
-                remote_session = remote_site_obj.session
-                resp = remote_session.push_to_apic(tenant.get_url(), tenant_json)
-                print 'Pushed Endpoint to remote site', tenant_json
-                print resp, resp.text
+            self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
 
     def run(self):
         # Subscribe to endpoints
@@ -705,7 +707,7 @@ class OutsideDB(MultisiteDB):
         if db_entry is not None:
             return db_entry
         # Don't have it.  Go get it from APIC
-        remote_site_obj = self.local_site.my_collector.get_site(remote_site_name)
+        remote_site_obj = self.my_collector.get_site(remote_site_name)
         if remote_site_obj is not None:
             self.update_from_apic(tenant_name, remote_site_obj)
             return self.get_entry(search_entry)
@@ -780,7 +782,7 @@ class LocalSite(Site):
         resp = super(LocalSite, self).start()
         if resp.ok:
             self.contract_collector = ContractCollector(self.session, self.name)
-            self.monitor = MultisiteMonitor(self.session, self)
+            self.monitor = MultisiteMonitor(self.session, self, self.my_collector)
             self.monitor.daemon = True
             self.monitor.start()
         return resp
@@ -856,15 +858,15 @@ class LocalSite(Site):
                 return True
         return False
 
-    def get_all_provided_contracts(self, epg):
-        resp = []
-        app = epg.get_parent()
-        tenant = app.get_parent()
-        epg_db_entries = self.epg_db.find_entries(tenant.name, app.name, epg.name)
-        for epg_db_entry in epg_db_entries:
-            contract_db_entry = self.contract_db.find_entry(tenant.name, epg_db_entry.contract_name)
-            resp.append(epg_db_entry)
-        return resp
+    # def get_all_provided_contracts(self, epg):
+    #     resp = []
+    #     app = epg.get_parent()
+    #     tenant = app.get_parent()
+    #     epg_db_entries = self.epg_db.find_entries(tenant.name, app.name, epg.name)
+    #     for epg_db_entry in epg_db_entries:
+    #         contract_db_entry = self.contract_db.find_entry(tenant.name, epg_db_entry.contract_name)
+    #         resp.append(epg_db_entry)
+    #     return resp
 
     def _populate_epgs_from_apic(self):
         resp = []

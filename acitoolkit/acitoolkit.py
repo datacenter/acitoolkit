@@ -708,9 +708,12 @@ class EPG(CommonEPG):
 
 
 class OutsideNetwork(CommonEPG):
-    def __init__(self, network):
-        self.network = network
-        name = '.'.join([i for i in network.split('/')])
+    def __init__(self, network_name):
+        self.network = None
+        if '/' in network_name:
+            name = '.'.join([i for i in network_name.split('/')])
+        else:
+            name = network_name
         super(OutsideNetwork, self).__init__(name)
 
 class OutsideEPG(CommonEPG):
