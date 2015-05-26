@@ -86,7 +86,7 @@ class MultisiteMonitor(threading.Thread):
         self._exit = True
 
     def _push_to_remote_site(self, remote_site_name, url, data_json):
-        remote_site_obj = self.my_collector.get_site(remote_site_name)
+        remote_site_obj = self._my_collector.get_site(remote_site_name)
         if remote_site_obj is not None:
             remote_session = remote_site_obj.session
             resp = remote_session.push_to_apic(url, data_json)
@@ -170,7 +170,7 @@ class MultisiteMonitor(threading.Thread):
                 else:
                     remote_contract_name = contract_name
                 query_url += remote_contract_name + '")&rsp-prop-include=config-only'
-                remote_site = self.my_collector.get_site(remote_site_name)
+                remote_site = self._my_collector.get_site(remote_site_name)
                 resp = remote_site.session.get(query_url)
                 data = resp.json()['imdata']
 
@@ -733,7 +733,7 @@ class OutsideDB(MultisiteDB):
         :return: None
         """
         if isinstance(remote_site, str):
-            remote_site = self.my_collector.get_site(remote_site)
+            remote_site = self.local_site.my_collector.get_site(remote_site)
         if remote_site is None:
             return
         tenant = Tenant(tenant_name)
