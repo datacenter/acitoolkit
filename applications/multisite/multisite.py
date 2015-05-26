@@ -280,6 +280,9 @@ class MultisiteMonitor(threading.Thread):
                     l3extInstP['children'].remove(child)
                 self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
             return # Done handling deleted Endpoint
+        elif ep.ip == '0.0.0.0':
+            # Ignore this event
+            return
         # Need to push this to the remote sites
         # remote_contracts is a dictionary indexed by remote_site
         # Each dictionary entry contains 2 lists; provided contracts and consumed contracts
