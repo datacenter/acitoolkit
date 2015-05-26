@@ -95,7 +95,7 @@ class MultisiteMonitor(threading.Thread):
     def handle_contract(self, tenant_name, contract_name):
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
                                   subtree='children', config_only=True)
-        for tenant in tenants:
+        for tenant in tenants:  # a bit overkill, since only 1 tenant should be returned
             for tag in tenant.get_tags():
                 if MultisiteTag.is_multisite_tag(tag):
                     mtag = MultisiteTag.fromstring(tag)
@@ -135,6 +135,7 @@ class MultisiteMonitor(threading.Thread):
                 return
         if '/ap-' not in dn and '/out-' in dn:
             # Event is for the OutsideEPG, ignore it
+            assert False #  Shouldn't happen now since the subscribe removed it
             return
         app_name = str(dn.split('/ap-')[1].split('/')[0])
         epg_name = str(dn.split('/epg-')[1].split('/')[0])
@@ -296,11 +297,11 @@ class MultisiteMonitor(threading.Thread):
         Endpoint.subscribe(self._session)
 
         # Subscribe to fvRsProv (EPGs providing Contracts)
-        provides_url = '/api/class/fvRsProv.json?subscription=yes'
+        provides_url = '/api/class/fvRsProv.json?query-target-filter=not(wcard(fvRsProv.dn,"/out-"))&subscription=yes'
         resp = self._session.subscribe(provides_url)
 
         # Subscribe to fvRsCons (EPGs consuming Contracts)
-        consumes_url = '/api/class/fvRsCons.json?subscription=yes'
+        consumes_url = '/api/class/fvRsCons.json?query-target-filter=not(wcard(fvRsCons.dn,"/out-"))&subscription=yes'
         resp = self._session.subscribe(consumes_url)
 
         # Subscribe to Contract events
