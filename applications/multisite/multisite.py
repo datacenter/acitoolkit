@@ -708,7 +708,7 @@ class OutsideDB(MultisiteDB):
         if db_entry is not None:
             return db_entry
         # Don't have it.  Go get it from APIC
-        remote_site_obj = self.my_collector.get_site(remote_site_name)
+        remote_site_obj = self.local_site.my_collector.get_site(remote_site_name)
         if remote_site_obj is not None:
             self.update_from_apic(tenant_name, remote_site_obj)
             return self.get_entry(search_entry)
