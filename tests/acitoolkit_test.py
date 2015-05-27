@@ -382,6 +382,17 @@ class TestAppProfile(unittest.TestCase):
         app = AppProfile('app', tenant)
         self.assertTrue(type(app.get_json()) == dict)
 
+    def test_get_table(self):
+        """
+        Test app profile create table function
+        """
+        tenant1 = Tenant('tenant1')
+        tenant2 = Tenant('tenant2')
+        app1 = AppProfile('app', tenant1)
+        app2 = AppProfile('app', tenant2)
+        app_profiles = [app1, app2]
+        self.assertTrue(isinstance(AppProfile.get_table(app_profiles)[0], Table))
+
 
 class TestBridgeDomain(unittest.TestCase):
     """
