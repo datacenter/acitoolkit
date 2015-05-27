@@ -268,6 +268,13 @@ class TestTenant(unittest.TestCase):
         dn = 'uni/tn-test'
         self.assertEquals(Tenant._get_name_from_dn(dn), 'test')
 
+    def test_get_table(self):
+        """
+        Test tenant create table function
+        """
+        tenants = [Tenant('tenant1'), Tenant('tenant2'), Tenant('tenant3')]
+        self.assertTrue(isinstance(Tenant.get_table(tenants)[0], Table))
+
 
 class TestAppProfile(unittest.TestCase):
     """
