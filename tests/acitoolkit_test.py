@@ -1661,6 +1661,17 @@ class TestLiveTenant(TestLiveAPIC):
     """
     Tenant tests on a live APIC
     """
+    def create_unique_live_tenant(self):
+        """
+        Creates test tenant that does not interfere with tenants in APIC
+        """
+        session = self.login_to_apic()
+        tenants = self.get_all_tenants()
+        non_existing_tenant = tenants[0]
+        while non_existing_tenant in tenants:
+            non_existing_tenant = Tenant(random_size_string())
+        return non_existing_tenant
+
     def get_all_tenants(self):
         """
         Test Tenant.get
@@ -1732,17 +1743,8 @@ class TestLiveTenant(TestLiveAPIC):
         """
         session = self.login_to_apic()
 
-        # Get all of the existing tenants
-        tenants = self.get_all_tenants()
-        tenant_names = self.get_all_tenant_names()
-
-        # Pick a unique tenant name not currently in APIC
-        tenant_name = tenant_names[0]
-        while tenant_name in tenant_names:
-            tenant_name = random_size_string()
-
         # Create the tenant and push to APIC
-        new_tenant = Tenant(tenant_name)
+        new_tenant = self.create_unique_live_tenant()
         resp = session.push_to_apic(new_tenant.get_url(),
                                     data=new_tenant.get_json())
         self.assertTrue(resp.ok)
@@ -1753,8 +1755,7 @@ class TestLiveTenant(TestLiveAPIC):
 
         # Now delete the tenant
         new_tenant.mark_as_deleted()
-        resp = session.push_to_apic(new_tenant.get_url(),
-                                    data=new_tenant.get_json())
+        new_tenant.push_to_apic(session)
         self.assertTrue(resp.ok)
 
         # Get all of the tenants and verify that the new tenant is deleted
