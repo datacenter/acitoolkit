@@ -1355,6 +1355,43 @@ class TestEndpoint(unittest.TestCase):
         data = tenant.get_json()
         self.verify_json(data, True)
 
+class TestPhysDomain(unittest.TestCase):
+    """
+    Class for testing Phys Domain
+    """
+    def test_create(self):
+        """
+        Test create phys domain
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        self.assertTrue(isinstance(phys_domain, PhysDomain))
+
+    def test_json(self):
+        """
+        Test get json of phys domain
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        self.assertTrue(type(phys_domain.get_json()) is dict)
+
+    def test_generate_attributes_conditionals(self):
+        """
+        Test conditionals within generate attributes function
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        phys_domain.dn = 'dn'
+        phys_domain.lcOwn = 'lcOwn'
+        phys_domain.childAction = 'childAction'
+        self.assertEqual(phys_domain._generate_attributes()['dn'], phys_domain.dn)
+        self.assertEqual(phys_domain._generate_attributes()['lcOwn'], phys_domain.lcOwn)
+        self.assertEqual(phys_domain._generate_attributes()['childAction'], phys_domain.childAction)
+
+    def test_get_parent(self):
+        """
+        Test get parent function
+        """
+        phys_domain = PhysDomain('test-phys-domain', None)
+        self.assertEqual(phys_domain.get_parent(), phys_domain._parent)
+
 
 class TestJson(unittest.TestCase):
     """
@@ -1756,7 +1793,7 @@ class TestLiveTenant(TestLiveAPIC):
         # Now delete the tenant
         new_tenant.mark_as_deleted()
         new_tenant.push_to_apic(session)
-        self.assertTrue(resp.ok)
+        self.assertTrue(new_tenant.push_to_apic(session).ok)
 
         # Get all of the tenants and verify that the new tenant is deleted
         names = self.get_all_tenant_names()
@@ -2219,6 +2256,69 @@ class TestApic(TestLiveAPIC):
         # Cleanup
         self.base_test_teardown(session, tenant)
 
+class TestLivePhysDomain(TestLiveAPIC):
+    """
+    Class to test live phys domain
+    """
+    def create_unique_live_phys_domain(self):
+        """
+        Create live phys domain that will not conflict with phys domains on APIC
+        """
+        session = self.login_to_apic()
+        phys_domains = PhysDomain.get(session)
+        non_existing_phys_domain = phys_domains[0]
+        while non_existing_phys_domain in phys_domains:
+            non_existing_phys_domain = PhysDomain(random_size_string(), None)
+        return non_existing_phys_domain
+
+    def get_all_phys_domains(self):
+        """
+        Get all phys domains from APIC and test phys domain get function
+        """
+        session = self.login_to_apic()
+        phys_domains = PhysDomain.get(session)
+        self.assertTrue(len(phys_domains) > 0)
+        return phys_domains
+
+    def get_all_phys_domain_names(self):
+        """
+        Test getting phys domain names
+        """
+        phys_domains = self.get_all_phys_domains()
+        names = []
+        for phys_domain in phys_domains:
+            names.append(phys_domain.name)
+        return names
+
+    def test_get_by_name(self):
+        """
+        Test get by name function
+        """
+        # Log in to APIC
+        session = self.login_to_apic()
+
+        # Create new phys domain and push to APIC
+        new_phys_domain = PhysDomain('phys_domain_toolkit_test', None)
+        new_phys_domain.push_to_apic(session)
+        self.assertTrue(new_phys_domain.push_to_apic(session).ok)
+
+        # Test get by name function (passing conditional to successfully find name)
+        phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
+        self.assertEquals(phys_domain_by_name, new_phys_domain)
+
+        # Delete new phys domain
+        new_phys_domain.mark_as_deleted()
+        new_phys_domain.push_to_apic(session)
+        self.assertTrue(new_phys_domain.push_to_apic(session).ok)
+
+        # Test get by name function (failing conditional to find name)
+        phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
+        self.assertIsNone(phys_domain_by_name)
+
+        # Verify that new phys domain is deleted
+        names = self.get_all_phys_domain_names()
+        self.assertTrue(new_phys_domain.name not in names)
+
 
 class TestLiveContracts(TestLiveAPIC):
     def get_2_entries(self, contract):
@@ -2489,6 +2589,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveContracts))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
+    live.addTest(unittest.makeSuite(TestLivePhysDomain))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
@@ -2506,6 +2607,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestTaboo))
     offline.addTest(unittest.makeSuite(TestEPG))
     offline.addTest(unittest.makeSuite(TestOutsideEPG))
+    offline.addTest(unittest.makeSuite(TestPhysDomain))
     offline.addTest(unittest.makeSuite(TestJson))
     offline.addTest(unittest.makeSuite(TestPortChannel))
     offline.addTest(unittest.makeSuite(TestContext))
