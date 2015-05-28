@@ -67,6 +67,125 @@ class MultisiteTag(object):
         return self._export_state
 
 
+class EndpointJsonDB(object):
+    def __init__(self, local_site):
+        self.db = {}
+        self._local_site = local_site
+
+    def get_remote_sites_using_epg(self, epg):
+        remote_sites = []
+        app = epg.get_parent()
+        tenant = app.get_parent()
+        epg_db = self._local_site.epg_db
+        contract_db = self._local_site.contract_db
+        epgdb_entries = epg_db.find_entries(tenant.name, app.name, epg.name)
+        for epgdb_entry in epgdb_entries:
+            contract_db_entry = contract_db.find_entry(tenant.name, epgdb_entry.contract_name)
+            for remote_site in contract_db_entry.remote_sites:
+                remote_sites.append(remote_site)
+        return remote_sites
+
+    def _add_endpoint_subnet(self, tenant, endpoint, remote_site,
+                             remote_contracts={}):
+        network = OutsideNetwork(endpoint.name)
+        network.network = endpoint.ip + '/32'
+        if remote_site in remote_contracts:
+            for contract in remote_contracts[remote_site]['provides']:
+                network.provide(Contract(contract, tenant))
+            for contract in remote_contracts[remote_site]['consumes']:
+                network.consume(Contract(contract, tenant))
+        outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant.name, remote_site)
+        if outside_epg_name is None:
+            # Likely, a site that is not up yet or old config
+            assert False
+            return
+        has_outside_epg = False
+        outside_epgs = tenant.get_children(only_class=OutsideEPG)
+        for outside_epg in outside_epgs:
+            if outside_epg.name == outside_epg_name:
+                outside = outside_epg
+                has_outside_epg = True
+        if not has_outside_epg:
+            outside = OutsideEPG(outside_epg_name, tenant)
+        outside.networks.append(network)
+
+    def get_tenant_from_db(self, remote_site, tenant):
+        if remote_site in self.db:
+            if tenant.name not in self.db[remote_site]:
+                self.db[remote_site][tenant.name] = Tenant(tenant.name)
+            return self.db[remote_site][tenant.name]
+        else:
+            self.db[remote_site] = {}
+            self.db[remote_site][tenant.name] = Tenant(tenant.name)
+            return self.db[remote_site][tenant.name]
+
+    def _remove_contracts_from_json(self, tenant_json):
+        # Remove the contracts
+        for child in tenant_json['fvTenant']['children']:
+            if 'vzBrCP' in child:
+                tenant_json['fvTenant']['children'].remove(child)
+
+    def _push_to_remote_site(self, remote_site_name, url, data_json):
+        remote_site_obj = self._local_site.my_collector.get_site(remote_site_name)
+        if remote_site_obj is not None:
+            remote_session = remote_site_obj.session
+            resp = remote_session.push_to_apic(url, data_json)
+            return resp
+
+    def _get_contracts_using_epg(self, tenant_name, app_name, epg_name):
+        remote_contracts = {}
+        epgdb_entries = self._local_site.epg_db.find_entries(tenant_name, app_name, epg_name)
+        for epgdb_entry in epgdb_entries:
+            contract_db_entry = self._local_site.contract_db.find_entry(tenant_name, epgdb_entry.contract_name)
+            for remote_site in contract_db_entry.remote_sites:
+                if remote_site not in remote_contracts:
+                    remote_contracts[remote_site] = {}
+                    remote_contracts[remote_site]['provides'] = []
+                    remote_contracts[remote_site]['consumes'] = []
+                if contract_db_entry.is_exported():
+                    remote_contracts[remote_site]['provides'].append(contract_db_entry.contract_name)
+                else:
+                    remote_contracts[remote_site]['consumes'].append(contract_db_entry.contract_name)
+        return remote_contracts
+
+    def add_endpoint(self, endpoint):
+        epg = endpoint.get_parent()
+        if not self._local_site.uses_multisite_contract(epg):
+            # Ignore this event.  Endpoint uses only local contracts
+            print 'Local contract'
+            return
+        app = epg.get_parent()
+        tenant = app.get_parent()
+        if endpoint.is_deleted():
+            print 'Endpoint has been deleted'
+            remote_sites = self.get_remote_sites_using_epg(epg)
+            for remote_site in remote_sites:
+                tenant = self.get_tenant_from_db(remote_site, tenant)
+                self._add_endpoint_subnet(tenant, endpoint, remote_site)
+            return  # Done handling deleted Endpoint
+        elif endpoint.ip == '0.0.0.0':
+            # Ignore this event
+            return
+        # Need to push this to the remote sites
+        # remote_contracts is a dictionary indexed by remote_site
+        # Each dictionary entry contains 2 lists; provided contracts and consumed contracts
+        remote_contracts = self._get_contracts_using_epg(tenant.name, app.name, epg.name)
+        for remote_site in remote_contracts:
+            tenant = self.get_tenant_from_db(remote_site, tenant)
+            self._add_endpoint_subnet(tenant, endpoint, remote_site, remote_contracts)
+
+    def push_to_remote_sites(self):
+        for remote_site in self.db:
+            for tenant_name in self.db[remote_site]:
+                print 'Pushing config for remote site', remote_site, 'and tenant', tenant_name
+                tenant = self.db[remote_site][tenant_name]
+                tenant_json = tenant.get_json()
+                self._remove_contracts_from_json(tenant_json)
+                self._local_site.contract_collector._rename_classes(tenant_json)
+                self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
+        self.db = {}
+
+
 class MultisiteMonitor(threading.Thread):
     """
     Monitor thread responsible for subscribing for local Endpoints and EPG notifications.
@@ -77,20 +196,14 @@ class MultisiteMonitor(threading.Thread):
         self._local_site = local_site
         self._exit = False
         self._my_collector = my_collector
-        #self.remote_sites = []
+        self._endpointdb = EndpointJsonDB(local_site)
+        # self.remote_sites = []
 
     def exit(self):
         """
         Indicate that the thread should exit.
         """
         self._exit = True
-
-    def _push_to_remote_site(self, remote_site_name, url, data_json):
-        remote_site_obj = self._my_collector.get_site(remote_site_name)
-        if remote_site_obj is not None:
-            remote_session = remote_site_obj.session
-            resp = remote_session.push_to_apic(url, data_json)
-            return resp
 
     def handle_contract(self, tenant_name, contract_name):
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
@@ -135,7 +248,7 @@ class MultisiteMonitor(threading.Thread):
                 return
         if '/ap-' not in dn and '/out-' in dn:
             # Event is for the OutsideEPG, ignore it
-            assert False #  Shouldn't happen now since the subscribe removed it
+            assert False  # Shouldn't happen now since the subscribe removed it
             return
         app_name = str(dn.split('/ap-')[1].split('/')[0])
         epg_name = str(dn.split('/epg-')[1].split('/')[0])
@@ -175,10 +288,11 @@ class MultisiteMonitor(threading.Thread):
                 data = resp.json()['imdata']
 
                 # Next, mark as deleted
-                dn = '/api/mo/' + data[0][apic_class]['attributes']['dn'] + '.json'
-                data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
-                # Push to APIC
-                resp = remote_site.session.push_to_apic(dn, data_json)
+                if len(data):
+                    dn = '/api/mo/' + data[0][apic_class]['attributes']['dn'] + '.json'
+                    data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
+                    # Push to APIC
+                    resp = remote_site.session.push_to_apic(dn, data_json)
 
                 # Read back and see if any remaining contracts provided or consumed
                 # If none, delete the l3extInstP
@@ -195,22 +309,6 @@ class MultisiteMonitor(threading.Thread):
         else:
             self._local_site.epg_db.add_entry(epg_entry)
 
-    def _get_contracts_using_epg(self, tenant_name, app_name, epg_name):
-        remote_contracts = {}
-        epgdb_entries = self._local_site.epg_db.find_entries(tenant_name, app_name, epg_name)
-        for epgdb_entry in epgdb_entries:
-            contract_db_entry = self._local_site.contract_db.find_entry(tenant_name, epgdb_entry.contract_name)
-            for remote_site in contract_db_entry.remote_sites:
-                if remote_site not in remote_contracts:
-                    remote_contracts[remote_site] = {}
-                    remote_contracts[remote_site]['provides'] = []
-                    remote_contracts[remote_site]['consumes'] = []
-                if contract_db_entry.is_exported():
-                    remote_contracts[remote_site]['provides'].append(contract_db_entry.contract_name)
-                else:
-                    remote_contracts[remote_site]['consumes'].append(contract_db_entry.contract_name)
-        return remote_contracts
-
     def handle_provided_contract_event(self, event):
         print 'handle_provided_contract_event'
         return self.handle_contract_relation_event(event, True)
@@ -219,81 +317,14 @@ class MultisiteMonitor(threading.Thread):
         print 'handle_consumed_contract_event'
         return self.handle_contract_relation_event(event, False)
 
-    def _remove_contracts_from_json(self, tenant_json):
-        # Remove the contracts
-        for child in tenant_json['fvTenant']['children']:
-            if 'vzBrCP' in child:
-                tenant_json['fvTenant']['children'].remove(child)
-
-    def get_remote_sites_using_epg(self, epg):
-        remote_sites = []
-        app = epg.get_parent()
-        tenant = app.get_parent()
-        epg_db = self._local_site.epg_db
-        contract_db = self._local_site.contract_db
-        epgdb_entries = epg_db.find_entries(tenant.name, app.name, epg.name)
-        for epgdb_entry in epgdb_entries:
-            contract_db_entry = contract_db.find_entry(tenant.name, epgdb_entry.contract_name)
-            for remote_site in contract_db_entry.remote_sites:
-                remote_sites.append(remote_site)
-        return remote_sites
-
-    def _add_endpoint_subnet(self, tenant, endpoint, remote_site,
-                             remote_contracts={}):
-        network = OutsideNetwork(endpoint.name)
-        network.network = endpoint.ip + '/32'
-        if remote_site in remote_contracts:
-            for contract in remote_contracts[remote_site]['provides']:
-                network.provide(Contract(contract, tenant))
-            for contract in remote_contracts[remote_site]['consumes']:
-                network.consume(Contract(contract, tenant))
-        outside_epg_name = self._local_site.outside_db.get_outside_epg_name(tenant.name, remote_site)
-        if outside_epg_name is None:
-            # Likely, a site that is not up yet or old config
-            return
-        outside = OutsideEPG(outside_epg_name, tenant)
-        outside.networks.append(network)
-
     def handle_endpoint_event(self):
         # TODO: loop to batch the events and collect JSON before pushing it to APIC
-        ep = Endpoint.get_event(self._session, with_relations=False)
-        print 'endpoint name:', ep.name
-        epg = ep.get_parent()
-        if not self._local_site.uses_multisite_contract(epg):
-            # Ignore this event.  Endpoint uses only local contracts
-            print 'Local contract'
-            return
-        app = epg.get_parent()
-        tenant = app.get_parent()
-        if ep.is_deleted():
-            print 'Endpoint has been deleted'
-            remote_sites = self.get_remote_sites_using_epg(epg)
-            for remote_site in remote_sites:
-                tenant = Tenant(tenant.name)
-                self._add_endpoint_subnet(tenant, ep, remote_site)
-                tenant_json = tenant.get_json()
-                self._remove_contracts_from_json(tenant_json)
-                # Manually go in and delete the l3extInstP
-                l3extInstP = tenant_json['fvTenant']['children'][0]['l3extOut']['children'][0]['l3extInstP']
-                l3extInstP['attributes']['status'] = 'deleted'
-                for child in l3extInstP['children']:
-                    l3extInstP['children'].remove(child)
-                self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
-            return # Done handling deleted Endpoint
-        elif ep.ip == '0.0.0.0':
-            # Ignore this event
-            return
-        # Need to push this to the remote sites
-        # remote_contracts is a dictionary indexed by remote_site
-        # Each dictionary entry contains 2 lists; provided contracts and consumed contracts
-        remote_contracts = self._get_contracts_using_epg(tenant.name, app.name, epg.name)
-        for remote_site in remote_contracts:
-            tenant = Tenant(tenant.name)
-            self._add_endpoint_subnet(tenant, ep, remote_site, remote_contracts)
-            tenant_json = tenant.get_json()
-            self._remove_contracts_from_json(tenant_json)
-            self._local_site.contract_collector._rename_classes(tenant_json)
-            self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
+        tenants_json = {}
+        while Endpoint.has_events(self._session):
+            ep = Endpoint.get_event(self._session, with_relations=False)
+            self._endpointdb.add_endpoint(ep)
+        self._endpointdb.push_to_remote_sites()
+        print 'Sent endpoint events to remote sites'
 
     def run(self):
         # Subscribe to endpoints
@@ -741,9 +772,16 @@ class OutsideDB(MultisiteDB):
             return
         tenant = Tenant(tenant_name)
         outside_epgs = OutsideEPG.get(remote_site.session, parent=tenant, tenant=tenant)
-        if len(outside_epgs):
+        if len(outside_epgs): # TODO add multiple l3extOuts here
             self.add_entry(tenant_name, remote_site.name, outside_epgs[0].name)
-
+        else:
+            # No l3extOuts in remote tenant.  Get from tenant common instead
+            tenant = Tenant('common')
+            outside_epgs = OutsideEPG.get(remote_site.session, parent=tenant, tenant=tenant)
+            if len(outside_epgs): # TODO add multiple l3extOuts here
+                self.add_entry(tenant_name, remote_site.name, outside_epgs[0].name) # TODO need to store uses_tenant_common flag
+            else:
+                print '%% No Outside EPG found in remote site', remote_site.name
 
 class LocalSite(Site):
     def __init__(self, name, credentials, parent):

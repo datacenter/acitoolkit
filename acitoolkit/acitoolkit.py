@@ -812,6 +812,7 @@ class OutsideEPG(CommonEPG):
             subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
                                       'children': []}}
             if network.is_deleted():
+                text['l3extInstP']['attributes']['status'] = 'deleted'
                 subnet['l3extSubnet']['attributes']['status'] = 'deleted'
             contracts = network._get_common_json()
             #contracts = super(OutsideEPG, self)._get_common_json()
