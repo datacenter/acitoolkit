@@ -1,9 +1,9 @@
 ################################################################################
 # _    ____ ___                               #
 # / \  / ___|_ _|                              #
-#                                / _ \| |    | |                               #
-#                               / ___ \ |___ | |                               #
-#                         _____/_/   \_\____|___|_ _                           #
+# / _ \| |    | |                               #
+# / ___ \ |___ | |                               #
+# _____/_/   \_\____|___|_ _                           #
 #                        |_   _|__   ___ | | | _(_) |_                         #
 #                          | |/ _ \ / _ \| | |/ / | __|                        #
 #                          | | (_) | (_) | |   <| | |_                         #
@@ -29,10 +29,11 @@
 ################################################################################
 """ACI Toolkit module for physical objects
 """
-from aciTable import Table
-from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseACIPhysObject, BaseInterface
-import aciConcreteLib as Aci_Con
-import acitoolkit as ACI
+#from aciTable import Table
+from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseInterface
+# import aciConcreteLib as Aci_Con
+from aciConcreteLib import *
+#import acitoolkit as ACI
 from .acisession import Session
 from .acicounters import AtomicCountersOnGoing, InterfaceStats
 import logging
@@ -1011,7 +1012,7 @@ class Node(BaseACIPhysObject):
             data = ret.json()['imdata']
             if data:
                 if 'topSystem' in data[0]:
-                    self.health = data[0]['topSystem']['children'][0] \
+                    self.health = data[0]['topSystem']['children'][0]\
                         ['fabricNodeHealth5min']['attributes']['healthLast']
 
     def _add_vpc_info(self):
@@ -1136,7 +1137,8 @@ class Node(BaseACIPhysObject):
                         self.num_ports = len(node_data)
 
                 # get the total number of ports = number of fan slots
-                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptFtSlot'
+                mo_query_url = '/api/mo/' + self.dn + \
+                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptFtSlot'
                 ret = self._session.get(mo_query_url)
                 node_data = ret.json()['imdata']
                 if node_data:
@@ -1150,7 +1152,8 @@ class Node(BaseACIPhysObject):
                             self.num_fan_modules += 1
 
                 # get the total number of ports = number of linecard slots
-                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptLCSlot'
+                mo_query_url = '/api/mo/' + self.dn + \
+                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptLCSlot'
                 ret = self._session.get(mo_query_url)
                 node_data = ret.json()['imdata']
                 self.num_lc_slots = len(node_data)
@@ -1161,7 +1164,8 @@ class Node(BaseACIPhysObject):
                             self.num_lc_modules += 1
 
                 # get the total number of ports = number of power supply slots
-                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptPsuSlot'
+                mo_query_url = '/api/mo/' + self.dn + \
+                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptPsuSlot'
                 ret = self._session.get(mo_query_url)
                 node_data = ret.json()['imdata']
                 self.num_ps_slots = len(node_data)
@@ -1172,7 +1176,8 @@ class Node(BaseACIPhysObject):
                             self.num_ps_modules += 1
 
                 # get the total number of ports = number of supervisor slots
-                mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=subtree&target-subtree-class=eqptSupCSlot'
+                mo_query_url = '/api/mo/' + self.dn + \
+                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptSupCSlot'
                 ret = self._session.get(mo_query_url)
                 node_data = ret.json()['imdata']
                 self.num_sup_slots = len(node_data)
@@ -1228,17 +1233,17 @@ class Node(BaseACIPhysObject):
         if include_concrete and self.role != 'controller':
             # todo: currently only have concrete model for switches - need to add controller
             top_system = SwitchJson(session, self.node)
-            Aci_Con.ConcreteArp.get(top_system, self)
-            Aci_Con.ConcreteAccCtrlRule.get(top_system, self)
-            Aci_Con.ConcreteBD.get(top_system, self)
-            Aci_Con.ConcreteOverlay.get(top_system, self)
-            Aci_Con.ConcretePortChannel.get(top_system, self)
-            Aci_Con.ConcreteEp.get(top_system, self)
-            Aci_Con.ConcreteFilter.get(top_system, self)
-            Aci_Con.ConcreteLoopback.get(top_system, self)
-            Aci_Con.ConcreteContext.get(top_system, self)
-            Aci_Con.ConcreteSVI.get(top_system, self)
-            Aci_Con.ConcreteVpc.get(top_system, self)
+            ConcreteArp.get(top_system, self)
+            ConcreteAccCtrlRule.get(top_system, self)
+            ConcreteBD.get(top_system, self)
+            ConcreteOverlay.get(top_system, self)
+            ConcretePortChannel.get(top_system, self)
+            ConcreteEp.get(top_system, self)
+            ConcreteFilter.get(top_system, self)
+            ConcreteLoopback.get(top_system, self)
+            ConcreteContext.get(top_system, self)
+            ConcreteSVI.get(top_system, self)
+            ConcreteVpc.get(top_system, self)
 
         if deep:
             for child in self._children:
@@ -1488,7 +1493,6 @@ class ExternalSwitch(BaseACIPhysObject):
     def get(cls, session, parent=None):
         """Gets all of the loose nodes from the APIC.
 
-        :param node_id: Not used for external nodes
         :param session: APIC session
         :param parent: optional parent object of type Topology
         :returns: list of ENodes
@@ -2064,7 +2068,7 @@ class Interface(BaseInterface):
         phys_dom_dn = 'uni/phys-allvlans'
         rs_dom_p = {'infraRsDomP': {'attributes': {'tDn': phys_dom_dn}}}
         infra_att_entity_p = {'infraAttEntityP': {'attributes':
-                                                      {'name': 'allvlans'},
+                                                  {'name': 'allvlans'},
                                                   'children': [rs_dom_p]}}
         infra['infraInfra']['children'].append(infra_att_entity_p)
 
@@ -2340,7 +2344,7 @@ class Interface(BaseInterface):
 
                 if not isinstance(pod_parent, str) and pod_parent:
                     if interface_obj.pod == pod_parent.pod and interface_obj.node == pod_parent.node and \
-                                    interface_obj.module == pod_parent.slot:
+                            interface_obj.module == pod_parent.slot:
                         interface_obj._parent = pod_parent
                         interface_obj._parent.add_child(interface_obj)
                         resp.append(interface_obj)
