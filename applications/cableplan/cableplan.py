@@ -31,7 +31,7 @@ import sys
 import re
 
 import acitoolkit.acitoolkit as ACI
-import acitoolkit.aciphysobject as ACI_PHYS
+#import acitoolkit.aciphysobject as ACI
 
 eTree = None
 Verbose_import_ = False
@@ -170,7 +170,7 @@ class CABLEPLAN:
 
     @classmethod
     def _parse_apic(cls, session):
-        pod = ACI_PHYS.Pod.get(session)[0]
+        pod = ACI.Pod.get(session)[0]
         pod.populate_children(deep=True)
         cable_plan = cls()
         cable_plan._build_apic(pod)
@@ -447,14 +447,14 @@ class CABLEPLAN:
 
         :returns: None
         """
-        nodes = pod.get_children(ACI_PHYS.Node)
+        nodes = pod.get_children(ACI.Node)
         for node in nodes:
             if node.getFabricSt() == 'active':
                 if node.get_role() == 'spine':
                     self.add_switch(CpSwitch(node.get_name(), node.get_chassis_type(), spine=True))
                 if node.get_role() == 'leaf':
                     self.add_switch(CpSwitch(node.get_name(), node.get_chassis_type()))
-        links = pod.get_children(ACI_PHYS.Link)
+        links = pod.get_children(ACI.Link)
         for link in links:
             switch1 = link.get_node2()
             switch2 = link.get_node2()
