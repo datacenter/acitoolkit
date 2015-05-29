@@ -633,6 +633,29 @@ class TestBridgeDomain(unittest.TestCase):
         bd.remove_context()
         self.assertTrue(bd.get_context() is None)
 
+    def test_get_table(self):
+        """
+        Test get table function
+        """
+        # Create a tenant
+        tenant = Tenant('tenant')
+
+        # Create a few bridge domains, generate and populate their attributes
+        bd1 = BridgeDomain('bd1', tenant)
+        attr1 = bd1._generate_attributes()
+        bd1._populate_from_attributes(attr1)
+
+        bd2 = BridgeDomain('bd2', tenant)
+        attr2 = bd2._generate_attributes()
+        bd2._populate_from_attributes(attr2)
+
+        bd3 = BridgeDomain('bd3', tenant)
+        attr3 = bd3._generate_attributes()
+        bd3._populate_from_attributes(attr3)
+
+        bridge_domains = [bd1, bd2, bd3]
+        self.assertTrue(isinstance(BridgeDomain.get_table(bridge_domains)[0], Table))
+
 
 class TestL2Interface(unittest.TestCase):
     """
