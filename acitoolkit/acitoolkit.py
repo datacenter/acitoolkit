@@ -2837,6 +2837,31 @@ class PhysDomain(BaseACIObject):
         """
         return self._parent
 
+    @staticmethod
+    def get_url(fmt='json'):
+        """
+        Get the URL used to push the configuration to the APIC
+        if no format parameter is specified, the format will be 'json'
+        otherwise it will return '/api/mo/uni.' with the format string
+        appended.
+
+        :param fmt: optional format string, default is 'json'
+        :returns: URL string
+        """
+        return '/api/mo/uni.' + fmt
+
+    def push_to_apic(self, session):
+        """
+        Push the appropriate configuration to the APIC for this Phys Domain.
+        All of the subobject configuration will also be pushed.
+
+        :param session: the instance of Session used for APIC communication
+        :returns: Requests Response code
+        """
+        resp = session.push_to_apic(self.get_url(),
+            self.get_json())
+        return resp
+
     @classmethod
     def get(cls, session):
         """
