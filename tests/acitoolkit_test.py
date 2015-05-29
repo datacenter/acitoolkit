@@ -2012,6 +2012,16 @@ class TestLiveEPG(TestLiveAPIC):
                 for epg in epgs:
                     self.assertTrue(isinstance(epg, EPG))
 
+    def test_get_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        for tenant in tenants:
+            apps = AppProfile.get(session, tenant)
+            for app in apps:
+                epgs = EPG.get(session, app, tenant)
+                self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
+
+
 class TestLiveEPGDomain(TestLiveAPIC):
     """
     Test live EPG Domain
