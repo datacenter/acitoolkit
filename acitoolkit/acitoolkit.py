@@ -32,7 +32,8 @@
 """
 import sys
 from aciTable import Table
-from .aciphysobject import Interface
+#from .aciphysobject import Interface
+from .aciphysobject import *
 from .acibaseobject import BaseACIObject, BaseRelation, BaseInterface
 from .acisession import Session
 from .acitoolkitlib import Credentials
@@ -161,7 +162,10 @@ class Tenant(BaseACIObject):
             query_url = ('/api/mo/uni/tn-%s.json?query-target=self&'
                          'rsp-subtree=full' % name)
             ret = session.get(query_url)
+
+            # the following works around a bug encountered in the json returned from the APIC
             ret._content = ret._content.replace("\\\'", "'")
+
             data = ret.json()['imdata']
             obj = super(Tenant, cls).get_deep(full_data=data,
                                               working_data=data,
