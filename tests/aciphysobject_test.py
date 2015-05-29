@@ -38,7 +38,7 @@ except ImportError:
     LOGIN = ''
     PASSWORD = ''
 from acitoolkit.acitoolkit import *
-from acitoolkit.aciphysobject import *
+#from acitoolkit.aciphysobject import *
 import unittest
 
 
