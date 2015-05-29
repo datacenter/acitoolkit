@@ -382,6 +382,17 @@ class TestAppProfile(unittest.TestCase):
         app = AppProfile('app', tenant)
         self.assertTrue(type(app.get_json()) == dict)
 
+    def test_get_table(self):
+        """
+        Test app profile create table function
+        """
+        tenant1 = Tenant('tenant1')
+        tenant2 = Tenant('tenant2')
+        app1 = AppProfile('app', tenant1)
+        app2 = AppProfile('app', tenant2)
+        app_profiles = [app1, app2]
+        self.assertTrue(isinstance(AppProfile.get_table(app_profiles)[0], Table))
+
 
 class TestBridgeDomain(unittest.TestCase):
     """
@@ -621,6 +632,29 @@ class TestBridgeDomain(unittest.TestCase):
         bd.add_context(context)
         bd.remove_context()
         self.assertTrue(bd.get_context() is None)
+
+    def test_get_table(self):
+        """
+        Test get table function
+        """
+        # Create a tenant
+        tenant = Tenant('tenant')
+
+        # Create a few bridge domains, generate and populate their attributes
+        bd1 = BridgeDomain('bd1', tenant)
+        attr1 = bd1._generate_attributes()
+        bd1._populate_from_attributes(attr1)
+
+        bd2 = BridgeDomain('bd2', tenant)
+        attr2 = bd2._generate_attributes()
+        bd2._populate_from_attributes(attr2)
+
+        bd3 = BridgeDomain('bd3', tenant)
+        attr3 = bd3._generate_attributes()
+        bd3._populate_from_attributes(attr3)
+
+        bridge_domains = [bd1, bd2, bd3]
+        self.assertTrue(isinstance(BridgeDomain.get_table(bridge_domains)[0], Table))
 
 
 class TestL2Interface(unittest.TestCase):
@@ -1344,6 +1378,43 @@ class TestEndpoint(unittest.TestCase):
         data = tenant.get_json()
         self.verify_json(data, True)
 
+class TestPhysDomain(unittest.TestCase):
+    """
+    Class for testing Phys Domain
+    """
+    def test_create(self):
+        """
+        Test create phys domain
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        self.assertTrue(isinstance(phys_domain, PhysDomain))
+
+    def test_json(self):
+        """
+        Test get json of phys domain
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        self.assertTrue(type(phys_domain.get_json()) is dict)
+
+    def test_generate_attributes_conditionals(self):
+        """
+        Test conditionals within generate attributes function
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        phys_domain.dn = 'dn'
+        phys_domain.lcOwn = 'lcOwn'
+        phys_domain.childAction = 'childAction'
+        self.assertEqual(phys_domain._generate_attributes()['dn'], phys_domain.dn)
+        self.assertEqual(phys_domain._generate_attributes()['lcOwn'], phys_domain.lcOwn)
+        self.assertEqual(phys_domain._generate_attributes()['childAction'], phys_domain.childAction)
+
+    def test_get_parent(self):
+        """
+        Test get parent function
+        """
+        phys_domain = PhysDomain('test-phys-domain', None)
+        self.assertEqual(phys_domain.get_parent(), phys_domain._parent)
+
 
 class TestJson(unittest.TestCase):
     """
@@ -1388,6 +1459,22 @@ class TestJson(unittest.TestCase):
 
         self.assertTrue(output == expected_json,
                         'Did not see expected JSON returned')
+
+class TestEPGDomain(unittest.TestCase):
+    """
+    Test the EPG Domain class
+    """
+    def test_get_parent_class(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertIsNone(epg_domain._get_parent_class())
+
+    def test_get_parent(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertEquals(epg_domain.get_parent(), epg_domain._parent)
+
+    def test_get_json(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertTrue(type(epg_domain.get_json()) is dict)
 
 
 class TestPortChannel(unittest.TestCase):
@@ -1650,6 +1737,17 @@ class TestLiveTenant(TestLiveAPIC):
     """
     Tenant tests on a live APIC
     """
+    def create_unique_live_tenant(self):
+        """
+        Creates test tenant that does not interfere with tenants in APIC
+        """
+        session = self.login_to_apic()
+        tenants = self.get_all_tenants()
+        non_existing_tenant = tenants[0]
+        while non_existing_tenant in tenants:
+            non_existing_tenant = Tenant(random_size_string())
+        return non_existing_tenant
+
     def get_all_tenants(self):
         """
         Test Tenant.get
@@ -1721,17 +1819,8 @@ class TestLiveTenant(TestLiveAPIC):
         """
         session = self.login_to_apic()
 
-        # Get all of the existing tenants
-        tenants = self.get_all_tenants()
-        tenant_names = self.get_all_tenant_names()
-
-        # Pick a unique tenant name not currently in APIC
-        tenant_name = tenant_names[0]
-        while tenant_name in tenant_names:
-            tenant_name = random_size_string()
-
         # Create the tenant and push to APIC
-        new_tenant = Tenant(tenant_name)
+        new_tenant = self.create_unique_live_tenant()
         resp = session.push_to_apic(new_tenant.get_url(),
                                     data=new_tenant.get_json())
         self.assertTrue(resp.ok)
@@ -1742,9 +1831,8 @@ class TestLiveTenant(TestLiveAPIC):
 
         # Now delete the tenant
         new_tenant.mark_as_deleted()
-        resp = session.push_to_apic(new_tenant.get_url(),
-                                    data=new_tenant.get_json())
-        self.assertTrue(resp.ok)
+        new_tenant.push_to_apic(session)
+        self.assertTrue(new_tenant.push_to_apic(session).ok)
 
         # Get all of the tenants and verify that the new tenant is deleted
         names = self.get_all_tenant_names()
@@ -1923,6 +2011,32 @@ class TestLiveEPG(TestLiveAPIC):
                 epgs = EPG.get(session, app, tenant)
                 for epg in epgs:
                     self.assertTrue(isinstance(epg, EPG))
+
+    def test_get_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        for tenant in tenants:
+            apps = AppProfile.get(session, tenant)
+            for app in apps:
+                epgs = EPG.get(session, app, tenant)
+                self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
+
+
+class TestLiveEPGDomain(TestLiveAPIC):
+    """
+    Test live EPG Domain
+    """
+    def test_get(self):
+        """
+        Test get all EPG Domains from APIC
+        """
+        session = self.login_to_apic()
+        epg_domains = EPGDomain.get(session)
+        self.assertTrue(len(epg_domains) > 0)
+        for epg_domain in epg_domains:
+            self.assertTrue(isinstance(epg_domain, EPGDomain))
+            self.assertTrue(isinstance(epg_domain.name, str))
+
 
 
 class TestLiveEndpoint(TestLiveAPIC):
@@ -2207,6 +2321,76 @@ class TestApic(TestLiveAPIC):
         # Cleanup
         self.base_test_teardown(session, tenant)
 
+class TestLivePhysDomain(TestLiveAPIC):
+    """
+    Class to test live phys domain
+    """
+    def create_unique_live_phys_domain(self):
+        """
+        Create live phys domain that will not conflict with phys domains on APIC
+        """
+        session = self.login_to_apic()
+        phys_domains = PhysDomain.get(session)
+        non_existing_phys_domain = phys_domains[0]
+        while non_existing_phys_domain in phys_domains:
+            non_existing_phys_domain = PhysDomain(random_size_string(), None)
+        return non_existing_phys_domain
+
+    def get_all_phys_domains(self):
+        """
+        Get all phys domains from APIC and test phys domain get function
+        """
+        session = self.login_to_apic()
+        phys_domains = PhysDomain.get(session)
+        self.assertTrue(len(phys_domains) > 0)
+        return phys_domains
+
+    def get_all_phys_domain_names(self):
+        """
+        Test getting phys domain names
+        """
+        phys_domains = self.get_all_phys_domains()
+        names = []
+        for phys_domain in phys_domains:
+            names.append(phys_domain.name)
+        return names
+
+    def test_get_by_name(self):
+        """
+        Test get by name function
+        """
+        # Log in to APIC
+        session = self.login_to_apic()
+
+        # Create new phys domain and push to APIC
+        new_phys_domain = PhysDomain('phys_domain_toolkit_test', None)
+        new_phys_domain.push_to_apic(session)
+        self.assertTrue(new_phys_domain.push_to_apic(session).ok)
+
+        # Test get by name function (passing conditional to successfully find name)
+        phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
+        self.assertEquals(phys_domain_by_name, new_phys_domain)
+
+        # Delete new phys domain
+        new_phys_domain.mark_as_deleted()
+        new_phys_domain.push_to_apic(session)
+        self.assertTrue(new_phys_domain.push_to_apic(session).ok)
+
+        # Test get by name function (failing conditional to find name)
+        phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
+        self.assertIsNone(phys_domain_by_name)
+
+        # Verify that new phys domain is deleted
+        names = self.get_all_phys_domain_names()
+        self.assertTrue(new_phys_domain.name not in names)
+
+class TestLiveVmmDomain(TestLiveAPIC):
+    def test_get(self):
+        session = self.login_to_apic()
+        vmm_domains = VmmDomain.get(session)
+        for vmm_domain in vmm_domains:
+            self.assertTrue(isinstance(vmm_domain, VmmDomain))
+
 
 class TestLiveContracts(TestLiveAPIC):
     def get_2_entries(self, contract):
@@ -2474,9 +2658,12 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveEPGDomain))
     live.addTest(unittest.makeSuite(TestLiveContracts))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
+    live.addTest(unittest.makeSuite(TestLivePhysDomain))
+    live.addTest(unittest.makeSuite(TestLiveVmmDomain))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
@@ -2494,7 +2681,9 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestTaboo))
     offline.addTest(unittest.makeSuite(TestEPG))
     offline.addTest(unittest.makeSuite(TestOutsideEPG))
+    offline.addTest(unittest.makeSuite(TestPhysDomain))
     offline.addTest(unittest.makeSuite(TestJson))
+    offline.addTest(unittest.makeSuite(TestEPGDomain))
     offline.addTest(unittest.makeSuite(TestPortChannel))
     offline.addTest(unittest.makeSuite(TestContext))
     offline.addTest(unittest.makeSuite(TestOspf))
