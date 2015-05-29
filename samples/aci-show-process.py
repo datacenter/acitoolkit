@@ -33,7 +33,7 @@ Simple application that shows all of the processes running on a switch
 """
 import sys
 import acitoolkit.acitoolkit as ACI
-import acitoolkit.aciphysobject as ACI_PHYS
+#import acitoolkit.aciphysobject as ACI_PHYS
 from acitoolkit.acitoolkitlib import Credentials
 
 
@@ -57,11 +57,11 @@ def main():
         print '%% Could not login to APIC'
         sys.exit(0)
 
-    switches = ACI_PHYS.Node.get(session, '1', args.switch)
+    switches = ACI.Node.get(session, '1', args.switch)
     for switch in switches:
         if switch.role != 'controller':
-            processes = ACI_PHYS.Process.get(session, switch)
-            tables = ACI_PHYS.Process.get_table(processes, 'Process list for Switch ' + switch.name + '::')
+            processes = ACI.Process.get(session, switch)
+            tables = ACI.Process.get_table(processes, 'Process list for Switch ' + switch.name + '::')
             for table in tables:
                 print table.get_text(tablefmt='fancy_grid') + '\n'
 
