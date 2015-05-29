@@ -30,9 +30,9 @@ Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
 import sys
-from acitoolkit.aciConcreteLib import *
+#from acitoolkit.aciConcreteLib import *
 import acitoolkit.acitoolkit as ACI
-import acitoolkit.aciphysobject as ACI_PHYS
+#import acitoolkit.aciphysobject as ACI
 from acitoolkit.acitoolkitlib import Credentials
 
 #from SwitchJson import SwitchJson
@@ -79,11 +79,11 @@ def show_switch_short(switch_id):
     """
 
     if switch_id:
-        switches = ACI_PHYS.Node.get(session, '1', switch_id)
+        switches = ACI.Node.get(session, '1', switch_id)
     else:
-        switches = ACI_PHYS.Node.get(session)
+        switches = ACI.Node.get(session)
 
-    tables = ACI_PHYS.Node.get_table(switches, title='All Switches')
+    tables = ACI.Node.get_table(switches, title='All Switches')
     text_string = tables[0].get_text(tablefmt='fancy_grid') + '\n'
     print text_string
 
@@ -98,55 +98,55 @@ def render_text_switch(switch):
     title = 'Switch:{0} ("{1}") - '.format(switch.node, switch.name)
     text_string = ''
     if args.all or args.basic:
-        tables = ACI_PHYS.Node.get_table([switch], title)
+        tables = ACI.Node.get_table([switch], title)
         text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
 
     if args.all or args.supervisor:
-        tables = ACI_PHYS.Supervisorcard.get_table(switch.get_children(ACI_PHYS.Supervisorcard), title)
+        tables = ACI.Supervisorcard.get_table(switch.get_children(ACI.Supervisorcard), title)
         text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
 
     if args.all or args.linecard:
-        tables = ACI_PHYS.Linecard.get_table(switch.get_children(ACI_PHYS.Linecard), title)
+        tables = ACI.Linecard.get_table(switch.get_children(ACI.Linecard), title)
         text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
 
     if args.all or args.powersupply:
-        tables = ACI_PHYS.Powersupply.get_table(switch.get_children(ACI_PHYS.Powersupply), title)
+        tables = ACI.Powersupply.get_table(switch.get_children(ACI.Powersupply), title)
         text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
 
     if args.fantray or args.all:
-        tables = ACI_PHYS.Fantray.get_table(switch.get_children(ACI_PHYS.Fantray), title)
+        tables = ACI.Fantray.get_table(switch.get_children(ACI.Fantray), title)
         text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
 
     if args.all or args.overlay:
-        text_string += render_tables(switch, ConcreteOverlay, title)
+        text_string += render_tables(switch, ACI.ConcreteOverlay, title)
 
     if args.all or args.context:
-        text_string += render_tables(switch, ConcreteContext, title)
+        text_string += render_tables(switch, ACI.ConcreteContext, title)
 
     if args.all or args.bridgedomain:
-        text_string += render_tables(switch, ConcreteBD, title)
+        text_string += render_tables(switch, ACI.ConcreteBD, title)
 
     if args.all or args.svi:
-        text_string += render_tables(switch, ConcreteSVI, title)
+        text_string += render_tables(switch, ACI.ConcreteSVI, title)
 
     if args.all or args.accessrule:
-        text_string += render_tables(switch, ConcreteAccCtrlRule, title)
-        text_string += render_tables(switch, ConcreteFilter, title)
+        text_string += render_tables(switch, ACI.ConcreteAccCtrlRule, title)
+        text_string += render_tables(switch, ACI.ConcreteFilter, title)
 
     if args.all or args.arp:
-        text_string += render_tables(switch, ConcreteArp, title)
+        text_string += render_tables(switch, ACI.ConcreteArp, title)
 
     if args.all or args.endpoint:
-        text_string += render_tables(switch, ConcreteEp, title)
+        text_string += render_tables(switch, ACI.ConcreteEp, title)
 
     if args.all or args.portchannel:
-        text_string += render_tables(switch, ConcretePortChannel, title)
-        text_string += render_tables(switch, ConcreteVpc, title)
+        text_string += render_tables(switch, ACI.ConcretePortChannel, title)
+        text_string += render_tables(switch, ACI.ConcreteVpc, title)
         vpc_ifs = []
-        for vpc in switch.get_children(ConcreteVpc):
-            vpc_ifs.extend(vpc.get_children(ConcreteVpcIf))
+        for vpc in switch.get_children(ACI.ConcreteVpc):
+            vpc_ifs.extend(vpc.get_children(ACI.ConcreteVpcIf))
         if vpc_ifs:
-            tables = ConcreteVpcIf.get_table(vpc_ifs, title)
+            tables = ACI.ConcreteVpcIf.get_table(vpc_ifs, title)
             for table in tables:
                 text_string += table.get_text(tablefmt='fancy_grid') + '\n'
     return text_string
@@ -176,9 +176,9 @@ def show_switch_long():
     What to display is controlled through args
     """
     if args.switch:
-        switches = ACI_PHYS.Node.get(session, '1', args.switch)
+        switches = ACI.Node.get(session, '1', args.switch)
     else:
-        switches = ACI_PHYS.Node.get(session)
+        switches = ACI.Node.get(session)
 
     for switch in sorted(switches, key=lambda x: x.node):
         if switch.role != 'controller':

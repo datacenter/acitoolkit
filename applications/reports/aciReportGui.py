@@ -17,8 +17,8 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
-"""  Search: ACI Toolkit search.  This is the controller for the ACI search
-tool.
+"""
+Reports: ACI Toolkit report GUI.
 """
 from flask import Flask, session, redirect, url_for
 from flask import flash

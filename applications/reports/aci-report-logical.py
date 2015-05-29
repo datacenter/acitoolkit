@@ -30,11 +30,8 @@ Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
 import sys
-from acitoolkit.aciConcreteLib import *
 import acitoolkit.acitoolkit as ACI
 from acitoolkit.acitoolkitlib import Credentials
-
-#from tenantJson import tenantJson
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile

@@ -1,7 +1,26 @@
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
+"""
+This is the report generator for the aciReportGui application
+"""
 __author__ = 'edsall'
 import acitoolkit.acitoolkit as ACI
-import acitoolkit.aciphysobject as ACI_PHYS
-import acitoolkit.aciConcreteLib as ACI_CON
 
 
 class DisplayRecord(object):
@@ -80,7 +99,7 @@ class ReportDB(object):
         """
         result = []
         if not self.switches:
-            self.all_switches = ACI_PHYS.Node.get(self.session)
+            self.all_switches = ACI.Node.get(self.session)
 
             for switch in self.all_switches:
                 if switch.role != 'controller':
@@ -104,18 +123,23 @@ class ReportDB(object):
             result.append((tenant.name, tenant.name))
         return result
 
-
     def get_switch_summary(self):
         """
 
         :return:
         """
-        tables = ACI_PHYS.Node.get_table(self.all_switches)
+        tables = ACI.Node.get_table(self.all_switches)
         return tables
 
     @staticmethod
     def get_switch_reports():
+        """
+        Gets a list of reports that can be generated for the switch. It is returned as tuples where
+        the first item in the tuple is the key to the python dictionary where the report is stored and
+        the second item is the text to display to the user.
 
+        :return: list of tuples
+        """
         return [('basic', 'Basic'),
                 ('supervisorcard', 'Supervisor Card'),
                 ('linecard', 'Linecard'),
@@ -125,7 +149,7 @@ class ReportDB(object):
                 ('context', 'Context'),
                 ('bridgedomain', 'Bridge (L2) Domain'),
                 ('endpoint', 'Endpoint'),
-                ('svi','SVI (Router Interface)'),
+                ('svi', 'SVI (Router Interface)'),
                 ('accessrule', 'Access Rule'),
                 ('arp', 'ARP'),
                 ('portchannel', 'Port Channel (incl. VPC)')]
@@ -133,6 +157,13 @@ class ReportDB(object):
     @staticmethod
     def get_tenant_reports():
 
+        """
+        Gets a list of reports that can be generated for tenants. It is returned as tuples where
+        the first item in the tuple is the key to the python dictionary where the report is stored and
+        the second item is the text to display to the user.
+
+        :return: list of tuples
+        """
         return [('context', 'Context'),
                 ('bridgedomain', 'Bridge Domain'),
                 ('contract', 'Contract'),
@@ -153,50 +184,50 @@ class ReportDB(object):
         switch.populate_children(deep=True, include_concrete=True)
         result['basic'] = switch.get_table([switch])
 
-        children_modules = switch.get_children(ACI_PHYS.Linecard)
+        children_modules = switch.get_children(ACI.Linecard)
         if children_modules:
             tables = children_modules[0].get_table(children_modules)
         else:
             tables = []
         result['linecard'] = tables
 
-        children_modules = switch.get_children(ACI_PHYS.Supervisorcard)
+        children_modules = switch.get_children(ACI.Supervisorcard)
         if children_modules:
             tables = children_modules[0].get_table(children_modules)
         else:
             tables = []
         result['supervisorcard'] = tables
 
-        children_modules = switch.get_children(ACI_PHYS.Fantray)
+        children_modules = switch.get_children(ACI.Fantray)
         if children_modules:
             tables = children_modules[0].get_table(children_modules)
         else:
             tables = []
         result['fantray'] = tables
 
-        children_modules = switch.get_children(ACI_PHYS.Powersupply)
+        children_modules = switch.get_children(ACI.Powersupply)
         if children_modules:
             tables = children_modules[0].get_table(children_modules)
         else:
             tables = []
         result['powersupply'] = tables
 
-        children_modules = switch.get_children(ACI_CON.ConcreteArp)
+        children_modules = switch.get_children(ACI.ConcreteArp)
         if children_modules:
             tables = children_modules[0].get_table(children_modules)
         else:
             tables = []
         result['arp'] = tables
 
-        result['endpoint'] = self.load_table(switch, ACI_CON.ConcreteEp)
-        result['context'] = self.load_table(switch, ACI_CON.ConcreteContext)
-        result['bridgedomain'] = self.load_table(switch, ACI_CON.ConcreteBD)
-        result['svi'] = self.load_table(switch, ACI_CON.ConcreteSVI)
-        result['accessrule'] = self.load_table(switch, ACI_CON.ConcreteAccCtrlRule)
-        result['accessrule'].extend(self.load_table(switch, ACI_CON.ConcreteFilter))
-        result['portchannel'] = self.load_table(switch, ACI_CON.ConcretePortChannel)
-        result['portchannel'].extend(self.load_table(switch, ACI_CON.ConcreteVpc))
-        result['overlay'] = self.load_table(switch, ACI_CON.ConcreteOverlay)
+        result['endpoint'] = self.load_table(switch, ACI.ConcreteEp)
+        result['context'] = self.load_table(switch, ACI.ConcreteContext)
+        result['bridgedomain'] = self.load_table(switch, ACI.ConcreteBD)
+        result['svi'] = self.load_table(switch, ACI.ConcreteSVI)
+        result['accessrule'] = self.load_table(switch, ACI.ConcreteAccCtrlRule)
+        result['accessrule'].extend(self.load_table(switch, ACI.ConcreteFilter))
+        result['portchannel'] = self.load_table(switch, ACI.ConcretePortChannel)
+        result['portchannel'].extend(self.load_table(switch, ACI.ConcreteVpc))
+        result['overlay'] = self.load_table(switch, ACI.ConcreteOverlay)
 
         return result
 
@@ -207,11 +238,11 @@ class ReportDB(object):
         """
         result = {}
         tenant = ACI.Tenant.get_deep(self.session, names=[tenant_name])[0]
-        child_name_object_map = {ACI.Context:'context',
-                                 ACI.BridgeDomain:'bridgedomain',
-                                 ACI.Contract:'contract',
-                                 ACI.Taboo:'taboo',
-                                 ACI.AppProfile:'app_profile',
+        child_name_object_map = {ACI.Context: 'context',
+                                 ACI.BridgeDomain: 'bridgedomain',
+                                 ACI.Contract: 'contract',
+                                 ACI.Taboo: 'taboo',
+                                 ACI.AppProfile: 'app_profile',
                                  }
 
         for tk_class in child_name_object_map:

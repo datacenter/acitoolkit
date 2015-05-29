@@ -1,28 +1,31 @@
-from wtforms import Form, StringField, BooleanField, PasswordField, SubmitField, SelectField, TextAreaField
-from wtforms.validators import Required, IPAddress
-from flask import Flask, render_template, session, redirect, url_for
-from flask import flash, send_from_directory, request
-from flask.ext.sqlalchemy import SQLAlchemy
-from requests import Timeout
-from flask.ext import admin
-from flask.ext.admin import BaseView, AdminIndexView, expose
-from flask.ext.admin.actions import action
-from flask.ext.admin.contrib.sqla import ModelView
-from flask.ext.admin.model.template import macro
-from flask.ext.bootstrap import Bootstrap
-from flask.ext.wtf import Form, CsrfProtect
+################################################################################
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
+"""
+Forms for report GUI
+"""
+from flask.ext.wtf import Form
 from wtforms import StringField, SubmitField, PasswordField, BooleanField
-from wtforms import RadioField, IntegerField, TextAreaField, SelectField
-from wtforms.fields.html5 import DateField, DateTimeField
-from wtforms.validators import Required, IPAddress, NumberRange
-from wtforms.validators import ValidationError, Optional
-import difflib
-from acitoolkit.acitoolkitlib import Credentials
-import acitoolkit.acitoolkit as ACI
-import acitoolkit.aciphysobject as ACI_PHYS
+from wtforms import TextAreaField, SelectField
+from wtforms.validators import Required, IPAddress
 
 __author__ = 'edsall'
-
 
 
 class FeedbackForm(Form):
@@ -48,7 +51,11 @@ class CredentialsForm(Form):
     password = PasswordField('APIC Password:', validators=[Required()])
     submit = SubmitField('Save')
 
+
 class ResetForm(Form):
+    """
+    Reset form
+    """
     reset = SubmitField('Reset')
 
 
