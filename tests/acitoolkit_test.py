@@ -1437,6 +1437,22 @@ class TestJson(unittest.TestCase):
         self.assertTrue(output == expected_json,
                         'Did not see expected JSON returned')
 
+class TestEPGDomain(unittest.TestCase):
+    """
+    Test the EPG Domain class
+    """
+    def test_get_parent_class(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertIsNone(epg_domain._get_parent_class())
+
+    def test_get_parent(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertEquals(epg_domain.get_parent(), epg_domain._parent)
+
+    def test_get_json(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertTrue(type(epg_domain.get_json()) is dict)
+
 
 class TestPortChannel(unittest.TestCase):
     """
@@ -1972,6 +1988,22 @@ class TestLiveEPG(TestLiveAPIC):
                 epgs = EPG.get(session, app, tenant)
                 for epg in epgs:
                     self.assertTrue(isinstance(epg, EPG))
+
+class TestLiveEPGDomain(TestLiveAPIC):
+    """
+    Test live EPG Domain
+    """
+    def test_get(self):
+        """
+        Test get all EPG Domains from APIC
+        """
+        session = self.login_to_apic()
+        epg_domains = EPGDomain.get(session)
+        self.assertTrue(len(epg_domains) > 0)
+        for epg_domain in epg_domains:
+            self.assertTrue(isinstance(epg_domain, EPGDomain))
+            self.assertTrue(isinstance(epg_domain.name, str))
+
 
 
 class TestLiveEndpoint(TestLiveAPIC):
@@ -2586,6 +2618,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveEPGDomain))
     live.addTest(unittest.makeSuite(TestLiveContracts))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
@@ -2609,6 +2642,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestOutsideEPG))
     offline.addTest(unittest.makeSuite(TestPhysDomain))
     offline.addTest(unittest.makeSuite(TestJson))
+    offline.addTest(unittest.makeSuite(TestEPGDomain))
     offline.addTest(unittest.makeSuite(TestPortChannel))
     offline.addTest(unittest.makeSuite(TestContext))
     offline.addTest(unittest.makeSuite(TestOspf))
