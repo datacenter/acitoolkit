@@ -2384,6 +2384,13 @@ class TestLivePhysDomain(TestLiveAPIC):
         names = self.get_all_phys_domain_names()
         self.assertTrue(new_phys_domain.name not in names)
 
+class TestLiveVmmDomain(TestLiveAPIC):
+    def test_get(self):
+        session = self.login_to_apic()
+        vmm_domains = VmmDomain.get(session)
+        for vmm_domain in vmm_domains:
+            self.assertTrue(isinstance(vmm_domain, VmmDomain))
+
 
 class TestLiveContracts(TestLiveAPIC):
     def get_2_entries(self, contract):
@@ -2656,6 +2663,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
     live.addTest(unittest.makeSuite(TestLivePhysDomain))
+    live.addTest(unittest.makeSuite(TestLiveVmmDomain))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
