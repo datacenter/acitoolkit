@@ -754,6 +754,15 @@ class OutsideEPG(CommonEPG):
         self.context_name = context.name
         self._add_relation(context)
 
+    def remove_context(self):
+        """
+        Remove the context from the EPG
+
+        :param context: Instance of Context class to remove from this
+                        OutsideEPG.
+        """
+        self._remove_all_relation(Context)
+
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
         """
