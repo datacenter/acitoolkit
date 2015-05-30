@@ -2688,7 +2688,10 @@ class Endpoint(BaseACIObject):
         for ep in ep_data:
             if ep[apic_endpoint_class]['attributes']['lcC'] == 'static':
                 continue
-            children = ep[apic_endpoint_class]['children']
+            if 'children' in ep[apic_endpoint_class]:
+                children = ep[apic_endpoint_class]['children']
+            else:
+                children = []
             ep = ep[apic_endpoint_class]['attributes']
             tenant = Tenant(str(ep['dn']).split('/')[1][3:])
             if '/LDevInst-' in str(ep['dn']):
