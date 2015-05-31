@@ -35,16 +35,21 @@ from acitoolkit.acitoolkit import *
 import unittest
 import string
 import random
-
-try:
-    from credentials import *
-except ImportError:
-    URL = ''
-    LOGIN = ''
-    PASSWORD = ''
 import sys
 import time
 import json
+
+try:
+    from credentials2 import *
+except ImportError:
+    print
+    print 'Please create a credentials.py file with the following variables filled in:'
+    print """
+    URL = ''
+    LOGIN = ''
+    PASSWORD = ''
+    """
+    sys.exit(0)
 
 MAX_RANDOM_STRING_SIZE = 20
 
