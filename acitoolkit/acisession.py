@@ -147,7 +147,9 @@ class Subscriber(threading.Thread):
         subscription_id = resp_data['subscriptionId']
         self._subscriptions[url] = subscription_id
         while int(resp_data['totalCount']):
-            event = {"totalCount":"1","subscriptionId":[resp_data['subscriptionId']],"imdata":[resp_data["imdata"][0]]}
+            event = {"totalCount": "1",
+                     "subscriptionId": [resp_data['subscriptionId']],
+                     "imdata": [resp_data["imdata"][0]]}
             self._event_q.put(json.dumps(event))
             resp_data['totalCount'] = str(int(resp_data['totalCount']) - 1)
             resp_data["imdata"].remove(resp_data["imdata"][0])

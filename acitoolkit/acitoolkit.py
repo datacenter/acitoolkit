@@ -32,7 +32,7 @@
 """
 import sys
 from aciTable import Table
-#from .aciphysobject import Interface
+# from .aciphysobject import Interface
 from .aciphysobject import *
 from .acibaseobject import BaseACIObject, BaseRelation, BaseInterface
 from .acisession import Session
@@ -128,7 +128,7 @@ class Tenant(BaseACIObject):
         :returns: Requests Response code
         """
         resp = session.push_to_apic(self.get_url(),
-            self.get_json())
+                                    self.get_json())
         return resp
 
     @classmethod
@@ -177,11 +177,11 @@ class Tenant(BaseACIObject):
 
             data = ret.json()['imdata']
             obj = super(Tenant, cls).get_deep(full_data=data,
-                                               working_data=data,
-                                               parent=None,
-                                               limit_to=limit_to,
-                                               subtree=subtree,
-                                               config_only=config_only)
+                                              working_data=data,
+                                              parent=None,
+                                              limit_to=limit_to,
+                                              subtree=subtree,
+                                              config_only=config_only)
             obj._extract_relationships(data)
             resp.append(obj)
         return resp
@@ -201,9 +201,7 @@ class Tenant(BaseACIObject):
             if isinstance(parent, LogicalModel):
                 for tenant in tenants:
                     parent.add_child(tenant)
-
         return tenants
-
 
     @classmethod
     def exists(cls, session, tenant):
@@ -543,12 +541,10 @@ class CommonEPG(BaseACIObject):
         """Internal routine to generate JSON common to EPGs and Outside EPGs"""
         children = []
         for contract in self.get_all_provided():
-            text = {'fvRsProv': {'attributes': {'tnVzBrCPName':
-                                                    contract.name}}}
+            text = {'fvRsProv': {'attributes': {'tnVzBrCPName': contract.name}}}
             children.append(text)
         for contract in self.get_all_consumed():
-            text = {'fvRsCons': {'attributes': {'tnVzBrCPName':
-                                                    contract.name}}}
+            text = {'fvRsCons': {'attributes': {'tnVzBrCPName': contract.name}}}
             children.append(text)
         return children
 
@@ -751,17 +747,15 @@ class EPG(CommonEPG):
         """
         children = super(EPG, self)._get_common_json()
         if self.has_bd():
-            text = {'fvRsBd': {'attributes': {'tnFvBDName':
-                                                  self.get_bd().name}}}
+            text = {'fvRsBd': {'attributes': {'tnFvBDName': self.get_bd().name}}}
             children.append(text)
         is_interfaces = False
         for interface in self.get_interfaces():
             is_interfaces = True
             encap_text = '%s-%s' % (interface.encap_type,
                                     interface.encap_id)
-            text = {'fvRsPathAtt': {'attributes':
-                                        {'encap': encap_text,
-                                         'tDn': interface._get_path()}}}
+            text = {'fvRsPathAtt': {'attributes': {'encap': encap_text,
+                                                   'tDn': interface._get_path()}}}
             if interface.encap_mode:
                 text['fvRsPathAtt']['attributes']['mode'] = interface.encap_mode
             if self._deployment_immediacy:
@@ -770,16 +764,13 @@ class EPG(CommonEPG):
 
             for ep in interface.get_all_attachments(Endpoint):
                 path = interface._get_path()
-                text = {'fvStCEp': {'attributes':
-                                        {'ip': ep.ip,
-                                         'mac': ep.mac,
-                                         'name': ep.name,
-                                         'encap': encap_text,
-                                         'type': 'silent-host'},
-                                    'children': [{'fvRsStCEpToPathEp':
-                                                      {'attributes':
-                                                           {'tDn': path},
-                                                       'children': []}}]}}
+                text = {'fvStCEp': {'attributes': {'ip': ep.ip,
+                                                   'mac': ep.mac,
+                                                   'name': ep.name,
+                                                   'encap': encap_text,
+                                                   'type': 'silent-host'},
+                                    'children': [{'fvRsStCEpToPathEp': {'attributes': {'tDn': path},
+                                                                        'children': []}}]}}
                 if ep.is_deleted():
                     text['fvStCEp']['attributes']['status'] = 'deleted'
                 children.append(text)
@@ -787,24 +778,19 @@ class EPG(CommonEPG):
             # Only add the all-vlans physical domain if nobody has
             # attached any other domain
             if len(self.get_children(only_class=EPGDomain)) == 0:
-                text = {'fvRsDomAtt': {'attributes':
-                                           {'tDn': 'uni/phys-allvlans'}}}
+                text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
-
         is_vmms = False
         for vmm in self.get_all_attached(VMM):
             is_vmms = True
-            text = {'fvRsDomAtt': {'attributes':
-                                       {'tDn': vmm._get_path(),
-                                        'resImedcy': 'immediate'}}}
+            text = {'fvRsDomAtt': {'attributes': {'tDn': vmm._get_path(),
+                                                  'resImedcy': 'immediate'}}}
             children.append(text)
-
         for interface in self.get_interfaces('detached'):
-            text = {'fvRsPathAtt': {'attributes':
-                                        {'encap': '%s-%s' % (interface.encap_type,
-                                                             interface.encap_id),
-                                         'status': 'deleted',
-                                         'tDn': interface._get_path()}}}
+            text = {'fvRsPathAtt': {'attributes': {'encap': '%s-%s' % (interface.encap_type,
+                                                                       interface.encap_id),
+                                                   'status': 'deleted',
+                                                   'tDn': interface._get_path()}}}
             children.append(text)
         attr = self._generate_attributes()
         return super(EPG, self).get_json(self._get_apic_classes()[0],
@@ -874,6 +860,7 @@ class OutsideNetwork(CommonEPG):
         else:
             name = network_name
         super(OutsideNetwork, self).__init__(name)
+
 
 class OutsideEPG(CommonEPG):
     """Represents the EPG for external connectivity
@@ -973,7 +960,7 @@ class OutsideEPG(CommonEPG):
             context = {'l3extRsEctx': {'attributes': {'tnFvCtxName':
                                                       self.context_name}}}
             children.append(context)
-        for network in self.networks: # TODO clean this up - duplicate of code below
+        for network in self.networks:  # TODO clean this up - duplicate of code below
             if isinstance(network, str):
                 network_obj = OutsideNetwork(network)
                 network_obj.network = network
@@ -986,7 +973,6 @@ class OutsideEPG(CommonEPG):
                 text['l3extInstP']['attributes']['status'] = 'deleted'
                 subnet['l3extSubnet']['attributes']['status'] = 'deleted'
             contracts = network._get_common_json()
-            #contracts = super(OutsideEPG, self)._get_common_json()
             text['l3extInstP']['children'].append(subnet)
             for contract in contracts:
                 text['l3extInstP']['children'].append(contract)
@@ -1016,7 +1002,6 @@ class OutsideEPG(CommonEPG):
                 subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
                                           'children': []}}
                 contracts = network._get_common_json()
-                #contracts = super(OutsideEPG, self)._get_common_json()
                 text['l3extInstP']['children'].append(subnet)
                 for contract in contracts:
                     text['l3extInstP']['children'].append(contract)
@@ -1157,15 +1142,13 @@ class L3Interface(BaseACIObject):
         """
         if self.get_addr() is None:
             return None
-        text = {'l3extRsPathL3OutAtt':
-                    {'attributes':
-                         {'encap': '%s-%s' % (self.get_interfaces()[0].encap_type,
-                                              self.get_interfaces()[0].encap_id),
-                          'ifInstT': self.get_l3if_type(),
-                          'addr': self.get_addr(),
-                          'mtu': self.get_mtu(),
-                          'tDn': self.get_interfaces()[0]._get_path()},
-                     'children': []}}
+        text = {'l3extRsPathL3OutAtt': {'attributes': {'encap': '%s-%s' % (self.get_interfaces()[0].encap_type,
+                                                                           self.get_interfaces()[0].encap_id),
+                                                       'ifInstT': self.get_l3if_type(),
+                                                       'addr': self.get_addr(),
+                                                       'mtu': self.get_mtu(),
+                                                       'tDn': self.get_interfaces()[0]._get_path()},
+                                        'children': []}}
         return text
 
 
@@ -1489,8 +1472,7 @@ class BridgeDomain(BaseACIObject):
         """
         children = []
         if self.has_context():
-            text = {'fvRsCtx': {'attributes':
-                                    {'tnFvCtxName': self.get_context().name}}}
+            text = {'fvRsCtx': {'attributes': {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
@@ -1848,7 +1830,6 @@ class Context(BaseACIObject):
         """
         return dn.split('/tn-')[1].split('/')[0]
 
-
     def _populate_from_attributes(self, attributes):
         """
         Sets the attributes when creating objects from the APIC.
@@ -2048,8 +2029,7 @@ class BaseContract(BaseACIObject):
             subject_name = self.name + entry.name
             subject = {subj_code: {'attributes': {'name': subject_name}}}
             filt_name = subject_name
-            filt = {subj_relation_code:
-                        {'attributes': {'tnVzFilterName': filt_name}}}
+            filt = {subj_relation_code: {'attributes': {'tnVzFilterName': filt_name}}}
             subject[subj_code]['children'] = [filt]
             subjects.append(subject)
         contract[self._get_contract_code()]['children'] = subjects
@@ -2605,10 +2585,8 @@ class PortChannel(BaseInterface):
                                 child['infraRsAccBaseGrp']['attributes']['status'] = 'deleted'
             infra['infraInfra']['children'].append(accport_selector)
         # Add the actual port-channel
-        accbndlgrp = {'infraAccBndlGrp':
-                          {'attributes':
-                               {'name': self.name, 'lagT': pc_mode},
-                           'children': []}}
+        accbndlgrp = {'infraAccBndlGrp': {'attributes': {'name': self.name, 'lagT': pc_mode},
+                                          'children': []}}
         if self.is_deleted():
             accbndlgrp['infraAccBndlGrp']['attributes']['status'] = 'deleted'
         infrafuncp = {'infraFuncP': {'attributes': {},
@@ -2630,14 +2608,10 @@ class PortChannel(BaseInterface):
         for node in unique_nodes:
             fabric_node = {'fabricNodePEp': {'attributes': {'id': node}}}
             fabric_nodes.append(fabric_node)
-        fabric_group = {'fabricExplicitGEp':
-                            {'attributes':
-                                 {'name': 'vpc' + unique_id, 'id': unique_id},
-                             'children': fabric_nodes}}
-        fabric_prot_pol = {'fabricProtPol': {'attributes':
-                                                 {'name': 'vpc' + unique_id},
+        fabric_group = {'fabricExplicitGEp': {'attributes': {'name': 'vpc' + unique_id, 'id': unique_id},
+                                              'children': fabric_nodes}}
+        fabric_prot_pol = {'fabricProtPol': {'attributes': {'name': 'vpc' + unique_id},
                                              'children': [fabric_group]}}
-
         return fabric_prot_pol, infra
 
     @staticmethod
@@ -2959,7 +2933,7 @@ class PhysDomain(BaseACIObject):
         :returns: Requests Response code
         """
         resp = session.push_to_apic(self.get_url(),
-            self.get_json())
+                                    self.get_json())
         return resp
 
     @classmethod

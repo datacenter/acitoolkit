@@ -30,8 +30,8 @@
 """ACI Toolkit Test module
 """
 from acitoolkit.acitoolkit import *
-#from acitoolkit.aciphysobject import *
-#from acitoolkit.acibaseobject import *
+# from acitoolkit.aciphysobject import *
+# from acitoolkit.acibaseobject import *
 import unittest
 import string
 import random
@@ -1383,6 +1383,7 @@ class TestEndpoint(unittest.TestCase):
         data = tenant.get_json()
         self.verify_json(data, True)
 
+
 class TestPhysDomain(unittest.TestCase):
     """
     Class for testing Phys Domain
@@ -1464,6 +1465,7 @@ class TestJson(unittest.TestCase):
 
         self.assertTrue(output == expected_json,
                         'Did not see expected JSON returned')
+
 
 class TestEPGDomain(unittest.TestCase):
     """
@@ -2051,7 +2053,6 @@ class TestLiveEPGDomain(TestLiveAPIC):
             self.assertTrue(isinstance(epg_domain.name, str))
 
 
-
 class TestLiveEndpoint(TestLiveAPIC):
     def test_get_bad_session(self):
         bad_session = 'BAD SESSION'
@@ -2334,6 +2335,7 @@ class TestApic(TestLiveAPIC):
         # Cleanup
         self.base_test_teardown(session, tenant)
 
+
 class TestLivePhysDomain(TestLiveAPIC):
     """
     Class to test live phys domain
@@ -2396,6 +2398,7 @@ class TestLivePhysDomain(TestLiveAPIC):
         # Verify that new phys domain is deleted
         names = self.get_all_phys_domain_names()
         self.assertTrue(new_phys_domain.name not in names)
+
 
 class TestLiveVmmDomain(TestLiveAPIC):
     def test_get(self):
