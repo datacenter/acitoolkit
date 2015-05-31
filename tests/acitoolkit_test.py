@@ -1850,8 +1850,12 @@ class TestLiveSubscription(TestLiveAPIC):
     """
     def test_create_class_subscription(self):
         session = self.login_to_apic()
+        tenants = Tenant.get(session)
         Tenant.subscribe(session)
-        self.assertFalse(Tenant.has_events(session))
+        if len(tenants):
+            self.assertTrue(Tenant.has_events(session))
+        else:
+            self.assertFalse(Tenant.has_events(session))
         Tenant.unsubscribe(session)
 
     def test_delete_unsubscribed_class_subscription(self):
@@ -1861,9 +1865,13 @@ class TestLiveSubscription(TestLiveAPIC):
 
     def test_double_class_subscription(self):
         session = self.login_to_apic()
+        tenants = Tenant.get(session)
         Tenant.subscribe(session)
         Tenant.subscribe(session)
-        self.assertFalse(Tenant.has_events(session))
+        if len(tenants):
+            self.assertTrue(Tenant.has_events(session))
+        else:
+            self.assertFalse(Tenant.has_events(session))
         Tenant.unsubscribe(session)
 
     def test_get_event_no_subcribe(self):
