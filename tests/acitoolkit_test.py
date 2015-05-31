@@ -40,7 +40,7 @@ import time
 import json
 
 try:
-    from credentials2 import *
+    from credentials import *
 except ImportError:
     print
     print 'Please create a credentials.py file with the following variables filled in:'
