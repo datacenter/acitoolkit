@@ -152,13 +152,7 @@ class TestBasicExport(unittest.TestCase):
         tenants = Tenant.get_deep(session, names=['multisite'], limit_to=['fvTenant', 'vzBrCP'])
         self.assertTrue(len(tenants) > 0)
         multisite_tenant = tenants[0]
-        contracts = multisite_tenant.get_children(only_class=Contract)
-        found = False
-        for contract in contracts:
-            if contract.name == 'Site2:mysql-contract':
-                found = True
-                break
-        self.assertTrue(found)
+        self.assertIsNotNone(multisite_tenant.get_child(Contract, 'Site2:mysql-contract'))
 
     def test_04_consume_exported_contract(self):
         time.sleep(1)
