@@ -8,23 +8,28 @@
 # #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may   #
 # not use this file except in compliance with the License. You may obtain   #
-#    a copy of the License at                                                  #
-#                                                                              #
-#         http://www.apache.org/licenses/LICENSE-2.0                           #
-#                                                                              #
-#    Unless required by applicable law or agreed to in writing, software       #
+# a copy of the License at                                                  #
+# #
+# http://www.apache.org/licenses/LICENSE-2.0                           #
+# #
+# Unless required by applicable law or agreed to in writing, software       #
 #    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
 #    License for the specific language governing permissions and limitations   #
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
+"""
+This is a library of all the Concrete classes that are on a switch.
+"""
+"""
+"""
 # all the import
 from acibaseobject import BaseACIPhysObject
+import acitoolkit as ACI
 import copy
 from aciTable import Table
-#from aciSearch import AciSearch, Searchable
-import acitoolkit as ACI
+from aciSearch import Searchable
 
 
 class ConcreteArp(BaseACIPhysObject):
@@ -65,6 +70,7 @@ class ConcreteArp(BaseACIPhysObject):
             if 'arpInst' in data:
                 arp = cls()
                 arp.attr['adminSt'] = data['arpInst']['attributes']['adminSt']
+                arp.attr['dn'] = data['arpInst']['attributes']['dn']
                 if 'children' in data['arpInst']:
                     arp.get_arp_domain(data['arpInst']['children'])
                 result.append(arp)
@@ -97,6 +103,13 @@ class ConcreteArp(BaseACIPhysObject):
                             for arp_adj_ep in child['arpDb']['children']:
                                 entry = self.get_arp_entry(arp_adj_ep)
                                 result['entry'].append(entry)
+            if ':' in result['name']:
+                result['tenant'] = result['name'].split(':')[0]
+                result['context'] = result['name'].split(':')[1]
+            else:
+                result['tenant'] = ''
+                result['context'] = result['name']
+
             self.domain.append(result)
 
     @staticmethod
@@ -113,14 +126,14 @@ class ConcreteArp(BaseACIPhysObject):
         return entry
 
     @staticmethod
-    def get_table(arps, super_title=None):
+    def get_table(arps, title=''):
         """
         Returns arp information in a displayable format.
-        :param super_title:
+        :param title:
         :param arps:
         """
         result = []
-        headers = ['Context', 'Add', 'Delete', 'Timeout.',
+        headers = ['Tenant', 'Context', 'Add', 'Delete', 'Timeout.',
                    'Resolved', 'Incomplete', 'Total', 'Rx Pkts',
                    'Rx Drop', 'Tx Pkts', 'Tx Drop', 'Tx Req',
                    'Tx Grat Req', 'Tx Resp']
@@ -128,61 +141,71 @@ class ConcreteArp(BaseACIPhysObject):
         for arp in arps:
             for domain in arp.domain:
                 data.append([
-                    domain['name'],
-                    domain['stats'].get('adjAdd'),
-                    domain['stats'].get('adjDel'),
-                    domain['stats'].get('adjTimeout'),
-                    domain['stats'].get('resolved'),
-                    domain['stats'].get('incomplete'),
-                    domain['stats'].get('total'),
-                    domain['stats'].get('pktRcvd'),
-                    domain['stats'].get('pktRcvdDrp'),
-                    domain['stats'].get('pktSent'),
-                    domain['stats'].get('pktSentDrop'),
-                    domain['stats'].get('pktSentReq'),
-                    domain['stats'].get('pktSentGratReq'),
-                    domain['stats'].get('pktSentRsp')
+                    domain.get('tenant', ''),
+                    domain.get('context', ''),
+                    domain['stats'].get('adjAdd', ''),
+                    domain['stats'].get('adjDel', ''),
+                    domain['stats'].get('adjTimeout', ''),
+                    domain['stats'].get('resolved', ''),
+                    domain['stats'].get('incomplete', ''),
+                    domain['stats'].get('total', ''),
+                    domain['stats'].get('pktRcvd', ''),
+                    domain['stats'].get('pktRcvdDrp', ''),
+                    domain['stats'].get('pktSent', ''),
+                    domain['stats'].get('pktSentDrop', ''),
+                    domain['stats'].get('pktSentReq', ''),
+                    domain['stats'].get('pktSentGratReq', ''),
+                    domain['stats'].get('pktSentRsp', '')
                 ])
 
             data = sorted(data)
-            result.append(Table(data, headers, title=super_title + 'ARP Stats'))
+            result.append(Table(data, headers, title=title + 'ARP Stats'))
 
-            headers = ['Context', 'MAC Address', 'IP Address',
+            headers = ['Tenant', 'Context', 'MAC Address', 'IP Address',
                        'Physical I/F', 'Interface ID', 'Oper Status']
             data = []
             for domain in arp.domain:
                 for entry in domain['entry']:
                     data.append([
-                        domain['name'],
-                        entry.get('mac'),
-                        entry.get('ip'),
-                        entry.get('physical_interface'),
-                        entry.get('interface_id'),
-                        entry.get('oper_st')
+                        str(domain.get('tenant', '')),
+                        str(domain.get('context', '')),
+                        str(entry.get('mac', '')),
+                        str(entry.get('ip', '')),
+                        str(entry.get('physical_interface', '')),
+                        str(entry.get('interface_id', '')),
+                        str(entry.get('oper_st', ''))
                     ])
-            result.append(Table(data, headers, title=super_title + 'ARP Entries'))
+            result.append(Table(data, headers, title=title + 'ARP Entries'))
 
         return result
 
-    # def _define_searchables(self):
-    #     """
-    #     Create all of the searchable terms
-    #
-    #     """
-    #     result = []
-    #     for domain in self.domain:
-    #         if 'entry' in domain:
-    #             for entry in domain['entry']:
-    #                 if entry['ip'] is not None:
-    #                     result.append(Searchable('ipv4', entry['ip'], 'indirect'))
-    #                 if entry['mac'] is not None:
-    #                     result.append(Searchable('mac', entry['mac'], 'indirect'))
-    #                 if entry['physical_interface'] is not None:
-    #                     result.append(Searchable('interface', entry['physical_interface']))
-    #         if domain['name']:
-    #             result.append(Searchable('context', domain['name'], 'indirect'))
-    #             result.append(Searchable('name', domain['name'], 'direct'))
-    #     return result
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = [Searchable('arp')]
+
+        for domain in self.domain:
+            if 'entry' in domain:
+                for entry in domain['entry']:
+                    if entry['ip'] is not None:
+                        result.append(Searchable('ipv4', entry['ip'], 'indirect'))
+                    if entry['mac'] is not None:
+                        result.append(Searchable('mac', entry['mac'], 'indirect'))
+                    if entry['physical_interface'] is not None:
+                        result.append(Searchable('interface', entry['physical_interface']))
+            if domain['name']:
+                result.append(Searchable('context', domain['name'], 'indirect'))
+                result.append(Searchable('name', domain['name'], 'primary'))
+        return result
+
+    def __str__(self):
+        return 'ConcreteARP'
+
+    def __eq__(self, other):
+
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteVpc(BaseACIPhysObject):
@@ -218,7 +241,7 @@ class ConcreteVpc(BaseACIPhysObject):
                 vpc = cls()
                 vpc._populate_from_attributes(vpc_d['vpcEntity']['attributes'])
                 vpc._populate_from_inst(top)
-                vpc.member_ports = ConcreteVpcIf.get(top)
+                vpc.member_ports = ConcreteVpcIf.get(top, vpc)
                 result.append(vpc)
             if parent:
                 vpc._parent = parent
@@ -230,8 +253,8 @@ class ConcreteVpc(BaseACIPhysObject):
         """
         Fill in attribute
         """
-        self.attr['oper_st'] = attr['operSt']
-        self.attr['dn'] = attr['dn']
+        self.attr['oper_st'] = str(attr['operSt'])
+        self.attr['dn'] = str(attr['dn'])
 
     def _populate_from_inst(self, top):
         """
@@ -241,7 +264,7 @@ class ConcreteVpc(BaseACIPhysObject):
         self.attr['admin_st'] = None
         for inst in inst_data:
             if 'vpcInst' in inst:
-                self.attr['admin_st'] = inst['vpcInst']['attributes']['adminSt']
+                self.attr['admin_st'] = str(inst['vpcInst']['attributes']['adminSt'])
                 self._populate_from_dom(top, inst['vpcInst']['attributes']['dn'])
 
     def _populate_from_dom(self, top, dname):
@@ -254,65 +277,128 @@ class ConcreteVpc(BaseACIPhysObject):
             if 'vpcDom' in dom:
                 self.attr['dom_present'] = True
                 attr = dom['vpcDom']['attributes']
-                self.attr['compat_str'] = attr['compatQualStr']
-                self.attr['compat_st'] = attr['compatSt']
-                self.attr['dual_active_st'] = attr['dualActiveSt']
-                self.attr['id'] = attr['id']
-                self.attr['role'] = attr['lacpRole']
-                self.attr['local_mac'] = attr['localMAC']
-                self.attr['modify_time'] = attr['modTs']
-                self.attr['name'] = attr['name']
-                self.attr['dom_oper_st'] = attr['operSt']
-                self.attr['orphan_ports'] = attr['orphanPortList']
-                self.peer_info['ip'] = attr['peerIp']
-                self.peer_info['mac'] = attr['peerMAC']
-                self.peer_info['state'] = attr['peerSt']
-                self.peer_info['st_qual'] = attr['peerStQual']
-                self.peer_info['version'] = attr['peerVersion']
-                self.attr['sys_mac'] = attr['sysMac']
-                self.attr['virtual_ip'] = attr['virtualIp']
-                self.attr['virtual_mac'] = attr['vpcMAC']
+                self.attr['compat_str'] = str(attr['compatQualStr'])
+                self.attr['compat_st'] = str(attr['compatSt'])
+                self.attr['dual_active_st'] = str(attr['dualActiveSt'])
+                self.attr['id'] = str(attr['id'])
+                self.attr['role'] = str(attr['lacpRole'])
+                self.attr['local_mac'] = str(attr['localMAC'])
+                self.attr['modify_time'] = str(attr['modTs'])
+                self.attr['name'] = str(attr['name'])
+                self.attr['dom_oper_st'] = str(attr['operSt'])
+                self.attr['orphan_ports'] = str(attr['orphanPortList'])
+                self.peer_info['ip'] = str(attr['peerIp'])
+                self.peer_info['mac'] = str(attr['peerMAC'])
+                self.peer_info['state'] = str(attr['peerSt'])
+                self.peer_info['st_qual'] = str(attr['peerStQual'])
+                self.peer_info['version'] = str(attr['peerVersion'])
+                self.attr['sys_mac'] = str(attr['sysMac'])
+                self.attr['virtual_ip'] = str(attr['virtualIp'])
+                self.attr['virtual_mac'] = str(attr['vpcMAC'])
 
     @staticmethod
-    def get_table(vpcs, super_title=None):
+    def get_table(vpcs, title=''):
         """
         Will create table of switch VPC information
-        :param super_title:
+        :param title:
         :param vpcs:
         """
         result = []
         for vpc in vpcs:
             data = []
             if vpc.attr['admin_st'] == 'enabled' and vpc.attr['dom_present']:
-                data.extend([['Name', vpc.attr['name']],
-                             ['ID', vpc.attr['id']],
-                             ['Virtual MAC', vpc.attr['virtual_mac']],
-                             ['Virtual IP', vpc.attr['virtual_ip']],
-                             ['Admin State', vpc.attr['admin_st']],
-                             ['Oper State', vpc.attr['oper_st']],
-                             ['Domain Oper State', vpc.attr['dom_oper_st']]])
+                headers = ['Name',
+                           'ID',
+                           'Virtual MAC',
+                           'Virtual IP',
+                           'Admin State',
+                           'Oper State',
+                           'Domain Oper State',
 
-                data.extend([['Role', vpc.attr['role']],
-                             ['Peer Version', vpc.peer_info['version']],
-                             ['Peer MAC', vpc.peer_info['mac']],
-                             ['Peer IP', vpc.peer_info['ip']],
-                             ['Peer State', vpc.peer_info['state']],
-                             ['Peer State Qualifier', vpc.peer_info['st_qual']]])
+                           'Role',
+                           'Peer Version',
+                           'Peer MAC',
+                           'Peer IP',
+                           'Peer State',
+                           'Peer State Qualifier',
 
-                data.extend([['Compatibility State', vpc.attr['compat_st']],
-                             ['Compatibility String', vpc.attr['compat_str']],
-                             ['Dual Active State', vpc.attr['dual_active_st']],
-                             ['Local MAC', vpc.attr['local_mac']],
-                             ['System MAC', vpc.attr['sys_mac']]])
+                           'Compatibility State',
+                           'Compatibility String',
+                           'Dual Active State',
+                           'Local MAC',
+                           'System MAC']
 
-                table = Table(data, title=super_title + 'Virtual Port Channel (VPC)')
+                data = [[vpc.attr.get('name', ''),
+                         vpc.attr.get('id', ''),
+                         vpc.attr.get('virtual_mac', ''),
+                         vpc.attr.get('virtual_ip', ''),
+                         vpc.attr.get('admin_st', ''),
+                         vpc.attr.get('oper_st', ''),
+                         vpc.attr.get('dom_oper_st', ''),
+                         vpc.attr.get('role', ''),
+                         vpc.peer_info.get('version', ''),
+                         vpc.peer_info.get('mac', ''),
+                         vpc.peer_info.get('ip', ''),
+                         vpc.peer_info.get('state', ''),
+                         vpc.peer_info.get('st_qual', ''),
+                         vpc.attr.get('compat_st', ''),
+                         vpc.attr.get('compat_str', ''),
+                         vpc.attr.get('dual_active_st', ''),
+                         vpc.attr.get('local_mac', ''),
+                         vpc.attr.get('sys_mac', '')]]
+
+                table = Table(data, headers, title=title + 'Virtual Port Channel (VPC)',
+                              table_orientation='vertical', columns=2)
                 result.append(table)
             else:
-                data.append(['Admin State', vpc.attr['admin_st']])
-                data.append(['Oper State', vpc.attr['oper_st']])
-                table = Table(data, title=super_title + 'Virtual Port Channel (VPC)')
+                headers = ['Admin State', 'Oper State']
+                data = [[vpc.attr.get('admin_st', ''), vpc.attr.get('oper_st', '')]]
+
+                table = Table(data, headers, title=title + 'Virtual Port Channel (VPC)')
                 result.append(table)
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = [Searchable('vpc')]
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'virtual_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['virtual_mac']))
+
+        if 'local_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['local_mac']))
+
+        if 'sys_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['sys_mac']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'role' in self.attr:
+            result.append(Searchable('role', self.attr['role']))
+
+        if 'mac' in self.peer_info:
+            result.append(Searchable('mac', self.peer_info['mac'], 'indirect'))
+
+        if 'ip' in self.peer_info:
+            result.append(Searchable('ipv4', self.peer_info['ip'].split('/')[0], 'indirect'))
+
+        if 'virtual_ip' in self.attr:
+            result.append(Searchable('ipv4', self.attr['virtual_ip'].split('/')[0]))
+
+        return result
+
+    def __str__(self):
+        return 'VPC_' + self.attr['id']
+
+    def __eq__(self, other):
+
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteVpcIf(BaseACIPhysObject):
@@ -349,21 +435,28 @@ class ConcreteVpcIf(BaseACIPhysObject):
         """
         Populate attribute
         """
-        self.attr['compat_st'] = attr['compatSt']
-        self.attr['id'] = attr['id']
-        self.attr['remote_oper_st'] = attr['remoteOperSt']
-        self.attr['access_vlan'] = attr['cfgdAccessVlan']
-        self.attr['trunk_vlans'] = attr['cfgdTrunkVlans']
-        self.attr['vlans'] = attr['cfgdVlans']
-        self.attr['compat_qual'] = attr['compatQual']
-        self.attr['compat_qual_str'] = attr['compatQualStr']
-        self.attr['compat_st'] = attr['compatSt']
-        self.attr['oper_st'] = attr['localOperSt']
-        self.attr['remote_vlans'] = attr['peerCfgdVlans']
-        self.attr['remote_up_vlans'] = attr['peerUpVlans']
-        self.attr['remote_oper_st'] = attr['remoteOperSt']
-        self.attr['susp_vlans'] = attr['suspVlans']
-        self.attr['up_vlans'] = attr['upVlans']
+        self.attr['compat_st'] = str(attr['compatSt'])
+        self.attr['id'] = str(attr['id'])
+        self.attr['remote_oper_st'] = str(attr['remoteOperSt'])
+
+        if attr['cfgdAccessVlan']:
+            if 'vlan-' in attr['cfgdAccessVlan']:
+                self.attr['access_vlan'] = str(attr['cfgdAccessVlan']).split('-')[1]
+            else:
+                self.attr['access_vlan'] = str(attr['cfgdAccessVlan'])
+
+        self.attr['trunk_vlans'] = str(attr['cfgdTrunkVlans'])
+        self.attr['vlans'] = str(attr['cfgdVlans'])
+        self.attr['compat_qual'] = str(attr['compatQual'])
+        self.attr['compat_qual_str'] = str(attr['compatQualStr'])
+        self.attr['compat_st'] = str(attr['compatSt'])
+        self.attr['oper_st'] = str(attr['localOperSt'])
+        self.attr['remote_vlans'] = str(attr['peerCfgdVlans'])
+        self.attr['remote_up_vlans'] = str(attr['peerUpVlans'])
+        self.attr['remote_oper_st'] = str(attr['remoteOperSt'])
+        self.attr['susp_vlans'] = str(attr['suspVlans'])
+        self.attr['up_vlans'] = str(attr['upVlans'])
+        self.attr['dn'] = str(attr['dn'])
 
     def _get_interface(self, top, dname):
         """
@@ -371,33 +464,102 @@ class ConcreteVpcIf(BaseACIPhysObject):
         """
         vpc_data = top.get_object(dname + '/rsvpcConf')
         if vpc_data:
-            self.attr['interface'] = vpc_data['vpcRsVpcConf']['attributes']['tSKey']
+            self.attr['interface'] = str(vpc_data['vpcRsVpcConf']['attributes']['tSKey'])
 
     @staticmethod
-    def get_table(vpc_ifs, super_title=None):
+    def get_table(vpc_ifs, title=''):
         """
         Will generate a text report for a list of vpc_ifs.
-        :param super_title:
+        :param title:
         :param vpc_ifs:
         """
 
         result = []
 
         headers = ['ID', 'Interface', 'Oper St', 'Remote Oper State',
-                   'Up VLANS', 'Remote Up VLANs']
+                   'Access VLAN', 'Up VLANS', 'Remote Up VLANs', 'Suspended VLANs']
         data = []
         for intf in vpc_ifs:
             data.append([
-                str(intf.attr.get('id')),
-                str(intf.attr.get('interface')),
-                str(intf.attr.get('oper_st')),
-                str(intf.attr.get('remote_oper_st')),
-                str(intf.attr.get('up_vlans')),
-                str(intf.attr.get('remote_up_vlans'))])
+                intf.attr.get('id', ''),
+                intf.attr.get('interface', ''),
+                intf.attr.get('oper_st', ''),
+                intf.attr.get('remote_oper_st', ''),
+                intf.attr.get('access_vlan', ''),
+                intf.attr.get('up_vlans', ''),
+                intf.attr.get('remote_up_vlans', ''),
+                intf.attr.get('susp_vlans', '')])
 
         data = sorted(data)
-        result.append(Table(data, headers, title=super_title + 'VPC Interfaces'))
+        result.append(Table(data, headers, title=title + 'VPC Interfaces'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'interface' in self.attr:
+            result.append(Searchable('interface', self.attr['interface']))
+
+        if 'up_vlans' in self.attr:
+            vlan_list = self.expand_vlans(self.attr['up_vlans'].replace(' ', ''))
+            for vlan in vlan_list:
+                result.append(Searchable('vlan', str(vlan)))
+        if 'remote_up_vlans' in self.attr:
+            vlan_list = self.expand_vlans(self.attr['remote_up_vlans'].replace(' ', ''))
+            for vlan in vlan_list:
+                result.append(Searchable('vlan', str(vlan), 'indirect'))
+
+        if 'access_vlan' in self.attr:
+            result.append(Searchable('vlan', self.attr['access_vlan']))
+
+        if 'susp_vlans' in self.attr:
+            vlan_list = self.expand_vlans(self.attr['susp_vlans'].replace(' ', ''))
+            for vlan in vlan_list:
+                result.append(Searchable('vlan', str(vlan)))
+
+        return result
+
+    @staticmethod
+    def expand_vlans(vlans):
+        """
+        Will expand a comma separated list of vlan ids into a list of discrete vlan ids
+        :rtype : list
+        :param vlans: str of comma separated vlan lists
+        """
+        vlan_ranges = vlans.split(',')
+        vlan_list = []
+        for v_range in vlan_ranges:
+            if '-' in v_range:
+                [v_low, v_hi] = v_range.split('-')
+                vlan_list.extend(range(int(v_low), int(v_hi) + 1))
+            else:
+                vlan_list.append(v_range)
+        return vlan_list
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'VPC_Interface' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteContext(BaseACIPhysObject):
@@ -447,61 +609,109 @@ class ConcreteContext(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['dn'] = attr['dn']
-        self.attr['oper_st'] = attr['operState']
-        self.attr['create_time'] = attr['createTs']
-        self.attr['admin_st'] = attr['adminState']
-        self.attr['oper_st_qual'] = attr['operStQual']
-        self.attr['encap'] = attr['encap']
-        self.attr['modified_time'] = attr['lastChgdTs']
-        self.attr['name'] = attr['name']
-        if 'pcTag' in attr:
-            self.attr['mcst_class_id'] = attr['pcTag']
+        self.attr['dn'] = str(attr['dn'])
+        self.attr['oper_st'] = str(attr['operState'])
+        self.attr['create_time'] = str(attr['createTs'])
+        self.attr['admin_st'] = str(attr['adminState'])
+        self.attr['oper_st_qual'] = str(attr['operStQual'])
+        self.attr['encap'] = str(attr['encap'])
+        self.attr['modified_time'] = str(attr['lastChgdTs'])
+        self.attr['name'] = str(attr['name'])
+        if ':' in self.attr['name']:
+            self.attr['tenant'] = self.attr['name'].split(':')[0]
+            self.attr['context'] = self.attr['name'].split(':')[1]
         else:
-            self.attr['mcst_class_id'] = None
+            self.attr['tenant'] = ''
+            self.attr['context'] = self.attr['name']
 
-        self.attr['scope'] = attr['scope']
-        self.attr['type'] = attr.get('type')
-        self.attr['vrf_id'] = attr['id']
-        self.attr['vrf_oui'] = attr['oui']
-        self.attr['mgmt_class_id'] = attr.get('mgmtPcTag')
+        if 'pcTag' in attr:
+            self.attr['mcst_class_id'] = str(attr['pcTag'])
+        else:
+            self.attr['mcst_class_id'] = ''
+
+        self.attr['scope'] = str(attr['scope'])
+        self.attr['type'] = str(attr.get('type'))
+        self.attr['vrf_id'] = str(attr['id'])
+        self.attr['vrf_oui'] = str(attr['oui'])
+        self.attr['mgmt_class_id'] = str(attr.get('mgmtPcTag'))
         if 'vxlan-' in self.attr['encap']:
             self.attr['vnid'] = self.attr['encap'].split('-')[1]
         else:
-            self.attr['vnid'] = None
+            self.attr['vnid'] = ''
 
     @staticmethod
-    def get_table(contexts, super_title=None):
+    def get_table(contexts, title=''):
         """
         Will create table of switch context information
-        :param super_title:
+        :param title:
         :param contexts:
         """
 
-        headers = ['Name', 'VNID', 'Scope', 'Type', 'VRF Id',
+        headers = ['Tenant', 'Context', 'VNID', 'Scope', 'Type', 'VRF Id',
                    'MCast Class Id', 'Admin St', 'Oper St', 'Modified']
         data = []
-        for context in contexts:
+        for context in sorted(contexts, key=lambda x: (x.attr['tenant'], x.attr['context'])):
             data.append([
-                context.attr.get('name'),
-                context.attr.get('vnid'),
-                context.attr.get('scope'),
-                context.attr.get('type'),
-                context.attr.get('vrf_id'),
-                context.attr.get('mcst_class_id'),
-                context.attr.get('admin_st'),
-                context.attr.get('oper_st'),
-                context.attr.get('modified_time')])
+                context.attr.get('tenant', ''),
+                context.attr.get('context', ''),
+                context.attr.get('vnid', ''),
+                context.attr.get('scope', ''),
+                context.attr.get('type', ''),
+                context.attr.get('vrf_id', ''),
+                context.attr.get('mcst_class_id', ''),
+                context.attr.get('admin_st', ''),
+                context.attr.get('oper_st', ''),
+                context.attr.get('modified_time', '')])
 
         data = sorted(data)
-        table = Table(data, headers, title=super_title + 'Contexts (VRFs)')
+        table = Table(data, headers, title=title + 'Contexts (VRFs)')
         return [table, ]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+            result.append(Searchable('context', self.attr['name']))
+
+        if 'vnid' in self.attr:
+            result.append(Searchable('vnid', self.attr['vnid']))
+
+        if 'scope' in self.attr:
+            result.append(Searchable('scope', self.attr['scope']))
+
+        if 'mcst_class_id' in self.attr:
+            result.append(Searchable('class', self.attr['mcst_class_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Context' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteSVI(BaseACIPhysObject):
     """
-    The SVIs a switch.  This is derived from
-    the concrete model
+    The SVIs on a switch.  This is derived from
+    the concrete model in the switch
     """
 
     def __init__(self, parent=None):
@@ -517,9 +727,8 @@ class ConcreteSVI(BaseACIPhysObject):
         This will get all the SVIs on the switch
 
         :param parent:
-       :param top: the topSystem level json object
-       :param top:  json record of entire switch config
-       :returns: list of SVI
+        :param top:  json record of entire switch config
+        :returns: list of SVI
         """
         result = []
 
@@ -542,17 +751,84 @@ class ConcreteSVI(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['bandwidth'] = attr['bw']
-        self.attr['admin_st'] = attr['adminSt']
-        self.attr['oper_st_qual'] = attr['operStQual']
-        self.attr['oper_st'] = attr['operSt']
-        self.attr['modified_time'] = attr['modTs']
-        self.attr['name'] = attr['name']
-        self.attr['mac'] = attr['mac']
-        self.attr['id'] = attr['id']
-        self.attr['vlan_id'] = attr['vlanId']
-        self.attr['vlan_type'] = attr['vlanT']
-        self.attr['dn'] = attr['dn']
+        self.attr['bandwidth'] = str(attr['bw'])
+        self.attr['admin_st'] = str(attr['adminSt'])
+        self.attr['oper_st_qual'] = str(attr['operStQual'])
+        self.attr['oper_st'] = str(attr['operSt'])
+        self.attr['modified_time'] = str(attr['modTs'])
+        self.attr['name'] = str(attr['name'])
+        self.attr['mac'] = str(attr['mac'])
+        self.attr['id'] = str(attr['id'])
+        self.attr['vlan_id'] = str(attr['vlanId'])
+        self.attr['vlan_type'] = str(attr['vlanT'])
+        self.attr['dn'] = str(attr['dn'])
+
+    @staticmethod
+    def get_table(aci_objects, title=''):
+        """
+        Create table object for concrete SVI
+        :param aci_objects:
+        :param title:
+        """
+        result = []
+
+        headers = ['Name', 'ID', 'VLAN', 'Router MAC', 'Bandwidth', 'Admin State', 'Oper State', 'Oper Qualifier']
+        data = []
+        for aci_object in aci_objects:
+            data.append([
+                aci_object.attr.get('name', ''),
+                aci_object.attr.get('id', ''),
+                aci_object.attr.get('vlan_id', ''),
+                aci_object.attr.get('mac', ''),
+                aci_object.attr.get('bw', ''),
+                aci_object.attr.get('admin_st', ''),
+                aci_object.attr.get('oper_st', ''),
+                aci_object.attr.get('oper_st_qual', '')
+            ])
+
+        data = sorted(data, key=lambda x: (x[0], x[1]))
+        result.append(Table(data, headers, title=title + 'SVI (Router Interfaces)'))
+        return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = [(Searchable('svi'))]
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'mac' in self.attr:
+            result.append(Searchable('mac', self.attr['mac']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'vlan_id' in self.attr:
+            result.append(Searchable('vlan', self.attr['vlan_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_SVI' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
+
 
 class ConcreteLoopback(BaseACIPhysObject):
     """
@@ -595,21 +871,51 @@ class ConcreteLoopback(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['descr'] = attr['descr']
-        self.attr['admin_st'] = attr['adminSt']
-        self.attr['id'] = attr['id']
-        self.attr['dn'] = attr['dn']
+        self.attr['descr'] = str(attr['descr'])
+        self.attr['admin_st'] = str(attr['adminSt'])
+        self.attr['id'] = str(attr['id'])
+        self.attr['dn'] = str(attr['dn'])
 
     def _get_oper_st(self, dname, top):
         """
         Gets the operational state
         """
         data = top.get_subtree('ethpmLbRtdIf', dname)
-        self.attr['oper_st'] = None
-        self.attr['oper_st_qual'] = None
+        self.attr['oper_st'] = ''
+        self.attr['oper_st_qual'] = ''
         for obj in data:
-            self.attr['oper_st'] = obj['ethpmLbRtdIf']['attributes']['operSt']
-            self.attr['oper_st_qual'] = obj['ethpmLbRtdIf']['attributes']['operStQual']
+            self.attr['oper_st'] = str(obj['ethpmLbRtdIf']['attributes']['operSt'])
+            self.attr['oper_st_qual'] = str(obj['ethpmLbRtdIf']['attributes']['operStQual'])
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Loopback' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteBD(BaseACIPhysObject):
@@ -644,10 +950,8 @@ class ConcreteBD(BaseACIPhysObject):
             bdomain._populate_from_attributes(l2bd['l2BD']['attributes'])
 
             # get the context name by reading the context
-            bdomain.attr['context_name'] = bdomain. \
-                _get_cxt_name(l2bd['l2BD']['attributes']['dn'], top)
-            bdomain.attr['flood_gipo'] = bdomain._get_multicast_flood_address(
-                l2bd['l2BD']['attributes']['dn'], top)
+            bdomain._get_cxt_name(top)
+            bdomain._get_multicast_flood_address(top)
             result.append(bdomain)
             if parent:
                 bdomain._parent = parent
@@ -661,25 +965,26 @@ class ConcreteBD(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['oper_st'] = attr['operSt']
-        self.attr['create_time'] = attr['createTs']
-        self.attr['admin_st'] = attr['adminSt']
+        self.attr['dn'] = str(attr['dn'])
+        self.attr['oper_st'] = str(attr['operSt'])
+        self.attr['create_time'] = str(attr['createTs'])
+        self.attr['admin_st'] = str(attr['adminSt'])
 
-        self.attr['access_encap'] = attr['accEncap']
-        self.attr['bridge_mode'] = attr['bridgeMode']
-        self.attr['modified_time'] = attr['modTs']
-        self.attr['name'] = attr['name']
-        self.attr['unknown_ucast_class_id'] = attr['pcTag']
-        self.attr['fabric_encap'] = attr['fabEncap']
+        self.attr['access_encap'] = str(attr['accEncap'])
+        self.attr['bridge_mode'] = str(attr['bridgeMode'])
+        self.attr['modified_time'] = str(attr['modTs'])
+        self.attr['name'] = str(attr['name'])
+        self.attr['unknown_ucast_class_id'] = str(attr['pcTag'])
+        self.attr['fabric_encap'] = str(attr['fabEncap'])
         if 'vxlan-' in self.attr['fabric_encap']:
             self.attr['vnid'] = self.attr['fabric_encap'].split('-')[1]
         else:
-            self.attr['vnid'] = None
+            self.attr['vnid'] = ''
 
         if not self.attr['name']:
             self.attr['name'] = self.attr['vnid']
 
-        self.attr['type'] = attr['type']
+        self.attr['type'] = str(attr['type'])
         if 'arp-flood' in attr['fwdCtrl']:
             self.attr['arp_flood'] = True
         else:
@@ -700,49 +1005,53 @@ class ConcreteBD(BaseACIPhysObject):
         else:
             self.attr['route'] = False
 
-        self.attr['learn_disable'] = attr['epOperSt']
-        self.attr['unknown_mac_ucast'] = attr['unkMacUcastAct']
-        self.attr['unknown_mcast'] = attr['unkMcastAct']
+        self.attr['learn_disable'] = str(attr['epOperSt'])
+        self.attr['unknown_mac_ucast'] = str(attr['unkMacUcastAct'])
+        self.attr['unknown_mcast'] = str(attr['unkMcastAct'])
 
-    @staticmethod
-    def _get_cxt_name(dname, top):
+    def _get_cxt_name(self, top):
         """
         Gets the context name by reading the context object
         """
-        fields = dname.split('/')
+        fields = self.attr['dn'].split('/')
         context_dn = '/'.join(fields[0:-1])
         bd_data = top.get_object(context_dn)
-        name = None
+        name = ''
         if 'l3Ctx' in bd_data:
-            name = bd_data['l3Ctx']['attributes']['name']
+            name = str(bd_data['l3Ctx']['attributes']['name'])
         elif 'l3Inst' in bd_data:
-            name = bd_data['l3Inst']['attributes']['name']
+            name = str(bd_data['l3Inst']['attributes']['name'])
 
-        return name
+        if ':' in name:
+            self.attr['tenant'] = name.split(':')[0]
+            self.attr['context'] = name.split(':')[1]
+        else:
+            self.attr['tenant'] = ''
+            self.attr['context'] = name
 
-    @staticmethod
-    def _get_multicast_flood_address(dname, top):
+    def _get_multicast_flood_address(self, top):
         """
         Will read the fmcastGrp to get the multicast addre
         used when flooding across the fabric.
         """
-        bd_data = top.get_subtree('fmcastGrp', dname)
+        bd_data = top.get_subtree('fmcastGrp', self.attr['dn'])
         for obj in bd_data:
             if 'fmcastGrp' in obj:
-                return obj['fmcastGrp']['attributes']['addr']
+                self.attr['flood_gipo'] = str(obj['fmcastGrp']['attributes']['addr'])
+                break
             else:
-                return None
+                self.attr['flood_gipo'] = ''
 
     @staticmethod
-    def get_table(bridge_domains, super_title=None):
+    def get_table(bridge_domains, title=''):
         """
         Will create table of switch bridge domain information
-        :param super_title:
+        :param title:
         :param bridge_domains:
         """
         result = []
 
-        headers = ['Context', 'Name', 'VNID', 'Mode',
+        headers = ['Tenant', 'Context', 'Name', 'VNID', 'Mode',
                    'Route', 'Type', 'ARP Flood', 'MCST Flood',
                    'Unk UCAST', 'Unk MCAST', 'Learn', 'Flood GIPo',
                    'Admin St', 'Oper St']
@@ -751,28 +1060,74 @@ class ConcreteBD(BaseACIPhysObject):
             if ':' in bdomain.attr['name']:
                 name = bdomain.attr['name'].split(':')[-1]
             else:
-                name = str(bdomain.attr.get('name'))
+                name = str(bdomain.attr.get('name', ''))
 
             data.append([
-                str(bdomain.attr.get('context_name')),
+                bdomain.attr.get('tenant', ''),
+                bdomain.attr.get('context', ''),
                 name,
-                str(bdomain.attr.get('vnid')),
-                str(bdomain.attr.get('bridge_mode')),
-                # str(bdomain.attr.get('bridge')),
-                str(bdomain.attr.get('route')),
-                str(bdomain.attr.get('type')),
-                str(bdomain.attr.get('arp_flood')),
-                str(bdomain.attr.get('mcst_flood')),
-                str(bdomain.attr.get('unknown_mac_ucast')),
-                str(bdomain.attr.get('unknown_mcast')),
-                str(bdomain.attr.get('learn_disable')),
-                str(bdomain.attr.get('flood_gipo')),
-                str(bdomain.attr.get('admin_st')),
-                str(bdomain.attr.get('oper_st'))])
+                str(bdomain.attr.get('vnid', '')),
+                str(bdomain.attr.get('bridge_mode', '')),
+                str(bdomain.attr.get('route', '')),
+                str(bdomain.attr.get('type', '')),
+                str(bdomain.attr.get('arp_flood', '')),
+                str(bdomain.attr.get('mcst_flood', '')),
+                str(bdomain.attr.get('unknown_mac_ucast', '')),
+                str(bdomain.attr.get('unknown_mcast', '')),
+                str(bdomain.attr.get('learn_disable', '')),
+                str(bdomain.attr.get('flood_gipo', '')),
+                str(bdomain.attr.get('admin_st', '')),
+                str(bdomain.attr.get('oper_st', ''))])
 
         data = sorted(data)
-        result.append(Table(data, headers, title=super_title + 'Bridge Domains (BDs)'))
+        result.append(Table(data, headers, title=title + 'Bridge Domains (BDs)'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if ':' in self.attr['name']:
+            result.append(Searchable('name', self.attr['name'].split(':')[-1]))
+        else:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'context_name' in self.attr:
+            if ':' in self.attr['context_name']:
+                tenant = self.attr['context_name'].split(':')[0]
+                context = self.attr['context_name'].split(':')[1]
+                result.append(Searchable('context', context))
+                result.append(Searchable('tenant', tenant))
+            else:
+                result.append(Searchable('context', self.attr['context_name']))
+
+        if 'vnid' in self.attr:
+            result.append(Searchable('vnid', self.attr['vnid']))
+        if 'flood_gipo' in self.attr:
+            result.append(Searchable('ipv4', self.attr['flood_gipo']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_BD' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteAccCtrlRule(BaseACIPhysObject):
@@ -824,22 +1179,41 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['action'] = attr['action']
-        self.attr['dclass'] = attr['dPcTag']
-        self.attr['sclass'] = attr['sPcTag']
-        self.attr['descr'] = attr['descr']
-        self.attr['direction'] = attr['direction']
-        self.attr['filter_id'] = attr['fltId']
-        self.attr['mark_dscp'] = attr['markDscp']
-        self.attr['name'] = attr['name']
-        self.attr['oper_st'] = attr['operSt']
-        self.attr['priority'] = attr['prio']
-        self.attr['qos_group'] = attr['qosGrp']
-        self.attr['scope'] = attr['scopeId']
-        self.attr['type'] = attr['type']
-        self.attr['status'] = attr['status']
-        self.attr['modified_time'] = attr['modTs']
-        self.attr['dn'] = attr['dn']
+        self.attr['action'] = str(attr['action'])
+        self.attr['dclass'] = str(attr['dPcTag'])
+        self.attr['sclass'] = str(attr['sPcTag'])
+        self.attr['descr'] = str(attr['descr'])
+        self.attr['direction'] = str(attr['direction'])
+        self.attr['filter_id'] = str(attr['fltId'])
+        self.attr['mark_dscp'] = str(attr['markDscp'])
+        self.attr['name'] = str(attr['name'])
+        self.attr['oper_st'] = str(attr['operSt'])
+        self.attr['priority'] = str(attr['prio'])
+        self.annotate_priority()
+        self.attr['qos_group'] = str(attr['qosGrp'])
+        self.attr['scope'] = str(attr['scopeId'])
+        self.attr['type'] = str(attr['type'])
+        self.attr['status'] = str(attr['status'])
+        self.attr['modified_time'] = str(attr['modTs'])
+        self.attr['dn'] = str(attr['dn'])
+
+    def annotate_priority(self):
+        """
+        Annotate the priority string with a number that indicates its relative priority
+        :return:None
+        """
+        prio_map = {'black_list': 1,
+                    'fabric_infra': 2,
+                    'fully_qual': 3,
+                    'system_incomplete': 4,
+                    'src_dst_any': 5,
+                    'src_any_filter': 6,
+                    'any_dest_filter': 7,
+                    'src_any_any': 8,
+                    'any_dest_any': 9,
+                    'any_any_filter': 10,
+                    'any_any_any': 12}
+        self.attr['relative_priority'] = prio_map.get(self.attr['priority'], 'unknown')
 
     def _get_tenant_context(self, contexts):
         """
@@ -852,8 +1226,8 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
                 self.attr['context'] = context.name
                 self.attr['tenant'] = context.tenant
                 return
-        self.attr['context'] = None
-        self.attr['tenant'] = None
+        self.attr['context'] = ''
+        self.attr['tenant'] = ''
 
     def _get_epg_names(self, epgs):
         """
@@ -861,8 +1235,8 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         names from dclass and sclass - if possible
 
         """
-        self.attr['s_epg'] = None
-        self.attr['d_epg'] = None
+        self.attr['s_epg'] = ''
+        self.attr['d_epg'] = ''
         if self.attr['dclass'] == 'any':
             self.attr['d_epg'] = 'any'
         if self.attr['sclass'] == 'any':
@@ -890,35 +1264,93 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         self.attr['node'] = str(name[2].split('-')[1])
 
     @staticmethod
-    def get_table(data, super_title=None):
+    def get_table(data, title=''):
         """
         Will create table of access rule
-        :param super_title:
+        :param title:
         :param data:
         """
         result = []
 
         headers = ['Tenant', 'Context', 'Type', 'Scope', 'Src EPG',
-                   'Dst EPG', 'Filter', 'Action', 'DSCP', 'QoS', 'Priority']
+                   'Dst EPG', 'Filter', 'Action', 'DSCP', 'QoS', 'Priority', 'Relative Prio']
         table = []
         for rule in data:
             table.append([
-                str(rule.attr.get('tenant')),
-                str(rule.attr.get('context')),
-                str(rule.attr.get('type')),
-                str(rule.attr.get('scope')),
-                str(rule.attr.get('s_epg')),
-                str(rule.attr.get('d_epg')),
-                str(rule.attr.get('filter_id')),
-                str(rule.attr.get('action')),
-                str(rule.attr.get('mark_dscp')),
-                str(rule.attr.get('qos_grp')),
-                str(rule.attr.get('priority'))])
+                rule.attr.get('tenant', ''),
+                rule.attr.get('context', ''),
+                rule.attr.get('type', ''),
+                rule.attr.get('scope', ''),
+                rule.attr.get('s_epg', ''),
+                rule.attr.get('d_epg', ''),
+                rule.attr.get('filter_id', ''),
+                rule.attr.get('action', ''),
+                rule.attr.get('mark_dscp', ''),
+                rule.attr.get('qos_grp', ''),
+                rule.attr.get('priority', ''),
+                rule.attr.get('relative_priority', '')])
 
-        table = sorted(table, key=lambda x: (x[10], x[0], x[1]))
-        result.append(Table(table, headers, title=super_title + 'Access Rules (Contracts/Access Policies)'))
+        table = sorted(table, key=lambda x: (x[11], x[0], x[1]))
+        result.append(Table(table, headers, title=title + 'Access Rules (Contracts/Access Policies)'))
 
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'tenant' in self.attr:
+            result.append(Searchable('tenant', self.attr['tenant']))
+
+        if 'context' in self.attr:
+            result.append(Searchable('context', self.attr['context']))
+
+        if 'scope' in self.attr:
+            result.append(Searchable('scope', self.attr['scope']))
+
+        if 's_epg' in self.attr:
+            result.append(Searchable('epg', self.attr['s_epg']))
+
+        if 'd_epg' in self.attr:
+            result.append(Searchable('epg', self.attr['d_epg']))
+
+        if 'dclass' in self.attr:
+            result.append(Searchable('class', self.attr['dclass']))
+
+        if 'sclass' in self.attr:
+            result.append(Searchable('class', self.attr['sclass']))
+
+        if 'scope' in self.attr:
+            result.append(Searchable('scope', self.attr['scope']))
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'filter_id' in self.attr:
+            result.append(Searchable('filter', self.attr['filter_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Access_Rule' + self.attr.get('name')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteFilter(BaseACIPhysObject):
@@ -967,12 +1399,12 @@ class ConcreteFilter(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['name'] = attr['name']
-        self.attr['id'] = attr['id']
-        self.attr['descr'] = attr['descr']
-        self.attr['status'] = attr['status']
-        self.attr['modified_time'] = attr['modTs']
-        self.attr['dn'] = attr['dn']
+        self.attr['name'] = str(attr['name'])
+        self.attr['id'] = str(attr['id'])
+        self.attr['descr'] = str(attr['descr'])
+        self.attr['status'] = str(attr['status'])
+        self.attr['modified_time'] = str(attr['modTs'])
+        self.attr['dn'] = str(attr['dn'])
 
     def _get_entries(self, top):
         """
@@ -987,54 +1419,40 @@ class ConcreteFilter(BaseACIPhysObject):
         dn.
         """
         name = self.attr['dn'].split('/')
-        self.attr['pod'] = str(name[1].split('-')[1])
-        self.attr['node'] = str(name[2].split('-')[1])
+        self.attr['pod'] = name[1].split('-')[1]
+        self.attr['node'] = name[2].split('-')[1]
 
     @staticmethod
-    def get_table(data, super_title=None):
+    def get_table(data, title=''):
         """
         Will create table of access filter
-        :param super_title:
+        :param title:
         :param data:
         """
         result = []
 
-        headers = ['Filter', 'Name', 'Status', 'Entry #', 'EtherType',
-                   'Protocol/Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags']
+        headers = ['Filter', 'Entry #', 'EtherType',
+                   'Protocol/Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags', 'Apply to Frag', 'Priority']
 
         table = []
         for acc_filter in sorted(data, key=lambda x: (x.attr['id'])):
-            sorted_entries = sorted(acc_filter.entries, key=lambda x: (x.attr['name']))
-            first_entry = sorted_entries[0]
-            dst_port = ConcreteFilter._get_port(sorted_entries[0].attr['dst_from_port'],
-                                                sorted_entries[0].attr['dst_to_port'])
-            src_port = ConcreteFilter._get_port(sorted_entries[0].attr['src_from_port'],
-                                                sorted_entries[0].attr['src_to_port'])
-            table.append([
-                str(acc_filter.attr.get('id')),
-                str(acc_filter.attr.get('name')),
-                str(acc_filter.attr.get('status')),
-                str(sorted_entries[0].attr['id']),
-                str(sorted_entries[0].attr['ether_type']),
-                str(sorted_entries[0].attr['protocol']),
-                dst_port,
-                src_port,
-                str(sorted_entries[0].attr['tcp_rules'])])
+            sorted_entries = sorted(acc_filter.entries,
+                                    key=lambda x: (x.attr['filter_name'], x.attr['relative_priority'], x.attr['id']))
             for sorted_entry in sorted_entries:
-                if sorted_entry == first_entry:
-                    continue
                 dst_port = ConcreteFilter._get_port(sorted_entry.attr['dst_from_port'],
                                                     sorted_entry.attr['dst_to_port'])
                 src_port = ConcreteFilter._get_port(sorted_entry.attr['src_from_port'],
                                                     sorted_entry.attr['src_to_port'])
-                table.append(['', '', '',
-                              str(sorted_entry.attr['id']),
-                              str(sorted_entry.attr['ether_type']),
-                              str(sorted_entry.attr['protocol']),
+                table.append([sorted_entry.attr.get('filter_name', ''),
+                              sorted_entry.attr.get('id', ''),
+                              sorted_entry.attr.get('ether_type', ''),
+                              sorted_entry.attr.get('protocol', ''),
                               dst_port,
                               src_port,
-                              str(sorted_entry.attr['tcp_rules'])])
-        result.append(Table(table, headers, title=super_title + 'Access Filters'))
+                              sorted_entry.attr.get('tcp_rules', ''),
+                              sorted_entry.attr.get('apply_to_frag', ''),
+                              sorted_entry.attr.get('relative_priority', '')])
+        result.append(Table(table, headers, title=title + 'Access Filters'))
         return result
 
     @staticmethod
@@ -1044,11 +1462,41 @@ class ConcreteFilter(BaseACIPhysObject):
         depending upon the from_port and to_port value
         """
         if from_port == to_port:
-            return from_port
-        return '{0}-{1}'.format(from_port, to_port)
+            return str(from_port)
+        return '{0}-{1}'.format(str(from_port), str(to_port))
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        return result
 
     def __str__(self):
-        return self.attr['name']
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Filter' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteFilterEntry(BaseACIPhysObject):
@@ -1096,21 +1544,36 @@ class ConcreteFilterEntry(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['apply_to_frag'] = attr['applyToFrag']
-        self.attr['arp_opcode'] = attr['arpOpc']
-        self.attr['dst_from_port'] = attr['dFromPort']
-        self.attr['dst_to_port'] = attr['dToPort']
-        self.attr['descr'] = attr['descr']
-        self.attr['dn'] = attr['dn']
-        self.attr['ether_type'] = attr['etherT']
-        self.attr['modified_time'] = attr['modTs']
-        self.attr['name'] = attr['name']
-        self.attr['priority'] = attr['prio']
-        self.attr['protocol'] = attr['prot']
-        self.attr['src_from_port'] = attr['sFromPort']
-        self.attr['src_to_port'] = attr['sToPort']
-        self.attr['status'] = attr['status']
-        self.attr['tcp_rules'] = attr['tcpRules']
+        self.attr['apply_to_frag'] = str(attr['applyToFrag'])
+        self.attr['arp_opcode'] = str(attr['arpOpc'])
+        self.attr['dst_from_port'] = str(attr['dFromPort'])
+        self.attr['dst_to_port'] = str(attr['dToPort'])
+        self.attr['descr'] = str(attr['descr'])
+        self.attr['dn'] = str(attr['dn'])
+        self.attr['ether_type'] = str(attr['etherT'])
+        self.attr['modified_time'] = str(attr['modTs'])
+        self.attr['name'] = str(attr['name'])
+        self.attr['priority'] = str(attr['prio'])
+        self.annotate_priority()
+        self.attr['protocol'] = str(attr['prot'])
+        self.attr['src_from_port'] = str(attr['sFromPort'])
+        self.attr['src_to_port'] = str(attr['sToPort'])
+        self.attr['status'] = str(attr['status'])
+        self.attr['tcp_rules'] = str(attr['tcpRules'])
+
+    def annotate_priority(self):
+        """
+        Will create a relative priority field from the priority field
+        :return:None
+        """
+        prio_map = {'flags': 1,
+                    'sport_dport': 2,
+                    'dport': 3,
+                    'sport': 4,
+                    'proto': 5,
+                    'frag': 6,
+                    'def': 7}
+        self.attr['relative_priority'] = prio_map.get(self.attr['priority'], 'unknown')
 
     def _get_filter_name(self):
         """
@@ -1124,12 +1587,41 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         """
         self.attr['id'] = self.attr['name'].split('_')[-1]
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'filter_name' in self.attr:
+            result.append(Searchable('name', self.attr['filter_name']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Filter_Entry' + self.attr.get('id')
+
     def __eq__(self, other):
+
         """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
         """
-        if type(self) != type(other):
-            return False
-        return self.attr['dn'] == other.attr['dn']
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteEp(BaseACIPhysObject):
@@ -1165,11 +1657,11 @@ class ConcreteEp(BaseACIPhysObject):
             if 'epmIpEp' in ep_object:
                 end_point._populate_from_attributes(ep_object['epmIpEp']['attributes'])
                 end_point.attr['address_family'] = 'ipv4'
-                end_point.attr['ip'] = ep_object['epmIpEp']['attributes']['addr']
+                end_point.attr['ip'] = str(ep_object['epmIpEp']['attributes']['addr'])
             if 'epmMacEp' in ep_object:
                 end_point._populate_from_attributes(ep_object['epmMacEp']['attributes'])
                 end_point.attr['address_family'] = 'mac'
-                end_point.attr['mac'] = ep_object['epmMacEp']['attributes']['addr']
+                end_point.attr['mac'] = str(ep_object['epmMacEp']['attributes']['addr'])
 
             end_point._get_context_bd(top)
             result.append(end_point)
@@ -1181,21 +1673,21 @@ class ConcreteEp(BaseACIPhysObject):
             if end_point.attr['address_family'] == 'mac':
                 rel_data = top.get_subtree('epmRsMacEpToIpEpAtt', end_point.attr['dn'])
                 for rel in rel_data:
-                    ip_add = rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                        split('/ip-[')[1].split(']')[0]
+                    ip_add = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
+                        split('/ip-[')[1].split(']')[0])
                     if 'ctx-[vxlan-' in rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']:
 
-                        ip_ctx = rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                            split('/ctx-[vxlan-')[1].split(']/')[0]
+                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
+                            split('/ctx-[vxlan-')[1].split(']/')[0])
                     elif '/inst-' in rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']:
-                        ip_ctx = rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                            split('/inst-')[1].split('/')[0]
+                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
+                            split('/inst-')[1].split('/')[0])
                         if ip_ctx in top.ctx_dict:
                             ip_ctx = top.ctx_dict[ip_ctx]
                     else:
                         ip_ctx = None
-                    ip_bd = rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                        split('/bd-[vxlan-')[1].split(']/')[0]
+                    ip_bd = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
+                        split('/bd-[vxlan-')[1].split(']/')[0])
                     if ip_ctx == end_point.attr['ctx_vnid'] and ip_bd == \
                             end_point.attr['bd_vnid']:
                         # we have an IP address for this MAC
@@ -1221,9 +1713,9 @@ class ConcreteEp(BaseACIPhysObject):
         for svi in svis:
             svi_table[svi.attr['id']] = svi
         for ept in final_result:
-            # noinspection PyAugmentAssignment
             if 'vlan' in ept.attr['interface_id'] and ept.attr['mac'] is None:
                 ept.attr['mac'] = svi_table[ept.attr['interface_id']].attr['mac']
+                # noinspection PyAugmentAssignment
                 ept.attr['interface_id'] = 'svi-' + ept.attr['interface_id']
 
         # mark loopback interfaces as loopback
@@ -1273,28 +1765,40 @@ class ConcreteEp(BaseACIPhysObject):
             self.attr['bd_vnid'] = 'unknown'
             self.attr['bridge_domain'] = 'unknown'
 
+        #change context to tenant plus context
+
+        if ':' in self.attr['context']:
+            context = self.attr['context'].split(':')[1]
+            tenant = self.attr['context'].split(':')[0]
+            self.attr['context'] = context
+            self.attr['tenant'] = tenant
+        else:
+            self.attr['tenant'] = ''
+            #context already set
+
+
     def _populate_from_attributes(self, attr):
         """
         This will populate the object from the APIC attribute
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['address'] = attr['addr']
-        self.attr['name'] = attr['name']
-        self.attr['flags'] = attr['flags']
-        self.attr['interface_id'] = attr['ifId']
-        self.attr['create_time'] = attr['createTs']
-        self.attr['dn'] = attr['dn']
+        self.attr['address'] = str(attr['addr'])
+        self.attr['name'] = str(attr['name'])
+        self.attr['flags'] = str(attr['flags'])
+        self.attr['interface_id'] = str(attr['ifId'])
+        self.attr['create_time'] = str(attr['createTs'])
+        self.attr['dn'] = str(attr['dn'])
 
     @staticmethod
-    def get_table(end_points, super_title=None):
+    def get_table(end_points, title=''):
         """
         Will create table of switch end point information
-        :param super_title:
+        :param title:
         :param end_points:
         """
         result = []
-        headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
+        headers = ['Tenant', 'Context', 'Bridge Domain', 'MAC Address', 'IP Address',
                    'Interface', 'Flags']
 
         def flt_local_external(end_point):
@@ -1310,22 +1814,21 @@ class ConcreteEp(BaseACIPhysObject):
             return False
 
         data = []
-        for ept in filter(flt_local_external, sorted(end_points, key=lambda x: (x.attr['context'],
+        for ept in filter(flt_local_external, sorted(end_points, key=lambda x: (x.attr['tenant'],
+                                                                                x.attr['context'],
                                                                                 x.attr['bridge_domain'],
                                                                                 x.attr['mac'],
                                                                                 x.attr['ip']))):
             data.append([
-                str(ept.attr.get('context')),
-                str(ept.attr.get('bridge_domain')),
-                str(ept.attr.get('mac')),
-                str(ept.attr.get('ip')),
-                str(ept.attr.get('interface_id')),
-                str(ept.attr.get('flags'))])
+                ept.attr.get('tenant', ''),
+                ept.attr.get('context', ''),
+                ept.attr.get('bridge_domain', ''),
+                ept.attr.get('mac', ''),
+                ept.attr.get('ip', ''),
+                ept.attr.get('interface_id', ''),
+                ept.attr.get('flags', '')])
 
-        result.append(Table(data, headers, title=super_title + 'Local External End Points'))
-
-        headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
-                   'Interface', 'Flags']
+        result.append(Table(data, headers, title=title + 'Local External End Points'))
 
         def flt_remote(end_point):
             """
@@ -1340,22 +1843,21 @@ class ConcreteEp(BaseACIPhysObject):
             return False
 
         data = []
-        for ept in filter(flt_remote, sorted(end_points, key=lambda x: (x.attr['context'],
+        for ept in filter(flt_remote, sorted(end_points, key=lambda x: (x.attr['tenant'],
+                                                                        x.attr['context'],
                                                                         x.attr['bridge_domain'],
                                                                         x.attr['mac'],
                                                                         x.attr['ip']))):
             data.append([
-                str(ept.attr.get('context')),
-                str(ept.attr.get('bridge_domain')),
-                str(ept.attr.get('mac')),
-                str(ept.attr.get('ip')),
-                str(ept.attr.get('interface_id')),
-                str(ept.attr.get('flags'))])
+                ept.attr.get('tenant', ''),
+                ept.attr.get('context', ''),
+                ept.attr.get('bridge_domain', ''),
+                ept.attr.get('mac', ''),
+                ept.attr.get('ip', ''),
+                ept.attr.get('interface_id', ''),
+                ept.attr.get('flags', '')])
 
-        result.append(Table(data, headers, title=super_title + 'Remote (vpc-peer) External End Points'))
-
-        headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
-                   'Interface', 'Flags']
+        result.append(Table(data, headers, title=title + 'Remote (vpc-peer) External End Points'))
 
         def flt_svi(end_point):
             """
@@ -1369,19 +1871,21 @@ class ConcreteEp(BaseACIPhysObject):
                 return False
 
         data = []
-        for ept in filter(flt_svi, sorted(end_points, key=lambda x: (x.attr['context'],
+        for ept in filter(flt_svi, sorted(end_points, key=lambda x: (x.attr['tenant'],
+                                                                     x.attr['context'],
                                                                      x.attr['bridge_domain'],
                                                                      x.attr['mac'],
                                                                      x.attr['ip']))):
             data.append([
-                str(ept.attr.get('context')),
-                str(ept.attr.get('bridge_domain')),
-                str(ept.attr.get('mac')),
-                str(ept.attr.get('ip')),
-                str(ept.attr.get('interface_id')),
-                str(ept.attr.get('flags'))])
+                ept.attr.get('tenant', ''),
+                ept.attr.get('context', ''),
+                ept.attr.get('bridge_domain', ''),
+                ept.attr.get('mac', ''),
+                ept.attr.get('ip', ''),
+                ept.attr.get('interface_id', ''),
+                ept.attr.get('flags', '')])
 
-        result.append(Table(data, headers, title=super_title + 'SVI End Points (default gateway endpoint)'))
+        result.append(Table(data, headers, title=title + 'SVI End Points (default gateway endpoint)'))
 
         def flt_lb(end_point):
             """
@@ -1394,24 +1898,22 @@ class ConcreteEp(BaseACIPhysObject):
             else:
                 return False
 
-        headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
-                   'Interface', 'Flags']
         data = []
-        for ept in filter(flt_lb, sorted(end_points, key=lambda x: (x.attr['context'],
+        for ept in filter(flt_lb, sorted(end_points, key=lambda x: (x.attr['tenant'],
+                                                                    x.attr['context'],
                                                                     x.attr['bridge_domain'],
                                                                     x.attr['mac'],
                                                                     x.attr['ip']))):
             data.append([
-                str(ept.attr.get('context')),
-                str(ept.attr.get('bridge_domain')),
-                str(ept.attr.get('mac')),
-                str(ept.attr.get('ip')),
-                str(ept.attr.get('interface_id')),
-                str(ept.attr.get('flags'))])
+                ept.attr.get('tenant', ''),
+                ept.attr.get('context', ''),
+                ept.attr.get('bridge_domain', ''),
+                ept.attr.get('mac', ''),
+                ept.attr.get('ip', ''),
+                ept.attr.get('interface_id', ''),
+                ept.attr.get('flags', '')])
 
-        result.append(Table(data, headers, title=super_title + 'Loopback End Points'))
-        headers = ['Context', 'Bridge Domain', 'MAC Address', 'IP Address',
-                   'Interface', 'Flags']
+        result.append(Table(data, headers, title=title + 'Loopback End Points'))
 
         def flt_other(end_point):
             """
@@ -1432,21 +1934,57 @@ class ConcreteEp(BaseACIPhysObject):
                                                                        x.attr['mac'],
                                                                        x.attr['ip']))):
             data.append([
-                ept.attr.get('context'),
-                ept.attr.get('bridge_domain'),
-                ept.attr.get('mac'),
-                ept.attr.get('ip'),
-                ept.attr.get('interface_id'),
-                ept.attr.get('flags')])
+                ept.attr.get('tenant', ''),
+                ept.attr.get('context', ''),
+                ept.attr.get('bridge_domain', ''),
+                ept.attr.get('mac', ''),
+                ept.attr.get('ip', ''),
+                ept.attr.get('interface_id', ''),
+                ept.attr.get('flags', '')])
 
-        result.append(Table(data, headers, title=super_title + 'Other End Points'))
+        result.append(Table(data, headers, title=title + 'Other End Points'))
 
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'context' in self.attr:
+            result.append(Searchable('context', self.attr['context']))
+
+        if 'bridge_domain' in self.attr:
+            result.append(Searchable('bridgedomain', self.attr['bridge_domain']))
+
+        if 'mac' in self.attr:
+            result.append(Searchable('mac', self.attr['mac']))
+        if 'ip' in self.attr:
+            result.append(Searchable('ipv4', self.attr['ip']))
+        if 'interface_id' in self.attr:
+            result.append(Searchable('interface', self.attr['interface_id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Endpoint' + 'MAC-{0} IP-{1}'.format(self.attr.get('mac'), self.attr.get('ip'))
+
     def __eq__(self, other):
+
         """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
         """
-        return self.attr['dn'] == other.attr['dn']
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcretePortChannel(BaseACIPhysObject):
@@ -1492,20 +2030,21 @@ class ConcretePortChannel(BaseACIPhysObject):
 
        :param attr: Attributes of the APIC object
         """
-        self.attr['active_ports'] = attr['activePorts']
-        self.attr['admin_st'] = attr['adminSt']
-        self.attr['auto_neg'] = attr['autoNeg']
-        self.attr['bandwidth'] = attr['bw']
-        self.attr['dot1q_ether_type'] = attr['dot1qEtherType']
-        self.attr['id'] = attr['id']
-        self.attr['max_active'] = attr['maxActive']
-        self.attr['max_links'] = attr['maxLinks']
-        self.attr['min_links'] = attr['minLinks']
-        self.attr['mode'] = attr['mode']
-        self.attr['mtu'] = attr['mtu']
-        self.attr['name'] = attr['name']
-        self.attr['switching_st'] = attr['switchingSt']
-        self.attr['usage'] = attr['usage']
+        self.attr['dn'] = str(attr['dn'])
+        self.attr['active_ports'] = str(attr['activePorts'])
+        self.attr['admin_st'] = str(attr['adminSt'])
+        self.attr['auto_neg'] = str(attr['autoNeg'])
+        self.attr['bandwidth'] = str(attr['bw'])
+        self.attr['dot1q_ether_type'] = str(attr['dot1qEtherType'])
+        self.attr['id'] = str(attr['id'])
+        self.attr['max_active'] = str(attr['maxActive'])
+        self.attr['max_links'] = str(attr['maxLinks'])
+        self.attr['min_links'] = str(attr['minLinks'])
+        self.attr['mode'] = str(attr['mode'])
+        self.attr['mtu'] = str(attr['mtu'])
+        self.attr['name'] = str(attr['name'])
+        self.attr['switching_st'] = str(attr['switchingSt'])
+        self.attr['usage'] = str(attr['usage'])
 
     def _populate_oper_st(self, dname, top):
         """
@@ -1514,17 +2053,17 @@ class ConcretePortChannel(BaseACIPhysObject):
         data = top.get_subtree('ethpmAggrIf', dname)
         for obj in data:
             attr = obj['ethpmAggrIf']['attributes']
-            self.attr['access_vlan'] = attr['accessVlan']
-            self.attr['allowed_vlans'] = attr['allowedVlans']
-            self.attr['backplane_mac'] = attr['backplaneMac']
-            self.attr['native_vlan'] = attr['nativeVlan']
-            self.attr['duplex'] = attr['operDuplex']
-            self.attr['flow_control'] = attr['operFlowCtrl']
-            self.attr['router_mac'] = attr['operRouterMac']
-            self.attr['speed'] = attr['operSpeed']
-            self.attr['oper_st'] = attr['operSt']
-            self.attr['oper_st_qual'] = attr['operStQual']
-            self.attr['oper_vlans'] = attr['operVlans']
+            self.attr['access_vlan'] = str(attr['accessVlan'])
+            self.attr['allowed_vlans'] = str(attr['allowedVlans'])
+            self.attr['backplane_mac'] = str(attr['backplaneMac'])
+            self.attr['native_vlan'] = str(attr['nativeVlan'])
+            self.attr['duplex'] = str(attr['operDuplex'])
+            self.attr['flow_control'] = str(attr['operFlowCtrl'])
+            self.attr['router_mac'] = str(attr['operRouterMac'])
+            self.attr['speed'] = str(attr['operSpeed'])
+            self.attr['oper_st'] = str(attr['operSt'])
+            self.attr['oper_st_qual'] = str(attr['operStQual'])
+            self.attr['oper_vlans'] = str(attr['operVlans'])
 
     def _populate_members(self, dname, top):
         """ will get all the port member
@@ -1533,76 +2072,143 @@ class ConcretePortChannel(BaseACIPhysObject):
         for obj in data:
             member = {}
             attr = obj['pcRsMbrIfs']['attributes']
-            member['state'] = attr['state']
+            member['state'] = str(attr['state'])
             phys_if = top.get_object(attr['tDn'])['l1PhysIf']['attributes']
-            member['id'] = phys_if['id']
-            member['admin_st'] = phys_if['adminSt']
-            member['usage'] = phys_if['usage']
+            member['id'] = str(phys_if['id'])
+            member['admin_st'] = str(phys_if['adminSt'])
+            member['usage'] = str(phys_if['usage'])
             eth_if = top.get_subtree('ethpmPhysIf',
                                      phys_if['dn'])[0]['ethpmPhysIf']['attributes']
-            member['oper_st'] = eth_if['operSt']
-            member['oper_st_qual'] = eth_if['operStQual']
+            member['oper_st'] = str(eth_if['operSt'])
+            member['oper_st_qual'] = str(eth_if['operStQual'])
             self.members.append(member)
 
     @staticmethod
-    def get_table(port_ch, super_title=None):
+    def get_table(port_ch, title=''):
         """
         Will create table of switch port channel information
         :param port_ch:
-        :param super_title:
+        :param title:
         """
         result = []
 
         # noinspection PyListCreation
+
         for pch in sorted(port_ch, key=lambda x: (x.attr['id'])):
-            table = []
-            table.extend([['Name', pch.attr['name']],
-                          ['ID', pch.attr['id']],
-                          ['Mode', pch.attr['mode']],
-                          ['Bandwidth', pch.attr['bandwidth']],
-                          ['MTU', pch.attr['mtu']],
-                          ['Speed', pch.attr['speed']],
-                          ['Duplex', pch.attr['duplex']]])
+            headers = ['Name',
+                       'ID',
+                       'Mode',
+                       'Bandwidth',
+                       'MTU',
+                       'Speed',
+                       'Duplex',
+                       'Active Links',
+                       'Max Active',
+                       'Max Links',
+                       'Min Links',
+                       'Auto Neg',
+                       'Flow Control',
+                       'Admin State',
+                       'Oper State',
+                       'Oper Qualifier',
+                       'Switching State',
+                       'Usage',
+                       'Dot1Q EtherType',
+                       'Oper VLANs',
+                       'Allowed VLANs',
+                       'Access VLAN',
+                       'Native VLAN',
+                       'Router MAC',
+                       'Backplane MAC']
 
-            table.extend([['Active Links', pch.attr['active_ports']],
-                          ['Max Active', pch.attr['max_active']],
-                          ['Max Links', pch.attr['max_links']],
-                          ['Min Links', pch.attr['min_links']],
-                          ['Auto Neg', pch.attr['auto_neg']],
-                          ['Flow Control', pch.attr['flow_control']]])
+            table = [[pch.attr['name'],
+                      pch.attr.get('id', ''),
+                      pch.attr.get('mode', ''),
+                      pch.attr.get('bandwidth', ''),
+                      pch.attr.get('mtu', ''),
+                      pch.attr.get('speed', ''),
+                      pch.attr.get('duplex', ''),
+                      pch.attr.get('active_ports', ''),
+                      pch.attr.get('max_active', ''),
+                      pch.attr.get('max_links', ''),
+                      pch.attr.get('min_links', ''),
+                      pch.attr.get('auto_neg', ''),
+                      pch.attr.get('flow_control', ''),
+                      pch.attr.get('admin_st', ''),
+                      pch.attr.get('oper_st', ''),
+                      pch.attr.get('oper_st_qual', ''),
+                      pch.attr.get('switching_st', ''),
+                      pch.attr.get('usage', ''),
+                      pch.attr.get('dot1q_ether_type', ''),
+                      pch.attr.get('oper_vlans', ''),
+                      pch.attr.get('allowed_vlans', ''),
+                      pch.attr.get('access_vlan', ''),
+                      pch.attr.get('native_vlan', ''),
+                      pch.attr.get('router_mac', ''),
+                      pch.attr.get('backplane_mac', '')]]
 
-            table.extend([['Admin State', pch.attr['admin_st']],
-                          ['Oper State', pch.attr['oper_st']],
-                          ['Oper Qualifier', pch.attr['oper_st_qual']],
-                          ['Switching State', pch.attr['switching_st']],
-                          ['Usage', pch.attr['usage']],
-                          ['Dot1Q EtherType', pch.attr['dot1q_ether_type']]])
-
-            table.extend([['Oper VLANs', pch.attr['oper_vlans']],
-                          ['Allowed VLANs', pch.attr['allowed_vlans']],
-                          ['Access VLAN', pch.attr['access_vlan']],
-                          ['Native VLAN', pch.attr['native_vlan']],
-                          ['Router MAC', pch.attr['router_mac']],
-                          ['Backplane MAC', pch.attr['backplane_mac']]])
-
-            result.append(Table(table, title=super_title + 'Port Channel:{0}'.format(pch.attr['id'])))
+            result.append(Table(table, headers, title=title + 'Port Channel:{0}'.format(pch.attr['id']),
+                                table_orientation='vertical', columns=2))
 
             headers = ['Interface', 'PC State', 'Admin State', 'Oper State',
                        'Oper Qualifier', 'Usage']
 
             table = []
             for member in sorted(pch.members, key=lambda x: (x['id'])):
-                table.append([member['id'],
-                              member['state'],
-                              member['admin_st'],
-                              member['oper_st'],
-                              member['oper_st_qual'],
-                              member['usage']])
+                table.append([member.get('id', ''),
+                              member.get('state', ''),
+                              member.get('admin_st', ''),
+                              member.get('oper_st', ''),
+                              member.get('oper_st_qual', ''),
+                              member.get('usage', '')])
 
-            result.append(Table(table, headers, title=super_title +
-                                   'Port Channel "{0}" Link Members'.format(pch.attr['id'])))
+            result.append(Table(table, headers, title=title +
+                                                      'Port Channel ({0}) Link Members'.format(pch.attr['id'])))
 
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = []
+
+        if 'name' in self.attr:
+            result.append(Searchable('name', self.attr['name']))
+
+        if 'id' in self.attr:
+            result.append(Searchable('id', self.attr['id']))
+
+        if 'router_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['router_mac']))
+
+        if 'backplane_mac' in self.attr:
+            result.append(Searchable('mac', self.attr['backplane_mac']))
+
+        for member in self.members:
+            if 'id' in member:
+                result.append(Searchable('interface', member['id']))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Portchannel' + self.attr.get('id')
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')
 
 
 class ConcreteOverlay(BaseACIPhysObject):
@@ -1616,10 +2222,9 @@ class ConcreteOverlay(BaseACIPhysObject):
         """
         super(ConcreteOverlay, self).__init__(name='', parent=parent)
         self.attr = {}
+        #adding VPC VTEP info to the Overlay Class
+        self.attr['vpc_tep_ip']= None
         self.tunnels = []
-        self.attr['ipv4-proxy'] = None
-        self.attr['ipv6-proxy'] = None
-        self.attr['mac-proxy'] = None
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1631,8 +2236,14 @@ class ConcreteOverlay(BaseACIPhysObject):
        :returns: Single overlay object
         """
         data = top.get_class('tunnelIf')
-        ovly = cls(parent)
+        ovly = cls()
         tunnels = []
+
+        ###Adding the VPC VTEP to the list to help figure Tunnel endpoints
+        if parent.vpc_info:
+            if parent.vpc_info['oper_state']=='active':
+                ovly.attr['vpc_tep_ip']=parent.vpc_info['vtep_ip'].split('/')[0]
+
         for obj in data:
             if 'tunnelIf' in obj:
                 tunnels.append(ovly._populate_from_attributes(obj['tunnelIf']['attributes']))
@@ -1640,6 +2251,9 @@ class ConcreteOverlay(BaseACIPhysObject):
             ovly.tunnels = sorted(tunnels, key=lambda x: (x['id']))
         else:
             ovly.tunnels = tunnels
+        if parent:
+            ovly._parent = parent
+            ovly._parent.add_child(ovly)
 
         return ovly
 
@@ -1649,13 +2263,14 @@ class ConcreteOverlay(BaseACIPhysObject):
 
         :param attr: Attributes of the APIC object
         """
-        self.attr['src_tep_ip'] = attr['src'].split('/')[0]
-        tunnel = {'dest_tep_ip': attr['dest'],
-                  'id': attr['id'],
-                  'oper_st': attr['operSt'],
-                  'oper_st_qual': attr['operStQual'],
-                  'context': attr['vrfName'],
-                  'type': attr['type']}
+        self.attr['src_tep_ip'] = str(attr['src']).split('/')[0]
+        tunnel = {'dest_tep_ip': str(attr['dest']),
+                  'id': str(attr['id']),
+                  'oper_st': str(attr['operSt']),
+                  'oper_st_qual': str(attr['operStQual']),
+                  'context': str(attr['vrfName']),
+                  'type': str(attr['type']),
+                  'dn': str(attr['dn'])}
 
         if 'proxy-acast-mac' in tunnel['type']:
             self.attr['proxy_ip_mac'] = tunnel['dest_tep_ip']
@@ -1666,30 +2281,86 @@ class ConcreteOverlay(BaseACIPhysObject):
         return tunnel
 
     @staticmethod
-    def get_table(overlay, super_title=None):
+    def get_table(overlay, title=''):
         """
         Create print string for overlay information
         :param overlay:
-        :param super_title:
+        :param title:
         """
+        result = []
         for ovly in overlay:
-            result = []
-            table = [['Source TEP address:', ovly.attr.get('src_tep_ip')],
-                     ['IPv4 Proxy address:', ovly.attr.get('proxy_ip_v4')],
-                     ['IPv6 Proxy address:', ovly.attr.get('proxy_ip_v6')],
-                     ['MAC Proxy address:', ovly.attr.get('proxy_ip_mac')]]
-            result.append(Table(table, title=super_title + 'Overlay Config'))
+            headers = ['Source VPC TEP address',
+                       'Source TEP address:',
+                       'IPv4 Proxy address:',
+                       'IPv6 Proxy address:',
+                       'MAC Proxy address:']
+            table = [[ovly.attr.get('vpc_tep_ip', ''),
+                      ovly.attr.get('src_tep_ip', ''),
+                      ovly.attr.get('proxy_ip_v4', ''),
+                      ovly.attr.get('proxy_ip_v6', ''),
+                      ovly.attr.get('proxy_ip_mac', '')]]
+
+            result.append(
+                Table(table, headers, title=title + 'Overlay Config', table_orientation='vertical', columns=1))
 
             headers = ['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
                        'Oper State Qualifier']
             table = []
             for tunnel in ovly.tunnels:
-                table.append([tunnel['id'],
-                              tunnel['context'],
-                              tunnel['dest_tep_ip'],
-                              tunnel['type'],
-                              tunnel['oper_st'],
-                              tunnel['oper_st_qual']])
-            result.append(Table(table, headers, title=super_title + 'Overlay Tunnels'))
+                table.append([tunnel.get('id', ''),
+                              tunnel.get('context', ''),
+                              tunnel.get('dest_tep_ip', ''),
+                              tunnel.get('type', ''),
+                              tunnel.get('oper_st', ''),
+                              tunnel.get('oper_st_qual', '')])
+            result.append(Table(table, headers, title=title + 'Overlay Tunnels'))
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = [Searchable('overlay')]
+        if 'src_tep_ip' in self.attr:
+            result.append(Searchable('ipv4', self.attr['src_tep_ip']))
+
+        if 'proxy_ip_v4' in self.attr:
+            result.append(Searchable('ipv4', self.attr['proxy_ip_v4'], 'indirect'))
+
+        if 'proxy_ip_v6' in self.attr:
+            result.append(Searchable('ipv4', self.attr['proxy_ip_v6'], 'indirect'))
+
+        if 'proxy_ip_mac' in self.attr:
+            result.append(Searchable('ipv4', self.attr['proxy_ip_mac'], 'indirect'))
+
+        for tunnel in self.tunnels:
+            result.append(Searchable('tunnel'))
+            if 'id' in tunnel:
+                result.append(Searchable('id', tunnel['id']))
+
+            if 'context' in tunnel:
+                result.append(Searchable('context', tunnel['context']))
+
+            if 'dest_tep_ip' in tunnel:
+                result.append(Searchable('ipv4', tunnel['dest_tep_ip'], 'indirect'))
+
+        return result
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Concrete_Overlay'
+
+    def __eq__(self, other):
+
+        """
+        Checks that the interfaces are equal
+        :param other:
+        :return: True if equal
+        """
+        return self.attr.get('dn') == other.attr.get('dn')

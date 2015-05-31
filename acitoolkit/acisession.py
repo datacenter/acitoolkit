@@ -375,6 +375,11 @@ class Session(object):
             return resp
 
     def resubscribe(self):
+        """
+        Resubscribe to the current subscriptions.  Used by the login thread after a re-login
+
+        :return: None
+        """
         if self._subscription_enabled:
             return self.subscription_thread._resubscribe()
 

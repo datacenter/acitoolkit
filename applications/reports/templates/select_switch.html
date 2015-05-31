@@ -1,0 +1,57 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{%  block head %}
+    {{  super() }}
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='d3-tablesort.css') }}">
+{% endblock %}
+{% block body %}
+    <script src="http://d3js.org/d3.v3.js"></script>
+    <script src="../static/d3-tablesort.js"></script>
+
+    <p>{{ prompt }}</p>
+    <br>
+    {{ wtf.quick_form(form) }}
+
+    {% if report %}
+        {%  if report == 'empty' %}
+            <p>None</p>
+        {%  else %}
+            {%  for report_table in report %}
+                <br>
+                <hr>
+                <h4>{{ report_table.title|safe }}</h4>
+
+                <script>
+                    var cleanKey = function (d) { return d.replace(/\//g, "_").replace(/\W/g, "_"); };
+                    var table_data = {{ report_table.data|safe }};
+                    var table_columns = {{  report_table.headers|safe }};
+                    var table_title = {{ report_table.title_flask|safe }};
+
+                    var dimensions = { width: '600px', height: '400px' };
+                    var table_id = cleanKey('report_table'+table_title);
+
+                    if (table_data.length > 0) {
+                        // determine where to place it and create place holder
+                        d3.select(".span10").select("#content")
+                                .append("div")
+                                .attr("id", table_id)
+                                .attr("class", "report_table")
+                            //.attr("style", "width:600px;")
+                                .attr("margin-left", "90px");
+
+                        TableSort(
+                                table_title,
+                                table_id,
+                                table_columns,
+                                table_data,
+                                dimensions
+                        );
+                    } else {
+                        document.write('<p>None</p>')
+                    }
+                </script>
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+
+{% endblock %}

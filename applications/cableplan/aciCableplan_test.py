@@ -27,11 +27,11 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
-from acitoolkit.acisession import Session
+"""
+Cableplan test
+"""
 from credentials import *
 from acitoolkit.acitoolkit import *
-from acitoolkit.aciphysobject import *
-import sys
 import unittest
 import cableplan
 import os
@@ -40,12 +40,15 @@ LIVE_TEST = True
 
 
 class Test_ParseXML(unittest.TestCase):
+    """
+    Checks parsing of the XML
+    """
     def get_temporary_filename(self):
         fname_base = 'temp_cable_plan'
         fname_uniquifier = ''
         fname_suffix = '.xml'
         uniquifier = 0
-        while (os.path.isfile(fname_base + fname_uniquifier + fname_suffix)):
+        while os.path.isfile(fname_base + fname_uniquifier + fname_suffix):
             fname_uniquifier = str(uniquifier)
             uniquifier += 1
         return fname_base + fname_uniquifier + fname_suffix
@@ -312,7 +315,7 @@ class Test_ParseXML(unittest.TestCase):
 
         spine1 = cp.get_switch('Spine1')
         leaf1 = cp.get_switch('Leaf1')
-        leaf2 = cp.get_switch('Leaf2')
+        # leaf2 = cp.get_switch('Leaf2')
 
         base_links = cp.get_links()
         self.assertEqual(len(base_links), 7)
@@ -535,7 +538,7 @@ class Test_switch(unittest.TestCase):
         leaf1 = cableplan.CpSwitch('Leaf1')
         new_name = 'New_Name_2'
         link1 = cableplan.CpLink(source_chassis=spine1, source_port='Eth1/3', dest_chassis=leaf1, dest_port='Eth1/1')
-        link2 = cableplan.CpLink(source_chassis=spine1, source_port='eTh1/3', dest_chassis=leaf1, dest_port='eth1/1')
+        # link2 = cableplan.CpLink(source_chassis=spine1, source_port='eTh1/3', dest_chassis=leaf1, dest_port='eth1/1')
         self.assertEqual('(Leaf1-Eth1/1,Spine1-Eth1/3)', link1.get_name())
         self.assertEqual('Spine1', spine1.get_name())
 
@@ -627,7 +630,7 @@ class Test_difference_switch(unittest.TestCase):
 
         spine1a = cableplan.CpSwitch('Spine1', spine=True)
         spine1b = cableplan.CpSwitch('Spine1', spine=True)
-        spine2 = cableplan.CpSwitch('Spine2', spine=True)
+        # spine2 = cableplan.CpSwitch('Spine2', spine=True)
         leaf1 = cableplan.CpSwitch('Leaf1')
         leaf2 = cableplan.CpSwitch('Leaf2')
         leaf3 = cableplan.CpSwitch('Leaf3')
@@ -655,7 +658,7 @@ class Test_export(unittest.TestCase):
         fname_uniquifier = ''
         fname_suffix = '.xml'
         uniquifier = 0
-        while (os.path.isfile(fname_base + fname_uniquifier + fname_suffix)):
+        while os.path.isfile(fname_base + fname_uniquifier + fname_suffix):
             fname_uniquifier = str(uniquifier)
             uniquifier += 1
         return fname_base + fname_uniquifier + fname_suffix
@@ -802,7 +805,7 @@ class TestLiveAPIC(unittest.TestCase):
         fname_uniquifier = ''
         fname_suffix = '.xml'
         uniquifier = 0
-        while (os.path.isfile(fname_base + fname_uniquifier + fname_suffix)):
+        while os.path.isfile(fname_base + fname_uniquifier + fname_suffix):
             fname_uniquifier = str(uniquifier)
             uniquifier += 1
         return fname_base + fname_uniquifier + fname_suffix

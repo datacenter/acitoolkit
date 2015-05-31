@@ -1,5 +1,5 @@
 ################################################################################
-#                                  _    ____ ___                               #
+# _    ____ ___                               #
 #                                 / \  / ___|_ _|                              #
 #                                / _ \| |    | |                               #
 #                               / ___ \ |___ | |                               #
@@ -27,7 +27,10 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
-from acitoolkit.acisession import Session
+"""
+Physical object tests
+"""
+
 try:
     from credentials import *
 except ImportError:
@@ -35,34 +38,67 @@ except ImportError:
     LOGIN = ''
     PASSWORD = ''
 from acitoolkit.acitoolkit import *
-from acitoolkit.aciphysobject import *
-import sys
+#from acitoolkit.aciphysobject import *
 import unittest
 
 
 class TestPod(unittest.TestCase):
+    """
+    Test the Pod class
+    """
+
     def test_pod_id(self):
+        """
+        Test the pod id
+
+        :return: None
+        """
         pod = Pod('1')
         self.assertEqual(pod.pod, '1')
 
     def test_pod_name(self):
+        """
+        Test the pod name
+
+        :return: None
+        """
         pod_id = '1'
         pod = Pod(pod_id)
         self.assertEqual(pod.get_name(), 'pod-' + pod_id)
         self.assertEqual(pod.get_pod(), '1')
 
     def test_pod_type(self):
+        """
+        Test the pod type
+
+        :return: None
+        """
         pod = Pod('1')
         self.assertEqual(pod.get_type(), 'pod')
 
     def test_create_invalid(self):
+        """
+        Test invalid pod
+
+        :return: None
+        """
         self.assertRaises(TypeError, Pod, '1', '2')
 
     def test_pod_invalid_session(self):
+        """
+        Test invalid session
+
+        :return: None
+        """
         session = 'bogus'
         self.assertRaises(TypeError, Pod.get, session)
 
     def test_pod_equal(self):
+        """
+        Test pods are equal
+
+        :return: None
+        """
         pod_id = '1'
         pod1 = Pod(pod_id)
 
@@ -81,38 +117,77 @@ class TestPod(unittest.TestCase):
         self.assertNotEqual(pod1, pod2)
 
     def test_pod_str_name(self):
+        """
+        Test pod string
+
+        :return: None
+        """
         pod_id = '2'
         pod = Pod(pod_id)
         self.assertEqual(str(pod), 'pod-' + pod_id)
 
     def test_pod_get_url(self):
+        """
+        Test pod get_url
+
+        :return: None
+        """
         pod_id = '3'
         pod = Pod(pod_id)
         self.assertEqual(pod.get_url(), None)
 
     def test_pod_get_json(self):
+        """
+        Test pod get_json
+
+        :return: None
+        """
         pod_id = '3'
         pod = Pod(pod_id)
         self.assertEqual(pod.get_json(), None)
 
-    def test_pod_parent(self) :
+    def test_pod_parent(self):
+        """
+        Test pod parent
+
+        :return: None
+        """
         pod_id = '4'
-        attributes = {'type':'pod'}
+        attributes = {'type': 'pod'}
         self.assertRaises(TypeError, Pod, pod_id, attributes, 'pod-1')
-        
+
 
 class TestNode(unittest.TestCase):
+    """
+    Test Node class
+    """
+
     def test_node_id(self):
+        """
+        Test node id
+
+        :return: None
+        """
         node = Node('1', '2', 'Leaf1', role='leaf')
         self.assertEqual(node.get_pod(), '1')
         self.assertEqual(node.get_node(), '2')
         self.assertEqual(node.get_name(), 'Leaf1')
 
     def test_node_bad_name(self):
+        """
+        Test node with a bad name
+
+        :return: None
+        """
         node_name = 1
         self.assertRaises(TypeError, Node, '1', '2', node_name, 'leaf')
 
     def test_node_role(self):
+        """
+        Test node role
+
+        :return: None
+        """
         node_name = 'Leaf1'
         node_pod = '1'
         node_node = '3'
@@ -127,49 +202,91 @@ class TestNode(unittest.TestCase):
                           node_name, node_role)
 
     def test_node_type(self):
+        """
+        Test node type
+
+        :return: None
+        """
         node = Node('1', '2', 'Leaf1', role='leaf')
         self.assertEqual(node.get_type(), 'node')
 
-    def test_node_model(self) :
+    def test_node_model(self):
+        """
+        Test node model
+
+        :return: None
+        """
         node = Node('1', '2', 'Leaf1', role='leaf')
         self.assertEqual(node.get_chassis_type(), None)
         node.model = 'N9K-C9396PX'
-        self.assertEqual(node.get_model(), 'N9K-C9396PX')
+        self.assertEqual(node.model, 'N9K-C9396PX')
         self.assertEqual(node.get_chassis_type(), 'n9k')
-        
+
     def test_node_parent(self):
+        """
+        Test node parent
+
+        :return: None
+        """
         pod_id = '1'
         pod1 = Pod(pod_id)
         node = Node('1', '2', 'Spine1', role='leaf', parent=pod1)
         self.assertEqual(pod1, node.get_parent())
 
     def test_node_bad_parent(self):
+        """
+        Test node bad parent
+
+        :return: None
+        """
         pod_id = '1'
-        session = Session(URL, LOGIN, PASSWORD)
-        self.assertRaises(TypeError, Node,'1', '2', 'Spine1', role='leaf', parent=pod_id)
+        self.assertRaises(TypeError, Node, '1', '2', 'Spine1', role='leaf', parent=pod_id)
 
     def test_create_invalid(self):
+        """
+        Test invalid node
+
+        :return: None
+        """
         self.assertRaises(TypeError, Node, '1', '2', 'Leaf1', 'leaf', '1')
 
     def test_invalid_session_populate_children(self):
+        """
+        Test node invalid populate_children
+
+        :return: None
+        """
         pod1 = Pod('1')
         node = Node('1', '2', 'Spine1', 'spine', pod1)
         self.assertRaises(TypeError, node.populate_children)
 
     def test_get(self):
-        pod1 = Pod('1')
+        """
+        Test node get
+
+        :return: None
+        """
         session = 'bogus'
         self.assertRaises(TypeError, Node.get, session)
 
-    def test_node_get_fabric_state(self) :
+    def test_node_get_fabric_state(self):
+        """
+        Test node get fabric state
+
+        :return: None
+        """
         node_name = 'Leaf1'
         node_pod = '1'
         node_node = '3'
         node_role = 'leaf'
         node1 = Node(node_pod, node_node, node_name, node_role)
-        
 
     def test_node_equal(self):
+        """
+        Test node equal
+
+        :return: None
+        """
         node_name = 'Leaf1'
         node_pod = '1'
         node_node = '3'
@@ -224,8 +341,8 @@ class TestLink(unittest.TestCase):
 
         self.assertEqual(link1.get_port_id1(), '1/2/4/6')
         self.assertEqual(link1.get_port_id2(), '1/3/5/7')
-        
-    def test_link_bad_parent(self) :
+
+    def test_link_bad_parent(self):
         pod = '1'
         node1 = '2'
         node2 = '3'
@@ -235,17 +352,17 @@ class TestLink(unittest.TestCase):
         port2 = '7'
         link = '101'
 
-        self.assertRaises(TypeError,Link,pod, link, node1, slot1, port1,
-                     node2, slot2, port2, pod)
+        self.assertRaises(TypeError, Link, pod, link, node1, slot1, port1,
+                          node2, slot2, port2, pod)
 
-    def test_link_get_bad_parent(self) :
+    def test_link_get_bad_parent(self):
         pod = Link
         session = Session(URL, LOGIN, PASSWORD)
 
-        self.assertRaises(TypeError,Link.get,session,pod)
+        self.assertRaises(TypeError, Link.get, session, pod)
         pod = Pod('1')
-        self.assertRaises(TypeError,Link.get,'bad_session',pod)
-        
+        self.assertRaises(TypeError, Link.get, 'bad_session', pod)
+
     def test_get_endpoint_objects(self):
         pod_id = '1'
         node1_id = '2'
@@ -264,7 +381,6 @@ class TestLink(unittest.TestCase):
         interface1 = Interface(interface_type='eth', pod=pod_id,
                                node=node1_id, module=slot1_id,
                                port=port1_id, parent=linecard1)
-        inf = linecard1.get_children()
         interface2 = Interface(interface_type='eth', pod=pod_id,
                                node=node2_id, module=slot2_id,
                                port=port2_id, parent=linecard2)
@@ -279,27 +395,42 @@ class TestLink(unittest.TestCase):
 
 
 class CheckModule():
+    """
+    A class that checks any module
+    """
     @staticmethod
-    def check_module(self, mod_class, modNamePrefix, modType):
+    def check_module(self, mod_class, mod_name_prefix, mod_type):
+        """
+
+        :param self:
+        :param mod_class:
+        :param mod_name_prefix:
+        :param mod_type:
+        """
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
         node = Node(mod_pod, mod_node, 'Spine2', 'leaf')
         mod = mod_class(mod_pod, mod_node, mod_slot)
-        name = modNamePrefix + '-' + '/'.join([mod_pod, mod_node, mod_slot])
+        name = mod_name_prefix + '-' + '/'.join([mod_pod, mod_node, mod_slot])
 
         self.assertNotEqual(mod, node)
         self.assertEqual(mod.get_pod(), mod_pod)
         self.assertEqual(mod.get_node(), mod_node)
         self.assertEqual(mod.get_slot(), mod_slot)
         self.assertEqual(mod.get_parent(), None)
-        self.assertEqual(mod.get_type(), modType)
+        self.assertEqual(mod.get_type(), mod_type)
         self.assertEqual(mod.get_name(), name)
         self.assertEqual(str(mod), name)
         self.assertEqual(mod._session, None)
 
     @staticmethod
     def check_mod_parent(self, mod_class):
+        """
+
+        :param self:
+        :param mod_class:
+        """
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -320,6 +451,11 @@ class CheckModule():
 
     @staticmethod
     def check_mod_instance(self, mod_class):
+        """
+
+        :param self:
+        :param mod_class:
+        """
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -328,6 +464,11 @@ class CheckModule():
 
     @staticmethod
     def check_mod_get_json(self, mod_class):
+        """
+
+        :param self:
+        :param mod_class:
+        """
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -336,6 +477,11 @@ class CheckModule():
 
     @staticmethod
     def check_mod_get_url(self, mod_class):
+        """
+
+        :param self:
+        :param mod_class:
+        """
         mod_pod = '1'
         mod_node = '5'
         mod_slot = '2'
@@ -391,52 +537,38 @@ class TestSystemcontroller(unittest.TestCase):
         CheckModule.check_mod_instance(self, mod_class)
         CheckModule.check_mod_get_url(self, mod_class)
         CheckModule.check_mod_get_json(self, mod_class)
-    
 
-class TestExternalNode(unittest.TestCase):
-    def test_eNode(self):
-        attrib = {'name': 'testEnode', 'role': 'physicalSwitch'}
-        node = ENode(attributes=attrib, session=None, parent=None)
-        self.assertEqual(node.getName(), 'testEnode')
 
-    def test_eNode_role(self):
-        attrib = {'name': 'testEnode', 'role': 'physicalSwitch'}
-        node = ENode(attributes=attrib, session=None, parent=None)
-        self.assertEqual(node.getRole(), 'physicalSwitch')
+class TestExternalSwitch(unittest.TestCase):
+    def test_external_switch_name(self):
+        node = ExternalSwitch(parent=None)
+        node.name = 'testEnode'
+        self.assertEqual(node.name, 'testEnode')
 
-        attrib = {'name': 'testEnode', 'role': 'virtualSwitch'}
-        node = ENode(attributes=attrib, session=None, parent=None)
-        self.assertEqual(node.getRole(), 'virtualSwitch')
+    def test_external_switch_role(self):
+        node = ExternalSwitch()
+        node.role = 'external_switch'
+        self.assertEqual(node.getRole(), 'external_switch')
 
-        attrib = {'name': 'testEnode'}
-        node = ENode(attributes=attrib, session=None, parent=None)
-        self.assertEqual(node.getRole(), None)
+        node = ExternalSwitch()
+        self.assertEqual(node.getRole(), 'external_switch')
 
-        attrib = {'name': 'testEnode', 'role': 'leaf'}
-        self.assertRaises(ValueError, ENode, attrib)
-
-        self.assertEqual(node.info(),'           name: testEnode\n')
+        self.assertRaises(ValueError, setattr, node, "role", "switch")
 
     def test_eNode_parent(self):
         pod = Pod('1')
-        attrib = {'name': 'testEnode'}
-        node = ENode(attributes=attrib, session=None, parent=pod)
-        self.assertEqual(node.getRole(), None)
+        node = ExternalSwitch(parent=pod)
+        self.assertEqual(node.role, 'external_switch')
         self.assertEqual(node._parent, pod)
         children = pod.get_children()
         self.assertEqual(len(children), 1)
         for child in children:
             self.assertEqual(child, node)
 
-        self.assertRaises(TypeError, ENode, attrib, None, 'text')
+        self.assertRaises(TypeError, ExternalSwitch, 'text')
 
     def test_eNode_session(self):
-        attrib = {'name': 'testEnode'}
-        self.assertRaises(TypeError, ENode, attrib, 'text')
-        self.assertRaises(TypeError, ENode.get, 'non-session')
-        session = Session(URL, LOGIN, PASSWORD)
-        node = ENode(attrib, session)
-        self.assertEqual(node._session, session)
+        self.assertRaises(TypeError, ExternalSwitch.get, 'non-session')
 
 
 class TestLiveAPIC(unittest.TestCase):
@@ -471,19 +603,19 @@ class TestLivePod(TestLiveAPIC):
             if node.get_role() == 'controller' and node.fabricSt != 'inactive':
                 return node, session
 
-    def test_exists_node(self) :
+    def test_exists_node(self):
         session = self.login_to_apic()
         nodes = Node.get(session)
-        self.assertTrue(Node.exists(session,nodes[0]))
+        self.assertTrue(Node.exists(session, nodes[0]))
         nodes[0].node = '999'
-        self.assertFalse(Node.exists(session,nodes[0]))
-        
+        self.assertFalse(Node.exists(session, nodes[0]))
+
     def test_get_all_nodes(self):
         pods, session = self.get_all_pods()
         for pod in pods:
             nodes = Node.get(session)
             self.assertTrue(len(nodes) > 0)
-            self.assertTrue(pod.get_serial()==None)
+            self.assertTrue(pod.get_serial() is None)
 
     def test_node(self):
         session = self.login_to_apic()
@@ -502,15 +634,14 @@ class TestLivePod(TestLiveAPIC):
             self.assertTrue(len(node.get_node()) > 0)
 
             self.assertIn(node.get_role(), ['controller', 'leaf', 'spine'])
-            self.assertIn(node.getFabricSt(), ['active','inactive','unknown'])
-            
+            self.assertIn(node.getFabricSt(), ['active', 'inactive', 'unknown'])
+
         pods = Pod.get(session)
         pod = pods[0]
         nodes = Node.get(session, parent=pod)
         self.assertEqual(len(nodes), len(pod.get_children()))
         self.assertEqual(nodes[0].get_parent(), pod)
 
-        
     def test_switch_children(self):
         spine, session = self.get_spine()
         spine.populate_children()
@@ -525,12 +656,12 @@ class TestLivePod(TestLiveAPIC):
         self.assertIn('powersupply', children_types)
         self.assertIn('fantray', children_types)
 
-    def test_link_get_for_node(self) :
+    def test_link_get_for_node(self):
         session = self.login_to_apic()
         pod = Pod.get(session)[0]
         links = Link.get(session)
         total_links = len(links)
-        self.assertTrue(total_links>0)
+        self.assertTrue(total_links > 0)
         self.assertRaises(TypeError, links[0].get_node1)
         self.assertRaises(TypeError, links[0].get_node2)
         self.assertRaises(TypeError, links[0].get_slot1)
@@ -540,36 +671,35 @@ class TestLivePod(TestLiveAPIC):
         links = Link.get(session, pod)
         self.assertEqual(len(links), total_links)
         switches = []
-        for link in links :
+        for link in links:
             self.assertEqual(link.get_node1(), None)
             self.assertEqual(link.get_slot1(), None)
             self.assertEqual(link.get_port1(), None)
             self.assertEqual(link.get_node2(), None)
             self.assertEqual(link.get_slot2(), None)
             self.assertEqual(link.get_port2(), None)
-            if link.node1 not in switches :
+            if link.node1 not in switches:
                 switches.append(link.node1)
-        self.assertTrue(len(switches)>1)
+        self.assertTrue(len(switches) > 1)
         nodes = Node.get(session)
         spine = None
         for node in nodes:
             if node.get_role() == 'spine' and node.fabricSt == 'active':
                 spine = node
                 break
-        if spine :
-            links = Link.get(session,pod,spine.node)
+        if spine:
+            links = Link.get(session, pod, spine.node)
             spine_links = len(links)
             self.assertTrue(spine_links > 0)
             self.assertTrue(spine_links < total_links)
-            for link in links :
+            for link in links:
                 self.assertEqual(link.node1, spine.node)
                 self.assertIsInstance(str(link), str)
-            links = Link.get(session,'1',spine.node)
+            links = Link.get(session, '1', spine.node)
             self.assertEqual(len(links), spine_links)
 
             self.assertNotEqual(links[0], links[1])
 
-            
     def test_controller_children(self):
         controller, session = self.get_controller()
         controller.populate_children()
@@ -639,7 +769,7 @@ class TestLivePod(TestLiveAPIC):
             self.assertIn('serial', info_string)
 
             self.assertIsInstance(ps.get_serial(), str)
-            
+
     def test_fantray(self):
         session = self.login_to_apic()
         fantrays = Fantray.get(session)
@@ -679,9 +809,7 @@ class TestLivePod(TestLiveAPIC):
             if node.get_role() == 'controller' and node.fabricSt != 'inactive':
                 controller = node
 
-        self.assertEqual(len(node_roles ^ set(['controller',
-                                               'spine', 'leaf'])), 0)
-        
+        self.assertEqual(len(node_roles ^ {'controller', 'spine', 'leaf'}), 0)
 
         modules = spine.get_children()
         module_types = set()
@@ -690,10 +818,7 @@ class TestLivePod(TestLiveAPIC):
             if module.get_type() == 'linecard':
                 linecard = module
 
-        self.assertEqual(len(module_types ^ set(['linecard',
-                                                 'supervisor',
-                                                 'powersupply',
-                                                 'fantray'])), 0)
+        self.assertEqual(len(module_types ^ {'linecard', 'supervisor', 'powersupply', 'fantray'}), 0)
 
         interfaces = linecard.get_children()
         for interface in interfaces:
@@ -705,9 +830,7 @@ class TestLivePod(TestLiveAPIC):
         module_types = set()
         for module in modules:
             module_types.add(module.get_type())
-        self.assertEqual(len(module_types ^ set(['systemctrlcard',
-                                                 'powersupply',
-                                                 'fantray'])), 0)
+        self.assertEqual(len(module_types ^ {'systemctrlcard', 'powersupply', 'fantray'}), 0)
 
         links = pod.get_children(Link)
         for link in links:
@@ -720,44 +843,44 @@ class TestLivePod(TestLiveAPIC):
             self.assertIsInstance(link.port2, str)
             self.assertIsInstance(link.link, str)
 
-        #check that duplicate children are not populated
+        # check that duplicate children are not populated
         pod.populate_children(deep=True)
         nodes = pod.get_children(Node)
-        self.assertTrue(len(nodes)==original_num_nodes)
-        
+        self.assertTrue(len(nodes) == original_num_nodes)
+
     def test_get_external_nodes(self):
         session = self.login_to_apic()
-        enodes = ENode.get(session)
+        enodes = ExternalSwitch.get(session)
         for enode in enodes:
+            if enode.dn:
+                self.assertIsInstance(enode.dn, str)
+            if enode.role:
+                self.assertIsInstance(enode.role, str)
+            if enode.name:
+                self.assertIsInstance(enode.name, str)
+            if enode.ip:
+                self.assertIsInstance(enode.ip, str)
+            if enode.mac:
+                self.assertIsInstance(enode.mac, str)
+            if enode.id:
+                self.assertIsInstance(enode.id, str)
+            if enode.status:
+                self.assertIsInstance(enode.status, str)
+            if enode.oper_issues:
+                self.assertIsInstance(enode.oper_issues, str)
+            if enode.descr:
+                self.assertIsInstance(enode.descr, str)
+            if enode.type:
+                self.assertIsInstance(enode.type, str)
+            if enode.state:
+                self.assertIsInstance(enode.state, str)
+            if enode.guid:
+                self.assertIsInstance(enode.guid, str)
+            if enode.oid:
+                self.assertIsInstance(enode.oid, str)
 
-            if enode.getRole() == 'virtualSwitch':
-                self.assertIsInstance(enode.attributes.get('dn'), str)
-                self.assertIsInstance(enode.attributes.get('status'), str)
-                self.assertIsInstance(enode.attributes.get('name'), str)
-                self.assertIsInstance(enode.attributes.get('descr'), str)
-                self.assertIsInstance(enode.attributes.get('oid'), str)
-                self.assertIsInstance(enode.attributes.get('state'), str)
-                self.assertIsInstance(enode.attributes.get('fabricSt'), str)
-                self.assertIsInstance(enode.attributes.get('role'), str)
-                self.assertIsInstance(enode.attributes.get('guid'), str)
-                self.assertEqual(enode.attributes.get('type'), 'hv')
-            if enode.getRole() == 'physicalSwitch':
-                self.assertIsInstance(enode.attributes.get('dn'), str)
-                self.assertIsInstance(enode.attributes.get('status'), str)
-                self.assertIsInstance(enode.attributes.get('name'), str)
-                self.assertIsInstance(enode.attributes.get('descr'), str)
-                if enode.attributes.get('macAddress') :
-                    self.assertIsInstance(enode.attributes.get('macAddress'), str)
-                self.assertIsInstance(enode.attributes.get('state'), str)
-                self.assertIsInstance(enode.attributes.get('fabricSt'), str)
-                self.assertIsInstance(enode.attributes.get('role'), str)
-                self.assertIsInstance(enode.attributes.get('operIssues'), str)
-                if enode.attributes.get('ipAddress') :
-                    self.assertIsInstance(enode.attributes.get('ipAddress'), str)
-                self.assertIsInstance(enode.attributes.get('id'), str)
-                self.assertEqual(enode.attributes.get('pod'), None)
-            self.assertIn(enode.attributes.get('role'), ['physicalSwitch',
-                                                         'virtualSwitch'])
+            self.assertEqual(enode.role, 'external_switch')
+            self.assertEqual(enode.pod, None)
 
 
 class TestFind(unittest.TestCase):
@@ -767,9 +890,7 @@ class TestFind(unittest.TestCase):
         node2_id = '3'
         slot1_id = '4'
         slot2_id = '5'
-        port1_id = '6'
         port2_id = '7'
-        link_id = '101'
 
         pod = Pod(pod_id)
         node1 = Node(pod_id, node1_id, 'Spine', 'spine', pod)
@@ -778,16 +899,9 @@ class TestFind(unittest.TestCase):
         linecard2 = Linecard(slot2_id, node2)
         linecard1.serial = 'SerialNumber1'
         linecard2.serial = 'SerialNumber2'
-        interface1 = Interface(interface_type='eth', pod=pod_id,
-                               node=node1_id, module=slot1_id,
-                               port=port1_id, parent=linecard1)
-        inf = linecard1.get_children()
         interface2 = Interface(interface_type='eth', pod=pod_id,
                                node=node2_id, module=slot2_id,
                                port=port2_id, parent=linecard2)
-        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id,
-                     node2_id, slot2_id, port2_id, pod)
-
         so = Search()
         so.node = node2_id
         results = pod.find(so)
@@ -931,7 +1045,7 @@ class TestInterface(unittest.TestCase):
     def test_adminstate_not_set(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstate = ''
-        phys_domain_url, fabric_url, infra_url = intf.get_url()
+        # phys_domain_url, fabric_url, infra_url = intf.get_url()
         phys_domain_json, fabric_json, infra_json = intf.get_json()
         self.assertIsNone(fabric_json)
 
@@ -1013,21 +1127,22 @@ class TestInterface(unittest.TestCase):
 
     # def test_parse_name_no_space(self):
     #    self.parse_name('eth1/2/3/4')
-    def test_get_serial(self) :
+    def test_get_serial(self):
         intf1 = Interface('eth', '1', '2', '3', '4')
         self.assertEqual(intf1.get_serial(), None)
 
-    def test_get_type(self) :
+    def test_get_type(self):
         intf1 = Interface('eth', '1', '2', '3', '4')
         self.assertEqual(intf1.get_type(), 'interface')
 
-    def test_cdp_disabled(self) :
+    def test_cdp_disabled(self):
         intf1 = Interface('eth', '1', '2', '3', '4')
         self.assertFalse(intf1.is_cdp_disabled())
 
-    def test_lldp_disabled(self) :
+    def test_lldp_disabled(self):
         intf1 = Interface('eth', '1', '2', '3', '4')
         self.assertFalse(intf1.is_lldp_disabled())
+
 
 if __name__ == '__main__':
     offline = unittest.TestSuite()
@@ -1040,7 +1155,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestLinecard))
     offline.addTest(unittest.makeSuite(TestSupervisor))
     offline.addTest(unittest.makeSuite(TestSystemcontroller))
-    offline.addTest(unittest.makeSuite(TestExternalNode))
+    offline.addTest(unittest.makeSuite(TestExternalSwitch))
     offline.addTest(unittest.makeSuite(TestFind))
     offline.addTest(unittest.makeSuite(TestInterface))
 

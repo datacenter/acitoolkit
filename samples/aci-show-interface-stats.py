@@ -142,4 +142,7 @@ def main():
         show_stats_long(args, interfaces)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

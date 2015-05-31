@@ -333,13 +333,13 @@ class CredentialsView(BaseView):
             session['secure'] = form.secure.data
             session['username'] = form.username.data
             session['password'] = form.password.data
-            return redirect(url_for('credentials.index'))
+            return redirect(url_for('credentialsview.index'))
         elif reset_form.reset.data:
             session['ipaddr'] = None
             session['secure'] = None
             session['username'] = None
             session['password'] = None
-            return redirect(url_for('credentials.index'))
+            return redirect(url_for('credentialsview.index'))
         return self.render('credentials.html', form=form,
                            reset_form=reset_form,
                            ipaddr=session.get('ipaddr'),

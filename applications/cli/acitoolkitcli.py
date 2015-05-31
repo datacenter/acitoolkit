@@ -1421,7 +1421,7 @@ if __name__ == '__main__':
         elif opt in ('-t', '--test-file'):
             TESTFILE = arg
 
-    if URL == '':
+    if URL == '' or LOGIN == '' or PASSWORD == '':
         print usage
         sys.exit(2)
 

@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block body %}
+  <ul class=mo>
+    <h2>Class: <a href="{{ url_for('class_object', aciClass=moClass)}}">{{ moClass }}</a></h2>
+    <h2>dn: {{ mo }}</pre></h2>
+  </ul>
+  <hr>
+  <ul class=mo>
+    <h2>Attributes</h2>
+    <table>
+      
+  {% for entry in attributes %}
+      {% if entry[2]=='text' %}
+          <tr>
+	    <td align="right">{{ entry[0] }}==</td>
+	    <td>{{ entry[1] }}</td>
+          </tr>
+      {% endif %}
+      {% if entry[2]=='mo' %}
+          <tr>
+	    <td align="right">{{ entry[0] }}==</td>
+	    <td><a href="{{ url_for('managed_object', mo=entry[1])}}">{{ entry[1] }}</a></td>
+          </tr>
+      {% endif %}
+      {% if entry[2]=='aciClass' %}
+          <tr>
+	    <td align="right">{{ entry[0] }}==</td>
+	    <td><a href="{{ url_for('class_object', mo=entry[1])}}">{{ entry[1] }}</a></td>
+          </tr>
+      {% endif %}
+	  
+  {% endfor %}
+      </table>
+  </ul>
+  <hr>
+  <ul class=mo>
+    <h2>Children</h2>
+    <table>
+      
+  {% for child in children %}
+      <tr>
+	<td align="right"><a href="{{ url_for('class_object', aciClass=child[0])}}">{{ child[0] }}</a>==</td>
+	<td><a href="{{ url_for('managed_object', mo=child[1])}}">{{ child[1] }}</a></td>
+      </tr>
+  {% endfor %}
+      </table>
+  </ul>
+  <hr>
+  <ul class=mo>
+    <h2>Counters</h2>
+    <table>
+      
+  {% for count in counters %}
+      <tr>
+	<td align="right"><a href="{{ url_for('class_object', aciClass=count[0])}}">{{ count[0] }}</a>==</td>
+	<td><a href="{{ url_for('managed_object', mo=count[1])}}">{{ count[1] }}</a></td>
+      </tr>
+  {% endfor %}
+      </table>
+  </ul>
+{% endblock %}

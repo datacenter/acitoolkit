@@ -31,6 +31,7 @@
 This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
+from aciSearch import AciSearch
 
 
 class BaseRelation(object):
@@ -83,7 +84,7 @@ class BaseRelation(object):
                 self.relation_type == other.relation_type)
 
 
-class BaseACIObject(object):
+class BaseACIObject(AciSearch):
     """
     This class defines functionality common to all ACI objects.
     Functions may be overwritten by inheriting classes.
@@ -193,15 +194,6 @@ class BaseACIObject(object):
         """
         return {}
 
-    def _extract_attributes(self, attributes):
-        """
-        Used internally by get_deep to populate the attributes
-        Will be overridden when necessary
-
-        :param attributes: data to extract attributes from
-        """
-        pass
-
     def _extract_relationships(self, data):
         """
         Used internally by get_deep to populate the relationships
@@ -287,8 +279,9 @@ class BaseACIObject(object):
         for item in working_data:
             for key in item:
                 if key in cls._get_apic_classes():
-                    obj = cls(str(item[key]['attributes']['name']), parent)
-                    obj._extract_attributes(item[key]['attributes'])
+                    attribute_data = item[key]['attributes']
+                    obj = cls(str(attribute_data['name']), parent)
+                    obj._populate_from_attributes(attribute_data)
                     if 'children' in item[key]:
                         for child in item[key]['children']:
                             for apic_class in child:
@@ -1220,26 +1213,27 @@ class BaseACIPhysModule(BaseACIPhysObject):
         ret = session.get(interface_query_url)
         card_data = ret.json()['imdata']
         for apic_obj in card_data:
-            dist_name = str(apic_obj[apic_class]['attributes']['dn'])
-            (pod, node_id, slot) = cls._parse_dn(dist_name)
-            if not isinstance(parent_node, str):
-                card = cls(pod, node_id, slot, parent_node)
-            else:
-                card = cls(pod, node_id, slot)
-            card._session = session
-            card._apic_class = apic_class
-            card._populate_from_attributes(apic_obj[apic_class]['attributes'])
+            if apic_class in apic_obj:
+                dist_name = str(apic_obj[apic_class]['attributes']['dn'])
+                (pod, node_id, slot) = cls._parse_dn(dist_name)
+                if not isinstance(parent_node, str):
+                    card = cls(pod, node_id, slot, parent_node)
+                else:
+                    card = cls(pod, node_id, slot)
+                card._session = session
+                card._apic_class = apic_class
+                card._populate_from_attributes(apic_obj[apic_class]['attributes'])
 
-            (card.firmware, card.bios) = card._get_firmware(dist_name)
-            card.modify_time = str(apic_obj[apic_class]['attributes']['modTs'])
-            if parent_node:
-                if card.node == parent_node.node:
-                    if card._parent.has_child(card):
-                        card._parent.remove_child(card)
-                    card._parent.add_child(card)
+                (card.firmware, card.bios) = card._get_firmware(dist_name)
+                card.modify_time = str(apic_obj[apic_class]['attributes']['modTs'])
+                if parent_node:
+                    if card.node == parent_node.node:
+                        if card._parent.has_child(card):
+                            card._parent.remove_child(card)
+                        card._parent.add_child(card)
+                        cards.append(card)
+                else:
                     cards.append(card)
-            else:
-                cards.append(card)
 
         return cards
 
