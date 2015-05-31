@@ -71,8 +71,8 @@ class TestBasicExport(unittest.TestCase):
         # Enter the Site 1 credentials
         typing = [('site_name', 'Site1'),
                   ('ip_address', SITE1_IP),
-                  ('user_name', 'admin'),
-                  ('password', 'ins3965!')]
+                  ('user_name', SITE1_LOGIN),
+                  ('password', SITE1_PASSWORD)]
         for (field, data) in typing:
             input_elem = driver.find_element_by_id(field)
             input_elem.send_keys(data)
@@ -91,8 +91,8 @@ class TestBasicExport(unittest.TestCase):
         # Enter the Site 2 credentials
         typing = [('site_name', 'Site2'),
                   ('ip_address', SITE2_IP),
-                  ('user_name', 'admin'),
-                  ('password', 'ins3965!')]
+                  ('user_name', SITE2_LOGIN),
+                  ('password', SITE2_PASSWORD)]
         for (field, data) in typing:
             input_elem = driver.find_element_by_id(field)
             input_elem.send_keys(data)
