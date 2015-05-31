@@ -975,7 +975,9 @@ class OutsideEPG(CommonEPG):
             children.append(context)
         for network in self.networks: # TODO clean this up - duplicate of code below
             if isinstance(network, str):
-                network = OutsideNetwork(network)
+                network_obj = OutsideNetwork(network)
+                network_obj.network = network
+                network = network_obj
             text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
                                    'children': []}}
             subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
@@ -1006,7 +1008,9 @@ class OutsideEPG(CommonEPG):
 
             for network in interface.networks:
                 if isinstance(network, str):
-                    network = OutsideNetwork(network)
+                    network_obj = OutsideNetwork(network)
+                    network_obj.network = network
+                    network = network_obj
                 text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
                                        'children': []}}
                 subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
