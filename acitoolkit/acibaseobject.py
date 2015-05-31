@@ -551,6 +551,20 @@ class BaseACIObject(object):
         """
         return self._check_attachment(item, 'detached')
 
+    def get_child(self, child_type, child_name):
+        """
+        Gets a specific immediate child of this object
+
+        :param child_type: Class of the child to return
+        :param child_name: Name of the child to return
+        :return: The specific instance of child_type or None if not found
+        """
+        children = self.get_children(child_type)
+        for child in children:
+            if child.name == child_name:
+                return child
+        return None
+
     def get_children(self, only_class=None):
         """
         Get a list of the immediate child objects of this object.

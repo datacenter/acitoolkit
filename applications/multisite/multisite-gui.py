@@ -25,6 +25,9 @@ from wtforms.widgets import TextInput
 from wtforms import widgets
 from acitoolkit.acitoolkit import Credentials
 #from flask_wtf.csrf import CsrfProtect
+import sys
+
+LAB_TEST_MODE = False
 
 # Create application
 app = Flask(__name__, static_folder='static')
@@ -37,7 +40,11 @@ CsrfProtect(app)
 bootstrap = Bootstrap(app)
 
 # Create in-memory database
-app.config['DATABASE_FILE'] = 'multisite_db.sqlite'
+db_filename = os.environ.get('MULTISITE_DATABASE_FILE')
+if db_filename is None:
+    app.config['DATABASE_FILE'] = 'multisite_db.sqlite'
+else:
+    app.config['DATABASE_FILE'] = db_filename
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE_FILE']
 app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
@@ -50,6 +57,20 @@ except OSError:
     pass
 
 collector = MultisiteCollector()
+
+
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+
+@app.route('/shutdown', methods=['POST', 'GET'])
+def shutdown():
+    if not LAB_TEST_MODE:
+        return 'Shutdown only available in lab testing model'
+    shutdown_server()
+    return 'Server shutting down...'
 
 
 class SiteCredentials(db.Model):
@@ -349,6 +370,7 @@ if __name__ == '__main__':
     description = ('ACI Multisite tool.')
     creds = Credentials('server', description)
     args = creds.get()
+    LAB_TEST_MODE = args.test
 
     if dbfile_exists():
         # Discard contract table as we will repopulate from APIC since it may be stale
@@ -369,4 +391,4 @@ if __name__ == '__main__':
         build_db()
 
     # Start app
-    app.run(debug=True, use_reloader=False, host=args.ip, port=int(args.port))
+    app.run(debug=False, use_reloader=False, host=args.ip, port=int(args.port))
