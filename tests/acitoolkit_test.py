@@ -2048,6 +2048,11 @@ class TestLiveEndpoint(TestLiveAPIC):
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
 
+    def test_get_table(self):
+        session = self.login_to_apic()
+        endpoints = Endpoint.get(session)
+        self.assertTrue(isinstance(Endpoint.get_table(endpoints)[0], Table))
+
 
 class TestApic(TestLiveAPIC):
     def base_test_setup(self):
