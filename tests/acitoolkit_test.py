@@ -2521,6 +2521,18 @@ class TestLiveContracts(TestLiveAPIC):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
+    def test_get_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+        total_contracts = []
+        for tenant in tenants:
+            contracts = Contract.get(session, tenant)
+            for contract in contracts:
+                total_contracts.append(contract)
+                
+        self.assertIsInstance(Contract.get_table(contracts)[0], Table)
+
 
 class TestLiveOSPF(TestLiveAPIC):
     def test_no_auth(self):
