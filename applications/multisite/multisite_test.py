@@ -6,7 +6,7 @@ import subprocess
 import unittest
 import os
 import sys
-
+from aci_multisite_config_test import setup_multisite_test
 try:
     from multisite_credentials import *
 except ImportError:
@@ -59,14 +59,10 @@ class TestBasicExport(unittest.TestCase):
         driver.get(url)
         assert 'ACI Multisite' in driver.title
 
-
         driver.find_element_by_link_text('Site Credentials').click()
         assert 'Site Credentials' in driver.title
 
-
         driver.find_element_by_link_text('Create').click()
-
-
 
         # Enter the Site 1 credentials
         typing = [('site_name', 'Site1'),
@@ -80,13 +76,9 @@ class TestBasicExport(unittest.TestCase):
             input_elem = driver.find_element_by_id('local')
             input_elem.click()
 
-
-
         # Save the credentials
         input_elem = driver.find_element_by_name('_add_another')
         input_elem.click()
-
-
 
         # Enter the Site 2 credentials
         typing = [('site_name', 'Site2'),
@@ -100,13 +92,9 @@ class TestBasicExport(unittest.TestCase):
             input_elem = driver.find_element_by_id('local')
             input_elem.click()
 
-
-
         # Save the credentials
         input_elem = driver.find_element_by_name('_add_another')
         input_elem.click()
-
-
 
         # Finished, click Cancel
         input_elem = driver.find_element_by_link_text('Cancel')
@@ -122,8 +110,8 @@ class TestBasicExport(unittest.TestCase):
 
     def test_03_export_contract(self):
         driver = self.__class__.driver
-        # Switch to the second site tool
-        driver.get('http://127.0.0.1:5001')
+        # Switch to the site 1 tool
+        driver.get('http://127.0.0.1:5000')
 
         # Click on Site Contracts
         driver.find_element_by_link_text('Site Contracts').click()
@@ -145,19 +133,18 @@ class TestBasicExport(unittest.TestCase):
         # Export the contract
         driver.find_element_by_id('submit').click()
 
+        time.sleep(1)
         # Verify that the export to the other APIC was successful
-        session = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        session = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = session.login()
         self.assertTrue(resp.ok)
         tenants = Tenant.get_deep(session, names=['multisite'], limit_to=['fvTenant', 'vzBrCP'])
         self.assertTrue(len(tenants) > 0)
         multisite_tenant = tenants[0]
-        self.assertIsNotNone(multisite_tenant.get_child(Contract, 'Site2:mysql-contract'))
+        self.assertIsNotNone(multisite_tenant.get_child(Contract, 'Site1:mysql-contract'))
 
     def test_04_consume_exported_contract(self):
-        time.sleep(1)
-
-        session = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        session = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = session.login()
         self.assertTrue(resp.ok)
 
@@ -167,7 +154,7 @@ class TestBasicExport(unittest.TestCase):
         app = AppProfile('my-demo-app', tenant)
         # Create the EPGs
         web_epg = EPG('web-frontend', app)
-        contract = Contract('Site2:mysql-contract', tenant)
+        contract = Contract('Site1:mysql-contract', tenant)
         web_epg.consume(contract)
         tenant.push_to_apic(session)
 
@@ -180,12 +167,12 @@ class TestBasicExport(unittest.TestCase):
         self.assertIsNotNone(app)
         epg = app.get_child(EPG, 'web-frontend')
         self.assertIsNotNone(epg)
-        contract = multisite_tenant.get_child(Contract, 'Site2:mysql-contract')
+        contract = multisite_tenant.get_child(Contract, 'Site1:mysql-contract')
         self.assertIsNotNone(contract)
         self.assertTrue(epg.does_consume(contract))
 
     def test_05_add_consuming_static_endpoint(self):
-        session = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        session = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = session.login()
         self.assertTrue(resp.ok)
 
@@ -220,6 +207,45 @@ class TestBasicExport(unittest.TestCase):
         ep = epg.get_child(Endpoint, '00:33:33:33:33:33')
         self.assertIsNotNone(ep)
 
+    def test_06_add_providing_static_endpoint(self):
+        session = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('multisite')
+        app = AppProfile('my-demo-app', tenant)
+        web_epg = EPG('database-backend', app)
+
+        # Create the Endpoint
+        ep = Endpoint('00:44:44:44:44:44', web_epg)
+        ep.mac = '00:44:44:44:44:44'
+        ep.ip = '7.8.9.10'
+
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        web_epg.attach(vlan_intf)
+        # Assign Endpoint to the L2Interface
+        ep.attach(vlan_intf)
+
+        print 'Pushing json to tenant', tenant.get_json()
+        resp = tenant.push_to_apic(session)
+        if not resp.ok:
+            print resp, resp.text
+
+        time.sleep(1)
+        # Verify that the Endpoint was pushed successfully
+        tenants = Tenant.get_deep(session, names=['multisite'])
+        multisite_tenant = tenants[0]
+        app = multisite_tenant.get_child(AppProfile, 'my-demo-app')
+        self.assertIsNotNone(app)
+        epg = app.get_child(EPG, 'database-backend')
+        self.assertIsNotNone(epg)
+        ep = epg.get_child(Endpoint, '00:44:44:44:44:44')
+        self.assertIsNotNone(ep)
+
     @classmethod
     def tearDownClass(cls):
         driver = cls.driver
@@ -227,32 +253,6 @@ class TestBasicExport(unittest.TestCase):
         driver.get('http://127.0.0.1:5001/shutdown')
         driver.close()
 
-
-
-
-def test_add_providing_static_endpoint(session):
-    tenant = Tenant('multisite')
-    app = AppProfile('my-demo-app', tenant)
-    web_epg = EPG('database-backend', app)
-
-    # Create the Endpoint
-    ep = Endpoint('00:44:44:44:44:44', web_epg)
-    ep.mac = '00:44:44:44:44:44'
-    ep.ip = '7.8.9.10'
-
-    intf = Interface('eth', '1', '101', '1', '38')
-    # Create a VLAN interface and attach to the physical interface
-    vlan_intf = L2Interface('vlan-5', 'vlan', '5')
-    vlan_intf.attach(intf)
-    # Attach the EPG to the VLAN interface
-    web_epg.attach(vlan_intf)
-    # Assign Endpoint to the L2Interface
-    ep.attach(vlan_intf)
-
-    print 'Pushing json to tenant', tenant.get_json()
-    resp = tenant.push_to_apic(session)
-    if not resp.ok:
-        print resp, resp.text
 
 def verify_remote_l3extsubnet(session, mac):
     class_query_url = ('/api/mo/uni/tn-multisite/out-multisite-l3out.json?'
@@ -279,6 +279,8 @@ def verify_remote_l3extsubnet(session, mac):
 #
 # time.sleep(2)
 
+setup_multisite_test(delete=True)
+setup_multisite_test()
 live = unittest.TestSuite()
 live.addTest(unittest.makeSuite(TestBasicExport))
 unittest.main(defaultTest='live')
