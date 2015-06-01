@@ -2021,6 +2021,16 @@ class TestLiveEPG(TestLiveAPIC):
                 epgs = EPG.get(session, app, tenant)
                 self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
 
+class TestLiveL3ExtDomain(TestLiveAPIC):
+    """
+    Test L3ExtDomain class
+    """
+    def test_get(self):
+        session = self.login_to_apic()
+        l3ext_domains = L3ExtDomain.get(session)
+        for l3ext_domain in l3ext_domains:
+            self.assertTrue(isinstance(l3ext_domain, L3ExtDomain))
+
 
 class TestLiveEPGDomain(TestLiveAPIC):
     """
@@ -2663,6 +2673,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveEPGDomain))
     live.addTest(unittest.makeSuite(TestLiveContracts))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
