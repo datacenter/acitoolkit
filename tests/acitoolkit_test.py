@@ -2031,6 +2031,13 @@ class TestLiveL3ExtDomain(TestLiveAPIC):
         for l3ext_domain in l3ext_domains:
             self.assertTrue(isinstance(l3ext_domain, L3ExtDomain))
 
+    def test_get_json(self):
+        session = self.login_to_apic()
+        l3ext_domains = L3ExtDomain.get(session)
+        for l3ext_domain in l3ext_domains:
+            l3ext_domain_json = l3ext_domain.get_json()
+            self.assertTrue(type(l3ext_domain_json) is dict)
+
 
 class TestLiveEPGDomain(TestLiveAPIC):
     """
