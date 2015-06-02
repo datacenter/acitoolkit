@@ -136,12 +136,15 @@ class EndpointJsonDB(object):
     def _add_endpoint_subnet(self, tenant, endpoint, remote_site,
                              remote_contracts={}):
         network = OutsideNetwork(endpoint.name)
-        network.network = endpoint.ip + '/32'
-        if remote_site in remote_contracts:
-            for contract in remote_contracts[remote_site]['provides']:
-                network.provide(Contract(contract, tenant))
-            for contract in remote_contracts[remote_site]['consumes']:
-                network.consume(Contract(contract, tenant))
+        if endpoint.is_deleted():
+            network.mark_as_deleted()
+        else:
+            network.network = endpoint.ip + '/32'
+            if remote_site in remote_contracts:
+                for contract in remote_contracts[remote_site]['provides']:
+                    network.provide(Contract(contract, tenant))
+                for contract in remote_contracts[remote_site]['consumes']:
+                    network.consume(Contract(contract, tenant))
         outside_epg_entries = self._local_site.outside_db.get_outside_epg_entries(tenant.name,
                                                                                   remote_site)
         if len(outside_epg_entries) == 0:

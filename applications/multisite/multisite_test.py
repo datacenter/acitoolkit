@@ -24,35 +24,46 @@ except ImportError:
     """
     sys.exit(0)
 
-# driver.get(SITE1_URL)
-# driver.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 't')
-# driver.get(SITE2_URL)
-# driver.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 't')
-
 class TestBasicExport(unittest.TestCase):
+    @staticmethod
+    def _start_server(db_filename, server_port):
+        os.environ["MULTISITE_DATABASE_FILE"] = db_filename
+        subprocess.call(["rm", "-rf", db_filename])
+        subprocess.Popen(["python", "multisite-gui.py", "--port", server_port, "--test"])
+        time.sleep(1)
+
     @classmethod
     def setUpClass(cls):
-
-
         # Run the multisite tool for first site
-        site1_db_filename = "site1_db.sqlite"
-        os.environ["MULTISITE_DATABASE_FILE"] = site1_db_filename
-        subprocess.call(["rm", "-rf", site1_db_filename])
-        subprocess.Popen(["python", "multisite-gui.py", "--port", "5000", "--test"])
-        time.sleep(1)
+        cls._start_server('site1_db.sqlite', '5000')
 
         # Run the multisite tool for second site
-        site2_db_filename = "site2_db.sqlite"
-        os.environ["MULTISITE_DATABASE_FILE"] = site2_db_filename
-        subprocess.call(["rm", "-rf", site2_db_filename])
-        subprocess.Popen(["python", "multisite-gui.py", "--port", "5001", "--test"])
-        time.sleep(1)
+        cls._start_server('site2_db.sqlite', '5001')
 
+        # Start the browser
         cls.driver = webdriver.Firefox()
 
+    def _enter_credentials(self, driver, site_name, ip_address, user_name, password, local):
+        # Enter the Site 1 credentials
+        typing = [('site_name', site_name),
+                  ('ip_address', ip_address),
+                  ('user_name', user_name),
+                  ('password', password)]
+        for (field, data) in typing:
+            input_elem = driver.find_element_by_id(field)
+            input_elem.send_keys(data)
+        if local:
+            input_elem = driver.find_element_by_id('local')
+            input_elem.click()
+
+    def _login_session(self, url, login, password):
+        session = Session(url, login, password)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+        return session
+
+
     def setup_site(self, url, site1_local=True):
-        # driver = webdriver.Firefox()
-        # driver.maximize_window()
         driver = self.__class__.driver
         driver.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 't')
 
@@ -65,32 +76,16 @@ class TestBasicExport(unittest.TestCase):
         driver.find_element_by_link_text('Create').click()
 
         # Enter the Site 1 credentials
-        typing = [('site_name', 'Site1'),
-                  ('ip_address', SITE1_IP),
-                  ('user_name', SITE1_LOGIN),
-                  ('password', SITE1_PASSWORD)]
-        for (field, data) in typing:
-            input_elem = driver.find_element_by_id(field)
-            input_elem.send_keys(data)
-        if site1_local:
-            input_elem = driver.find_element_by_id('local')
-            input_elem.click()
+        self._enter_credentials(driver, 'Site1', SITE1_IP, SITE1_LOGIN,
+                                SITE1_PASSWORD, site1_local)
 
         # Save the credentials
         input_elem = driver.find_element_by_name('_add_another')
         input_elem.click()
 
         # Enter the Site 2 credentials
-        typing = [('site_name', 'Site2'),
-                  ('ip_address', SITE2_IP),
-                  ('user_name', SITE2_LOGIN),
-                  ('password', SITE2_PASSWORD)]
-        for (field, data) in typing:
-            input_elem = driver.find_element_by_id(field)
-            input_elem.send_keys(data)
-        if not site1_local:
-            input_elem = driver.find_element_by_id('local')
-            input_elem.click()
+        self._enter_credentials(driver, 'Site2', SITE2_IP, SITE2_LOGIN,
+                                SITE2_PASSWORD, not site1_local)
 
         # Save the credentials
         input_elem = driver.find_element_by_name('_add_another')
@@ -102,11 +97,34 @@ class TestBasicExport(unittest.TestCase):
 
         # TODO: go to the site screen and verify that both sites are present
 
+    def _verify_l3extsubnet(self, session, tenant_name, mac, ip, present=True):
+        class_query_url = ("/api/mo/uni/tn-%s.json?query-target=subtree&"
+                           "target-subtree-class=l3extSubnet" % tenant_name)
+        resp = session.get(class_query_url)
+        data = resp.json()['imdata']
+        if present:
+            self.assertTrue(len(data))
+        found = False
+        for subnet in data:
+            self.assertTrue('l3extSubnet' in subnet)
+            dn = subnet['l3extSubnet']['attributes']['dn']
+            if mac in dn and ip in dn:
+                found = True
+        if present:
+            self.assertTrue(found)
+        else:
+            self.assertFalse(found)
+
+
     def test_01_site1(self):
         self.setup_site('http://127.0.0.1:5000', site1_local=True)
 
     def test_02_site2(self):
         self.setup_site('http://127.0.0.1:5001', site1_local=False)
+
+    # TODO test removing a site
+    # TODO test adding the same site twice
+    # TODO
 
     def test_03_export_contract(self):
         driver = self.__class__.driver
@@ -135,18 +153,14 @@ class TestBasicExport(unittest.TestCase):
 
         time.sleep(1)
         # Verify that the export to the other APIC was successful
-        session = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         tenants = Tenant.get_deep(session, names=['multisite'], limit_to=['fvTenant', 'vzBrCP'])
         self.assertTrue(len(tenants) > 0)
         multisite_tenant = tenants[0]
         self.assertIsNotNone(multisite_tenant.get_child(Contract, 'Site1:mysql-contract'))
 
     def test_04_consume_exported_contract(self):
-        session = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
 
         # Create the Tenant
         tenant = Tenant('multisite')
@@ -172,9 +186,7 @@ class TestBasicExport(unittest.TestCase):
         self.assertTrue(epg.does_consume(contract))
 
     def test_05_add_consuming_static_endpoint(self):
-        session = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
 
         tenant = Tenant('multisite')
         app = AppProfile('my-demo-app', tenant)
@@ -207,10 +219,15 @@ class TestBasicExport(unittest.TestCase):
         ep = epg.get_child(Endpoint, '00:33:33:33:33:33')
         self.assertIsNotNone(ep)
 
+        session = self._login_session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        self._verify_l3extsubnet(session,
+                                 tenant_name='multisite',
+                                 mac='00:33:33:33:33:33',
+                                 ip='2.3.4.5/32',
+                                 present=True)
+
     def test_06_add_providing_static_endpoint(self):
-        session = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
-        resp = session.login()
-        self.assertTrue(resp.ok)
+        session = self._login_session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
 
         tenant = Tenant('multisite')
         app = AppProfile('my-demo-app', tenant)
@@ -245,6 +262,60 @@ class TestBasicExport(unittest.TestCase):
         self.assertIsNotNone(epg)
         ep = epg.get_child(Endpoint, '00:44:44:44:44:44')
         self.assertIsNotNone(ep)
+
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        self._verify_l3extsubnet(session,
+                                 tenant_name = 'multisite',
+                                 mac='00:44:44:44:44:44',
+                                 ip='7.8.9.10/32',
+                                 present=True)
+
+    def test_07_remove_consuming_static_endpoint(self):
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+
+        tenant = Tenant('multisite')
+        app = AppProfile('my-demo-app', tenant)
+        web_epg = EPG('web-frontend', app)
+
+        # Create the Endpoint
+        ep = Endpoint('00:33:33:33:33:33', web_epg)
+        ep.mac = '00:33:33:33:33:33'
+        ep.ip = '2.3.4.5'
+
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        web_epg.attach(vlan_intf)
+        # Assign Endpoint to the L2Interface
+        ep.attach(vlan_intf)
+
+        # Mark the Endpoint as deleted
+        ep.mark_as_deleted()
+
+        print 'Pushing json to tenant', tenant.get_json()
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Verify that the Endpoint has been removed
+        time.sleep(1)
+        tenants = Tenant.get_deep(session, names=['multisite'])
+        multisite_tenant = tenants[0]
+        app = multisite_tenant.get_child(AppProfile, 'my-demo-app')
+        self.assertIsNotNone(app)
+        epg = app.get_child(EPG, 'web-frontend')
+        self.assertIsNotNone(epg)
+        ep = epg.get_child(Endpoint, '00:33:33:33:33:33')
+        self.assertIsNone(ep)
+
+        # Verify that the l3extSubnet has been removed from the other site
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        self._verify_l3extsubnet(session,
+                                 tenant_name = 'multisite',
+                                 mac='00:33:33:33:33:33',
+                                 ip='2.3.4.5/32',
+                                 present=False)
 
     @classmethod
     def tearDownClass(cls):
