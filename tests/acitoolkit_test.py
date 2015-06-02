@@ -2036,6 +2036,33 @@ class TestLiveEPG(TestLiveAPIC):
                 epgs = EPG.get(session, app, tenant)
                 self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
 
+class TestLiveL2ExtDomain(TestLiveAPIC):
+    """
+    Test L2ExtDomain class
+    """
+    def test_get(self):
+        session = self.login_to_apic()
+        l2ext_domains = L2ExtDomain.get(session)
+        for l2ext_domain in l2ext_domains:
+            self.assertTrue(isinstance(l2ext_domain, L2ExtDomain))
+
+class TestLiveL3ExtDomain(TestLiveAPIC):
+    """
+    Test L3ExtDomain class
+    """
+    def test_get(self):
+        session = self.login_to_apic()
+        l3ext_domains = L3ExtDomain.get(session)
+        for l3ext_domain in l3ext_domains:
+            self.assertTrue(isinstance(l3ext_domain, L3ExtDomain))
+
+    def test_get_json(self):
+        session = self.login_to_apic()
+        l3ext_domains = L3ExtDomain.get(session)
+        for l3ext_domain in l3ext_domains:
+            l3ext_domain_json = l3ext_domain.get_json()
+            self.assertTrue(type(l3ext_domain_json) is dict)
+
 
 class TestLiveEPGDomain(TestLiveAPIC):
     """
@@ -2061,6 +2088,11 @@ class TestLiveEndpoint(TestLiveAPIC):
     def test_get(self):
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
+
+    def test_get_table(self):
+        session = self.login_to_apic()
+        endpoints = Endpoint.get(session)
+        self.assertTrue(isinstance(Endpoint.get_table(endpoints)[0], Table))
 
 
 class TestApic(TestLiveAPIC):
@@ -2515,6 +2547,18 @@ class TestLiveContracts(TestLiveAPIC):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
+    def test_get_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+        total_contracts = []
+        for tenant in tenants:
+            contracts = Contract.get(session, tenant)
+            for contract in contracts:
+                total_contracts.append(contract)
+
+        self.assertIsInstance(Contract.get_table(contracts)[0], Table)
+
 
 class TestLiveOSPF(TestLiveAPIC):
     def test_no_auth(self):
@@ -2674,6 +2718,8 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveL2ExtDomain))
+    live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveEPGDomain))
     live.addTest(unittest.makeSuite(TestLiveContracts))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
