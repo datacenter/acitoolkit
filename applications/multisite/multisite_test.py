@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from acitoolkit.acitoolkit import *
 import time
@@ -27,6 +28,12 @@ except ImportError:
 class TestBasicExport(unittest.TestCase):
     @staticmethod
     def _start_server(db_filename, server_port):
+        """
+        Start the GUI server application using a certain filename and TCP port
+
+        :param db_filename: String containing the database filename
+        :param server_port: String containing the TCP L4 port number to host the application
+        """
         os.environ["MULTISITE_DATABASE_FILE"] = db_filename
         subprocess.call(["rm", "-rf", db_filename])
         subprocess.Popen(["python", "multisite-gui.py", "--port", server_port, "--test"])
@@ -34,6 +41,10 @@ class TestBasicExport(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """
+        Set up the test environment
+        Run the application for 2 sites and start a web browser to access them
+        """
         # Run the multisite tool for first site
         cls._start_server('site1_db.sqlite', '5000')
 
@@ -44,6 +55,17 @@ class TestBasicExport(unittest.TestCase):
         cls.driver = webdriver.Firefox()
 
     def _enter_credentials(self, driver, site_name, ip_address, user_name, password, local):
+        """
+        Enter the site credentials into the GUI
+
+        :param driver: Instance of webdriver
+        :param site_name: String containing the site name
+        :param ip_address: String containing the APIC IP address of the site
+        :param user_name: String containing the APIC username of the site
+        :param password: String containing the APIC password of the site
+        :param local: True or False.  True if this site is the local site for the tool.
+        :return: None
+        """
         # Enter the Site 1 credentials
         typing = [('site_name', site_name),
                   ('ip_address', ip_address),
@@ -57,6 +79,14 @@ class TestBasicExport(unittest.TestCase):
             input_elem.click()
 
     def _login_session(self, url, login, password):
+        """
+        Login to a particular APIC
+
+        :param url: String containing the URL to login to the APIC
+        :param login: String containing the username to login to the APIC
+        :param password: String containing the password to login to the APIC
+        :return: Instance of Session class
+        """
         session = Session(url, login, password)
         resp = session.login()
         self.assertTrue(resp.ok)
@@ -122,9 +152,16 @@ class TestBasicExport(unittest.TestCase):
     def test_02_site2(self):
         self.setup_site('http://127.0.0.1:5001', site1_local=False)
 
-    # TODO test removing a site
-    # TODO test adding the same site twice
-    # TODO
+    # def test_03_remove_site1(self):
+    #     pass  # TODO implement and renumber tests
+    #
+    # def test_04_remove_site2(self):
+    #     pass  # TODO implement and renumber tests
+    #
+    # def test_05_add_same_site_twice
+    # # TODO test removing a site
+    # # TODO test adding the same site twice
+    # # TODO
 
     def test_03_export_contract(self):
         driver = self.__class__.driver
@@ -135,7 +172,17 @@ class TestBasicExport(unittest.TestCase):
         driver.find_element_by_link_text('Site Contracts').click()
 
         # Select the contract to export
-        driver.find_element_by_xpath("//td[contains(text(),'multisite')]/preceding-sibling::td/input[@name='rowid']").click()
+        page_number = '2'
+        loop_again = True
+        while (loop_again):
+            loop_again = False
+            try:
+                #driver.find_element_by_xpath("//td[contains(text(),'multisite')]/preceding-sibling::td/input[@name='rowid']").click()
+                driver.find_element_by_xpath("//td[text()='multisite']/preceding-sibling::td/input[@name='rowid']").click()
+            except NoSuchElementException:
+                loop_again = True
+                driver.find_element_by_link_text(page_number).click()
+                page_number = str(int(page_number) + 1)
 
         # Select the pulldown
         driver.find_element_by_link_text('With selected').click()
