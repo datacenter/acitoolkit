@@ -111,8 +111,10 @@ class BaseACIObject(AciSearch):
         self._tags = []
         self._parent = parent
         self.descr = None
-        self.subscribe = self._instance_subscribe
-        self.unsubscribe = self._instance_unsubscribe
+        #self.subscribe = self._instance_subscribe
+        #self.unsubscribe = self._instance_unsubscribe
+        #self.has_events = self._instance_has_events
+        #self.get_event = self._instance_get_event
         logging.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
@@ -266,7 +268,7 @@ class BaseACIObject(AciSearch):
         return parent_obj
 
     @classmethod
-    def get_deep(cls, full_data, working_data, parent=None):
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=[], subtree='full', config_only=False):
         """
         Gets all instances of this class from the APIC and gets all of the
         children as well.
@@ -292,7 +294,10 @@ class BaseACIObject(AciSearch):
                                 else:
                                     class_map[apic_class].get_deep(full_data=full_data,
                                                                    working_data=[child],
-                                                                   parent=obj)
+                                                                   parent=obj,
+                                                                   limit_to=limit_to,
+                                                                   subtree=subtree,
+                                                                   config_only=config_only)
         return obj
 
     @classmethod
@@ -357,13 +362,68 @@ class BaseACIObject(AciSearch):
                 return True
         return False
 
-    def _instance_subscribe(self, session):
+    def _instance_subscribe(self, session, extension=''):
         """
         not yet fully implemented
         """
-        url = self._get_instance_subscription_url()
-        resp = session.subscribe(url)
+        print '_instance_subscribe for ', self.name
+        urls = self._get_instance_subscription_urls()
+        for url in urls:
+            resp = session.subscribe(url + extension)
+            print 'Subscribed to ', url + extension, resp, resp.text
+            if not resp.ok:
+                return resp
         return resp
+
+    def _instance_has_events(self, session, extension=''):
+        """
+        Check for pending events from the APIC that pertain to this specific instance
+
+        :param session:  the instance of Session used for APIC communication
+        :param extension: Optional string that can be used to extend the URL
+        :returns: True or False.  True if there are events pending.
+        """
+        urls = self._get_instance_subscription_urls()
+        for url in urls:
+            if session.has_events(url + extension):
+                return True
+        return False
+
+
+    def _instance_get_event(self, session, extension=''):
+        """
+        Gets the event that is pending for this instance.  Events are
+        returned in the form of objects.  Objects that have been deleted
+        are marked as such.
+
+        :param session:  the instance of Session used for APIC communication
+        :param extension: Optional string that can be used to extend the URL
+        :returns: list of objects
+        """
+        urls = self._get_instance_subscription_urls()
+        for url in urls:
+            url += extension
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in self.__class__._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0][class_name]['attributes']
+            status = str(attributes['status'])
+            dn = str(attributes['dn'])
+            parent = self.__class__._get_parent_from_dn(self.__class__._get_parent_dn(dn))
+            if status == 'created':
+                name = str(attributes['name'])
+            else:
+                name = self.__class__._get_name_from_dn(dn)
+            obj = self.__class__(name, parent=parent)
+            obj._populate_from_attributes(attributes)
+            if status == 'deleted':
+                obj.mark_as_deleted()
+            return obj
+
+
 
     @classmethod
     def unsubscribe(cls, session):
@@ -484,6 +544,20 @@ class BaseACIObject(AciSearch):
         :returns: True or False, True indicates the object is detached.
         """
         return self._check_attachment(item, 'detached')
+
+    def get_child(self, child_type, child_name):
+        """
+        Gets a specific immediate child of this object
+
+        :param child_type: Class of the child to return
+        :param child_name: Name of the child to return
+        :return: The specific instance of child_type or None if not found
+        """
+        children = self.get_children(child_type)
+        for child in children:
+            if child.name == child_name:
+                return child
+        return None
 
     def get_children(self, only_class=None):
         """

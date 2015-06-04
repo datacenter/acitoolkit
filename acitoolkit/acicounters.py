@@ -30,8 +30,8 @@
 """ACI Toolkit module for counter and stats objects
 """
 
-import json
-import logging
+# import json
+# import logging
 import re
 
 
@@ -280,7 +280,7 @@ class AtomicNode(object):
         self.remote_port_id = None
 
 
-class InterfaceStats():
+class InterfaceStats(object):
     """
     This class defines interface statistics.  It will provide methods to
     retrieve the stats.  The stats are returned as a dictionary with the
@@ -326,8 +326,8 @@ class InterfaceStats():
         :returns:  Dictionary of counters. Format is {<interface_id>{<counterFamily>:
                         {<granularity>:{<period>:{<counter>:value}}}}}
         """
-        #request stats
-        #for each port
+        # request stats
+        # for each port
         #   parse port id
         #   process stats
         #   save stats per port id
@@ -337,23 +337,21 @@ class InterfaceStats():
                 raise ValueError('Counter epoch/period value of 0 not yet implemented')
             mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-' \
                            'class=statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
-        else :
+        else:
             mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist'
-            
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
 
         result = {}
-        for interface in data :
-            if 'children' in interface['l1PhysIf'] :
+        for interface in data:
+            if 'children' in interface['l1PhysIf']:
                 port_id = cls._parseDn2PortId(interface['l1PhysIf']['attributes']['dn'])
                 port_stats = InterfaceStats._process_data(interface)
                 result[port_id] = port_stats
         return result
-    
 
     @classmethod
-    def _parseDn2PortId(cls,dn) :
+    def _parseDn2PortId(cls, dn):
         """
         This will parse the dn and return a port_id string.
 
@@ -370,8 +368,7 @@ class InterfaceStats():
         port = name[5].split(']')[0]
 
         return '{0}/{1}/{2}/{3}'.format(pod, node, module, port)
-        
-        
+
     def get(self, session=None, period=None):
         """
         Retrieve the count dictionary.  This method will read in all the
@@ -385,17 +382,17 @@ class InterfaceStats():
         result = {}
         if not session:
             session = self._parent._session
-        
-        if period :
-            if (period < 1) :
+
+        if period:
+            if (period < 1):
                 raise ValueError('Counter epoch value of 0 not yet implemented')
-                
+
             mo_query_url = '/api/mo/' + self._interfaceDn + \
                            '.json?&rsp-subtree-include=stats&rsp-subtree-class=' \
                            'statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
-        else :
+        else:
             mo_query_url = '/api/mo/' + self._interfaceDn + '.json?query-target=self&rsp-subtree-include=stats'
-        
+
         ret = session.get(mo_query_url)
         data = ret.json()['imdata']
 
@@ -403,9 +400,9 @@ class InterfaceStats():
         # store the result to be accessed by the retrieve method
         self.result = result
         return result
-    
+
     @staticmethod
-    def _process_data(data) :
+    def _process_data(data):
         result = {}
         if data:
             if 'children' in data['l1PhysIf']:

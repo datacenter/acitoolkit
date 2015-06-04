@@ -117,6 +117,9 @@ class Credentials(object):
             self._parser.add_argument('--port',
                                       default=DEFAULT_PORT,
                                       help='Port number to listen on.')
+            self._parser.add_argument('--test',
+                                      action='store_true', default=False,
+                                      help='Enable functions for lab testing.')
 
     @staticmethod
     def _get_from_user(prompt):
