@@ -2422,6 +2422,19 @@ class TestLiveVmmDomain(TestLiveAPIC):
         vmm_domains = VmmDomain.get(session)
         for vmm_domain in vmm_domains:
             self.assertTrue(isinstance(vmm_domain, VmmDomain))
+        return vmm_domains
+
+    def test_get_json(self):
+        vmm_domains = self.test_get()
+        for vmm_domain in vmm_domains:
+            self.assertTrue(type(vmm_domain.get_json()) is dict)
+
+    def test_get_by_name(self):
+        session = self.login_to_apic()
+        vmm_domains = VmmDomain.get(session)
+        for vmm_domain in vmm_domains:
+            self.assertEqual(VmmDomain.get_by_name(session, vmm_domain.name), vmm_domain)
+
 
 class TestLiveFilterEntry(TestLiveAPIC):
     def test_get(self):
