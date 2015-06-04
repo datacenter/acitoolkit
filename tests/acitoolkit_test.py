@@ -2437,6 +2437,11 @@ class TestLiveFilterEntry(TestLiveAPIC):
                     filter_entries.append(contract_filter_entry)
         for filter_entry in filter_entries:
             self.assertTrue(isinstance(filter_entry, FilterEntry))
+        return filter_entries
+
+    def test_get_table(self):
+        filter_entries = self.test_get()
+        self.assertTrue(FilterEntry.get_table(filter_entries), Table)
 
 
 class TestLiveContracts(TestLiveAPIC):
