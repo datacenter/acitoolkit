@@ -32,6 +32,7 @@ This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
 from aciSearch import AciSearch
+from acisession import Session
 
 
 class BaseRelation(object):
@@ -1038,6 +1039,16 @@ class BaseACIPhysObject(BaseACIObject):
         """
         return None
 
+    @staticmethod
+    def check_session(session):
+        """
+        This will check that the session is of type Session and raise exception if it not
+        :param session: the session to check
+        :return:
+        """
+
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
 
 class BaseACIPhysModule(BaseACIPhysObject):
     """BaseACIPhysModule: base class for modules  """
@@ -1108,16 +1119,16 @@ class BaseACIPhysModule(BaseACIPhysObject):
         return pod, node, slot
 
     @classmethod
-    def get_obj(cls, session, apic_class, parent_node):
+    def get_obj(cls, session, apic_classes, parent_node):
         """Gets all of the Nodes from the APIC.  This is called by the
         module specific get() methods.  The parameters passed include the
-        APIC object class, apic_class, so that this will work for
+        APIC object class, apic_classes, so that this will work for
         different kinds of modules.
 
         :param parent_node: parent object or node id
         :param session: APIC session to use when retrieving the nodes
-        :param apic_class: The object class in APIC to retrieve
-        :returns: list of module objects derived from the specified apic_class
+        :param apic_classes: The object class in APIC to retrieve
+        :returns: list of module objects derived from the specified apic_classes
 
         """
         node = None
@@ -1129,29 +1140,29 @@ class BaseACIPhysModule(BaseACIPhysObject):
         pod = '1'
         if parent_node:
             parent_dn = 'topology/pod-{0}/node-{1}/sys'.format(pod, node)
+            # interface_query_url = '/api/mo/' + parent_dn + \
+            #                       '.json?query-target=subtree&target-subtree-class=' + apic_classes
             interface_query_url = '/api/mo/' + parent_dn + \
-                                  '.json?query-target=subtree&target-subtree-class=' + apic_class
-
+                                  '.json?query-target=subtree&target-subtree-class=' + ','.join(apic_classes)
         else:
-            interface_query_url = ('/api/node/class/' + apic_class + '.json?'
+            interface_query_url = ('/api/node/class/' + apic_classes[0] + '.json?'
                                                                      'query-target=self')
         cards = []
         ret = session.get(interface_query_url)
         card_data = ret.json()['imdata']
         for apic_obj in card_data:
-            if apic_class in apic_obj:
-                dist_name = str(apic_obj[apic_class]['attributes']['dn'])
+            if apic_classes[0] in apic_obj:
+                dist_name = str(apic_obj[apic_classes[0]]['attributes']['dn'])
                 (pod, node_id, slot) = cls._parse_dn(dist_name)
                 if not isinstance(parent_node, str):
                     card = cls(pod, node_id, slot, parent_node)
                 else:
                     card = cls(pod, node_id, slot)
                 card._session = session
-                card._apic_class = apic_class
-                card._populate_from_attributes(apic_obj[apic_class]['attributes'])
+                card._apic_class = apic_classes[0]
+                card._populate_from_attributes(apic_obj[apic_classes[0]]['attributes'])
 
                 (card.firmware, card.bios) = card._get_firmware(dist_name)
-                card.modify_time = str(apic_obj[apic_class]['attributes']['modTs'])
                 if parent_node:
                     if card.node == parent_node.node:
                         if card._parent.has_child(card):
