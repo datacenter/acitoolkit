@@ -2184,7 +2184,7 @@ class FilterEntry(BaseACIObject):
         return text
 
     @classmethod
-    def get(cls, session, parent=None, tenant=None):
+    def get(cls, session, parent, tenant):
         """
         To get all of acitoolkit style Filter Entries APIC class.
 
@@ -2226,13 +2226,13 @@ class FilterEntry(BaseACIObject):
                                  'target-subtree-class=vzEntry&'
                                  'query-target-filter=eq(vzEntry.name,"%s")' % (tenant_url, filter_name, entry_name))
                     ret = session.get(query_url)
-                    data = ret.json()['imdata']
-                    if len(data) == 0:
+                    filter_data = ret.json()['imdata']
+                    if len(filter_data) == 0:
                         continue
-                    logging.debug('response returned %s', data)
+                    logging.debug('response returned %s', filter_data)
                     resp = []
                     obj = cls(entry_name, parent)
-                    attribute_data = data[0]['vzEntry']['attributes']
+                    attribute_data = filter_data[0]['vzEntry']['attributes']
                     obj._populate_from_attributes(attribute_data)
                     resp.append(obj)
         return resp

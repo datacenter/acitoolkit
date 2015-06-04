@@ -2423,6 +2423,21 @@ class TestLiveVmmDomain(TestLiveAPIC):
         for vmm_domain in vmm_domains:
             self.assertTrue(isinstance(vmm_domain, VmmDomain))
 
+class TestLiveFilterEntry(TestLiveAPIC):
+    def test_get(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        filter_entries = []
+        # contracts = []
+        for tenant in tenants:
+            tenant_contracts = Contract.get(session, tenant)
+            for tenant_contract in tenant_contracts:
+                contract_filter_entries = FilterEntry.get(session, tenant_contract, tenant)
+                for contract_filter_entry in contract_filter_entries:
+                    filter_entries.append(contract_filter_entry)
+        for filter_entry in filter_entries:
+            self.assertTrue(isinstance(filter_entry, FilterEntry))
+
 
 class TestLiveContracts(TestLiveAPIC):
     def get_2_entries(self, contract):
@@ -2705,6 +2720,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveL2ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveEPGDomain))
+    live.addTest(unittest.makeSuite(TestLiveFilterEntry))
     live.addTest(unittest.makeSuite(TestLiveContracts))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
