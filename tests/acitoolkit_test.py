@@ -2046,6 +2046,19 @@ class TestLiveL2ExtDomain(TestLiveAPIC):
         for l2ext_domain in l2ext_domains:
             self.assertEqual(L2ExtDomain.get_by_name(session, l2ext_domain.name), l2ext_domain)
 
+    def test_generate_attributes(self):
+        l2ext_domains = self.test_get()
+        for l2ext_domain in l2ext_domains:
+            if l2ext_domain.name:
+                self.assertEqual(l2ext_domain._generate_attributes()['name'], l2ext_domain.name)
+            if l2ext_domain.dn:
+                self.assertEqual(l2ext_domain._generate_attributes()['dn'], l2ext_domain.dn)
+            if l2ext_domain.lcOwn:
+                self.assertEqual(l2ext_domain._generate_attributes()['lcOwn'], l2ext_domain.lcOwn)
+            if l2ext_domain.childAction:
+                self.assertEqual(l2ext_domain._generate_attributes()['childAction'], l2ext_domain.childAction)
+
+
 class TestLiveL3ExtDomain(TestLiveAPIC):
     """
     Test L3ExtDomain class
