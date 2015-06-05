@@ -2613,7 +2613,7 @@ class TestLiveContracts(TestLiveAPIC):
             for contract in contracts:
                 total_contracts.append(contract)
 
-        self.assertIsInstance(Contract.get_table(contracts)[0], Table)
+        self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
 
 
 class TestLiveOSPF(TestLiveAPIC):
@@ -2731,6 +2731,7 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
             self.assertIn(policy.policyType, ['fabric', 'access'])
             self.assertIsInstance(policy.name, str)
             self.check_collection_policy(policy)
+        return policies
 
     def test_monitor_target(self):
         session = self.login_to_apic()
