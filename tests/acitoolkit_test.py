@@ -2189,6 +2189,17 @@ class TestApic(TestLiveAPIC):
         (session, tenant, app, epg) = self.base_test_setup()
         Context.get(session, tenant)
 
+    def test_get_contexts_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        total_contexts = []
+        for tenant in tenants:
+            contexts = Context.get(session, tenant)
+            for context in contexts:
+                total_contexts.append(context)
+        contexts_table = Context.get_table(total_contexts)[0]
+        self.assertIsInstance(contexts_table, Table)
+
     def test_get_contexts_invalid_tenant_as_string(self):
         (session, tenant, app, epg) = self.base_test_setup()
         self.assertRaises(TypeError, Context.get, session, 'tenant')
