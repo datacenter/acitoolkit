@@ -981,6 +981,14 @@ class TestTaboo(unittest.TestCase):
         dn = 'uni/tn-tenant/taboo-test'
         self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
 
+    def test_get_table(self):
+        tenant = Tenant('tenant')
+        taboo1 = Taboo('taboo1', tenant)
+        taboo2 = Taboo('taboo2', tenant)
+        taboo3 = Taboo('taboo3', tenant)
+        taboos = [taboo1, taboo2, taboo3]
+        self.assertIsInstance(Taboo.get_table(taboos)[0], Table)
+
 
 class TestEPG(unittest.TestCase):
     """
@@ -2030,6 +2038,13 @@ class TestLiveL2ExtDomain(TestLiveAPIC):
         l2ext_domains = L2ExtDomain.get(session)
         for l2ext_domain in l2ext_domains:
             self.assertTrue(isinstance(l2ext_domain, L2ExtDomain))
+        return l2ext_domains
+
+    def test_get_by_name(self):
+        session = self.login_to_apic()
+        l2ext_domains = self.test_get()
+        for l2ext_domain in l2ext_domains:
+            self.assertEqual(L2ExtDomain.get_by_name(session, l2ext_domain.name), l2ext_domain)
 
 class TestLiveL3ExtDomain(TestLiveAPIC):
     """
