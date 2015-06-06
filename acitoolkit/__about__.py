@@ -10,13 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __about__ import (
-    __author__, __copyright__, __email__, __license__, __summary__, __title__,
-    __uri__, __version__,
-)
-
-
 __all__ = [
-    "__author__", "__copyright__", "__email__", "__license__", "__summary__",
-    "__title__", "__uri__", "__version__",
+    "__title__", "__summary__", "__uri__", "__version__", "__author__",
+    "__email__", "__license__", "__copyright__",
 ]
+
+__title__ = "acitoolkit"
+__summary__ = "Toolkit for Cisco ACI Fabrics"
+__uri__ = "http://datacenter.github.io/acitoolkit/"
+
+__version__ = "0.2"
+
+__author__ = "Cisco Systems, Inc."
+__email__ = "acitoolkit@external.cisco.com"
+
+__license__ = "Apache License, Version 2.0"
+__copyright__ = "2015 %s" % __author__

@@ -1,15 +1,24 @@
 """
 ACIToolkit Installer using setuptools
 """
+import os
 from setuptools import setup
+
+
+base_dir = os.path.dirname(__file__)
+
+about = {}
+with open(os.path.join(base_dir, "acitoolkit", "__about__.py")) as f:
+    exec(f.read(), about)
+
 setup(
-    name="acitoolkit",
-    version="0.1",
+    name=about["__title__"],
+    version=about["__version__"],
     packages=["acitoolkit"],
-    author="Cisco Systems, Inc.",
-    author_email="acitoolkit@cisco.com",
-    url="http://github.com/datacenter/acitoolkit/",
-    license="http://www.apache.org/licenses/LICENSE-2.0",
+    author=about["__author__"],
+    author_email=about["__email__"],
+    url=about["__uri__"],
+    license=about["__license__"],
     install_requires=["requests",
                       "websocket-client",
                       "gitpython",
