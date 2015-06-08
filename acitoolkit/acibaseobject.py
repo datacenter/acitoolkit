@@ -84,6 +84,23 @@ class BaseRelation(object):
                 self.relation_type == other.relation_type)
 
 
+class Tag(object):
+    def __init__(self, name=None):
+        self.name = name
+        self._deleted = False
+
+    def is_deleted(self):
+        return self._deleted
+
+    def mark_as_deleted(self):
+        self._deleted = True
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other = Tag(other)
+        return self.name == other.name and self._deleted == other._deleted
+
+
 class BaseACIObject(AciSearch):
     """
     This class defines functionality common to all ACI objects.
@@ -209,10 +226,12 @@ class BaseACIObject(AciSearch):
         """
         Checks whether this object has a particular tag assigned.
 
-        :param tag: string containing the tag
+        :param tag: string containing the tag name or an instance of Tag
         :returns: True or False.  True indicates the object has this\
                   tag assigned.
         """
+        if not isinstance(tag, Tag):
+            search_tag = Tag(tag)
         return tag in self.get_tags()
 
     def has_tags(self):
@@ -228,7 +247,7 @@ class BaseACIObject(AciSearch):
         """
         Get the tags assigned to this object.
 
-        :returns: List of tag strings
+        :returns: List of tag instances
         """
         return self._tags
 
@@ -238,17 +257,37 @@ class BaseACIObject(AciSearch):
         used to classify objects.  More than 1 tag can be assigned to an
         object.
 
-        :param tag: string containing the tag to assign to this object
+        :param tag: string containing the tag to assign to this object or
+                    an instance of Tag
         """
+        if not isinstance(tag, Tag):
+            tag = Tag(tag)
         self.get_tags().append(tag)
 
     def remove_tag(self, tag):
         """
         Remove a particular tag from being assigned to this object.
+        Note that this does not delete the tag from the APIC.
 
-        :param tag: string containing the tag to assign to this object
+        :param tag: string containing the tag to remove from this object
+                    or an instance of Tag
         """
+        if not isinstance(tag, Tag):
+            search_tag = Tag(tag)
         self.get_tags().remove(tag)
+
+    def delete_tag(self, tag):
+        """
+        Mark a particular tag as being deleted from this object.
+
+        :param tag: string containing the tag to delete from this object
+                    or an instance of Tag
+        """
+        if not isinstance(tag, Tag):
+            tag = Tag(tag)
+        for existing_tag in self.get_tags():
+            if existing_tag == tag:
+                existing_tag.mark_as_deleted()
 
     @classmethod
     def _get_parent_from_dn(cls, dn):
@@ -288,7 +327,7 @@ class BaseACIObject(AciSearch):
                                 class_map = cls._get_toolkit_to_apic_classmap()
                                 if apic_class not in class_map:
                                     if apic_class == 'tagInst':
-                                        obj._tags.append(str(child[apic_class]['attributes']['name']))
+                                        obj._tags.append(Tag(str(child[apic_class]['attributes']['name'])))
                                     continue
                                 else:
                                     class_map[apic_class].get_deep(full_data=full_data,
@@ -475,7 +514,9 @@ class BaseACIObject(AciSearch):
         """
         if self.is_attached(item):
             self._relations.remove(BaseRelation(item, 'attached'))
-            item._attachments.remove(BaseRelation(self, 'attached'))
+            relation = BaseRelation(self, 'attached')
+            if relation in item._attachments:
+                item._attachments.remove(relation)
         self._relations.append(BaseRelation(item, 'attached'))
         item._attachments.append(BaseRelation(self, 'attached'))
 
@@ -780,7 +821,9 @@ class BaseACIObject(AciSearch):
         for child in children:
             children_json.append(child)
         for tag in self._tags:
-            child = {'tagInst': {'attributes': {'name': tag}}}
+            child = {'tagInst': {'attributes': {'name': tag.name}}}
+            if tag.is_deleted():
+                  child['tagInst']['attributes']['status'] = 'deleted'
             children_json.append(child)
         if get_children:
             for child in self._children:

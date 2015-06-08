@@ -972,8 +972,9 @@ class OutsideEPG(CommonEPG):
             if network.is_deleted():
                 text['l3extInstP']['attributes']['status'] = 'deleted'
                 subnet['l3extSubnet']['attributes']['status'] = 'deleted'
+            else:
+                text['l3extInstP']['children'].append(subnet)
             contracts = network._get_common_json()
-            text['l3extInstP']['children'].append(subnet)
             for contract in contracts:
                 text['l3extInstP']['children'].append(contract)
             children.append(text)
