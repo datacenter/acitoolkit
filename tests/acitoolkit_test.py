@@ -986,6 +986,14 @@ class TestTaboo(unittest.TestCase):
         dn = 'uni/tn-tenant/taboo-test'
         self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
 
+    def test_get_table(self):
+        tenant = Tenant('tenant')
+        taboo1 = Taboo('taboo1', tenant)
+        taboo2 = Taboo('taboo2', tenant)
+        taboo3 = Taboo('taboo3', tenant)
+        taboos = [taboo1, taboo2, taboo3]
+        self.assertIsInstance(Taboo.get_table(taboos)[0], Table)
+
 
 class TestEPG(unittest.TestCase):
     """
@@ -2045,6 +2053,26 @@ class TestLiveL2ExtDomain(TestLiveAPIC):
         l2ext_domains = L2ExtDomain.get(session)
         for l2ext_domain in l2ext_domains:
             self.assertTrue(isinstance(l2ext_domain, L2ExtDomain))
+        return l2ext_domains
+
+    def test_get_by_name(self):
+        session = self.login_to_apic()
+        l2ext_domains = self.test_get()
+        for l2ext_domain in l2ext_domains:
+            self.assertEqual(L2ExtDomain.get_by_name(session, l2ext_domain.name), l2ext_domain)
+
+    def test_generate_attributes(self):
+        l2ext_domains = self.test_get()
+        for l2ext_domain in l2ext_domains:
+            if l2ext_domain.name:
+                self.assertEqual(l2ext_domain._generate_attributes()['name'], l2ext_domain.name)
+            if l2ext_domain.dn:
+                self.assertEqual(l2ext_domain._generate_attributes()['dn'], l2ext_domain.dn)
+            if l2ext_domain.lcOwn:
+                self.assertEqual(l2ext_domain._generate_attributes()['lcOwn'], l2ext_domain.lcOwn)
+            if l2ext_domain.childAction:
+                self.assertEqual(l2ext_domain._generate_attributes()['childAction'], l2ext_domain.childAction)
+
 
 class TestLiveL3ExtDomain(TestLiveAPIC):
     """
@@ -2202,6 +2230,17 @@ class TestApic(TestLiveAPIC):
     def test_get_contexts(self):
         (session, tenant, app, epg) = self.base_test_setup()
         Context.get(session, tenant)
+
+    def test_get_contexts_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        total_contexts = []
+        for tenant in tenants:
+            contexts = Context.get(session, tenant)
+            for context in contexts:
+                total_contexts.append(context)
+        contexts_table = Context.get_table(total_contexts)[0]
+        self.assertIsInstance(contexts_table, Table)
 
     def test_get_contexts_invalid_tenant_as_string(self):
         (session, tenant, app, epg) = self.base_test_setup()
@@ -2438,6 +2477,39 @@ class TestLiveVmmDomain(TestLiveAPIC):
         vmm_domains = VmmDomain.get(session)
         for vmm_domain in vmm_domains:
             self.assertTrue(isinstance(vmm_domain, VmmDomain))
+        return vmm_domains
+
+    def test_get_json(self):
+        vmm_domains = self.test_get()
+        for vmm_domain in vmm_domains:
+            self.assertTrue(type(vmm_domain.get_json()) is dict)
+
+    def test_get_by_name(self):
+        session = self.login_to_apic()
+        vmm_domains = VmmDomain.get(session)
+        for vmm_domain in vmm_domains:
+            self.assertEqual(VmmDomain.get_by_name(session, vmm_domain.name), vmm_domain)
+
+
+class TestLiveFilterEntry(TestLiveAPIC):
+    def test_get(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        filter_entries = []
+        # contracts = []
+        for tenant in tenants:
+            tenant_contracts = Contract.get(session, tenant)
+            for tenant_contract in tenant_contracts:
+                contract_filter_entries = FilterEntry.get(session, tenant_contract, tenant)
+                for contract_filter_entry in contract_filter_entries:
+                    filter_entries.append(contract_filter_entry)
+        for filter_entry in filter_entries:
+            self.assertTrue(isinstance(filter_entry, FilterEntry))
+        return filter_entries
+
+    def test_get_table(self):
+        filter_entries = self.test_get()
+        self.assertTrue(FilterEntry.get_table(filter_entries), Table)
 
 
 class TestLiveContracts(TestLiveAPIC):
@@ -2557,7 +2629,7 @@ class TestLiveContracts(TestLiveAPIC):
             for contract in contracts:
                 total_contracts.append(contract)
 
-        self.assertIsInstance(Contract.get_table(contracts)[0], Table)
+        self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
 
 
 class TestLiveOSPF(TestLiveAPIC):
@@ -2675,6 +2747,7 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
             self.assertIn(policy.policyType, ['fabric', 'access'])
             self.assertIsInstance(policy.name, str)
             self.check_collection_policy(policy)
+        return policies
 
     def test_monitor_target(self):
         session = self.login_to_apic()
@@ -2721,6 +2794,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveL2ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveEPGDomain))
+    live.addTest(unittest.makeSuite(TestLiveFilterEntry))
     live.addTest(unittest.makeSuite(TestLiveContracts))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
