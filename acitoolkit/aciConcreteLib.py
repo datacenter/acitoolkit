@@ -48,12 +48,24 @@ class ConcreteArp(BaseACIPhysObject):
         """
             Initialize the ARP object.
             """
-        super(ConcreteArp, self).__init__(name='', parent=parent)
+
+        super(ConcreteArp, self).__init__(parent=parent)
         self.attr = {}
         self.domain = []
         self._parent = parent
         if parent is not None:
             self._parent.add_child(self)
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['arpInst', 'arpDomStatsAdj', 'arpDomStatsRx', 'arpDomStatsTx', 'arpDom', 'arpDb', 'arpAdjEp']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -219,7 +231,7 @@ class ConcreteVpc(BaseACIPhysObject):
         """
         VPC info for a switch
         """
-        super(ConcreteVpc, self).__init__(name='', parent=parent)
+        super(ConcreteVpc, self).__init__(parent=parent)
         self.member_ports = []
         self.peer_info = {}
         self.attr = {}
@@ -407,7 +419,7 @@ class ConcreteVpcIf(BaseACIPhysObject):
     """
 
     def __init__(self, parent=None):
-        super(ConcreteVpcIf, self).__init__(name='', parent=parent)
+        super(ConcreteVpcIf, self).__init__(parent=parent)
         self.attr = {}
 
     @classmethod
@@ -572,7 +584,7 @@ class ConcreteContext(BaseACIPhysObject):
         """
         l3-context on a switch
         """
-        super(ConcreteContext, self).__init__(name='', parent=parent)
+        super(ConcreteContext, self).__init__(parent=parent)
         self.attr = {}
 
     @classmethod
@@ -718,7 +730,7 @@ class ConcreteSVI(BaseACIPhysObject):
         """
         SVI on a switch
         """
-        super(ConcreteSVI, self).__init__(name='', parent=parent)
+        super(ConcreteSVI, self).__init__(parent=parent)
         self.attr = {}
 
     @classmethod
@@ -839,7 +851,7 @@ class ConcreteLoopback(BaseACIPhysObject):
         """
         SVI on a switch
         """
-        super(ConcreteLoopback, self).__init__(name='', parent=parent)
+        super(ConcreteLoopback, self).__init__(parent=parent)
         self.attr = {}
 
     @classmethod
@@ -928,7 +940,7 @@ class ConcreteBD(BaseACIPhysObject):
         """
         bridge domain on a switch
         """
-        super(ConcreteBD, self).__init__(name='', parent=parent)
+        super(ConcreteBD, self).__init__(parent=parent)
         self.attr = {}
 
     @classmethod
@@ -1139,7 +1151,7 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         """
         access control rules on a switch
         """
-        super(ConcreteAccCtrlRule, self).__init__(name='', parent=parent)
+        super(ConcreteAccCtrlRule, self).__init__(parent=parent)
         self.attr = {}
 
     @classmethod
@@ -1362,7 +1374,7 @@ class ConcreteFilter(BaseACIPhysObject):
         """
         access control filters on a switch
         """
-        super(ConcreteFilter, self).__init__(name='', parent=parent)
+        super(ConcreteFilter, self).__init__(parent=parent)
         self.entries = []
         self.attr = {}
 
@@ -1508,7 +1520,7 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         """
         access control filters of a filter
         """
-        super(ConcreteFilterEntry, self).__init__(name='', parent=parent)
+        super(ConcreteFilterEntry, self).__init__(parent=parent)
         self.attr = {}
 
     @classmethod
@@ -1633,7 +1645,7 @@ class ConcreteEp(BaseACIPhysObject):
         """
         endpoints on a switch
         """
-        super(ConcreteEp, self).__init__(name='', parent=parent)
+        super(ConcreteEp, self).__init__(parent=parent)
         self.attr = {'ip': None, 'mac': None}
 
     @classmethod
@@ -1996,7 +2008,7 @@ class ConcretePortChannel(BaseACIPhysObject):
         """
         port channel on a switch
         """
-        super(ConcretePortChannel, self).__init__(name='', parent=parent)
+        super(ConcretePortChannel, self).__init__(parent=parent)
         self.attr = {}
         self.members = []
 
@@ -2006,8 +2018,8 @@ class ConcretePortChannel(BaseACIPhysObject):
         This will get all the SVIs on the switch
 
         :param parent:
-       :param top: the topSystem level json object
-       :returns: list of port channel
+        :param top: the topSystem level json object
+        :returns: list of port channel
         """
         result = []
 
@@ -2220,7 +2232,7 @@ class ConcreteOverlay(BaseACIPhysObject):
         """
         overlay information
         """
-        super(ConcreteOverlay, self).__init__(name='', parent=parent)
+        super(ConcreteOverlay, self).__init__(parent=parent)
         self.attr = {}
         #adding VPC VTEP info to the Overlay Class
         self.attr['vpc_tep_ip']= None
