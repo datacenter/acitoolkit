@@ -1497,6 +1497,8 @@ class BridgeDomain(BaseACIObject):
             text = {'fvRsCtx': {'attributes': {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
+        if self.get_unknown_mac_unicast is not None:
+            attr['unkMacUcastAct'] = self.get_unknown_mac_unicast()
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
                                                   attributes=attr,
                                                   children=children)
