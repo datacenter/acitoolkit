@@ -25,11 +25,11 @@ This is a library of all the Concrete classes that are on a switch.
 """
 """
 # all the import
-from acibaseobject import BaseACIPhysObject
+from .acibaseobject import BaseACIPhysObject
 import acitoolkit as ACI
 import copy
-from aciTable import Table
-from aciSearch import Searchable
+from .aciTable import Table
+from .aciSearch import Searchable
 
 
 class ConcreteArp(BaseACIPhysObject):
@@ -1712,7 +1712,7 @@ class ConcreteEp(BaseACIPhysObject):
                             end_point.attr['ip'] = ip_add
                         rem_ep.append((ip_add, ip_ctx, ip_bd))
                     else:
-                        print 'unexpected context or bd mismatch', ip_add, ip_ctx, ip_bd
+                        print ('unexpected context or bd mismatch', ip_add, ip_ctx, ip_bd)
         result.extend(new_ep_list)
         final_result = []
         for ept in result:
