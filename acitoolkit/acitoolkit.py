@@ -1427,6 +1427,7 @@ class BridgeDomain(BaseACIObject):
         if parent is None or not isinstance(parent, Tenant):
             raise TypeError
         super(BridgeDomain, self).__init__(bd_name, parent)
+        self.unknown_mac_unicast = 'proxy'
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1464,6 +1465,26 @@ class BridgeDomain(BaseACIObject):
     @staticmethod
     def _get_name_from_dn(dn):
         return dn.split('/BD-')[1].split('/')[0]
+
+    def set_unknown_mac_unicast(self, unicast):
+        """
+        Set the unknown mac unicast for this BD
+
+        :param unicast: Unicast to assign this BridgeDomain
+        """
+        valid_unicast = ('proxy', 'flood')
+        
+        if unicast not in valid_unicast:
+            raise ValueError('Invalid MAC unicast: %s ' % unicast)
+        self.unknown_mac_unicast = unicast
+
+    def get_unknown_mac_unicast(self):
+        """
+        Gets the unknow mac unicast for this BD
+
+        :returns: unknown mac unicast of the BridgeDomain
+        """
+        return self.unknown_mac_unicast
 
     def get_json(self):
         """
