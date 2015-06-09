@@ -1291,13 +1291,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
             if apic_classes[0] in apic_obj:
                 dist_name = str(apic_obj[apic_classes[0]]['attributes']['dn'])
                 (pod, node_id, slot) = cls._parse_dn(dist_name)
-                # if not isinstance(parent_node, str):
-                #     card = cls(pod, node_id, slot, parent_node)
-                # else:
-                #     card = cls(pod, node_id, slot)
                 card = cls(pod, node_id, slot)
                 card._session = session
-                #card._apic_class = apic_classes[0]
                 card._populate_from_attributes(apic_obj[apic_classes[0]]['attributes'])
 
                 (card.firmware, card.bios) = card._get_firmware(dist_name)
