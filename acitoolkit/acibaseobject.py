@@ -943,21 +943,27 @@ class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
     """
 
-    def __init__(self, name=None, parent=None):
-        super(BaseACIPhysObject, self).__init__(name, parent)
-        self.node = None
-
-    def _common_init(self, parent):
-        """
-        Common init used for all physical objects
-        """
-        self._deleted = False
-        self._parent = parent
-        self._children = []
-        self._relations = []
+    def __init__(self, name='', parent=None, pod=None):
         self._session = None
-        if self._parent is not None:
-            self._parent.add_child(self)
+        self.pod = None
+        if pod:
+            self.pod = pod
+        else:
+            if parent:
+                self.pod = parent.pod
+        super(BaseACIPhysObject, self).__init__(name=name, parent=parent)
+
+    # def _common_init(self, parent):
+    #     """
+    #     Common init used for all physical objects
+    #     """
+    #     self._deleted = False
+    #     self._parent = parent
+    #     self._children = []
+    #     self._relations = []
+    #     self._session = None
+    #     if self._parent is not None:
+    #         self._parent.add_child(self)
 
     @staticmethod
     def _delete_redundant_policy(infra, policy_type):
@@ -1124,6 +1130,20 @@ class BaseACIPhysObject(BaseACIObject):
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
 
+    @classmethod
+    def check_parent(cls, parent):
+        """
+        If a parent is specified, it will check that it is the correct class of parent
+        If not, then an exception is raised.
+        :param parent:
+        :return:
+        """
+
+        if parent:
+            if not isinstance(parent, cls._get_parent_class()) :
+                raise TypeError('The parent of this object must be of class {0}'.format(cls._get_parent_class()))
+
+
 class BaseACIPhysModule(BaseACIPhysObject):
     """BaseACIPhysModule: base class for modules  """
 
@@ -1138,11 +1158,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """
         super(BaseACIPhysModule, self).__init__(name='', parent=None)
 
-        # check that parent is a node
-        if parent:
-            if isinstance(parent, str):
-                raise TypeError('An instance of Node class is required')
-
         self.pod = str(pod)
         self.node = str(node)
         self.slot = str(slot)
@@ -1153,13 +1168,16 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.bios = None
         self.firmware = None
 
-        self._apic_class = None
+        #self._apic_class = None
         self.dn = None
-        self._session = None
+
+        if parent:
+            if not isinstance(parent, str):
+                self._parent = parent
+                self._parent.add_child(self)
 
         logging.debug('Creating %s %s', self.__class__.__name__,
                       'pod-' + self.pod + '/node-' + self.node + '/slot-' + self.slot)
-        self._common_init(parent)
 
     def get_slot(self):
         """Gets slot id
@@ -1174,8 +1192,9 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """
         if type(self) is not type(other):
             return False
+
         return (self.pod == other.pod) and (self.node == other.node) and \
-               (self.slot == other.slot) and (self.type == other.type)
+               (self.slot == other.slot) and (self.get_type() == other.type)
 
     @staticmethod
     def _parse_dn(dn):
@@ -1205,17 +1224,18 @@ class BaseACIPhysModule(BaseACIPhysObject):
         :returns: list of module objects derived from the specified apic_classes
 
         """
+        cls.check_session(session)
+
         node = None
         if parent_node:
             if not isinstance(parent_node, str):
+                cls.check_parent(parent_node)
                 node = parent_node.node
             else:
                 node = parent_node
         pod = '1'
         if parent_node:
             parent_dn = 'topology/pod-{0}/node-{1}/sys'.format(pod, node)
-            # interface_query_url = '/api/mo/' + parent_dn + \
-            #                       '.json?query-target=subtree&target-subtree-class=' + apic_classes
             interface_query_url = '/api/mo/' + parent_dn + \
                                   '.json?query-target=subtree&target-subtree-class=' + ','.join(apic_classes)
         else:
@@ -1228,20 +1248,21 @@ class BaseACIPhysModule(BaseACIPhysObject):
             if apic_classes[0] in apic_obj:
                 dist_name = str(apic_obj[apic_classes[0]]['attributes']['dn'])
                 (pod, node_id, slot) = cls._parse_dn(dist_name)
-                if not isinstance(parent_node, str):
-                    card = cls(pod, node_id, slot, parent_node)
-                else:
-                    card = cls(pod, node_id, slot)
+                # if not isinstance(parent_node, str):
+                #     card = cls(pod, node_id, slot, parent_node)
+                # else:
+                #     card = cls(pod, node_id, slot)
+                card = cls(pod, node_id, slot)
                 card._session = session
-                card._apic_class = apic_classes[0]
+                #card._apic_class = apic_classes[0]
                 card._populate_from_attributes(apic_obj[apic_classes[0]]['attributes'])
 
                 (card.firmware, card.bios) = card._get_firmware(dist_name)
                 if parent_node:
                     if card.node == parent_node.node:
-                        if card._parent.has_child(card):
-                            card._parent.remove_child(card)
-                        card._parent.add_child(card)
+                        if not isinstance(parent_node, str):
+                            card._parent = parent_node
+                            card._parent.add_child(card)
                         cards.append(card)
                 else:
                     cards.append(card)
