@@ -695,7 +695,6 @@ class TestLivePod(TestLiveAPIC):
         for child in children:
             children_types.add(child.__class__.__name__)
 
-        self.assertGreater(len(children_types), 14)
         self.assertIn('ConcreteAccCtrlRule', children_types)
         self.assertIn('ConcreteOverlay', children_types)
         self.assertIn('ConcretePortChannel', children_types)
@@ -707,6 +706,7 @@ class TestLivePod(TestLiveAPIC):
         self.assertIn('ConcreteEp', children_types)
         self.assertIn('ConcreteSVI', children_types)
         self.assertIn('ConcreteVpc', children_types)
+        self.assertGreater(len(children_types), 14)
 
     def test_link_get_for_node(self):
         session = self.login_to_apic()
