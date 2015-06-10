@@ -9,7 +9,7 @@ from multisite import MultisiteCollector, SiteLoginCredentials, Site, ContractDB
 from flask import flash, send_from_directory, request
 from flask.ext.sqlalchemy import SQLAlchemy
 from requests import Timeout
-from flask.ext import admin
+#from flask.ext import admin
 from flask.ext.admin import BaseView, AdminIndexView, expose
 from flask.ext.admin.actions import action
 from flask.ext.admin.contrib.sqla import ModelView
@@ -47,7 +47,7 @@ else:
     app.config['DATABASE_FILE'] = db_filename
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE_FILE']
 app.config['SQLALCHEMY_ECHO'] = True
-db = SQLAlchemy(app)
+db = SQLAlchemy(app=app)
 
 # Create directory for file fields to use
 file_path = op.join(op.dirname(__file__), 'files')
@@ -60,15 +60,27 @@ collector = MultisiteCollector()
 
 
 def shutdown_server():
+    """
+    Shutdown the server
+    """
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
         raise RuntimeError('Not running with the Werkzeug Server')
     func()
 
+def lab_mode_only(original_function):
+    """
+    Decorator to enable lab only functionality
+    """
+    def new_function():
+        if not LAB_TEST_MODE:
+            return 'Function only available in lab testing mode'
+        return original_function()
+    return new_function
+
 @app.route('/shutdown', methods=['POST', 'GET'])
+@lab_mode_only
 def shutdown():
-    if not LAB_TEST_MODE:
-        return 'Shutdown only available in lab testing model'
     shutdown_server()
     return 'Server shutting down...'
 
@@ -91,6 +103,14 @@ class CustomView(ModelView):
 
 
 class SiteCredentialsView(CustomView):
+    def verify_unique_sitename(form, field):
+        if not collector.verify_unique_sitename(field):
+            raise ValidationError('Site name must be unique')
+
+    def verify_unique_ipaddress(form, field):
+        if not collector.verify_unique_ipaddress(field):
+            raise ValidationError('IP address must be unique')
+
     can_create = True
     can_edit = True
     column_searchable_list = ('site_name', 'ip_address')
@@ -99,10 +119,10 @@ class SiteCredentialsView(CustomView):
     column_filters = ('site_name', 'ip_address', 'local')
     #column_editable_list = ('site_name')
     form_overrides = dict(password=PasswordField)
-    form_args = dict(site_name=dict(validators=[Required()]),
+    form_args = dict(site_name=dict(validators=[Required(), verify_unique_sitename]),
                      user_name=dict(validators=[Required()]),
                      password=dict(validators=[Required()]),
-                     ip_address=dict(validators=[Required(), IPAddress()]))
+                     ip_address=dict(validators=[Required(), IPAddress(), verify_unique_ipaddress]))
     column_exclude_list = ('password')
 
     def after_model_change(self, form, model, is_created):
@@ -110,12 +130,9 @@ class SiteCredentialsView(CustomView):
                                      model.use_https)
         collector.add_site(model.site_name, creds, model.local)
         update_db(model)
-        print '****MICHSMIT**** after_model_change:', model, type(model), is_created
-        print model.site_name, model.ip_address, model.local
         collector.print_sites()
 
     def on_model_delete(self, model):
-        print '****MICHSMIT**** on_model_delete', model.site_name, 'is being deleted'
         collector.delete_site(model.site_name)
         collector.print_sites()
         # TODO: On model delete, for local remove all contracts.
@@ -161,7 +178,6 @@ class ExportView(BaseView):
 
     @expose('/', methods=['GET', 'POST'])
     def index(self):
-        print '***EXPORT CONTRACTS VIEW CALLED***'
         contract_ids = session.get('export_contracts')
         default_sites = []
         contract_data = []
@@ -235,6 +251,10 @@ class SiteContractsView(CustomView):
     def get_create_button_text(self):
         return 'Export'
 
+    def get_list(self, page, sort_column, sort_desc, search, filters, execute=True):
+        update_contract_db()
+        return super(SiteContractsView, self).get_list(page, sort_column, sort_desc, search, filters, execute)
+
     @action('export', 'Change Export Settings')
     def export(*args, **kwargs):
         if len(args[1]):
@@ -266,6 +286,10 @@ class SiteEpgsView(CustomView):
 
     def get_title(self):
         return 'Site Exported/Imported EPGs'
+
+    def get_list(self, page, sort_column, sort_desc, search, filters, execute=True):
+        update_epg_db()
+        return super(SiteEpgsView, self).get_list(page, sort_column, sort_desc, search, filters, execute)
 
 
 class FeedbackForm(Form):
@@ -354,9 +378,9 @@ def update_db(site):
     # TODO initialize the info from APIC but should learn to rely on Monitor and use a callback to update GUI db
     local_site.initialize_from_apic()
 
-    local_site.register_for_callbacks('contracts', update_contract_db)
+    #local_site.register_for_callbacks('contracts', update_contract_db)
     update_contract_db()
-    local_site.register_for_callbacks('epgs', update_epg_db)
+    #local_site.register_for_callbacks('epgs', update_epg_db)
     update_epg_db()
 
 

@@ -25,6 +25,7 @@ except ImportError:
     """
     sys.exit(0)
 
+
 class TestBasicExport(unittest.TestCase):
     @staticmethod
     def _start_server(db_filename, server_port):
@@ -38,6 +39,9 @@ class TestBasicExport(unittest.TestCase):
         subprocess.call(["rm", "-rf", db_filename])
         subprocess.Popen(["python", "multisite-gui.py", "--port", server_port, "--test"])
         time.sleep(1)
+
+    def setUp(self):
+        time.sleep(2)
 
     @classmethod
     def setUpClass(cls):
@@ -92,7 +96,6 @@ class TestBasicExport(unittest.TestCase):
         self.assertTrue(resp.ok)
         return session
 
-
     def setup_site(self, url, site1_local=True):
         driver = self.__class__.driver
         driver.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 't')
@@ -111,6 +114,7 @@ class TestBasicExport(unittest.TestCase):
 
         # Save the credentials
         input_elem = driver.find_element_by_name('_add_another')
+        assert input_elem is not None
         input_elem.click()
 
         # Enter the Site 2 credentials
@@ -125,7 +129,24 @@ class TestBasicExport(unittest.TestCase):
         input_elem = driver.find_element_by_link_text('Cancel')
         input_elem.click()
 
-        # TODO: go to the site screen and verify that both sites are present
+    def teardown_site(self, url):
+        driver = self.__class__.driver
+        time.sleep(1)
+        driver.get(url)
+        driver.find_element_by_link_text('Site Credentials').click()
+        assert 'Site Credentials' in driver.title
+        try:
+            driver.find_element_by_xpath("//td[text()='Site1']/preceding-sibling::td/input[@name='rowid']").click()
+        except NoSuchElementException:
+            self.fail('Could not find Site1')
+        try:
+            driver.find_element_by_xpath("//td[text()='Site2']/preceding-sibling::td/input[@name='rowid']").click()
+        except NoSuchElementException:
+            self.fail('Could not find Site2')
+        driver.find_element_by_link_text('With selected').click()
+        driver.find_element_by_link_text('Delete').click()
+        driver.switch_to.alert.accept()
+        time.sleep(1)
 
     def _verify_l3extsubnet(self, session, tenant_name, mac, ip, present=True):
         class_query_url = ("/api/mo/uni/tn-%s.json?query-target=subtree&"
@@ -145,12 +166,24 @@ class TestBasicExport(unittest.TestCase):
         else:
             self.assertFalse(found)
 
+    def setup_and_teardown_test(self, url, site1_local):
+        self.setup_site(url, site1_local)
+        driver = self.__class__.driver
+        try:
+            driver.find_element_by_xpath("//td[text()='Site1']/preceding-sibling::td/input[@name='rowid']")
+        except NoSuchElementException:
+            self.fail('Could not find Site1')
+        try:
+            driver.find_element_by_xpath("//td[text()='Site2']/preceding-sibling::td/input[@name='rowid']")
+        except NoSuchElementException:
+            self.fail('Could not find Site2')
+        self.teardown_site(url)
 
-    def test_01_site1(self):
-        self.setup_site('http://127.0.0.1:5000', site1_local=True)
+    def test_site1(self):
+        self.setup_and_teardown_test('http://127.0.0.1:5000', site1_local=True)
 
-    def test_02_site2(self):
-        self.setup_site('http://127.0.0.1:5001', site1_local=False)
+    def test_site2(self):
+        self.setup_and_teardown_test('http://127.0.0.1:5001', site1_local=False)
 
     # def test_03_remove_site1(self):
     #     pass  # TODO implement and renumber tests
@@ -163,26 +196,29 @@ class TestBasicExport(unittest.TestCase):
     # # TODO test adding the same site twice
     # # TODO
 
-    def test_03_export_contract(self):
+    def click_on_contract(self, contract_name):
         driver = self.__class__.driver
-        # Switch to the site 1 tool
-        driver.get('http://127.0.0.1:5000')
-
-        # Click on Site Contracts
-        driver.find_element_by_link_text('Site Contracts').click()
-
         # Select the contract to export
         page_number = '2'
         loop_again = True
         while (loop_again):
             loop_again = False
             try:
-                #driver.find_element_by_xpath("//td[contains(text(),'multisite')]/preceding-sibling::td/input[@name='rowid']").click()
-                driver.find_element_by_xpath("//td[text()='multisite']/preceding-sibling::td/input[@name='rowid']").click()
+                driver.find_element_by_xpath("//td[text()='%s']/preceding-sibling::td/input[@name='rowid']" % contract_name).click()
             except NoSuchElementException:
                 loop_again = True
                 driver.find_element_by_link_text(page_number).click()
                 page_number = str(int(page_number) + 1)
+
+    def export_contract(self, url):
+        driver = self.__class__.driver
+        # Switch to the site 1 tool
+        driver.get(url)
+
+        # Click on Site Contracts
+        driver.find_element_by_link_text('Site Contracts').click()
+
+        self.click_on_contract('multisite_mysqlcontract')
 
         # Select the pulldown
         driver.find_element_by_link_text('With selected').click()
@@ -204,9 +240,66 @@ class TestBasicExport(unittest.TestCase):
         tenants = Tenant.get_deep(session, names=['multisite'], limit_to=['fvTenant', 'vzBrCP'])
         self.assertTrue(len(tenants) > 0)
         multisite_tenant = tenants[0]
-        self.assertIsNotNone(multisite_tenant.get_child(Contract, 'Site1:mysql-contract'))
+        self.assertIsNotNone(multisite_tenant.get_child(Contract, 'Site1:multisite_mysqlcontract'))
 
-    def test_04_consume_exported_contract(self):
+        # TODO Verify that the DBs are as expected
+
+    def setup_export_contract(self):
+        self.setup_site('http://127.0.0.1:5000', site1_local=True)
+        self.setup_site('http://127.0.0.1:5001', site1_local=False)
+        self.export_contract('http://127.0.0.1:5000')
+
+    def unexport_contract(self, url):
+        driver = self.__class__.driver
+        # Switch to the site 1 tool
+        driver.get(url)
+
+        # Click on Site Contracts
+        driver.find_element_by_link_text('Site Contracts').click()
+
+        self.click_on_contract('multisite_mysqlcontract')
+
+        # Select the pulldown
+        driver.find_element_by_link_text('With selected').click()
+        driver.find_element_by_link_text('Change Export Settings').click()
+        assert 'Export Contracts' in driver.title
+
+        # Check that the Sites checkbox is checked
+        checkbox = driver.find_element_by_id('sites-0')
+        self.assertTrue(checkbox.is_selected())
+
+        # Select the site
+        checkbox.click()
+        # Export the contract
+        driver.find_element_by_id('submit').click()
+
+        time.sleep(1)
+
+        # Verify that the unexport from the other APIC was successful
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        tenants = Tenant.get_deep(session, names=['multisite'], limit_to=['fvTenant', 'vzBrCP'])
+        self.assertTrue(len(tenants) > 0)
+        multisite_tenant = tenants[0]
+        self.assertIsNone(multisite_tenant.get_child(Contract, 'Site1:multisite_mysqlcontract'))
+
+        # TODO: Verify that the tags were removed from the local site
+
+        # TODO: Verify that the tags were removed from the remote site
+
+        # TODO: Verify that the contract still exists on the local site
+
+        # TODO Verify that the DBs are as expected
+
+    def teardown_export_contract(self):
+        self.unexport_contract('http://127.0.0.1:5000')
+        self.teardown_site('http://127.0.0.1:5000')
+        self.teardown_site('http://127.0.0.1:5001')
+
+    def test_export_contract(self):
+        self.setup_export_contract()
+        self.teardown_export_contract()
+
+    def consume_exported_contract(self):
         session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
 
         # Create the Tenant
@@ -215,7 +308,7 @@ class TestBasicExport(unittest.TestCase):
         app = AppProfile('my-demo-app', tenant)
         # Create the EPGs
         web_epg = EPG('web-frontend', app)
-        contract = Contract('Site1:mysql-contract', tenant)
+        contract = Contract('Site1:multisite_mysqlcontract', tenant)
         web_epg.consume(contract)
         tenant.push_to_apic(session)
 
@@ -228,11 +321,16 @@ class TestBasicExport(unittest.TestCase):
         self.assertIsNotNone(app)
         epg = app.get_child(EPG, 'web-frontend')
         self.assertIsNotNone(epg)
-        contract = multisite_tenant.get_child(Contract, 'Site1:mysql-contract')
+        contract = multisite_tenant.get_child(Contract, 'Site1:multisite_mysqlcontract')
         self.assertIsNotNone(contract)
         self.assertTrue(epg.does_consume(contract))
 
-    def test_05_add_consuming_static_endpoint(self):
+    def test_consume_exported_contract(self):
+        self.setup_export_contract()
+        self.consume_exported_contract()
+        self.teardown_export_contract()
+
+    def add_consuming_static_endpoint(self, mac, ip):
         session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
 
         tenant = Tenant('multisite')
@@ -240,9 +338,9 @@ class TestBasicExport(unittest.TestCase):
         web_epg = EPG('web-frontend', app)
 
         # Create the Endpoint
-        ep = Endpoint('00:33:33:33:33:33', web_epg)
-        ep.mac = '00:33:33:33:33:33'
-        ep.ip = '2.3.4.5'
+        ep = Endpoint(mac, web_epg)
+        ep.mac = mac
+        ep.ip = ip
 
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -253,7 +351,6 @@ class TestBasicExport(unittest.TestCase):
         # Assign Endpoint to the L2Interface
         ep.attach(vlan_intf)
 
-        print 'Pushing json to tenant', tenant.get_json()
         resp = tenant.push_to_apic(session)
         self.assertTrue(resp.ok)
 
@@ -263,17 +360,71 @@ class TestBasicExport(unittest.TestCase):
         self.assertIsNotNone(app)
         epg = app.get_child(EPG, 'web-frontend')
         self.assertIsNotNone(epg)
-        ep = epg.get_child(Endpoint, '00:33:33:33:33:33')
+        ep = epg.get_child(Endpoint, mac)
         self.assertIsNotNone(ep)
 
         session = self._login_session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         self._verify_l3extsubnet(session,
                                  tenant_name='multisite',
-                                 mac='00:33:33:33:33:33',
-                                 ip='2.3.4.5/32',
+                                 mac=mac,
+                                 ip=ip + '/32',
                                  present=True)
 
-    def test_06_add_providing_static_endpoint(self):
+    def remove_consuming_static_endpoint(self, mac, ip):
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+
+        tenant = Tenant('multisite')
+        app = AppProfile('my-demo-app', tenant)
+        web_epg = EPG('web-frontend', app)
+
+        # Create the Endpoint
+        ep = Endpoint(mac, web_epg)
+        ep.mac = mac
+        ep.ip = ip
+
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        web_epg.attach(vlan_intf)
+        # Assign Endpoint to the L2Interface
+        ep.attach(vlan_intf)
+
+        # Mark the Endpoint as deleted
+        ep.mark_as_deleted()
+
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Verify that the Endpoint has been removed
+        time.sleep(1)
+        tenants = Tenant.get_deep(session, names=['multisite'])
+        multisite_tenant = tenants[0]
+        app = multisite_tenant.get_child(AppProfile, 'my-demo-app')
+        self.assertIsNotNone(app)
+        epg = app.get_child(EPG, 'web-frontend')
+        self.assertIsNotNone(epg)
+        ep = epg.get_child(Endpoint, mac)
+        self.assertIsNone(ep)
+
+    def test_add_consuming_static_endpoint(self):
+        self.setup_export_contract()
+        self.consume_exported_contract()
+        self.add_consuming_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
+        # TODO teardown properly
+        self.teardown_export_contract()
+
+    def test_add_multiple_consuming_static_endpoints(self):
+        self.setup_export_contract()
+        self.consume_exported_contract()
+
+        self.add_consuming_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
+        self.add_consuming_static_endpoint('00:33:33:33:33:34', '2.3.4.6')
+
+        self.teardown_export_contract()
+
+    def add_providing_static_endpoint(self, mac, ip):
         session = self._login_session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
 
         tenant = Tenant('multisite')
@@ -281,9 +432,9 @@ class TestBasicExport(unittest.TestCase):
         web_epg = EPG('database-backend', app)
 
         # Create the Endpoint
-        ep = Endpoint('00:44:44:44:44:44', web_epg)
-        ep.mac = '00:44:44:44:44:44'
-        ep.ip = '7.8.9.10'
+        ep = Endpoint(mac, web_epg)
+        ep.mac = mac
+        ep.ip = ip
 
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -307,66 +458,115 @@ class TestBasicExport(unittest.TestCase):
         self.assertIsNotNone(app)
         epg = app.get_child(EPG, 'database-backend')
         self.assertIsNotNone(epg)
-        ep = epg.get_child(Endpoint, '00:44:44:44:44:44')
+        ep = epg.get_child(Endpoint, mac)
         self.assertIsNotNone(ep)
 
+        # Verify that the entry was pushed to the other site
         session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         self._verify_l3extsubnet(session,
-                                 tenant_name = 'multisite',
+                                 tenant_name='multisite',
+                                 mac=mac,
+                                 ip=ip + '/32',
+                                 present=True)
+
+    def test_add_providing_static_endpoint(self):
+        self.setup_export_contract()
+        self.consume_exported_contract()
+
+        self.add_providing_static_endpoint('00:44:44:44:44:44', '7.8.9.10')
+
+        self.teardown_export_contract()
+
+    def test_add_multiple_providing_static_endpoint(self):
+        self.setup_export_contract()
+        self.consume_exported_contract()
+
+        self.add_providing_static_endpoint('00:44:44:44:44:44', '7.8.9.10')
+        self.add_providing_static_endpoint('00:44:44:44:44:45', '7.8.9.11')
+
+        # Make sure that the first endpoint is still pushed to the other site
+        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        self._verify_l3extsubnet(session,
+                                 tenant_name='multisite',
                                  mac='00:44:44:44:44:44',
                                  ip='7.8.9.10/32',
                                  present=True)
 
-    def test_07_remove_consuming_static_endpoint(self):
-        session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        self.teardown_export_contract()
 
-        tenant = Tenant('multisite')
-        app = AppProfile('my-demo-app', tenant)
-        web_epg = EPG('web-frontend', app)
+    # def test_remove_providing_static_endpoint(self):
+    #     self.setup_export_contract()
+    #     self.consume_exported_contract()
+    #     self.add_providing_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
+    #     self.remove_providing_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
+    #
+    #     # Verify that the l3extSubnet has been removed from the other site
+    #     session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+    #     self._verify_l3extsubnet(session,
+    #                              tenant_name = 'multisite',
+    #                              mac='00:33:33:33:33:33',
+    #                              ip='2.3.4.5/32',
+    #                              present=False)
+    #     self.teardown_export_contract()
 
-        # Create the Endpoint
-        ep = Endpoint('00:33:33:33:33:33', web_epg)
-        ep.mac = '00:33:33:33:33:33'
-        ep.ip = '2.3.4.5'
-
-        intf = Interface('eth', '1', '101', '1', '38')
-        # Create a VLAN interface and attach to the physical interface
-        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
-        vlan_intf.attach(intf)
-        # Attach the EPG to the VLAN interface
-        web_epg.attach(vlan_intf)
-        # Assign Endpoint to the L2Interface
-        ep.attach(vlan_intf)
-
-        # Mark the Endpoint as deleted
-        ep.mark_as_deleted()
-
-        print 'Pushing json to tenant', tenant.get_json()
-        resp = tenant.push_to_apic(session)
-        self.assertTrue(resp.ok)
-
-        # Verify that the Endpoint has been removed
-        time.sleep(1)
-        tenants = Tenant.get_deep(session, names=['multisite'])
-        multisite_tenant = tenants[0]
-        app = multisite_tenant.get_child(AppProfile, 'my-demo-app')
-        self.assertIsNotNone(app)
-        epg = app.get_child(EPG, 'web-frontend')
-        self.assertIsNotNone(epg)
-        ep = epg.get_child(Endpoint, '00:33:33:33:33:33')
-        self.assertIsNone(ep)
+    def test_remove_consuming_static_endpoint(self):
+        self.setup_export_contract()
+        self.consume_exported_contract()
+        self.add_consuming_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
+        self.remove_consuming_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
 
         # Verify that the l3extSubnet has been removed from the other site
         session = self._login_session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         self._verify_l3extsubnet(session,
-                                 tenant_name = 'multisite',
+                                 tenant_name='multisite',
                                  mac='00:33:33:33:33:33',
                                  ip='2.3.4.5/32',
                                  present=False)
+        self.teardown_export_contract()
+
+    def test_remove_one_of_multiple_consuming_static_endpoints(self):
+        self.setup_export_contract()
+        self.consume_exported_contract()
+
+        # Add 2 static endpoints
+        self.add_consuming_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
+        self.add_consuming_static_endpoint('00:33:33:33:33:34', '2.3.4.6')
+
+        # Verify that the 2 l3extsubnets are there
+        session = self._login_session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        self._verify_l3extsubnet(session,
+                                 tenant_name='multisite',
+                                 mac='00:33:33:33:33:33',
+                                 ip='2.3.4.5/32',
+                                 present=True)
+        self._verify_l3extsubnet(session,
+                                 tenant_name='multisite',
+                                 mac='00:33:33:33:33:34',
+                                 ip='2.3.4.6/32',
+                                 present=True)
+
+        # Remove one of the static endpoints
+        self.remove_consuming_static_endpoint('00:33:33:33:33:33', '2.3.4.5')
+
+        # Verify that the l3extSubnet has been removed from the other site
+        session = self._login_session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        self._verify_l3extsubnet(session,
+                                 tenant_name='multisite',
+                                 mac='00:33:33:33:33:33',
+                                 ip='2.3.4.5/32',
+                                 present=False)
+        # Verify that the remaining l3extSubnet is still there
+        self._verify_l3extsubnet(session,
+                                 tenant_name='multisite',
+                                 mac='00:33:33:33:33:34',
+                                 ip='2.3.4.6/32',
+                                 present=True)
+        self.teardown_export_contract()
 
     @classmethod
     def tearDownClass(cls):
         driver = cls.driver
+        time.sleep(1)
         driver.get('http://127.0.0.1:5000/shutdown')
         driver.get('http://127.0.0.1:5001/shutdown')
         driver.close()
@@ -403,13 +603,12 @@ live = unittest.TestSuite()
 live.addTest(unittest.makeSuite(TestBasicExport))
 unittest.main(defaultTest='live')
 
-
-#test_export_contract()
-#test_consume_exported_contract(session1)
-#test_add_consuming_static_endpoint(session1)
-#test_add_providing_static_endpoint(session2)
+# test_export_contract()
+# test_consume_exported_contract(session1)
+# test_add_consuming_static_endpoint(session1)
+# test_add_providing_static_endpoint(session2)
 # print 'Verify session1'
-#verify_remote_l3extsubnet(session1, mac='')
-#print 'Verify session2'
-#verify_remote_l3extsubnet(session2, mac='')
-#driver.close()
+# verify_remote_l3extsubnet(session1, mac='')
+# print 'Verify session2'
+# verify_remote_l3extsubnet(session2, mac='')
+# driver.close()
