@@ -1475,7 +1475,7 @@ class BridgeDomain(BaseACIObject):
         valid_unicast = ('proxy', 'flood')
         
         if unicast not in valid_unicast:
-            raise ValueError('Invalid MAC unicast: %s ' % unicast)
+            raise ValueError('unknown MAC unicast must be of: %s or %s' % valid_unicast)
         self.unknown_mac_unicast = unicast
 
     def get_unknown_mac_unicast(self):
