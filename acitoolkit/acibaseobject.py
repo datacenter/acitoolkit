@@ -183,6 +183,16 @@ class BaseACIObject(AciSearch):
         raise NotImplementedError
 
     @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return []
+
+    @staticmethod
     def _get_parent_dn(dn):
         """
         Gets the dn of the parent object
@@ -996,17 +1006,15 @@ class BaseACIPhysObject(BaseACIObject):
                 self.pod = parent.pod
         super(BaseACIPhysObject, self).__init__(name=name, parent=parent)
 
-    # def _common_init(self, parent):
-    #     """
-    #     Common init used for all physical objects
-    #     """
-    #     self._deleted = False
-    #     self._parent = parent
-    #     self._children = []
-    #     self._relations = []
-    #     self._session = None
-    #     if self._parent is not None:
-    #         self._parent.add_child(self)
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the concrete children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return []
 
     @staticmethod
     def _delete_redundant_policy(infra, policy_type):
