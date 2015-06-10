@@ -829,6 +829,16 @@ class Pod(BaseACIPhysObject):
 
         return resp
 
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [Node, Link, ExternalSwitch]
+
     @classmethod
     def get(cls, session, parent=None):
         """Gets all of the Pods from the APIC.  Generally there will be only one.
@@ -874,9 +884,11 @@ class Pod(BaseACIPhysObject):
         :param include_concrete: boolean that when true will cause any concrete children objects to be populated
         :returns: list of immediate children
         """
-        Node.get(self._session, self)
-        Link.get(self._session, self)
-        ExternalSwitch.get(self._session, self)
+        for child_class in self._get_children_classes():
+            child_class.get(self._session, self)
+        #Node.get(self._session, self)
+        #Link.get(self._session, self)
+        #ExternalSwitch.get(self._session, self)
 
         if deep:
             for child in self._children:
@@ -964,6 +976,28 @@ class Node(BaseACIPhysObject):
         :returns: class of parent object
         """
         return Pod
+
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [Systemcontroller, Supervisorcard, Linecard, Powersupply, Fantray]
+
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the concrete children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
+                ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
+                ConcreteContext, ConcreteSVI]
 
     def get_role(self):
         """ retrieves the node role
@@ -1313,30 +1347,23 @@ class Node(BaseACIPhysObject):
         """
 
         session = self._session
+        for child_class in self._get_children_classes():
+            child_class.get(session, self)
 
-        if self.role == 'controller':
-            Systemcontroller.get(session, self)
-        else:
-            Linecard.get(session, self)
-            Supervisorcard.get(session, self)
-
-        Fantray.get(session, self)
-        Powersupply.get(session, self)
+        # if self.role == 'controller':
+        #     Systemcontroller.get(session, self)
+        # else:
+        #     Linecard.get(session, self)
+        #     Supervisorcard.get(session, self)
+        #
+        # Fantray.get(session, self)
+        # Powersupply.get(session, self)
 
         if include_concrete and self.role != 'controller':
             # todo: currently only have concrete model for switches - need to add controller
             top_system = SwitchJson(session, self.node)
-            ConcreteArp.get(top_system, self)
-            ConcreteAccCtrlRule.get(top_system, self)
-            ConcreteBD.get(top_system, self)
-            ConcreteOverlay.get(top_system, self)
-            ConcretePortChannel.get(top_system, self)
-            ConcreteEp.get(top_system, self)
-            ConcreteFilter.get(top_system, self)
-            ConcreteLoopback.get(top_system, self)
-            ConcreteContext.get(top_system, self)
-            ConcreteSVI.get(top_system, self)
-            ConcreteVpc.get(top_system, self)
+            for concrete_class in self._get_children_concrete_classes() :
+                concrete_class.get(top_system, self)
 
         if deep:
             for child in self._children:
@@ -1491,6 +1518,15 @@ class ExternalSwitch(BaseACIPhysObject):
         :returns: class of parent object
         """
         return Pod
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        returns list of all apic classes used to build this toolkit class
+        :return:
+        """
+        return ['fabricLooseNode', 'compHv', 'fabricLooseLink', 'pcAggrIf',
+                'fabricProtLooseLink', 'pcRsMbrIfs', 'lldpAdjEp']
 
     def getRole(self):
         """ retrieves the node role
@@ -1718,8 +1754,8 @@ class Link(BaseACIPhysObject):
                       'pod-%s link-%s' % (self.pod, self.link))
         # self._common_init(parent)
 
-    @classmethod
-    def _get_parent_class(cls):
+    @staticmethod
+    def _get_parent_class():
         """
         Gets the acitoolkit class of the parent object
         Meant to be overridden by inheriting classes.
@@ -2367,7 +2403,8 @@ class Interface(BaseInterface):
 
         :returns: list of strings containing APIC class names
         """
-        resp = ['l1PhysIf', 'ethpmPhysIf']
+        resp = ['l1PhysIf', 'ethpmPhysIf', 'l1RsCdpIfPolCons', 'l1RsLldpIfPolCons',
+                'cdpIfPol', 'lldpIfPol']
 
         return resp
 
