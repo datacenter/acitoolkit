@@ -661,6 +661,38 @@ class TestBridgeDomain(unittest.TestCase):
         bridge_domains = [bd1, bd2, bd3]
         self.assertTrue(isinstance(BridgeDomain.get_table(bridge_domains)[0], Table))
 
+    def test_unknown_mac_unicast_default(self):
+        """
+        Test defualt unknown mac unicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'proxy')
+
+    def test_unknown_mac_unicast_flood(self):
+        """
+        Test changing unknown mac unicast to flood
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_mac_unicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+        
+    def test_unknown_mac_unicast_invalid(self):
+        """
+        Test an invalid unknown mac unicast 
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unknown_mac_unicast,"invalid")
+
+    def test_unknown_mac_unicast_change(self):
+        """
+        Test changing unknown mac unicast multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_mac_unicast('proxy')
+        bd.set_unknown_mac_unicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+        
 
 class TestL2Interface(unittest.TestCase):
     """
