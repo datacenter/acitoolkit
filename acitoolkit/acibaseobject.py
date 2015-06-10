@@ -31,8 +31,8 @@
 This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
-from aciSearch import AciSearch
-from acisession import Session
+from .aciSearch import AciSearch
+from .acisession import Session
 
 
 class BaseRelation(object):
@@ -415,11 +415,11 @@ class BaseACIObject(AciSearch):
         """
         not yet fully implemented
         """
-        print '_instance_subscribe for ', self.name
+        print ('_instance_subscribe for ', self.name)
         urls = self._get_instance_subscription_urls()
         for url in urls:
             resp = session.subscribe(url + extension)
-            print 'Subscribed to ', url + extension, resp, resp.text
+            print ('Subscribed to ', url + extension, resp, resp.text)
             if not resp.ok:
                 return resp
         return resp

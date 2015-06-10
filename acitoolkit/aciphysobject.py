@@ -30,13 +30,13 @@
 """ACI Toolkit module for physical objects
 """
 from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseInterface
-from aciConcreteLib import *
+from .aciConcreteLib import *
 from .acisession import Session
 from .acicounters import AtomicCountersOnGoing, InterfaceStats
 import logging
 import re
 import copy
-from aciSearch import Searchable
+from .aciSearch import Searchable
 
 
 class Systemcontroller(BaseACIPhysModule):
