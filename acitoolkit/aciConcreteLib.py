@@ -25,11 +25,11 @@ This is a library of all the Concrete classes that are on a switch.
 """
 """
 # all the import
-from acibaseobject import BaseACIPhysObject
+from .acibaseobject import BaseACIPhysObject
 import acitoolkit as ACI
 import copy
-from aciTable import Table
-from aciSearch import Searchable
+from .aciTable import Table
+from .aciSearch import Searchable
 
 
 class ConcreteArp(BaseACIPhysObject):
@@ -48,12 +48,35 @@ class ConcreteArp(BaseACIPhysObject):
         """
             Initialize the ARP object.
             """
-        super(ConcreteArp, self).__init__(name='', parent=parent)
+
+        super(ConcreteArp, self).__init__(parent=parent)
         self.attr = {}
         self.domain = []
         self._parent = parent
         if parent is not None:
             self._parent.add_child(self)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['arpInst', 'arpDomStatsAdj', 'arpDomStatsRx', 'arpDomStatsTx', 'arpDom', 'arpDb', 'arpAdjEp']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -63,6 +86,7 @@ class ConcreteArp(BaseACIPhysObject):
         :param parent: Parent object of type Node
         :param top:
         """
+        cls.check_parent(parent)
 
         result = []
         node_data = top.get_class('arpInst')
@@ -219,10 +243,32 @@ class ConcreteVpc(BaseACIPhysObject):
         """
         VPC info for a switch
         """
-        super(ConcreteVpc, self).__init__(name='', parent=parent)
+        super(ConcreteVpc, self).__init__(parent=parent)
         self.member_ports = []
         self.peer_info = {}
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['vpcEntity', 'vpcDom']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -234,6 +280,8 @@ class ConcreteVpc(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch context
         """
+        cls.check_parent(parent)
+
         result = []
         vpc_data = top.get_class('vpcEntity')
         for vpc_d in vpc_data:
@@ -305,7 +353,6 @@ class ConcreteVpc(BaseACIPhysObject):
         """
         result = []
         for vpc in vpcs:
-            data = []
             if vpc.attr['admin_st'] == 'enabled' and vpc.attr['dom_present']:
                 headers = ['Name',
                            'ID',
@@ -407,8 +454,30 @@ class ConcreteVpcIf(BaseACIPhysObject):
     """
 
     def __init__(self, parent=None):
-        super(ConcreteVpcIf, self).__init__(name='', parent=parent)
+        super(ConcreteVpcIf, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteVpc
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['vpcIf', 'vpcRsVpcConf']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -418,6 +487,8 @@ class ConcreteVpcIf(BaseACIPhysObject):
         :param parent:
         :param top:
         """
+        cls.check_parent(parent)
+
         result = []
         vpc_members = top.get_class('vpcIf')
         for vpc_member in vpc_members:
@@ -572,8 +643,30 @@ class ConcreteContext(BaseACIPhysObject):
         """
         l3-context on a switch
         """
-        super(ConcreteContext, self).__init__(name='', parent=parent)
+        super(ConcreteContext, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['l3Ctx', 'l3Inst']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -587,6 +680,8 @@ class ConcreteContext(BaseACIPhysObject):
        :param top: the topSystem level json object
        :returns: list of Switch context
         """
+        cls.check_parent(parent)
+
         result = []
         ctx_data = top.get_class('l3Ctx')[:]
         ctx_data.extend(top.get_class('l3Inst')[:])
@@ -718,8 +813,30 @@ class ConcreteSVI(BaseACIPhysObject):
         """
         SVI on a switch
         """
-        super(ConcreteSVI, self).__init__(name='', parent=parent)
+        super(ConcreteSVI, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['sviIf']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -730,6 +847,7 @@ class ConcreteSVI(BaseACIPhysObject):
         :param top:  json record of entire switch config
         :returns: list of SVI
         """
+        cls.check_parent(parent)
         result = []
 
         svi_data = top.get_class('sviIf')
@@ -839,8 +957,30 @@ class ConcreteLoopback(BaseACIPhysObject):
         """
         SVI on a switch
         """
-        super(ConcreteLoopback, self).__init__(name='', parent=parent)
+        super(ConcreteLoopback, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['l3LbRtdIf', 'ethpmLbRtdIf']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -851,6 +991,8 @@ class ConcreteLoopback(BaseACIPhysObject):
        :param top: the topSystem level json object
        :returns: list of loopback
         """
+        cls.check_parent(parent)
+
         result = []
 
         data = top.get_class('l3LbRtdIf')
@@ -928,8 +1070,30 @@ class ConcreteBD(BaseACIPhysObject):
         """
         bridge domain on a switch
         """
-        super(ConcreteBD, self).__init__(name='', parent=parent)
+        super(ConcreteBD, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['l2BD', 'l3Ctx', 'l3Inst', 'fmcastGrp']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -943,6 +1107,8 @@ class ConcreteBD(BaseACIPhysObject):
        :param top: the topSystem level json object
        :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
+
         result = []
         bd_data = top.get_class('l2BD')
         for l2bd in bd_data:
@@ -1139,8 +1305,30 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         """
         access control rules on a switch
         """
-        super(ConcreteAccCtrlRule, self).__init__(name='', parent=parent)
+        super(ConcreteAccCtrlRule, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['actrlRule']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1154,6 +1342,8 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
+
         result = []
 
         rule_data = top.get_class('actrlRule')
@@ -1362,9 +1552,31 @@ class ConcreteFilter(BaseACIPhysObject):
         """
         access control filters on a switch
         """
-        super(ConcreteFilter, self).__init__(name='', parent=parent)
+        super(ConcreteFilter, self).__init__(parent=parent)
         self.entries = []
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['actrlFlt']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1378,6 +1590,8 @@ class ConcreteFilter(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
+
         result = []
         filter_data = top.get_class('actrlFlt')
 
@@ -1508,8 +1722,30 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         """
         access control filters of a filter
         """
-        super(ConcreteFilterEntry, self).__init__(name='', parent=parent)
+        super(ConcreteFilterEntry, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteFilter
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['actrlEntry']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1523,6 +1759,7 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
         result = []
         entry_data = top.get_subtree('actrlEntry', parent.attr['dn'])
 
@@ -1573,7 +1810,10 @@ class ConcreteFilterEntry(BaseACIPhysObject):
                     'proto': 5,
                     'frag': 6,
                     'def': 7}
-        self.attr['relative_priority'] = prio_map.get(self.attr['priority'], 'unknown')
+        if self.attr['priority'] in prio_map:
+            self.attr['relative_priority'] = prio_map[self.attr['priority']]
+        else:
+            self.attr['relative_priority'] = 'unknown'
 
     def _get_filter_name(self):
         """
@@ -1633,8 +1873,30 @@ class ConcreteEp(BaseACIPhysObject):
         """
         endpoints on a switch
         """
-        super(ConcreteEp, self).__init__(name='', parent=parent)
+        super(ConcreteEp, self).__init__(parent=parent)
         self.attr = {'ip': None, 'mac': None}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['epmIpEp', 'epmMacEp', 'epmRsMacEpToIpEpAtt']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1647,6 +1909,8 @@ class ConcreteEp(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of endpoint
         """
+        cls.check_parent(parent)
+
         result = []
 
         ep_data = top.get_class('epmIpEp')[:]
@@ -1673,21 +1937,21 @@ class ConcreteEp(BaseACIPhysObject):
             if end_point.attr['address_family'] == 'mac':
                 rel_data = top.get_subtree('epmRsMacEpToIpEpAtt', end_point.attr['dn'])
                 for rel in rel_data:
-                    ip_add = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                        split('/ip-[')[1].split(']')[0])
+                    ip_add = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                 split('/ip-[')[1].split(']')[0])
                     if 'ctx-[vxlan-' in rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']:
 
-                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                            split('/ctx-[vxlan-')[1].split(']/')[0])
+                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                     split('/ctx-[vxlan-')[1].split(']/')[0])
                     elif '/inst-' in rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']:
-                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                            split('/inst-')[1].split('/')[0])
+                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                     split('/inst-')[1].split('/')[0])
                         if ip_ctx in top.ctx_dict:
                             ip_ctx = top.ctx_dict[ip_ctx]
                     else:
                         ip_ctx = None
-                    ip_bd = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                        split('/bd-[vxlan-')[1].split(']/')[0])
+                    ip_bd = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                split('/bd-[vxlan-')[1].split(']/')[0])
                     if ip_ctx == end_point.attr['ctx_vnid'] and ip_bd == \
                             end_point.attr['bd_vnid']:
                         # we have an IP address for this MAC
@@ -1700,7 +1964,7 @@ class ConcreteEp(BaseACIPhysObject):
                             end_point.attr['ip'] = ip_add
                         rem_ep.append((ip_add, ip_ctx, ip_bd))
                     else:
-                        print 'unexpected context or bd mismatch', ip_add, ip_ctx, ip_bd
+                        print ('unexpected context or bd mismatch', ip_add, ip_ctx, ip_bd)
         result.extend(new_ep_list)
         final_result = []
         for ept in result:
@@ -1765,7 +2029,7 @@ class ConcreteEp(BaseACIPhysObject):
             self.attr['bd_vnid'] = 'unknown'
             self.attr['bridge_domain'] = 'unknown'
 
-        #change context to tenant plus context
+        # change context to tenant plus context
 
         if ':' in self.attr['context']:
             context = self.attr['context'].split(':')[1]
@@ -1774,8 +2038,7 @@ class ConcreteEp(BaseACIPhysObject):
             self.attr['tenant'] = tenant
         else:
             self.attr['tenant'] = ''
-            #context already set
-
+            # context already set
 
     def _populate_from_attributes(self, attr):
         """
@@ -1996,9 +2259,31 @@ class ConcretePortChannel(BaseACIPhysObject):
         """
         port channel on a switch
         """
-        super(ConcretePortChannel, self).__init__(name='', parent=parent)
+        super(ConcretePortChannel, self).__init__(parent=parent)
         self.attr = {}
         self.members = []
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['pcAggrIf', 'ethpmAggrIf', 'pcRsMbrIfs']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -2006,18 +2291,20 @@ class ConcretePortChannel(BaseACIPhysObject):
         This will get all the SVIs on the switch
 
         :param parent:
-       :param top: the topSystem level json object
-       :returns: list of port channel
+        :param top: the topSystem level json object
+        :returns: list of port channel
         """
-        result = []
+        cls.check_parent(parent)
 
-        data = top.get_class('pcAggrIf')
+        result = []
+        apic_class = 'pcAggrIf'
+        data = top.get_class(apic_class)
         for obj in data:
             pch = cls()
-            if 'pcAggrIf' in obj:
-                pch._populate_from_attributes(obj['pcAggrIf']['attributes'])
-                pch._populate_oper_st(obj['pcAggrIf']['attributes']['dn'], top)
-                pch._populate_members(obj['pcAggrIf']['attributes']['dn'], top)
+            if apic_class in obj:
+                pch._populate_from_attributes(obj[apic_class]['attributes'])
+                pch._populate_oper_st(obj[apic_class]['attributes']['dn'], top)
+                pch._populate_members(obj[apic_class]['attributes']['dn'], top)
             result.append(pch)
             if parent:
                 pch._parent = parent
@@ -2163,7 +2450,7 @@ class ConcretePortChannel(BaseACIPhysObject):
                               member.get('usage', '')])
 
             result.append(Table(table, headers, title=title +
-                                                      'Port Channel ({0}) Link Members'.format(pch.attr['id'])))
+                                'Port Channel ({0}) Link Members'.format(pch.attr['id'])))
 
         return result
 
@@ -2220,11 +2507,32 @@ class ConcreteOverlay(BaseACIPhysObject):
         """
         overlay information
         """
-        super(ConcreteOverlay, self).__init__(name='', parent=parent)
-        self.attr = {}
-        #adding VPC VTEP info to the Overlay Class
-        self.attr['vpc_tep_ip']= None
+        super(ConcreteOverlay, self).__init__(parent=parent)
+        self.attr = {'vpc_tep_ip': None}
+        # adding VPC VTEP info to the Overlay Class
         self.tunnels = []
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ACI.Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['tunnelIf']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -2232,20 +2540,23 @@ class ConcreteOverlay(BaseACIPhysObject):
         Gather all the Overlay information for a switch
 
         :param parent:
-       :param top: the topSystem level json object
-       :returns: Single overlay object
+        :param top: the topSystem level json object
+        :returns: Single overlay object
         """
-        data = top.get_class('tunnelIf')
+        cls.check_parent(parent)
+
+        apic_class = cls._get_apic_classes()[0]
+        data = top.get_class(apic_class)
         ovly = cls()
         tunnels = []
 
-        ###Adding the VPC VTEP to the list to help figure Tunnel endpoints
+        # Adding the VPC VTEP to the list to help figure Tunnel endpoints
         if parent.vpc_info:
-            if parent.vpc_info['oper_state']=='active':
-                ovly.attr['vpc_tep_ip']=parent.vpc_info['vtep_ip'].split('/')[0]
+            if parent.vpc_info['oper_state'] == 'active':
+                ovly.attr['vpc_tep_ip'] = parent.vpc_info['vtep_ip'].split('/')[0]
 
         for obj in data:
-            if 'tunnelIf' in obj:
+            if apic_class in obj:
                 tunnels.append(ovly._populate_from_attributes(obj['tunnelIf']['attributes']))
         if tunnels:
             ovly.tunnels = sorted(tunnels, key=lambda x: (x['id']))

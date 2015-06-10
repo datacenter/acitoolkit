@@ -31,7 +31,8 @@
 This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
-from aciSearch import AciSearch
+from .aciSearch import AciSearch
+from .acisession import Session
 
 
 class BaseRelation(object):
@@ -180,6 +181,16 @@ class BaseACIObject(AciSearch):
         :returns: class of parent object
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return []
 
     @staticmethod
     def _get_parent_dn(dn):
@@ -404,11 +415,11 @@ class BaseACIObject(AciSearch):
         """
         not yet fully implemented
         """
-        print '_instance_subscribe for ', self.name
+        print ('_instance_subscribe for ', self.name)
         urls = self._get_instance_subscription_urls()
         for url in urls:
             resp = session.subscribe(url + extension)
-            print 'Subscribed to ', url + extension, resp, resp.text
+            print ('Subscribed to ', url + extension, resp, resp.text)
             if not resp.ok:
                 return resp
         return resp
@@ -460,8 +471,6 @@ class BaseACIObject(AciSearch):
             if status == 'deleted':
                 obj.mark_as_deleted()
             return obj
-
-
 
     @classmethod
     def unsubscribe(cls, session):
@@ -658,9 +667,18 @@ class BaseACIObject(AciSearch):
         :param include_concrete: True or False. Default is False
         :param deep: True or False.  Default is False.
         """
-        assert(deep is True or deep is False)
-        assert(include_concrete is True or include_concrete is False)
-        return None
+        for child_class in self._get_children_classes():
+            child_class.get(self._session, self)
+
+        if deep:
+            for child in self._children:
+                child.populate_children(deep, include_concrete)
+
+        return self._children
+
+        # assert(deep is True or deep is False)
+        # assert(include_concrete is True or include_concrete is False)
+        # return None
 
     def get_parent(self):
         """
@@ -985,21 +1003,25 @@ class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
     """
 
-    def __init__(self, name=None, parent=None):
-        super(BaseACIPhysObject, self).__init__(name, parent)
-        self.node = None
-
-    def _common_init(self, parent):
-        """
-        Common init used for all physical objects
-        """
-        self._deleted = False
-        self._parent = parent
-        self._children = []
-        self._relations = []
+    def __init__(self, name='', parent=None, pod=None):
         self._session = None
-        if self._parent is not None:
-            self._parent.add_child(self)
+        self.pod = None
+        if pod:
+            self.pod = pod
+        else:
+            if parent:
+                self.pod = parent.pod
+        super(BaseACIPhysObject, self).__init__(name=name, parent=parent)
+
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the concrete children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return []
 
     @staticmethod
     def _delete_redundant_policy(infra, policy_type):
@@ -1155,6 +1177,30 @@ class BaseACIPhysObject(BaseACIObject):
         """
         return None
 
+    @staticmethod
+    def check_session(session):
+        """
+        This will check that the session is of type Session and raise exception if it not
+        :param session: the session to check
+        :return:
+        """
+
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+
+    @classmethod
+    def check_parent(cls, parent):
+        """
+        If a parent is specified, it will check that it is the correct class of parent
+        If not, then an exception is raised.
+        :param parent:
+        :return:
+        """
+
+        if parent:
+            if not isinstance(parent, cls._get_parent_class()) :
+                raise TypeError('The parent of this object must be of class {0}'.format(cls._get_parent_class()))
+
 
 class BaseACIPhysModule(BaseACIPhysObject):
     """BaseACIPhysModule: base class for modules  """
@@ -1170,11 +1216,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """
         super(BaseACIPhysModule, self).__init__(name='', parent=None)
 
-        # check that parent is a node
-        if parent:
-            if isinstance(parent, str):
-                raise TypeError('An instance of Node class is required')
-
         self.pod = str(pod)
         self.node = str(node)
         self.slot = str(slot)
@@ -1185,13 +1226,16 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.bios = None
         self.firmware = None
 
-        self._apic_class = None
+        #self._apic_class = None
         self.dn = None
-        self._session = None
+
+        if parent:
+            if not isinstance(parent, str):
+                self._parent = parent
+                self._parent.add_child(self)
 
         logging.debug('Creating %s %s', self.__class__.__name__,
                       'pod-' + self.pod + '/node-' + self.node + '/slot-' + self.slot)
-        self._common_init(parent)
 
     def get_slot(self):
         """Gets slot id
@@ -1206,8 +1250,9 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """
         if type(self) is not type(other):
             return False
+
         return (self.pod == other.pod) and (self.node == other.node) and \
-               (self.slot == other.slot) and (self.type == other.type)
+               (self.slot == other.slot) and (self.get_type() == other.type)
 
     @staticmethod
     def _parse_dn(dn):
@@ -1225,21 +1270,24 @@ class BaseACIPhysModule(BaseACIPhysObject):
         return pod, node, slot
 
     @classmethod
-    def get_obj(cls, session, apic_class, parent_node):
+    def get_obj(cls, session, apic_classes, parent_node):
         """Gets all of the Nodes from the APIC.  This is called by the
         module specific get() methods.  The parameters passed include the
-        APIC object class, apic_class, so that this will work for
+        APIC object class, apic_classes, so that this will work for
         different kinds of modules.
 
         :param parent_node: parent object or node id
         :param session: APIC session to use when retrieving the nodes
-        :param apic_class: The object class in APIC to retrieve
-        :returns: list of module objects derived from the specified apic_class
+        :param apic_classes: The object class in APIC to retrieve
+        :returns: list of module objects derived from the specified apic_classes
 
         """
+        cls.check_session(session)
+
         node = None
         if parent_node:
             if not isinstance(parent_node, str):
+                cls.check_parent(parent_node)
                 node = parent_node.node
             else:
                 node = parent_node
@@ -1247,33 +1295,27 @@ class BaseACIPhysModule(BaseACIPhysObject):
         if parent_node:
             parent_dn = 'topology/pod-{0}/node-{1}/sys'.format(pod, node)
             interface_query_url = '/api/mo/' + parent_dn + \
-                                  '.json?query-target=subtree&target-subtree-class=' + apic_class
-
+                                  '.json?query-target=subtree&target-subtree-class=' + ','.join(apic_classes)
         else:
-            interface_query_url = ('/api/node/class/' + apic_class + '.json?'
+            interface_query_url = ('/api/node/class/' + apic_classes[0] + '.json?'
                                                                      'query-target=self')
         cards = []
         ret = session.get(interface_query_url)
         card_data = ret.json()['imdata']
         for apic_obj in card_data:
-            if apic_class in apic_obj:
-                dist_name = str(apic_obj[apic_class]['attributes']['dn'])
+            if apic_classes[0] in apic_obj:
+                dist_name = str(apic_obj[apic_classes[0]]['attributes']['dn'])
                 (pod, node_id, slot) = cls._parse_dn(dist_name)
-                if not isinstance(parent_node, str):
-                    card = cls(pod, node_id, slot, parent_node)
-                else:
-                    card = cls(pod, node_id, slot)
+                card = cls(pod, node_id, slot)
                 card._session = session
-                card._apic_class = apic_class
-                card._populate_from_attributes(apic_obj[apic_class]['attributes'])
+                card._populate_from_attributes(apic_obj[apic_classes[0]]['attributes'])
 
                 (card.firmware, card.bios) = card._get_firmware(dist_name)
-                card.modify_time = str(apic_obj[apic_class]['attributes']['modTs'])
                 if parent_node:
                     if card.node == parent_node.node:
-                        if card._parent.has_child(card):
-                            card._parent.remove_child(card)
-                        card._parent.add_child(card)
+                        if not isinstance(parent_node, str):
+                            card._parent = parent_node
+                            card._parent.add_child(card)
                         cards.append(card)
                 else:
                     cards.append(card)
@@ -1314,23 +1356,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
         :returns: serial number string
         """
         return self.serial
-
-    def populate_children(self, deep=False, include_concrete=False):
-        """Default method for module.
-        If the module can have children, then this
-        should be overwritten in the inheriting class.
-
-        :param include_concrete: boolean that when true will cause the concrete object to be populated
-                                if they exist.
-        :param deep: boolean that when true will cause the
-                     entire sub-tree to be populated
-                     when false, only the immediate
-                     children are populated
-
-
-        :returns: None
-        """
-        return None
 
 
 class BaseInterface(BaseACIObject):

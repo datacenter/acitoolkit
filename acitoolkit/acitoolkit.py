@@ -31,7 +31,7 @@
      This is the main module that comprises the ACI Toolkit.
 """
 import sys
-from aciTable import Table
+from .aciTable import Table
 # from .aciphysobject import Interface
 from .aciphysobject import *
 from .acibaseobject import BaseACIObject, BaseRelation, BaseInterface
