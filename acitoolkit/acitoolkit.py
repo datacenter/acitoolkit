@@ -1428,6 +1428,7 @@ class BridgeDomain(BaseACIObject):
             raise TypeError
         super(BridgeDomain, self).__init__(bd_name, parent)
         self.unknown_mac_unicast = 'proxy'
+        self.unknown_multicast = 'flood'
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1480,11 +1481,30 @@ class BridgeDomain(BaseACIObject):
 
     def get_unknown_mac_unicast(self):
         """
-        Gets the unknow mac unicast for this BD
+        Gets the unknown mac unicast for this BD
 
         :returns: unknown mac unicast of the BridgeDomain
         """
         return self.unknown_mac_unicast
+
+    def set_unknown_multicast(self, multicast):
+        """
+        Set the unknown multicast for this BD
+
+        :param multicast: Multicast to assign this BridgeDomain
+        """
+        valid_multicast = ('flood', 'opt-flood')
+        if multicast not in valid_multicast:
+            raise ValueError('unknown multicast must be of: %s or %s' % valid_multicast)
+        self.unknown_multicast = multicast
+
+    def get_unknown_multicast(self):
+        """
+        Gets the unknown multicast for this BD
+
+        :returns: unknown multicast of the BridgeDomain
+        """
+        return self.unknown_multicast
 
     def get_json(self):
         """
@@ -1497,8 +1517,8 @@ class BridgeDomain(BaseACIObject):
             text = {'fvRsCtx': {'attributes': {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
-        if self.get_unknown_mac_unicast is not None:
-            attr['unkMacUcastAct'] = self.get_unknown_mac_unicast()
+        attr['unkMacUcastAct'] = self.get_unknown_mac_unicast()
+        attr['unkMcastAct'] = self.get_unknown_multicast()
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
                                                   attributes=attr,
                                                   children=children)
