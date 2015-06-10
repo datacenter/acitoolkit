@@ -756,6 +756,39 @@ class TestBridgeDomain(unittest.TestCase):
         bd.set_arp_flood('yes')
         bd.set_arp_flood('no')
         self.assertFalse(bd.is_arp_flood())
+
+    def test_unicast_route_default(self):
+        """
+        Test default unicast route
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.is_unicast_route())
+
+    def test_unicast_route_switch(self):
+        """
+        Test switching unicast route value
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unicast_route('no')
+        self.assertFalse(bd.is_unicast_route())
+
+    def test_unicast_route_invalid(self):
+        """
+        Test an invalid unicast route
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unicast_route,'invalid')
+        
+    def test_unicast_route_change(self):
+        """
+        Test changing unicast route multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unicast_route('no')
+        bd.set_unicast_route('yes')
+        self.assertTrue(bd.is_unicast_route())
+        
     
 
 class TestL2Interface(unittest.TestCase):
@@ -2311,8 +2344,8 @@ class TestApic(TestLiveAPIC):
                     '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
                     '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
                     '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"arpFlood": "no", '
-                    '"unkMacUcastAct": "proxy", '
-                    '"name": "bd1", "unkMcastAct": "flood"},'
+                    '"unkMacUcastAct": "proxy", "name": "bd1", '
+                    '"unicastRoute": "yes", "unkMcastAct": "flood"},'
                     ' "children": []}}]}}')
         actual = json.dumps(tenant.get_json())
         self.assertTrue(actual == expected)
