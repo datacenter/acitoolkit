@@ -186,18 +186,18 @@ class Table(object):
         """
         return '\"'+self.title+'\"'
 
-    def multi_column(self, table_text):
-        """
-
-        :return: new, multi-column table text
-        """
-        result = ''
-        rows = table_text.split('\n')
-        for index in range(len(rows)/2):
-            result += rows[index]
-            if (len(rows)/2 + index) < len(rows):
-                result += rows[len(rows)/2 + index] + '\n'
-            else:
-                result += '\n'
-
-        return result
+    # def multi_column(self, table_text):
+    #     """
+    #
+    #     :return: new, multi-column table text
+    #     """
+    #     result = ''
+    #     rows = table_text.split('\n')
+    #     for index in range(len(rows)/2):
+    #         result += rows[index]
+    #         if (len(rows)/2 + index) < len(rows):
+    #             result += rows[len(rows)/2 + index] + '\n'
+    #         else:
+    #             result += '\n'
+    #
+    #     return result
