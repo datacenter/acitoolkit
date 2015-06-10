@@ -2246,7 +2246,8 @@ class TestApic(TestLiveAPIC):
                     ' "children": [{"fvAp": {"attributes": {"name": "app1"}, '
                     '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
                     '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
-                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"unkMacUcastAct": "proxy", "name": "bd1"},'
+                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"unkMacUcastAct": "proxy", '
+                    '"name": "bd1", "unkMcastAct": "flood"},'
                     ' "children": []}}]}}')
         actual = json.dumps(tenant.get_json())
         self.assertTrue(actual == expected)
