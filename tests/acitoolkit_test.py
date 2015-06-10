@@ -725,6 +725,39 @@ class TestBridgeDomain(unittest.TestCase):
         bd.set_unknown_multicast('flood')
         self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
 
+    def test_arp_flood_default(self):
+        """
+        Test default arp flood
+        """
+        tenant, bd = self.create_bd()
+        self.assertFalse(bd.is_arp_flood())
+
+    def test_arp_flood_switch(self):
+        """
+        Test switching arp flood value
+        """
+        tenant, bd = self.create_bd()
+        bd.set_arp_flood("yes")
+        self.assertTrue(bd.is_arp_flood())
+
+    def test_arp_flood_invalid(self):
+        """
+        Test an invalid arp flood
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_arp_flood,'invalid')
+        
+    def test_arp_flood_change(self):
+        """
+        Test changing arp flood multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_arp_flood('yes')
+        bd.set_arp_flood('no')
+        self.assertFalse(bd.is_arp_flood())
+    
+
 class TestL2Interface(unittest.TestCase):
     """
     Test the L2Interface class
@@ -2277,7 +2310,8 @@ class TestApic(TestLiveAPIC):
                     ' "children": [{"fvAp": {"attributes": {"name": "app1"}, '
                     '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
                     '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
-                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"unkMacUcastAct": "proxy", '
+                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"arpFlood": "no", '
+                    '"unkMacUcastAct": "proxy", '
                     '"name": "bd1", "unkMcastAct": "flood"},'
                     ' "children": []}}]}}')
         actual = json.dumps(tenant.get_json())

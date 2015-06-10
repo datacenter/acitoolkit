@@ -1429,6 +1429,7 @@ class BridgeDomain(BaseACIObject):
         super(BridgeDomain, self).__init__(bd_name, parent)
         self.unknown_mac_unicast = 'proxy'
         self.unknown_multicast = 'flood'
+        self.arp_flood = 'no'
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1506,6 +1507,24 @@ class BridgeDomain(BaseACIObject):
         """
         return self.unknown_multicast
 
+    def set_arp_flood(self, arp_value):
+        """
+        Set the ARP flood for this BD
+
+        :param arp_value: arp to assign this BridgeDomain
+        """
+        valid_arp_flood = ("yes", "no")
+        if arp_value not in valid_arp_flood:
+            raise ValueError('arp flood must be of: %s or %s' % valid_arp_flood)
+        self.arp_flood = arp_value
+
+
+    def is_arp_flood(self):
+        """
+        Check if ARP flooding is enabled
+        """
+        return self.arp_flood == "yes"
+
     def get_json(self):
         """
         Returns json representation of the bridge domain
@@ -1517,8 +1536,9 @@ class BridgeDomain(BaseACIObject):
             text = {'fvRsCtx': {'attributes': {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
-        attr['unkMacUcastAct'] = self.get_unknown_mac_unicast()
-        attr['unkMcastAct'] = self.get_unknown_multicast()
+        attr['unkMacUcastAct'] = self.unknown_mac_unicast
+        attr['unkMcastAct'] = self.unknown_multicast
+        attr['arpFlood'] = self.arp_flood
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
                                                   attributes=attr,
                                                   children=children)
