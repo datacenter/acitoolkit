@@ -663,7 +663,7 @@ class TestBridgeDomain(unittest.TestCase):
 
     def test_unknown_mac_unicast_default(self):
         """
-        Test defualt unknown mac unicast
+        Test default unknown mac unicast
         """
         tenant, bd = self.create_bd()
         self.assertTrue(bd.get_unknown_mac_unicast(), 'proxy')
@@ -692,7 +692,38 @@ class TestBridgeDomain(unittest.TestCase):
         bd.set_unknown_mac_unicast('proxy')
         bd.set_unknown_mac_unicast('flood')
         self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+
+    def test_unknown_multicast_default(self):
+        """
+        Test default unknown multicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.get_unknown_multicast(), 'flood')
+
+    def test_unknown_multicast_opt_flood(self):
+        """
+        Test changing unknown multicast to optimized flood
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_multicast('opt-flood')
+        self.assertTrue(bd.get_unknown_multicast(), 'opt-flood')
         
+    def test_unknown_multicast_invalid(self):
+        """
+        Test an invalid unknown multicast 
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unknown_multicast,"invalid")
+        
+    def test_unknown_multicast_change(self):
+        """
+        Test changing unknown multicast multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_multicast('opt-flood')
+        bd.set_unknown_multicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
 
 class TestL2Interface(unittest.TestCase):
     """
