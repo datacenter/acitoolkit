@@ -472,8 +472,6 @@ class BaseACIObject(AciSearch):
                 obj.mark_as_deleted()
             return obj
 
-
-
     @classmethod
     def unsubscribe(cls, session):
         """
@@ -669,9 +667,18 @@ class BaseACIObject(AciSearch):
         :param include_concrete: True or False. Default is False
         :param deep: True or False.  Default is False.
         """
-        assert(deep is True or deep is False)
-        assert(include_concrete is True or include_concrete is False)
-        return None
+        for child_class in self._get_children_classes():
+            child_class.get(self._session, self)
+
+        if deep:
+            for child in self._children:
+                child.populate_children(deep, include_concrete)
+
+        return self._children
+
+        # assert(deep is True or deep is False)
+        # assert(include_concrete is True or include_concrete is False)
+        # return None
 
     def get_parent(self):
         """
@@ -1349,23 +1356,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
         :returns: serial number string
         """
         return self.serial
-
-    def populate_children(self, deep=False, include_concrete=False):
-        """Default method for module.
-        If the module can have children, then this
-        should be overwritten in the inheriting class.
-
-        :param include_concrete: boolean that when true will cause the concrete object to be populated
-                                if they exist.
-        :param deep: boolean that when true will cause the
-                     entire sub-tree to be populated
-                     when false, only the immediate
-                     children are populated
-
-
-        :returns: None
-        """
-        return None
 
 
 class BaseInterface(BaseACIObject):
