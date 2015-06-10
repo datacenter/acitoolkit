@@ -1427,6 +1427,10 @@ class BridgeDomain(BaseACIObject):
         if parent is None or not isinstance(parent, Tenant):
             raise TypeError
         super(BridgeDomain, self).__init__(bd_name, parent)
+        self.unknown_mac_unicast = 'proxy'
+        self.unknown_multicast = 'flood'
+        self.arp_flood = 'no'
+        self.unicast_route = 'yes'
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1465,6 +1469,79 @@ class BridgeDomain(BaseACIObject):
     def _get_name_from_dn(dn):
         return dn.split('/BD-')[1].split('/')[0]
 
+    def set_unknown_mac_unicast(self, unicast):
+        """
+        Set the unknown mac unicast for this BD
+
+        :param unicast: Unicast to assign this BridgeDomain
+        """
+        valid_unicast = ('proxy', 'flood')
+        
+        if unicast not in valid_unicast:
+            raise ValueError('unknown MAC unicast must be of: %s or %s' % valid_unicast)
+        self.unknown_mac_unicast = unicast
+
+    def get_unknown_mac_unicast(self):
+        """
+        Gets the unknown mac unicast for this BD
+
+        :returns: unknown mac unicast of the BridgeDomain
+        """
+        return self.unknown_mac_unicast
+
+    def set_unknown_multicast(self, multicast):
+        """
+        Set the unknown multicast for this BD
+
+        :param multicast: Multicast to assign this BridgeDomain
+        """
+        valid_multicast = ('flood', 'opt-flood')
+        if multicast not in valid_multicast:
+            raise ValueError('unknown multicast must be of: %s or %s' % valid_multicast)
+        self.unknown_multicast = multicast
+
+    def get_unknown_multicast(self):
+        """
+        Gets the unknown multicast for this BD
+
+        :returns: unknown multicast of the BridgeDomain
+        """
+        return self.unknown_multicast
+
+    def set_arp_flood(self, arp_value):
+        """
+        Set the ARP flood for this BD
+
+        :param arp_value: arp to assign this BridgeDomain
+        """
+        valid_arp_flood = ('yes', 'no')
+        if arp_value not in valid_arp_flood:
+            raise ValueError('arp flood must be of: %s or %s' % valid_arp_flood)
+        self.arp_flood = arp_value
+
+    def is_arp_flood(self):
+        """
+        Check if ARP flooding is enabled
+        """
+        return self.arp_flood == 'yes'
+    
+    def set_unicast_route(self, route):
+        """
+        Set the unicast route for this BD
+
+        :param route: route to assign this BridgeDomain
+        """
+        valid_unicast_route = ('yes', 'no')
+        if route not in valid_unicast_route:
+            raise ValueError('unicast route must be of: %s or %s' % valid_unicast_route)
+        self.unicast_route = route
+
+    def is_unicast_route(self):
+        """
+        Check if unicast routing is enabled
+        """
+        return self.unicast_route == 'yes'
+
     def get_json(self):
         """
         Returns json representation of the bridge domain
@@ -1476,6 +1553,10 @@ class BridgeDomain(BaseACIObject):
             text = {'fvRsCtx': {'attributes': {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
         attr = self._generate_attributes()
+        attr['unkMacUcastAct'] = self.unknown_mac_unicast
+        attr['unkMcastAct'] = self.unknown_multicast
+        attr['arpFlood'] = self.arp_flood
+        attr['unicastRoute'] = self.unicast_route
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
                                                   attributes=attr,
                                                   children=children)

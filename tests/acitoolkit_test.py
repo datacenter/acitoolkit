@@ -661,6 +661,135 @@ class TestBridgeDomain(unittest.TestCase):
         bridge_domains = [bd1, bd2, bd3]
         self.assertTrue(isinstance(BridgeDomain.get_table(bridge_domains)[0], Table))
 
+    def test_unknown_mac_unicast_default(self):
+        """
+        Test default unknown mac unicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'proxy')
+
+    def test_unknown_mac_unicast_flood(self):
+        """
+        Test changing unknown mac unicast to flood
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_mac_unicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+        
+    def test_unknown_mac_unicast_invalid(self):
+        """
+        Test an invalid unknown mac unicast 
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unknown_mac_unicast,"invalid")
+
+    def test_unknown_mac_unicast_change(self):
+        """
+        Test changing unknown mac unicast multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_mac_unicast('proxy')
+        bd.set_unknown_mac_unicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+
+    def test_unknown_multicast_default(self):
+        """
+        Test default unknown multicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.get_unknown_multicast(), 'flood')
+
+    def test_unknown_multicast_opt_flood(self):
+        """
+        Test changing unknown multicast to optimized flood
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_multicast('opt-flood')
+        self.assertTrue(bd.get_unknown_multicast(), 'opt-flood')
+        
+    def test_unknown_multicast_invalid(self):
+        """
+        Test an invalid unknown multicast 
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unknown_multicast,"invalid")
+        
+    def test_unknown_multicast_change(self):
+        """
+        Test changing unknown multicast multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_multicast('opt-flood')
+        bd.set_unknown_multicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+
+    def test_arp_flood_default(self):
+        """
+        Test default arp flood
+        """
+        tenant, bd = self.create_bd()
+        self.assertFalse(bd.is_arp_flood())
+
+    def test_arp_flood_switch(self):
+        """
+        Test switching arp flood value
+        """
+        tenant, bd = self.create_bd()
+        bd.set_arp_flood("yes")
+        self.assertTrue(bd.is_arp_flood())
+
+    def test_arp_flood_invalid(self):
+        """
+        Test an invalid arp flood
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_arp_flood,'invalid')
+        
+    def test_arp_flood_change(self):
+        """
+        Test changing arp flood multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_arp_flood('yes')
+        bd.set_arp_flood('no')
+        self.assertFalse(bd.is_arp_flood())
+
+    def test_unicast_route_default(self):
+        """
+        Test default unicast route
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.is_unicast_route())
+
+    def test_unicast_route_switch(self):
+        """
+        Test switching unicast route value
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unicast_route('no')
+        self.assertFalse(bd.is_unicast_route())
+
+    def test_unicast_route_invalid(self):
+        """
+        Test an invalid unicast route
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unicast_route,'invalid')
+        
+    def test_unicast_route_change(self):
+        """
+        Test changing unicast route multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unicast_route('no')
+        bd.set_unicast_route('yes')
+        self.assertTrue(bd.is_unicast_route())
+        
+    
 
 class TestL2Interface(unittest.TestCase):
     """
@@ -2214,7 +2343,9 @@ class TestApic(TestLiveAPIC):
                     ' "children": [{"fvAp": {"attributes": {"name": "app1"}, '
                     '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
                     '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
-                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"name": "bd1"},'
+                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"arpFlood": "no", '
+                    '"unkMacUcastAct": "proxy", "name": "bd1", '
+                    '"unicastRoute": "yes", "unkMcastAct": "flood"},'
                     ' "children": []}}]}}')
         actual = json.dumps(tenant.get_json())
         self.assertTrue(actual == expected)
