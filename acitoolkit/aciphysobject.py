@@ -221,6 +221,16 @@ class Linecard(BaseACIPhysModule):
         """
         return Node
 
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [Interface]
+
     @classmethod
     def get(cls, session, parent=None):
         """Gets all of the linecards from the APIC.  If parent is
@@ -252,26 +262,6 @@ class Linecard(BaseACIPhysModule):
         self.oper_st = str(attributes['operSt'])
         self.dn = str(attributes['dn'])
         self.modify_time = str(attributes['modTs'])
-
-    def populate_children(self, deep=False, include_concrete=False):
-        """Populates all of the children of the linecard.  Children are the interfaces.
-        If deep is set to true, it will also try to populate the children of the children.
-
-        :param include_concrete: boolean that when true will cause concrete children to be populated as well.
-        :param deep: boolean that when true will cause the entire sub-tree to be populated\
-            when false, only the immediate children are populated
-
-        :returns: None
-        """
-
-        # The following will add the interfaces to the linecard
-        Interface.get(self._session, self)
-
-        if deep:
-            for child in self._children:
-                child.populate_children(deep, include_concrete)
-
-        return None
 
     @staticmethod
     def get_table(linecards, super_title=''):
@@ -446,6 +436,16 @@ class Fantray(BaseACIPhysModule):
         """
         return Node
 
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [Fan]
+
     @classmethod
     def get(cls, session, parent=None):
         """Gets all of the fantrays from the APIC.  If parent
@@ -484,25 +484,6 @@ class Fantray(BaseACIPhysModule):
     def _get_firmware(dist_name):
         """ Returns None for firmware and bios revisions"""
         return None, None
-
-    def populate_children(self, deep=False, include_concrete=False):
-        """Populates all of the fans of the fan tray
-        
-        :param deep: boolean that when true will cause the entire sub-tree to be populated\
-            when false, only the immediate children are populated
-        :param include_concrete: boolean that when true will cause any concrete children to be
-            populated.
-        :returns: None
-        """
-
-        # The following will add the fans to the fantray
-        Fan.get(self._session, self)
-
-        if deep:
-            for child in self._children:
-                child.populate_children(deep, include_concrete)
-
-        return None
 
     @staticmethod
     def get_table(modules, title=''):
@@ -739,20 +720,6 @@ class Powersupply(BaseACIPhysModule):
 
         return None, None
 
-        # def populate_children(self, deep=False):
-        # """Populates all of the children of the power supply.
-        # Since the power supply has no children,
-        # this will return none.
-        #
-        #     :param deep: boolean that when true will cause the
-        #                  entire sub-tree to be populated
-        #                  when false, only the immediate
-        #                  children are populated
-        #
-        #     :returns: None
-        #     """
-        #     return None
-
     @staticmethod
     def get_table(modules, super_title=''):
         """
@@ -869,32 +836,6 @@ class Pod(BaseACIPhysObject):
                 pods.append(pod)
         return pods
 
-    def populate_children(self, deep=False, include_concrete=False):
-        """ This will cause all of children of the pod to be gotten from the APIC and
-        populated as children of the pod.
-
-        If deep is set to True, it will populate the entire tree.
-
-        This method returns nothing.
-
-        :param deep: boolean that when true will cause the
-                     entire sub-tree to be populated
-                     when false, only the immediate
-                     children are populated
-        :param include_concrete: boolean that when true will cause any concrete children objects to be populated
-        :returns: list of immediate children
-        """
-        for child_class in self._get_children_classes():
-            child_class.get(self._session, self)
-        #Node.get(self._session, self)
-        #Link.get(self._session, self)
-        #ExternalSwitch.get(self._session, self)
-
-        if deep:
-            for child in self._children:
-                child.populate_children(deep, include_concrete)
-        return self._children
-
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
@@ -997,7 +938,7 @@ class Node(BaseACIPhysObject):
         """
         return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
-                ConcreteContext, ConcreteSVI]
+                ConcreteContext, ConcreteSVI, ConcreteVpc]
 
     def get_role(self):
         """ retrieves the node role
@@ -2905,6 +2846,16 @@ class PhysicalModel(BaseACIObject):
 
         self.session = session
 
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [Pod]
+
     @classmethod
     def get(cls, session=None, parent=None):
         """
@@ -2915,26 +2866,6 @@ class PhysicalModel(BaseACIObject):
         """
         physical_model = PhysicalModel(session=session, parent=parent)
         return [physical_model]
-
-    def populate_children(self, deep=False, include_concrete=False):
-        """
-        This method will populate the children of the fabric.  If deep is set
-        to True, it will populate the entire object tree, both physical and logical.
-
-        If include_concrete is set to True, it will also include the concrete models
-        on the network switches.
-
-        :param deep:
-        :param include_concrete:
-        :return: list of immediate children objects
-        """
-        Pod.get(self.session, self)
-
-        if deep:
-            for child in self._children:
-                child.populate_children(deep, include_concrete)
-
-        return self._children
 
 
 class Fabric(BaseACIObject):
@@ -2957,23 +2888,12 @@ class Fabric(BaseACIObject):
 
         self.session = session
 
-    def populate_children(self, deep=False, include_concrete=False):
+    @staticmethod
+    def _get_children_classes():
         """
-        This method will populate the children of the fabric.  If deep is set
-        to True, it will populate the entire object tree, both physical and logical.
-
-        If include_concrete is set to True, it will also include the concrete models
-        on the network switches.
-
-        :param deep:
-        :param include_concrete:
-        :return: list of immediate children objects
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
         """
-        PhysicalModel.get(self.session, self)
-        ACI.LogicalModel.get(self.session, self)
-
-        if deep:
-            for child in self._children:
-                child.populate_children(deep, include_concrete)
-
-        return self._children
+        return [PhysicalModel, ACI.LogicalModel]
