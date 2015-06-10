@@ -56,7 +56,7 @@ def setup_multisite_test(printonly=False, delete=False):
     db_epg.add_bd(bd)
 
     # Define a contract with a single entry
-    contract = Contract('mysql-contract', tenant1)
+    contract = Contract('multisite_mysqlcontract', tenant1)
     entry1 = FilterEntry('entry1',
                          applyToFrag='no',
                          arpOpc='unspecified',
