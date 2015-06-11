@@ -246,6 +246,15 @@ class ConfigDB(object):
         filename = os.path.join(self.repo_dir, filename)
         data = self._get_from_apic(query_url)
 
+        #sort the JSON format if the filename is a domain
+        if filename.endswith('domain.json'):
+            
+            #Extract the domain key based on the filename
+            domain_key = filename.rpartition('/')[2].partition('-')[0] + 'DomP'
+            
+            #sort the "imdata" list from the nested dict based on the key "name"
+            data['imdata'] = sorted(data['imdata'], key=lambda k: k[domain_key]['attributes']['name'])
+
         # Write the config to a file
         config_file = open(filename, 'w')
         config_file.write(json.dumps(data, indent=4, separators=(',', ':')))
