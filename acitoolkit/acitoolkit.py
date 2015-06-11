@@ -2809,7 +2809,13 @@ class Endpoint(BaseACIObject):
             if status == 'deleted':
                 obj.mark_as_deleted()
             elif with_relations:
-                obj = cls.get(session, name)[0]
+                objs = cls.get(session, name)
+                if len(objs):
+                    obj = objs[0]
+                else:
+                    # Endpoint was deleted before we could process the create
+                    # return what we what we can from the event
+                    pass
             return obj
 
     @staticmethod
