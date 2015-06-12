@@ -172,6 +172,33 @@ class BaseACIObject(AciSearch):
         raise NotImplementedError
 
     @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the concrete children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return []
+
+
+    @classmethod
+    def get_deep_apic_classes(cls, include_concrete=False):
+        """
+        Get all the apic classes needed for this acitoolkit class and
+        all of its children.
+        :return: list of all apic classes
+        """
+        resp = cls._get_apic_classes()
+        for child_class in cls._get_children_classes():
+            resp.extend(child_class.get_deep_apic_classes(include_concrete=include_concrete))
+        if include_concrete:
+            for child_class in cls._get_children_concrete_classes():
+                resp.extend(child_class.get_deep_apic_classes(include_concrete=include_concrete))
+
+        return list(set(resp))
+
+    @staticmethod
     def _get_parent_class():
         """
         Gets the class of the parent object
@@ -437,7 +464,6 @@ class BaseACIObject(AciSearch):
             if session.has_events(url + extension):
                 return True
         return False
-
 
     def _instance_get_event(self, session, extension=''):
         """
@@ -1012,16 +1038,6 @@ class BaseACIPhysObject(BaseACIObject):
             if parent:
                 self.pod = parent.pod
         super(BaseACIPhysObject, self).__init__(name=name, parent=parent)
-
-    @staticmethod
-    def _get_children_concrete_classes():
-        """
-        Get the acitoolkit class of the concrete children of this object.
-        This is meant to be overridden by any inheriting classes that have children.
-        If they don't have children, this will return an empty list.
-        :return: list of classes
-        """
-        return []
 
     @staticmethod
     def _delete_redundant_policy(infra, policy_type):
