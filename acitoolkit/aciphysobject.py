@@ -29,6 +29,7 @@
 ################################################################################
 """ACI Toolkit module for physical objects
 """
+import datetime
 from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseInterface
 from .aciConcreteLib import *
 from .acisession import Session
@@ -793,7 +794,6 @@ class Pod(BaseACIPhysObject):
         :returns: list of strings containing APIC class names
         """
         resp = ['fabricPod']
-
         return resp
 
     @staticmethod
@@ -940,6 +940,15 @@ class Node(BaseACIPhysObject):
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
                 ConcreteContext, ConcreteSVI, ConcreteVpc]
 
+    @classmethod
+    def _get_apic_classes(cls):
+        """gets list of all apic classes used to build this acitoolkit class
+        """
+        resp = ['fabricNode','firmwareCardRunning', 'topSystem', 'vpcInst','vpcDom',
+                'eqptCh','l1PhysIf','eqptFtSlot','eqptLCSlot','eqptPsuSlot',
+                'eqptSupCSlot','topoctrlLbP','topoctrlVxlanP']
+        return resp
+
     def get_role(self):
         """ retrieves the node role
         :returns: role
@@ -1003,14 +1012,14 @@ class Node(BaseACIPhysObject):
 
         if node_id:
             node_dn = 'topology/pod-{0}/node-{1}'.format(pod_id, node_id)
-            node_query_url = '/api/mo/' + node_dn + '.json?query-target=self'
+            base_url = '/api/mo/' + node_dn + '.json?'
         else:
-            node_query_url = '/api/node/class/fabricNode.json?query-target=self'
+            base_url = '/api/node/class/fabricNode.json?'
+
+        working_data = WorkingData(session, Node, base_url)
 
         nodes = []
-        ret = session.get(node_query_url)
-        node_data = ret.json()['imdata']
-        for apic_node in node_data:
+        for apic_node in working_data.rawjson:
             if 'fabricNode' in apic_node:
                 dist_name = str(apic_node['fabricNode']['attributes']['dn'])
                 node_name = str(apic_node['fabricNode']['attributes']['name'])
@@ -1019,7 +1028,7 @@ class Node(BaseACIPhysObject):
                 node = cls(pod, node_id, node_name, node_role)
                 node._session = session
                 node._populate_from_attributes(apic_node['fabricNode']['attributes'])
-                node._get_topsystem_info()
+                node._get_topsystem_info(working_data)
 
                 # check for pod match if specified
                 pod_match = False
@@ -1045,29 +1054,26 @@ class Node(BaseACIPhysObject):
 
                 if node_match and pod_match:
                     if node.role == 'leaf':
-                        node._add_vpc_info()
+                        node._add_vpc_info(working_data)
                     node.get_health()
-                    node.get_firmware()
+                    node.get_firmware(working_data)
 
                     if isinstance(parent, Pod):
                         node._parent.add_child(node)
 
                     nodes.append(node)
-
         return nodes
 
-    def get_firmware(self):
+    def get_firmware(self, working_data):
         """
         retrieves firmware version
         """
         if self.role != 'controller':
             dn = self.dn + '/sys/ch/supslot-1/sup/running'
-            query_url = '/api/mo/' + dn + '.json?&query-target=self'
-            ret = self._session.get(query_url)
-            data = ret.json()['imdata']
+            data = working_data.get_object(dn)
             if data:
-                if 'firmwareCardRunning' in data[0]:
-                    self.firmware = data[0]['firmwareCardRunning']['attributes']['version']
+                if 'firmwareCardRunning' in data:
+                    self.firmware = data['firmwareCardRunning']['attributes']['version']
 
     def get_health(self):
         """
@@ -1083,7 +1089,7 @@ class Node(BaseACIPhysObject):
                     self.health = data[0]['topSystem']['children'][0]['fabricNodeHealth5min'] \
                         ['attributes']['healthLast']
 
-    def _add_vpc_info(self):
+    def _add_vpc_info(self, working_data):
         """
         This method only runs for leaf switches.  If
         the leaf has a VPC peer, the VPC information will be populated
@@ -1113,21 +1119,16 @@ class Node(BaseACIPhysObject):
         """
         partial_dn = 'topology/pod-{0}/node-{1}/sys/vpc/inst'.format(self.pod, self.node)
 
-        mo_query_url = '/api/mo/' + partial_dn + '.json?query-target=self'
-        ret = self._session.get(mo_query_url)
-
-        data = ret.json()['imdata']
         vpc_admin_state = 'disabled'
+        data = working_data.get_object(partial_dn)
         if data:
-            if 'vpcInst' in data[0]:
-                vpc_admin_state = data[0]['vpcInst']['attributes']['adminSt']
+            if 'vpcInst' in data:
+                vpc_admin_state = data['vpcInst']['attributes']['adminSt']
 
         result = {'admin_state': vpc_admin_state}
         if vpc_admin_state == 'enabled':
-            mo_query_url = '/api/mo/' + partial_dn + '.json?query-target=subtree&target-subtree-class=vpcDom'
-            ret = self._session.get(mo_query_url)
-            data = ret.json()['imdata']
             result['oper_state'] = 'inactive'
+            data = working_data.get_subtree('vpcDom', partial_dn)
             if data:
                 if 'vpcDom' in data[0]:
                     result['oper_state'] = 'active'
@@ -1166,52 +1167,39 @@ class Node(BaseACIPhysObject):
         self.fabricSt = attributes['fabricSt']
         self.modify_time = attributes['modTs']
 
-    def _get_topsystem_info(self):
+    def _get_topsystem_info(self, working_data):
         """ will read in topSystem object to get more information about Node"""
 
-        mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=self'
-        ret = self._session.get(mo_query_url)
-        node_data = ret.json()['imdata']
+        node_data = working_data.get_object(self.dn+'/sys')
+        if node_data is not None:
+            if 'topSystem' in node_data:
 
-        if len(node_data) > 0:
-            if 'topSystem' in node_data[0]:
-
-                self.ipAddress = str(node_data[0]['topSystem']['attributes']['address'])
+                self.ipAddress = str(node_data['topSystem']['attributes']['address'])
                 self.tep_ip = self.ipAddress
-                self.macAddress = str(node_data[0]['topSystem']['attributes']['fabricMAC'])
-                self.state = str(node_data[0]['topSystem']['attributes']['state'])
-                self.mode = str(node_data[0]['topSystem']['attributes']['mode'])
-                self.oob_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('oobMgmtAddr'))
-                self.inb_mgmt_ip = str(node_data[0]['topSystem']['attributes'].get('inbMgmtAddr'))
-                self.system_uptime = str(node_data[0]['topSystem']['attributes'].get('systemUpTime'))
+                self.macAddress = str(node_data['topSystem']['attributes']['fabricMAC'])
+                self.state = str(node_data['topSystem']['attributes']['state'])
+                self.mode = str(node_data['topSystem']['attributes']['mode'])
+                self.oob_mgmt_ip = str(node_data['topSystem']['attributes'].get('oobMgmtAddr'))
+                self.inb_mgmt_ip = str(node_data['topSystem']['attributes'].get('inbMgmtAddr'))
+                self.system_uptime = str(node_data['topSystem']['attributes'].get('systemUpTime'))
 
                 # now get eqptCh for even more info
-                ch_mo_query_url = '/api/mo/' + self.dn + '/sys/ch.json?query-target=self'
-                ret = self._session.get(ch_mo_query_url)
-                node_data = ret.json()['imdata']
-
+                node_data = working_data.get_object(self.dn+'/sys/ch')
                 if node_data:
-                    if 'eqptCh' in node_data[0]:
-                        self.operSt = str(node_data[0]['eqptCh']['attributes']['operSt'])
-                        self.operStQual = str(node_data[0]['eqptCh']['attributes']['operStQual'])
-                        self.descr = str(node_data[0]['eqptCh']['attributes']['descr'])
+                    if 'eqptCh' in node_data:
+                        self.operSt = str(node_data['eqptCh']['attributes']['operSt'])
+                        self.operStQual = str(node_data['eqptCh']['attributes']['operStQual'])
+                        self.descr = str(node_data['eqptCh']['attributes']['descr'])
 
                 # get the total number of ports = number of l1PhysIf
-                mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=l1PhysIf'
-                ret = self._session.get(mo_query_url)
-                node_data = ret.json()['imdata']
+                node_data = working_data.get_subtree('l1PhysIf', self.dn+ '/sys')
                 if node_data:
-                    if 'l1PhysIf' in node_data[0]:
-                        self.num_ports = len(node_data)
+                    self.num_ports = len(node_data)
 
                 # get the total number of ports = number of fan slots
-                mo_query_url = '/api/mo/' + self.dn + \
-                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptFtSlot'
-                ret = self._session.get(mo_query_url)
-                node_data = ret.json()['imdata']
+                node_data = working_data.get_subtree('eqptFtSlot', self.dn+'/sys')
                 if node_data:
-                    if 'eqptFtSlot' in node_data[0]:
-                        self.num_fan_slots = len(node_data)
+                    self.num_fan_slots = len(node_data)
 
                 self.num_fan_modules = 0
                 if node_data:
@@ -1220,10 +1208,7 @@ class Node(BaseACIPhysObject):
                             self.num_fan_modules += 1
 
                 # get the total number of ports = number of linecard slots
-                mo_query_url = '/api/mo/' + self.dn + \
-                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptLCSlot'
-                ret = self._session.get(mo_query_url)
-                node_data = ret.json()['imdata']
+                node_data = working_data.get_subtree('eqptLCSlot', self.dn + '/sys/ch')
                 self.num_lc_slots = len(node_data)
                 self.num_lc_modules = 0
                 if node_data:
@@ -1232,10 +1217,7 @@ class Node(BaseACIPhysObject):
                             self.num_lc_modules += 1
 
                 # get the total number of ports = number of power supply slots
-                mo_query_url = '/api/mo/' + self.dn + \
-                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptPsuSlot'
-                ret = self._session.get(mo_query_url)
-                node_data = ret.json()['imdata']
+                node_data = working_data.get_subtree('eqptPsuSlot', self.dn + '/sys/ch')
                 self.num_ps_slots = len(node_data)
                 self.num_ps_modules = 0
                 if node_data:
@@ -1244,10 +1226,7 @@ class Node(BaseACIPhysObject):
                             self.num_ps_modules += 1
 
                 # get the total number of ports = number of supervisor slots
-                mo_query_url = '/api/mo/' + self.dn + \
-                               '/sys/ch.json?query-target=subtree&target-subtree-class=eqptSupCSlot'
-                ret = self._session.get(mo_query_url)
-                node_data = ret.json()['imdata']
+                node_data = working_data.get_subtree('eqptSupCSlot', self.dn + '/sys/ch')
                 self.num_sup_slots = len(node_data)
                 self.num_sup_modules = 0
                 if node_data:
@@ -1256,24 +1235,20 @@ class Node(BaseACIPhysObject):
                             self.num_sup_modules += 1
 
                 # get dynamic load balancing config
-                mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoctrlLbP'
-                ret = self._session.get(mo_query_url)
-                lb_data = ret.json()['imdata']
                 self.dynamic_load_balancing_mode = 'unknown'
 
+                lb_data = working_data.get_subtree('eqptSupCSlot', self.dn + '/sys')
                 for lb_info in lb_data:
                     if 'topoctrlLbP' in lb_info:
                         self.dynamic_load_balancing_mode = lb_info['topoctrlLbP']['attributes']['dlbMode']
 
                 # get vxlan info
-                mo_query_url = '/api/mo/' + self.dn + '/sys.json?query-target=subtree&target-subtree-class=topoVxlanP'
-                ret = self._session.get(mo_query_url)
-                data = ret.json()['imdata']
                 self.ivxlan_udp_port = 'unknown'
 
-                for info in data:
+                node_data = working_data.get_subtree('topoctrlVxlanP', self.dn + '/sys')
+                for info in node_data:
                     if 'topoctrlVxlanP' in info:
-                        self.ivxlan_udp_port = info['topoctrVxlanP']['attributes']['udpPort']
+                        self.ivxlan_udp_port = info['topoctrlVxlanP']['attributes']['udpPort']
 
     def populate_children(self, deep=False, include_concrete=False):
         """Will populate all of the children modules such as
@@ -1291,20 +1266,14 @@ class Node(BaseACIPhysObject):
         for child_class in self._get_children_classes():
             child_class.get(session, self)
 
-        # if self.role == 'controller':
-        #     Systemcontroller.get(session, self)
-        # else:
-        #     Linecard.get(session, self)
-        #     Supervisorcard.get(session, self)
-        #
-        # Fantray.get(session, self)
-        # Powersupply.get(session, self)
-
         if include_concrete and self.role != 'controller':
             # todo: currently only have concrete model for switches - need to add controller
-            top_system = SwitchJson(session, self.node)
+            query_url = '/api/mo/topology/pod-' +self.pod + '/node-' + self.node + \
+                        '/sys.json?'
+
+            working_data = WorkingData(session, Node, query_url, deep=True, include_concrete=True)
             for concrete_class in self._get_children_concrete_classes() :
-                concrete_class.get(top_system, self)
+                concrete_class.get(working_data, self)
 
         if deep:
             for child in self._children:
@@ -2503,7 +2472,8 @@ class Interface(BaseInterface):
         return result
 
 
-class SwitchJson(object):
+
+class WorkingData(object):
     """
     This class will hold the entire json tree
     from topSystem down, for a switch.
@@ -2515,27 +2485,26 @@ class SwitchJson(object):
     as a single object.
     """
 
-    def __init__(self, session, node_id):
+    def __init__(self, session, toolkit_class, url, deep=False, include_concrete=False):
         self.session = session
-        self.node_id = node_id
 
         self.by_class = {}
         self.by_dn = {}
-
-        pod_id = '1'
-        self.top_dn = 'topology/pod-' + pod_id + '/node-' + self.node_id + '/sys'
-        query_url = ('/api/mo/' + self.top_dn + '.json?'
-                                                'query-target=self&rsp-subtree=full')
+        if deep:
+            apic_classes = toolkit_class.get_deep_apic_classes(include_concrete=include_concrete)
+        else:
+            apic_classes = toolkit_class._get_apic_classes()
+        query_url = url + 'query-target=subtree&target-subtree-class='+','.join(apic_classes)
 
         ret = session.get(query_url)
         ret._content = ret._content.replace('\n', '')
         data = ret.json()['imdata']
         if data:
-            self.json = ret.json()['imdata'][0]
+            self.rawjson = ret.json()['imdata']
         else:
-            self.json = None
+            self.rawjson = None
 
-        if 'error' not in self.json:
+        if 'error' not in self.rawjson:
             self._index_objects()
 
             self.vnid_dict = {}
@@ -2557,42 +2526,18 @@ class SwitchJson(object):
         self.by_class = {}
         self.by_dn = {}
 
-        dn_root = self.top_dn
-        self._index_recurse_dn(self.json, dn_root)
-        self._index_by_dn_class(self.json)
+        self._index_by_dn_class()
 
-    def _index_by_dn_class(self, branch):
+    def _index_by_dn_class(self):
         """
-        Will index the json by dn and by class for quick reference
+        Will index the json by dn and by class for easy reference
         """
-        if branch:
-            for apic_class in branch:
-                self.by_dn[branch[apic_class]['attributes']['dn']] = {apic_class: branch[apic_class]}
-
+        for item in self.rawjson:
+            for apic_class in item:
+                self.by_dn[item[apic_class]['attributes']['dn']] = item
                 if apic_class not in self.by_class:
                     self.by_class[apic_class] = []
-
-                self.by_class[apic_class].append({apic_class: branch[apic_class]})
-
-                if 'children' in branch[apic_class]:
-                    for child in branch[apic_class]['children']:
-                        self._index_by_dn_class(child)
-
-    def _index_recurse_dn(self, branch, dn_root):
-        """
-        recursive part of _index_objects
-        """
-        if branch:
-            for apic_class in branch:
-                if 'dn' not in branch[apic_class]['attributes']:
-                    if 'rn' not in branch[apic_class]['attributes']:
-                        pass
-                    branch[apic_class]['attributes']['dn'] = dn_root + \
-                                                             '/' + branch[apic_class]['attributes']['rn']
-                new_root_dn = branch[apic_class]['attributes']['dn']
-                if 'children' in branch[apic_class]:
-                    for child in branch[apic_class]['children']:
-                        self._index_recurse_dn(child, new_root_dn)
+                self.by_class[apic_class].append(item)
 
     def get_class(self, class_name):
         """
