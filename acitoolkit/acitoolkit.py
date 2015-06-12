@@ -1476,7 +1476,6 @@ class BridgeDomain(BaseACIObject):
         :param unicast: Unicast to assign this BridgeDomain
         """
         valid_unicast = ('proxy', 'flood')
-        
         if unicast not in valid_unicast:
             raise ValueError('unknown MAC unicast must be of: %s or %s' % valid_unicast)
         self.unknown_mac_unicast = unicast
@@ -1524,7 +1523,7 @@ class BridgeDomain(BaseACIObject):
         Check if ARP flooding is enabled
         """
         return self.arp_flood == 'yes'
-    
+
     def set_unicast_route(self, route):
         """
         Set the unicast route for this BD
@@ -2377,10 +2376,9 @@ class FilterEntry(BaseACIObject):
             dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
             tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
             tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
-            if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class) - 1:] == dn.split('/')[3][
-                                                                                                 5:] and dn.split('/')[
-                                                                                                             3][5:] == \
-                    tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
+            if dn.split('/')[2][4:] == parent.name and \
+               dn.split('/')[4][len(apic_class) - 1:] == dn.split('/')[3][5:] and \
+               dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
                 filter_name = str(object_data[apic_class]['attributes']['tRn'][4:])
                 contract_name = filter_name[:len(parent.name)]
                 entry_name = filter_name[len(parent.name):]
