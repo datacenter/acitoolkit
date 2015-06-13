@@ -30,12 +30,10 @@ Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
 import sys
-#from acitoolkit.aciConcreteLib import *
 import acitoolkit.acitoolkit as ACI
-#import acitoolkit.aciphysobject as ACI
 from acitoolkit.acitoolkitlib import Credentials
+import datetime
 
-#from SwitchJson import SwitchJson
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
@@ -60,7 +58,9 @@ creds.add_argument('-accessrule', action="store_true", help='Show Access Rule an
 creds.add_argument('-endpoint', action="store_true", help='Show End Point info')
 creds.add_argument('-portchannel', action="store_true", help='Show Port Channel and Virtual Port Channel info')
 creds.add_argument('-overlay', action="store_true", help='Show Overlay info')
-
+creds.add_argument('-tablefmt', type=str, default='fancy_grid',
+                   help='Table format [fancy_grid, plain, simple, grid, '
+                        'pipe, orgtbl, rst, mediawiki, latex, latex_booktabs]')
 args = creds.get()
 
 # Login to APIC
@@ -71,7 +71,7 @@ if not resp.ok:
     sys.exit(0)
 
 
-def show_switch_short(switch_id):
+def show_switch_short(switch_id, table_format):
     """
     Setup template and display header information for summary version of switch info
 
@@ -84,79 +84,81 @@ def show_switch_short(switch_id):
         switches = ACI.Node.get(session)
 
     tables = ACI.Node.get_table(switches, title='All Switches')
-    text_string = tables[0].get_text(tablefmt='fancy_grid') + '\n'
+    text_string = tables[0].get_text(tablefmt=table_format) + '\n'
     print text_string
 
 
-def render_text_switch(switch):
+def render_text_switch(switch, table_format):
     """
     Render the switch info into a text string that can be directly display on
     a text monitor.
-    :param top:
+    :param table_format: format for displaying table
     :param switch:
     """
+
     title = 'Switch:{0} ("{1}") - '.format(switch.node, switch.name)
     text_string = ''
     if args.all or args.basic:
         tables = ACI.Node.get_table([switch], title)
-        text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
+        text_string += tables[0].get_text(tablefmt=table_format) + '\n'
 
     if args.all or args.supervisor:
         tables = ACI.Supervisorcard.get_table(switch.get_children(ACI.Supervisorcard), title)
-        text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
+        text_string += tables[0].get_text(tablefmt=table_format) + '\n'
 
     if args.all or args.linecard:
         tables = ACI.Linecard.get_table(switch.get_children(ACI.Linecard), title)
-        text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
+        text_string += tables[0].get_text(tablefmt=table_format) + '\n'
 
     if args.all or args.powersupply:
         tables = ACI.Powersupply.get_table(switch.get_children(ACI.Powersupply), title)
-        text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
+        text_string += tables[0].get_text(tablefmt=table_format) + '\n'
 
     if args.fantray or args.all:
         tables = ACI.Fantray.get_table(switch.get_children(ACI.Fantray), title)
-        text_string += tables[0].get_text(tablefmt='fancy_grid') + '\n'
+        text_string += tables[0].get_text(tablefmt=table_format) + '\n'
 
     if args.all or args.overlay:
-        text_string += render_tables(switch, ACI.ConcreteOverlay, title)
+        text_string += render_tables(switch, ACI.ConcreteOverlay, title, table_format)
 
     if args.all or args.context:
-        text_string += render_tables(switch, ACI.ConcreteContext, title)
+        text_string += render_tables(switch, ACI.ConcreteContext, title, table_format)
 
     if args.all or args.bridgedomain:
-        text_string += render_tables(switch, ACI.ConcreteBD, title)
+        text_string += render_tables(switch, ACI.ConcreteBD, title, table_format)
 
     if args.all or args.svi:
-        text_string += render_tables(switch, ACI.ConcreteSVI, title)
+        text_string += render_tables(switch, ACI.ConcreteSVI, title, table_format)
 
     if args.all or args.accessrule:
-        text_string += render_tables(switch, ACI.ConcreteAccCtrlRule, title)
-        text_string += render_tables(switch, ACI.ConcreteFilter, title)
+        text_string += render_tables(switch, ACI.ConcreteAccCtrlRule, title, table_format)
+        text_string += render_tables(switch, ACI.ConcreteFilter, title, table_format)
 
     if args.all or args.arp:
-        text_string += render_tables(switch, ACI.ConcreteArp, title)
+        text_string += render_tables(switch, ACI.ConcreteArp, title, table_format)
 
     if args.all or args.endpoint:
-        text_string += render_tables(switch, ACI.ConcreteEp, title)
+        text_string += render_tables(switch, ACI.ConcreteEp, title, table_format)
 
     if args.all or args.portchannel:
-        text_string += render_tables(switch, ACI.ConcretePortChannel, title)
-        text_string += render_tables(switch, ACI.ConcreteVpc, title)
+        text_string += render_tables(switch, ACI.ConcretePortChannel, title, table_format)
+        text_string += render_tables(switch, ACI.ConcreteVpc, title, table_format)
         vpc_ifs = []
         for vpc in switch.get_children(ACI.ConcreteVpc):
             vpc_ifs.extend(vpc.get_children(ACI.ConcreteVpcIf))
         if vpc_ifs:
             tables = ACI.ConcreteVpcIf.get_table(vpc_ifs, title)
             for table in tables:
-                text_string += table.get_text(tablefmt='fancy_grid') + '\n'
+                text_string += table.get_text(tablefmt=table_format) + '\n'
     return text_string
 
 
-def render_tables(switch, concrete_class, title):
+def render_tables(switch, concrete_class, title, table_format):
     """
     Will create a table and return it as a string
     with the title
 
+    :param table_format: format for displaying table
     :param switch:
     :param title: Title string for table
     :param concrete_class:  Concrete class to build the table for
@@ -165,7 +167,7 @@ def render_tables(switch, concrete_class, title):
     text_string = ''
     tables = concrete_class.get_table(switch.get_children(concrete_class), title)
     for table in tables:
-        text_string += table.get_text(tablefmt='fancy_grid') + '\n'
+        text_string += table.get_text(tablefmt=table_format) + '\n'
     return text_string
 
 
@@ -185,7 +187,7 @@ def show_switch_long():
 
             switch.populate_children(deep=True, include_concrete=True)
 
-            print render_text_switch(switch)
+            print render_text_switch(switch, args.tablefmt)
 
 
 if (args.all or
@@ -202,6 +204,11 @@ if (args.all or
         args.endpoint or
         args.portchannel or
         args.overlay):
+
+    start_time = datetime.datetime.now()
     show_switch_long()
+    end_time = datetime.datetime.now()
+    print 'Elapsed time=', end_time - start_time
+
 else:
-    show_switch_short(args.switch)
+    show_switch_short(args.switch, args.tablefmt)
