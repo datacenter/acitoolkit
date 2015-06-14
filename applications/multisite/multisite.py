@@ -50,6 +50,7 @@ class MultisiteTag(object):
             assert len(names) == 2
             contract_name = names[1]
         self._contract_name = contract_name
+        assert export_state in ['imported', 'exported', 'local']
         self._export_state = export_state
         self._remote_site = remote_site
 
@@ -346,6 +347,7 @@ class MultisiteMonitor(threading.Thread):
         # Process any pending contract events to make sure we handle those first
         self.process_contract_events()
 
+        # Extract status, tenant_name, contract_name
         event_attributes = event['imdata'][0][apic_class]['attributes']
         if 'status' in event_attributes:
             status = event_attributes['status']
@@ -362,6 +364,7 @@ class MultisiteMonitor(threading.Thread):
         if cdb_entry.is_local():
             return
 
+        # Extract app_name, epg_name
         assert '/ap-' in dn and '/out-' not in dn
         app_name = str(dn.split('/ap-')[1].split('/')[0])
         epg_name = str(dn.split('/epg-')[1].split('/')[0])
@@ -377,6 +380,7 @@ class MultisiteMonitor(threading.Thread):
         else:
             assert apic_class == 'fvRsCons'
             epg_entry.state = 'consumes'
+
         if status == 'deleted':
             self._local_site.epg_db.remove_entry(epg_entry)
             for remote_site_name in cdb_entry.remote_sites:
@@ -386,9 +390,9 @@ class MultisiteMonitor(threading.Thread):
                     continue
                 for outside_epg_entry in outside_epg_entries:
                     if outside_epg_entry.uses_tenant_common:
-                        query_url = '/api/mo/uni/tn-%s' % tenant_name
-                    else:
                         query_url = '/api/mo/uni/tn-common'
+                    else:
+                        query_url = '/api/mo/uni/tn-%s' % tenant_name
                     query_url += '/out-%s' % outside_epg_entry.outside_epg_name
                     query_url += '.json?query-target=subtree&target-subtree-class=%s' % apic_class
                     query_url += '&query-target-filter=eq(%s.tnVzBrCPName,"' % apic_class
@@ -405,35 +409,41 @@ class MultisiteMonitor(threading.Thread):
 
                     # Next, mark as deleted
                     if len(data):
-                        # Delete the fvRsProv/fvRsCons on the remote l3extInstPs
-                        # TODO verify that this deletes it - looks like checking the l3extOut and not the InstP
-                        dn = '/api/mo/' + data[0][apic_class]['attributes']['dn'] + '.json'
-                        data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
-                        # Push to APIC
-                        resp = remote_site.session.push_to_apic(dn, data_json)
-                    else:
-                        continue
-                    # Read back and see if any remaining contracts provided or consumed
-                    # If none, delete the l3extInstP
-                    query_url = dn + '?query-target=subtree&target-subtree-class=fvRsProv,fvRsCons&'
-                    site_name = strip_illegal_characters(self._local_site.name) + ':'
-                    query_url += 'query-target-filter=or(wcard(fvRsProv.tnVzBrCPName,"%s"),' % site_name
-                    query_url += 'wcard(fvRsProv.tnVzBrCPName,"%s"))&rsp-prop-include=config-only' % site_name
-                    resp = remote_site.session.get(query_url)
-                    if int(resp.json()['totalCount']) == 0:
-                        dn = dn.split('/%s-' % apic_dn_class)[0]
-                        instp_name = dn.split('/instP-')[1].split('/')[0]
-                        data_json = {'l3extInstP': {'attributes': {'name': instp_name, 'status': 'deleted'}}}
-                        resp = remote_site.session.push_to_apic(dn + '.json', data_json)
+                        for item in data:
+                            # Delete the fvRsProv/fvRsCons on the remote l3extInstPs
+                            dn = '/api/mo/' + item[apic_class]['attributes']['dn'] + '.json'
+                            data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
+                            # Push to APIC
+                            resp = remote_site.session.push_to_apic(dn, data_json)
+                            # Read back and see if any remaining contracts provided or consumed
+                            # If none, delete the l3extInstP
+                            query_url = dn + '?query-target=subtree&target-subtree-class=fvRsProv,fvRsCons&'
+                            site_name = strip_illegal_characters(self._local_site.name) + ':'
+                            query_url += 'query-target-filter=or(wcard(fvRsProv.tnVzBrCPName,"%s"),' % site_name
+                            query_url += 'wcard(fvRsProv.tnVzBrCPName,"%s"))&rsp-prop-include=config-only' % site_name
+                            resp = remote_site.session.get(query_url)
+                            if int(resp.json()['totalCount']) == 0:
+                                dn = dn.split('/%s-' % apic_dn_class)[0]
+                                instp_name = dn.split('/instP-')[1].split('/')[0]
+                                data_json = {'l3extInstP': {'attributes': {'name': instp_name, 'status': 'deleted'}}}
+                                resp = remote_site.session.push_to_apic(dn + '.json', data_json)
         else:
-            # TODO need to handle all existing endpoints in this EPG
             self._local_site.epg_db.add_entry(epg_entry)
+            self.handle_existing_endpoints(tenant_name, app_name, epg_name)
 
     def handle_provided_contract_event(self, event):
         return self.handle_contract_relation_event(event, 'fvRsProv', 'rsprov')
 
     def handle_consumed_contract_event(self, event):
         return self.handle_contract_relation_event(event, 'fvRsCons', 'rscons')
+
+    def handle_existing_endpoints(self, tenant_name, app_name, epg_name):
+        endpoints = Endpoint.get_all_by_epg(self._session,
+                                            tenant_name, app_name, epg_name,
+                                            with_interface_attachments=False)
+        for endpoint in endpoints:
+            self._endpointdb.add_endpoint(endpoint)
+        self._endpointdb.push_to_remote_sites()
 
     def handle_endpoint_event(self):
         # TODO: loop to batch the events and collect JSON before pushing it to APIC
@@ -1104,7 +1114,8 @@ class LocalSite(Site):
         unexport_tenant = Tenant(str(tenant_name))
         local_contract_name = strip_illegal_characters(str(self.name)) + ':' + str(contract_name)
 
-        # TODO need to remove the relationships to the contract being unexported
+        # TODO this looks like it might unlink local contracts from an exported contract
+        # TODO don't need to necessarily delete the realtion, just leave it.  User added, user can delete it
         remote_site_obj = self.my_collector.get_site(remote_site)
         remote_session = remote_site_obj.session
         query_url = ('/api/mo/uni/tn-%s.json?query-target=subtree&'
@@ -1127,6 +1138,18 @@ class LocalSite(Site):
                 query_url = '/api/mo/' + item[apic_class]['attributes']['dn'] + '.json'
                 resp = remote_session.push_to_apic(query_url,
                                                    ret_data)
+                # TODO need to read back and delete if no more fvRsCons/fvRsProv
+                if '/instP-' in query_url:
+                    main_query_url = query_url.rpartition('/')[0] + '.json'
+                    query_url = main_query_url + '?query-target=subtree&target-subtree-class=fvRsCons,fvRsProv'
+                    resp = remote_session.get(query_url)
+                    if resp.ok and 'imdata' in resp.json():
+                        data = resp.json()['imdata']
+                        if len(data) == 0:
+                            ret_data = {'l3extInstP': {'attributes': {'status': 'deleted'},
+                                                       'children': []}}
+                            resp = remote_session.push_to_apic(main_query_url,
+                                                               ret_data)
 
         # Remove contract from remote site
         unexport_contract = Contract(local_contract_name, unexport_tenant)
@@ -1140,7 +1163,7 @@ class LocalSite(Site):
         unexport_tenant.delete_tag(str(mtag))
 
         # Push config to the remote APIC
-        unexport_tenant.push_to_apic(remote_site_obj.session)
+        resp = unexport_tenant.push_to_apic(remote_site_obj.session)
 
         # Remove tag locally from tenant
         local_tenant = Tenant(unexport_tenant.name)
