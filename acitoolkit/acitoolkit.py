@@ -467,13 +467,16 @@ class CommonEPG(BaseACIObject):
         """
         self._remove_relation(contract, 'provided')
 
-    def get_all_provided(self):
+    def get_all_provided(self, deleted=False):
         """
         Get all of the Contracts provided by this EPG
 
         :returns: List of Contract objects that are provided by the EPG.
         """
-        return self._get_all_relation(Contract, 'provided')
+        if deleted:
+            return self._get_all_detached_relation(Contract, 'provided')
+        else:
+            return self._get_all_relation(Contract, 'provided')
 
     def consume(self, contract):
         """
@@ -510,13 +513,16 @@ class CommonEPG(BaseACIObject):
         self._remove_relation(contract, 'consumed')
         return True
 
-    def get_all_consumed(self):
+    def get_all_consumed(self, deleted=False):
         """
         Get all of the Contracts consumed by this EPG
 
         :returns: List of Contract objects that are consumed by the EPG.
         """
-        return self._get_all_relation(Contract, 'consumed')
+        if deleted:
+            return self._get_all_detached_relation(Contract, 'consumed')
+        else:
+            return self._get_all_relation(Contract, 'consumed')
 
     def get_interfaces(self, status='attached'):
         """
@@ -545,6 +551,12 @@ class CommonEPG(BaseACIObject):
             children.append(text)
         for contract in self.get_all_consumed():
             text = {'fvRsCons': {'attributes': {'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract in self.get_all_provided(deleted=True):
+            text = {'fvRsProv': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract in self.get_all_consumed(deleted=True):
+            text = {'fvRsCons': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
             children.append(text)
         return children
 
@@ -2899,6 +2911,41 @@ class Endpoint(BaseACIObject):
         endpoints = Endpoint._get(session, endpoint_name, interfaces,
                                   endpoints, 'fvStCEp', 'fvRsStCEpToPathEp')
 
+        return endpoints
+
+    @classmethod
+    def get_all_by_epg(cls, session, tenant_name, app_name, epg_name, with_interface_attachments=True):
+        if with_interface_attachments:
+            raise NotImplementedError
+        query_url = ('/api/mo/uni/tn-%s/ap-%s/epg-%s.json?'
+                     'rsp-subtree=children&'
+                     'rsp-subtree-class=fvCEp,fvStCEp' % (tenant_name, app_name, epg_name))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        endpoints = []
+        if len(data) == 0:
+            return endpoints
+        assert len(data) == 1
+        assert 'fvAEPg' in data[0]
+        if 'children' not in data[0]['fvAEPg']:
+            return endpoints
+        endpoints_data = data[0]['fvAEPg']['children']
+        if len(endpoints_data) == 0:
+            return endpoints
+        tenant = Tenant(tenant_name)
+        app = AppProfile(app_name, tenant)
+        epg = EPG(epg_name, app)
+        for ep_data in endpoints_data:
+            if 'fvStCEp' in ep_data:
+                mac = ep_data['fvStCEp']['attributes']['mac']
+                ip = ep_data['fvStCEp']['attributes']['ip']
+            else:
+                mac = ep_data['fvCEp']['attributes']['mac']
+                ip = ep_data['fvCEp']['attributes']['ip']
+            ep = cls(str(mac), epg)
+            ep.mac = mac
+            ep.ip = ip
+            endpoints.append(ep)
         return endpoints
 
     @staticmethod

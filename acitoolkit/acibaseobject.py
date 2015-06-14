@@ -128,10 +128,10 @@ class BaseACIObject(AciSearch):
         self._tags = []
         self._parent = parent
         self.descr = None
-        #self.subscribe = self._instance_subscribe
-        #self.unsubscribe = self._instance_unsubscribe
-        #self.has_events = self._instance_has_events
-        #self.get_event = self._instance_get_event
+        # self.subscribe = self._instance_subscribe
+        # self.unsubscribe = self._instance_unsubscribe
+        # self.has_events = self._instance_has_events
+        # self.get_event = self._instance_get_event
         logging.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
@@ -180,7 +180,6 @@ class BaseACIObject(AciSearch):
         :return: list of classes
         """
         return []
-
 
     @classmethod
     def get_deep_apic_classes(cls, include_concrete=False):
@@ -775,6 +774,17 @@ class BaseACIObject(AciSearch):
                 resp.append(relation.item)
         return resp
 
+    def _get_all_detached_relation(self, obj_class, relation_type=None):
+        """Get all detached relations belonging to a particular class"""
+        resp = []
+        for relation in self._relations:
+            same_obj_class = isinstance(relation.item, obj_class)
+            same_relation_type = relation.relation_type == relation_type
+            attached = relation.is_attached()
+            if same_obj_class and not attached and same_relation_type:
+                resp.append(relation.item)
+        return resp
+
     def get_interfaces(self, status='attached'):
         """
         Get all of the interface relations.  Note that multiple classes
@@ -867,7 +877,7 @@ class BaseACIObject(AciSearch):
         for tag in self._tags:
             child = {'tagInst': {'attributes': {'name': tag.name}}}
             if tag.is_deleted():
-                  child['tagInst']['attributes']['status'] = 'deleted'
+                child['tagInst']['attributes']['status'] = 'deleted'
             children_json.append(child)
         if get_children:
             for child in self._children:
@@ -1212,9 +1222,8 @@ class BaseACIPhysObject(BaseACIObject):
         :param parent:
         :return:
         """
-
         if parent:
-            if not isinstance(parent, cls._get_parent_class()) :
+            if not isinstance(parent, cls._get_parent_class()):
                 raise TypeError('The parent of this object must be of class {0}'.format(cls._get_parent_class()))
 
 
@@ -1242,7 +1251,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.bios = None
         self.firmware = None
 
-        #self._apic_class = None
+        # self._apic_class = None
         self.dn = None
 
         if parent:
