@@ -74,8 +74,11 @@ class FakeSession(Session):
         for filename in filenames:
             f = open(filename, 'r')
             data = json.loads(f.read())
+            self._fill_dn(data['imdata'], None)
             self.db.append(data)
             f.close()
+            with open(filename, "w") as f:
+                f.write(unicode(json.dumps(data, indent=4)))
 
     def _get_class(self, class_name, resp, db,
                    with_children=False, with_name=None):
@@ -137,7 +140,7 @@ class FakeSession(Session):
         # Check for other class queries
         class_query = '/api/node/class/'
         if url.startswith(class_query) and '?query-target=self' in url:
-            search_class = url.split(class_query)[1].split('?')[0]
+            search_class = url.rpartition('/')[2].partition('.')[0]
             resp = []
             self._get_class(search_class, resp, self.db)
             return resp
@@ -195,7 +198,25 @@ class FakeSession(Session):
             return resp
         else:
             raise NotImplementedError
+        
+    def _fill_dn(self, children, parent_dn):
+        """
+        Recursively fill in the distinguished name (dn) for the configuration 
+        JSON files.
 
+        :param children: Children of the parent node
+        :param parent_dn: Parent dn to be passed on to their children
+        :return: None
+        """
+        for child in children:
+            for node in child:
+                attributes = child[node]['attributes']
+                if not attributes.get('dn'):
+                    rn = attributes['rn']
+                    attributes['dn'] = parent_dn + '/' + rn
+                if child[node].get('children'):
+                    self._fill_dn(child[node]['children'], attributes['dn'])
+                    
     def login(self, timeout=None):
         """
         Initiate login to the APIC.  Opens a communication session with the\
