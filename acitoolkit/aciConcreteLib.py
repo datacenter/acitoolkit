@@ -95,38 +95,35 @@ class ConcreteArp(BaseACIPhysObject):
                 arp = cls()
                 arp.attr['adminSt'] = data['arpInst']['attributes']['adminSt']
                 arp.attr['dn'] = data['arpInst']['attributes']['dn']
-                if 'children' in data['arpInst']:
-                    arp.get_arp_domain(data['arpInst']['children'])
+                arp.get_arp_domain(top)
                 result.append(arp)
             if parent:
                 arp._parent = parent
                 arp._parent.add_child(arp)
         return result
 
-    def get_arp_domain(self, data):
+    def get_arp_domain(self, working_data):
         """
         Get various attributes from the arp domain
-        :param data:
+        :param working_data:
         """
+
+        data = working_data.get_subtree('arpDom', self.attr['dn'])
         for domain in data:
             result = {'stats': {},
                       'entry': [],
                       'name': domain['arpDom']['attributes']['name'],
                       'encap': domain['arpDom']['attributes']['encap']}
-            if 'children' in domain['arpDom']:
-                for child in domain['arpDom']['children']:
-                    if 'arpDomStatsAdj' in child:
-                        result['stats'].update(child['arpDomStatsAdj']['attributes'])
-                    if 'arpDomStatsRx' in child:
-                        result['stats'].update(child['arpDomStatsRx']['attributes'])
-                    if 'arpDomStatsTx' in child:
-                        result['stats'].update(child['arpDomStatsTx']['attributes'])
+            arpdom_dn = domain['arpDom']['attributes']['dn']
+            result['stats'].update(self.get_stats('arpDomStatsAdj',arpdom_dn, working_data))
+            result['stats'].update(self.get_stats('arpDomStatsRx', arpdom_dn, working_data))
+            result['stats'].update(self.get_stats('arpDomStatsTx', arpdom_dn, working_data))
 
-                    if 'arpDb' in child:
-                        if 'children' in child['arpDb']:
-                            for arp_adj_ep in child['arpDb']['children']:
-                                entry = self.get_arp_entry(arp_adj_ep)
-                                result['entry'].append(entry)
+            arpdb_data = working_data.get_subtree('arpDb', arpdom_dn)
+            for arpdb_datum in arpdb_data:
+                entry = self.get_arp_entry(arpdb_datum['arpDb']['attributes']['dn'], working_data)
+                result['entry'].append(entry)
+
             if ':' in result['name']:
                 result['tenant'] = result['name'].split(':')[0]
                 result['context'] = result['name'].split(':')[1]
@@ -136,17 +133,27 @@ class ConcreteArp(BaseACIPhysObject):
 
             self.domain.append(result)
 
+    def get_stats(self, apic_class, dn, working_data):
+        stat_data = working_data.get_subtree(apic_class, dn)
+        if stat_data:
+            return stat_data[0][apic_class]['attributes']
+        return {}
+
     @staticmethod
-    def get_arp_entry(arp_adj_ep):
+    def get_arp_entry(dn, working_data):
         """
         parses arpAdjEp
-        :param arp_adj_ep:
+        :param working_data:
+        :param dn:
         """
-        entry = {'interface_id': arp_adj_ep['arpAdjEp']['attributes']['ifId'],
-                 'ip': arp_adj_ep['arpAdjEp']['attributes']['ip'],
-                 'mac': arp_adj_ep['arpAdjEp']['attributes']['mac'],
-                 'physical_interface': arp_adj_ep['arpAdjEp']['attributes']['physIfId'],
-                 'oper_st': arp_adj_ep['arpAdjEp']['attributes']['operSt']}
+        data = working_data.get_subtree('arpAdjEp', dn)
+        for datum in data:
+
+            entry = {'interface_id': datum['arpAdjEp']['attributes']['ifId'],
+                     'ip': datum['arpAdjEp']['attributes']['ip'],
+                     'mac': datum['arpAdjEp']['attributes']['mac'],
+                     'physical_interface': datum['arpAdjEp']['attributes']['physIfId'],
+                     'oper_st': datum['arpAdjEp']['attributes']['operSt']}
         return entry
 
     @staticmethod
@@ -228,6 +235,9 @@ class ConcreteArp(BaseACIPhysObject):
         return 'ConcreteARP'
 
     def __eq__(self, other):
+
+        if type(self) != type(other):
+            return False
 
         return self.attr.get('dn') == other.attr.get('dn')
 
@@ -445,6 +455,9 @@ class ConcreteVpc(BaseACIPhysObject):
 
     def __eq__(self, other):
 
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -630,6 +643,9 @@ class ConcreteVpcIf(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -800,6 +816,9 @@ class ConcreteContext(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -945,6 +964,9 @@ class ConcreteSVI(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -1057,6 +1079,9 @@ class ConcreteLoopback(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -1293,6 +1318,9 @@ class ConcreteBD(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -1540,6 +1568,9 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -1710,6 +1741,9 @@ class ConcreteFilter(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -1861,6 +1895,9 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -2247,6 +2284,9 @@ class ConcreteEp(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -2495,6 +2535,9 @@ class ConcretePortChannel(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
 
 
@@ -2674,4 +2717,7 @@ class ConcreteOverlay(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
+        if type(self) != type(other):
+            return False
+
         return self.attr.get('dn') == other.attr.get('dn')
