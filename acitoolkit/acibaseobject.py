@@ -116,6 +116,8 @@ class BaseACIObject(AciSearch):
                      instance
         :param parent: Parent object within the acitoolkit object model.
         """
+        if isinstance(name, unicode):
+            name = str(name)
         if name is None or not isinstance(name, str):
             raise TypeError
         if isinstance(parent, str):
@@ -128,10 +130,10 @@ class BaseACIObject(AciSearch):
         self._tags = []
         self._parent = parent
         self.descr = None
-        #self.subscribe = self._instance_subscribe
-        #self.unsubscribe = self._instance_unsubscribe
-        #self.has_events = self._instance_has_events
-        #self.get_event = self._instance_get_event
+        # self.subscribe = self._instance_subscribe
+        # self.unsubscribe = self._instance_unsubscribe
+        # self.has_events = self._instance_has_events
+        # self.get_event = self._instance_get_event
         logging.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
@@ -170,6 +172,32 @@ class BaseACIObject(AciSearch):
         :returns: list of strings containing APIC class names
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the concrete children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return []
+
+    @classmethod
+    def get_deep_apic_classes(cls, include_concrete=False):
+        """
+        Get all the apic classes needed for this acitoolkit class and
+        all of its children.
+        :return: list of all apic classes
+        """
+        resp = cls._get_apic_classes()
+        for child_class in cls._get_children_classes():
+            resp.extend(child_class.get_deep_apic_classes(include_concrete=include_concrete))
+        if include_concrete:
+            for child_class in cls._get_children_concrete_classes():
+                resp.extend(child_class.get_deep_apic_classes(include_concrete=include_concrete))
+
+        return list(set(resp))
 
     @staticmethod
     def _get_parent_class():
@@ -437,7 +465,6 @@ class BaseACIObject(AciSearch):
             if session.has_events(url + extension):
                 return True
         return False
-
 
     def _instance_get_event(self, session, extension=''):
         """
@@ -749,6 +776,17 @@ class BaseACIObject(AciSearch):
                 resp.append(relation.item)
         return resp
 
+    def _get_all_detached_relation(self, obj_class, relation_type=None):
+        """Get all detached relations belonging to a particular class"""
+        resp = []
+        for relation in self._relations:
+            same_obj_class = isinstance(relation.item, obj_class)
+            same_relation_type = relation.relation_type == relation_type
+            attached = relation.is_attached()
+            if same_obj_class and not attached and same_relation_type:
+                resp.append(relation.item)
+        return resp
+
     def get_interfaces(self, status='attached'):
         """
         Get all of the interface relations.  Note that multiple classes
@@ -841,7 +879,7 @@ class BaseACIObject(AciSearch):
         for tag in self._tags:
             child = {'tagInst': {'attributes': {'name': tag.name}}}
             if tag.is_deleted():
-                  child['tagInst']['attributes']['status'] = 'deleted'
+                child['tagInst']['attributes']['status'] = 'deleted'
             children_json.append(child)
         if get_children:
             for child in self._children:
@@ -1012,16 +1050,6 @@ class BaseACIPhysObject(BaseACIObject):
             if parent:
                 self.pod = parent.pod
         super(BaseACIPhysObject, self).__init__(name=name, parent=parent)
-
-    @staticmethod
-    def _get_children_concrete_classes():
-        """
-        Get the acitoolkit class of the concrete children of this object.
-        This is meant to be overridden by any inheriting classes that have children.
-        If they don't have children, this will return an empty list.
-        :return: list of classes
-        """
-        return []
 
     @staticmethod
     def _delete_redundant_policy(infra, policy_type):
@@ -1196,9 +1224,8 @@ class BaseACIPhysObject(BaseACIObject):
         :param parent:
         :return:
         """
-
         if parent:
-            if not isinstance(parent, cls._get_parent_class()) :
+            if not isinstance(parent, cls._get_parent_class()):
                 raise TypeError('The parent of this object must be of class {0}'.format(cls._get_parent_class()))
 
 
@@ -1226,7 +1253,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.bios = None
         self.firmware = None
 
-        #self._apic_class = None
+        # self._apic_class = None
         self.dn = None
 
         if parent:

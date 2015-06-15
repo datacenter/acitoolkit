@@ -109,10 +109,11 @@ def main():
         tenant = app_profile.get_parent()
         data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
                 ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
-        c.execute("""INSERT INTO endpoints (mac, ip, tenant,
-                     app, epg, interface, timestart)
-                     VALUES ('%s', '%s', '%s', '%s',
-                     '%s', '%s', '%s')""" % data)
+        initial_insert_cmd = """INSERT INTO endpoints (mac, ip, tenant,
+                                app, epg, interface, timestart)
+                                VALUES ('%s', '%s', '%s', '%s',
+                                '%s', '%s', '%s')""" % data
+        c.execute(initial_insert_cmd)
         cnx.commit()
 
     # Subscribe to live updates and update the database
@@ -128,7 +129,8 @@ def main():
                 data = (convert_timestamp_to_mysql(ep.timestamp),
                         ep.mac,
                         tenant.name)
-                update_cmd = """UPDATE endpoints SET timestop='%s'
+                update_cmd = """UPDATE endpoints SET timestop='%s',
+                                timestart=timestart
                                 WHERE mac='%s' AND tenant='%s' AND
                                 timestop='0000-00-00 00:00:00'""" % data
                 c.execute(update_cmd)

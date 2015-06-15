@@ -467,13 +467,16 @@ class CommonEPG(BaseACIObject):
         """
         self._remove_relation(contract, 'provided')
 
-    def get_all_provided(self):
+    def get_all_provided(self, deleted=False):
         """
         Get all of the Contracts provided by this EPG
 
         :returns: List of Contract objects that are provided by the EPG.
         """
-        return self._get_all_relation(Contract, 'provided')
+        if deleted:
+            return self._get_all_detached_relation(Contract, 'provided')
+        else:
+            return self._get_all_relation(Contract, 'provided')
 
     def consume(self, contract):
         """
@@ -510,13 +513,16 @@ class CommonEPG(BaseACIObject):
         self._remove_relation(contract, 'consumed')
         return True
 
-    def get_all_consumed(self):
+    def get_all_consumed(self, deleted=False):
         """
         Get all of the Contracts consumed by this EPG
 
         :returns: List of Contract objects that are consumed by the EPG.
         """
-        return self._get_all_relation(Contract, 'consumed')
+        if deleted:
+            return self._get_all_detached_relation(Contract, 'consumed')
+        else:
+            return self._get_all_relation(Contract, 'consumed')
 
     def get_interfaces(self, status='attached'):
         """
@@ -545,6 +551,12 @@ class CommonEPG(BaseACIObject):
             children.append(text)
         for contract in self.get_all_consumed():
             text = {'fvRsCons': {'attributes': {'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract in self.get_all_provided(deleted=True):
+            text = {'fvRsProv': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract in self.get_all_consumed(deleted=True):
+            text = {'fvRsCons': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
             children.append(text)
         return children
 
@@ -1476,7 +1488,6 @@ class BridgeDomain(BaseACIObject):
         :param unicast: Unicast to assign this BridgeDomain
         """
         valid_unicast = ('proxy', 'flood')
-        
         if unicast not in valid_unicast:
             raise ValueError('unknown MAC unicast must be of: %s or %s' % valid_unicast)
         self.unknown_mac_unicast = unicast
@@ -1524,7 +1535,7 @@ class BridgeDomain(BaseACIObject):
         Check if ARP flooding is enabled
         """
         return self.arp_flood == 'yes'
-    
+
     def set_unicast_route(self, route):
         """
         Set the unicast route for this BD
@@ -2377,10 +2388,9 @@ class FilterEntry(BaseACIObject):
             dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
             tDn = object_data['vzRsSubjFiltAtt']['attributes']['tDn']
             tRn = object_data['vzRsSubjFiltAtt']['attributes']['tRn']
-            if dn.split('/')[2][4:] == parent.name and dn.split('/')[4][len(apic_class) - 1:] == dn.split('/')[3][
-                                                                                                 5:] and dn.split('/')[
-                                                                                                             3][5:] == \
-                    tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
+            if dn.split('/')[2][4:] == parent.name and \
+               dn.split('/')[4][len(apic_class) - 1:] == dn.split('/')[3][5:] and \
+               dn.split('/')[3][5:] == tDn.split('/')[2][4:] and tDn.split('/')[2][4:] == tRn[4:]:
                 filter_name = str(object_data[apic_class]['attributes']['tRn'][4:])
                 contract_name = filter_name[:len(parent.name)]
                 entry_name = filter_name[len(parent.name):]
@@ -2809,7 +2819,13 @@ class Endpoint(BaseACIObject):
             if status == 'deleted':
                 obj.mark_as_deleted()
             elif with_relations:
-                obj = cls.get(session, name)[0]
+                objs = cls.get(session, name)
+                if len(objs):
+                    obj = objs[0]
+                else:
+                    # Endpoint was deleted before we could process the create
+                    # return what we what we can from the event
+                    pass
             return obj
 
     @staticmethod
@@ -2895,6 +2911,41 @@ class Endpoint(BaseACIObject):
         endpoints = Endpoint._get(session, endpoint_name, interfaces,
                                   endpoints, 'fvStCEp', 'fvRsStCEpToPathEp')
 
+        return endpoints
+
+    @classmethod
+    def get_all_by_epg(cls, session, tenant_name, app_name, epg_name, with_interface_attachments=True):
+        if with_interface_attachments:
+            raise NotImplementedError
+        query_url = ('/api/mo/uni/tn-%s/ap-%s/epg-%s.json?'
+                     'rsp-subtree=children&'
+                     'rsp-subtree-class=fvCEp,fvStCEp' % (tenant_name, app_name, epg_name))
+        ret = session.get(query_url)
+        data = ret.json()['imdata']
+        endpoints = []
+        if len(data) == 0:
+            return endpoints
+        assert len(data) == 1
+        assert 'fvAEPg' in data[0]
+        if 'children' not in data[0]['fvAEPg']:
+            return endpoints
+        endpoints_data = data[0]['fvAEPg']['children']
+        if len(endpoints_data) == 0:
+            return endpoints
+        tenant = Tenant(tenant_name)
+        app = AppProfile(app_name, tenant)
+        epg = EPG(epg_name, app)
+        for ep_data in endpoints_data:
+            if 'fvStCEp' in ep_data:
+                mac = ep_data['fvStCEp']['attributes']['mac']
+                ip = ep_data['fvStCEp']['attributes']['ip']
+            else:
+                mac = ep_data['fvCEp']['attributes']['mac']
+                ip = ep_data['fvCEp']['attributes']['ip']
+            ep = cls(str(mac), epg)
+            ep.mac = mac
+            ep.ip = ip
+            endpoints.append(ep)
         return endpoints
 
     @staticmethod

@@ -103,6 +103,8 @@ class CustomView(ModelView):
 
 
 class SiteCredentialsView(CustomView):
+    form_base_class = Form
+
     def verify_unique_sitename(form, field):
         if not collector.verify_unique_sitename(field):
             raise ValidationError('Site name must be unique')
@@ -144,17 +146,6 @@ class SiteCredentialsView(CustomView):
             for local_contract in local_contracts:
                 db.session.delete(local_contract)
             db.session.commit()
-
-    # # @action('delete', 'Delete', 'Are you sure you want to delete the selected sites?')
-    # # def action_delete(self, ids):
-    # #     print 'Called action delete'
-    # #     pass
-    #
-    # def delete_model(self, model):
-    #     print 'delete_model called'
-
-    #def get_num_sites(self):
-    #    return collector.get_num_sites()
 
     def get_title(self):
         return 'Site Credentials'

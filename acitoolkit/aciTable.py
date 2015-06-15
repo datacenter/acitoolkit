@@ -73,6 +73,7 @@ class Table(object):
         :param table_orientation: Orientation - 'Horizontal' or 'Vertical'. Default is 'Horizontal'
         """
         # TODO: make table_orientation dynamic, i.e. determined based on the number of rows vs. number of columns.
+        # TODO: make titles conform to tablefmt
         self.data = data
         self.headers = headers
         self.tablefmt = tablefmt
@@ -129,9 +130,9 @@ class Table(object):
         if table_orientation == 'vertical':
 
             if self.headers:
-                assert(len(self.headers) == len(self.data[0]),
-                       'Headers and Data have different lenghts - {0} and {1} respectively'
-                       .format(len(self.headers), len(self.data[0])))
+                assert len(self.data[0]) == len(self.headers),\
+                    'Headers and Data have different lenghts - {0} and {1} respectively'\
+                    .format(len(self.headers), len(self.data[0]))
 
             # rotate table
             table_data = []
