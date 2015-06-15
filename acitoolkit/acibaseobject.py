@@ -116,6 +116,8 @@ class BaseACIObject(AciSearch):
                      instance
         :param parent: Parent object within the acitoolkit object model.
         """
+        if isinstance(name, unicode):
+            name = str(name)
         if name is None or not isinstance(name, str):
             raise TypeError
         if isinstance(parent, str):
