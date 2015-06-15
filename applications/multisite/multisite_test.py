@@ -685,7 +685,7 @@ class TestBasicExport(unittest.TestCase):
         # TODO teardown properly
         self.teardown_export_contract()
 
-    def not_test_add_consuming_static_endpoint_on_both_sites(self):
+    def test_add_consuming_static_endpoint_on_both_sites(self):
         self.setup_export_contract()
         self.consume_exported_contract()
 

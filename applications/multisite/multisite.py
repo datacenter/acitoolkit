@@ -168,6 +168,13 @@ class EndpointJsonDB(object):
                 remote_sites.append(remote_site)
         return remote_sites
 
+    def _convert_contract_name_to_other_site(self, contract_name):
+        if ':' not in contract_name:
+            contract_name = self._local_site.name + ':' + str(contract_name)
+        else:
+            contract_name = str(contract_name).partition(':')[2]
+        return contract_name
+
     def _add_endpoint_subnet(self, tenant, endpoint, remote_site,
                              remote_contracts={}):
         network = OutsideNetwork(endpoint.name)
@@ -177,9 +184,11 @@ class EndpointJsonDB(object):
             network.network = endpoint.ip + '/32'
             if remote_site in remote_contracts:
                 for contract in remote_contracts[remote_site]['provides']:
-                    network.provide(Contract(contract, tenant))
+                    contract_name = self._convert_contract_name_to_other_site(contract)
+                    network.provide(Contract(contract_name, tenant))
                 for contract in remote_contracts[remote_site]['consumes']:
-                    network.consume(Contract(contract, tenant))
+                    contract_name = self._convert_contract_name_to_other_site(contract)
+                    network.consume(Contract(contract_name, tenant))
         outside_epg_entries = self._local_site.outside_db.get_outside_epg_entries(tenant.name,
                                                                                   remote_site)
         if len(outside_epg_entries) == 0:
@@ -230,10 +239,7 @@ class EndpointJsonDB(object):
                     remote_contracts[remote_site] = {}
                     remote_contracts[remote_site]['provides'] = []
                     remote_contracts[remote_site]['consumes'] = []
-                if contract_db_entry.is_exported():
-                    remote_contracts[remote_site]['provides'].append(contract_db_entry.contract_name)
-                else:
-                    remote_contracts[remote_site]['consumes'].append(contract_db_entry.contract_name)
+                    remote_contracts[remote_site][epgdb_entry.state].append(contract_db_entry.contract_name)
         return remote_contracts
 
     def add_endpoint(self, endpoint):
@@ -284,7 +290,7 @@ class EndpointJsonDB(object):
                 tenant = self.db[remote_site][tenant_name]
                 tenant_json = tenant.get_json()
                 self._remove_contracts_from_json(tenant_json)
-                self._local_site.contract_collector._rename_classes(tenant_json)
+                #self._local_site.contract_collector._rename_classes(tenant_json)
                 resp = self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
         self.db = {}
 
@@ -494,6 +500,7 @@ class ContractCollector(object):
     Class to collect the Contract from the APIC, along with all of the providing EPGs
     """
     classes_to_rename = {'fvRsProv': 'tnVzBrCPName',
+                         'fvRsCons': 'tnVzBrCPName',
                          'fvRsProtBy': 'tnVzTabooName',
                          'vzBrCP': 'name',
                          'vzTaboo': 'name',
@@ -588,9 +595,6 @@ class ContractCollector(object):
                 if key in ContractCollector.classes_to_rename:
                     local_name = data[key]['attributes'][ContractCollector.classes_to_rename[key]]
                     data[key]['attributes'][ContractCollector.classes_to_rename[key]] = strip_illegal_characters(self.local_site_name) + ':' + local_name
-                elif key == 'fvRsCons':
-                    if ':' in data[key]['attributes']['tnVzBrCPName']:
-                        data[key]['attributes']['tnVzBrCPName'] = data[key]['attributes']['tnVzBrCPName'].split(':')[1]
                 if 'children' in data[key]:
                     self._rename_classes(data[key]['children'])
 
