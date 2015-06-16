@@ -106,6 +106,8 @@ class SiteCredentialsView(CustomView):
     form_base_class = Form
 
     def verify_unique_sitename(form, field):
+        if not collector.verify_legal_characters(field):
+            raise ValidationError('Site name characters must be belong to the following set of characters: a-zA-Z0-9=!#$%()*,-.:;@ _{|}~?&+')
         if not collector.verify_unique_sitename(field):
             raise ValidationError('Site name must be unique')
 

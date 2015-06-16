@@ -193,7 +193,6 @@ class EndpointJsonDB(object):
                                                                                   remote_site)
         if len(outside_epg_entries) == 0:
             # Likely, a site that is not up yet or old config
-            assert False
             return
         for outside_epg_entry in outside_epg_entries:
             # TODO need to loop through outside epg names and properly handle tenant common
@@ -318,12 +317,18 @@ class MultisiteMonitor(threading.Thread):
         # contract_name = contract.name
         # TODO this needs to handle deleted contracts too and remove from ContractDB when
         # TODO contract is deleted
+        print 'handle_contract'
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
                                   subtree='full', config_only=True)
         for tenant in tenants:  # a bit overkill, since only 1 tenant should be returned
             for tag in tenant.get_tags():
                 if MultisiteTag.is_multisite_tag(tag.name):
                     mtag = MultisiteTag.fromstring(tag.name)
+                    if mtag.is_imported():
+                        # Update the list of remote l3extOuts
+                        remote_site_name = mtag.get_remote_site_name()
+                        remote_site_obj = self._local_site.my_collector.get_site(remote_site_name)
+                        self._local_site.outside_db.update_from_apic(tenant.name, remote_site_obj)
                     if contract.name == mtag.get_local_contract_name():
                         if contract.is_deleted():
                             cdb_entry = ContractDBEntry.from_multisite_tag(tenant.name, mtag)
@@ -766,6 +771,9 @@ class ContractDBEntry(object):
         if remote_site not in self.remote_sites:
             self.remote_sites.append(remote_site)
 
+    def remove_remote_site(self, remote_site_name):
+        self.remote_sites.remove(remote_site_name)
+
     def get_remote_sites_as_string(self):
         resp = ''
         for remote_site in self.remote_sites:
@@ -893,6 +901,8 @@ class OutsideDB(MultisiteDB):
         if remote_site_obj is not None:
             self.update_from_apic(tenant_name, remote_site_obj)
             return self._get_entries(search_entry)
+        else:
+            return []
 
     # def has_entry(self, tenant_name, remote_site_name):
     #     return tenant_name in self._db
@@ -1031,7 +1041,7 @@ class LocalSite(Site):
                 print 'MISSING: ', db_entry.tenant_name, db_entry.contract_name
         print 'contract_count', contract_count, len(self.contract_db.find_all())
 
-        assert contract_count == len(self.contract_db.find_all())
+        # assert contract_count == len(self.contract_db.find_all())
 
     def get_contracts(self):
         return self.contract_db.find_all()
@@ -1246,9 +1256,15 @@ class LocalSite(Site):
                     self.outside_db.update_from_apic(str(tenant_name), remote_site_obj)
 
         # compare old site list with new for sites no longer being exported to
+        removed_site_names = []
         for old_site in old_entry.remote_sites:
             if old_site not in remote_sites:
                 self.unexport_contract(contract_name, tenant_name, old_site)
+                removed_site_names.append(old_site)
+
+        # Remove the unexported sites from the ContractDBEntry
+        for removed_site in removed_site_names:
+            old_entry.remove_remote_site(removed_site)
 
         # update the ContractDB
         for problem_site in problem_sites:
@@ -1256,6 +1272,9 @@ class LocalSite(Site):
         for remote_site in remote_sites:
             mtag = MultisiteTag(contract_name, 'exported', remote_site)
             old_entry.add_remote_site(mtag)
+        if len(remote_sites) == 0:
+            # Contract has been unexported from all sites
+            old_entry.export_state = 'local'
 
         # Update the EPG DB
         self._populate_epgs_from_apic()
@@ -1280,6 +1299,11 @@ class MultisiteCollector(object):
         item = str(item).split('value="')[1]
         item = item.split('"')[0]
         return item
+
+    def verify_legal_characters(self, site_name):
+        site_name = self._extract_value(site_name)
+        num_chars = len(site_name)
+        return num_chars == len(strip_illegal_characters(site_name))
 
     def verify_unique_sitename(self, site_name):
         site_name = self._extract_value(site_name)
