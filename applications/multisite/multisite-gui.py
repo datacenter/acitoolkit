@@ -335,6 +335,9 @@ def build_db():
 
 def update_contract_db():
     local_site = collector.get_local_site()
+    if local_site is None:
+        flash('No local site credentials configured')
+        return
     contract_db = local_site.get_contracts()
     SiteContracts.query.delete()
     db.session.commit()
@@ -349,6 +352,9 @@ def update_contract_db():
 
 def update_epg_db():
     local_site = collector.get_local_site()
+    if local_site is None:
+        flash('No local site credentials configured')
+        return
     epg_db = local_site.get_epgs()
     SiteEpgs.query.delete()
     db.session.commit()
@@ -365,6 +371,8 @@ def update_db(site):
     if not site.local:
         return
     local_site = collector.get_site(site.site_name)
+    if local_site is None:
+        return
 
     # TODO initialize the info from APIC but should learn to rely on Monitor and use a callback to update GUI db
     local_site.initialize_from_apic()
