@@ -157,34 +157,9 @@ class FakeSession(Session):
             return resp
         tenant_query = '/api/mo/uni/tn-'
         if url.startswith(tenant_query) and subtree_class_query in url:
-            tenant_name = url.split(tenant_query)[1]
-            tenant_name = tenant_name.split(subtree_class_query)[0]
-            subtree_class = url.split(subtree_class_query)[1]
-            if '/' in tenant_name:
-                name = tenant_name.split('/')
-                tenant_name = name[0]
-                bd_name = name[1]
-                if '/' in bd_name:
-                    print url
-                    raise NotImplementedError
-                search_db = []
-                self._get_class('fvTenant', search_db, self.db,
-                                with_children=True,
-                                with_name=tenant_name)
-                bd_search_db = []
-                self._get_class('fvBD', bd_search_db, search_db,
-                                with_children=True,
-                                with_name=bd_name)
-                resp = []
-                self._get_class(subtree_class, resp, bd_search_db)
-                return resp
-            search_db = []
-            self._get_class('fvTenant', search_db, self.db,
-                            with_children=True,
-                            with_name=tenant_name)
-            resp = []
-            self._get_class(subtree_class, resp, search_db)
-            return resp
+            url_query = '/api/mo/uni/'
+            class_names, _, subtree_class = url.partition(url_query)[-1].partition(subtree_class_query)
+            return self._get_config_data(class_names, self.db, subtree_class)
         object_subtree_query = '.json?query-target=self&rsp-subtree=full'
         if url.startswith(tenant_query) and object_subtree_query in url:
             tenant_name = url.split(tenant_query)[1]
@@ -199,6 +174,51 @@ class FakeSession(Session):
         else:
             raise NotImplementedError
         
+    def _get_config_data (self, class_names, db, subtree_class):
+        """
+        Gets class data based on the class names, 
+        and the parent data. 
+
+        Example class_names: 'tn-Tenant12/ap-myApp9'
+        Example subtree_class: 'fvAEPg'
+
+        :param class_names: The class names to get data from
+        :param db: The data from the parent class
+        :param subtree_class: The last class to get data from
+        :return: Class data from the subtree_class 
+        """
+        new_db = []
+        class_name, _, class_names = class_names.partition('/')
+        
+        if not class_name:
+            self._get_class(subtree_class, new_db, db)
+            return new_db
+        class_name, new_id = self._get_class_name(class_name)
+        self._get_class(new_id, new_db, db, with_children=True,
+                        with_name=class_name)
+        return self._get_config_data(class_names, new_db, subtree_class)
+
+    def _get_class_name(self, cln):
+        """
+        Extracts the class name from the class name prefix and returns a
+        tuple with the class name and its class.
+
+        Example cln: 'tn-Tenant12'
+        
+        :param cln: The class name prefix with the class name
+        :return: The class name with its class
+        """
+        cln_dct = {
+            'tn-': 'fvTenant',
+            'ap-': 'fvAp',
+            'BD-': 'fvBD'
+        }
+        for k, v in cln_dct.iteritems():
+            if cln.startswith(k):
+                return (cln.partition(k)[-1], v)
+        error = 'This class prefix and name is not in the dict: {}'.format(cln)
+        raise NotImplementedError(error)
+
     def _fill_dn(self, children, parent_dn):
         """
         Recursively fill in the distinguished name (dn) for the configuration 
