@@ -50,7 +50,7 @@ class MultisiteTag(object):
             assert len(names) == 2
             contract_name = names[1]
         self._contract_name = contract_name
-        assert export_state in ['imported', 'exported', 'local']
+        #assert export_state in ['imported', 'exported', 'local']
         self._export_state = export_state
         self._remote_site = remote_site
 
@@ -98,6 +98,16 @@ class MultisiteTag(object):
         :returns: True if the export state is 'imported'.  False, otherwise.
         """
         if self._export_state == 'imported':
+            return True
+        return False
+
+    def is_exported(self):
+        """
+        Checks if the multisite tag is exported.
+
+        :returns: True if the export state is 'exported'.  False, otherwise.
+        """
+        if self._export_state == 'exported':
             return True
         return False
 
@@ -182,6 +192,13 @@ class EndpointJsonDB(object):
             network.mark_as_deleted()
         else:
             network.network = endpoint.ip + '/32'
+
+            # Tag the l3extInstP with the EPG and site name
+            epg = endpoint.get_parent()
+            app = epg.get_parent()
+            ntag = MultisiteTag(epg.name, app.name, self._local_site.name)
+            network.add_tag(str(ntag))
+
             if remote_site in remote_contracts:
                 for contract in remote_contracts[remote_site]['provides']:
                     contract_name = self._convert_contract_name_to_other_site(contract)
@@ -314,10 +331,6 @@ class MultisiteMonitor(threading.Thread):
         self._exit = True
 
     def handle_contract(self, tenant_name, contract):
-        # contract_name = contract.name
-        # TODO this needs to handle deleted contracts too and remove from ContractDB when
-        # TODO contract is deleted
-        print 'handle_contract'
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
                                   subtree='full', config_only=True)
         for tenant in tenants:  # a bit overkill, since only 1 tenant should be returned
@@ -331,6 +344,8 @@ class MultisiteMonitor(threading.Thread):
                         self._local_site.outside_db.update_from_apic(tenant.name, remote_site_obj)
                     if contract.name == mtag.get_local_contract_name():
                         if contract.is_deleted():
+                            if mtag.is_exported():
+                                self._local_site.unexport_contract(contract.name, tenant_name, mtag.get_remote_site_name())
                             cdb_entry = ContractDBEntry.from_multisite_tag(tenant.name, mtag)
                             self._local_site.contract_db.remove_entry(cdb_entry)
                             return None
@@ -351,7 +366,6 @@ class MultisiteMonitor(threading.Thread):
         if cdb_entry is None:
             # Check tenant common for the contract
             cdb_entry = self._local_site.contract_db.find_entry('common', contract_name)
-            assert cdb_entry is not None
         return cdb_entry
 
     def handle_contract_relation_event(self, event, apic_class, apic_dn_class):
@@ -370,7 +384,9 @@ class MultisiteMonitor(threading.Thread):
 
         # Get the ContractDB entry
         cdb_entry = self._get_local_contractdb_entry(tenant_name, contract_name)
-
+        if cdb_entry is None:
+            # Contract must have been deleted
+            return
         # If this is local only contract, ignore it
         if cdb_entry.is_local():
             return
