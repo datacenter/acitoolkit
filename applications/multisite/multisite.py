@@ -3,6 +3,9 @@ import json
 import re
 import threading
 
+# Imports from standalone mode
+import argparse
+
 # TODO documentation
 # TODO docstrings
 
@@ -1396,7 +1399,88 @@ def main():
 
     :return: None
     """
-    pass
+    parser = argparse.ArgumentParser(description='ACI Multisite Tool')
+    parser.add_argument('--config', default=None, help='Configuration file')
+    parser.add_argument('--generateconfig', action='store_true', default=False,
+                        help='Generate an empty example configuration file')
+    args = parser.parse_args()
+
+    if args.generateconfig:
+        config = {'config': [{'site': {'name': '',
+                                       'ip_address': '',
+                                       'username': '',
+                                       'password': '',
+                                       'use_https': '',
+                                       'local': ''}},
+                             {'export': {'contract': '',
+                                         'tenant': '',
+                                         'sites': [{'site': {'name': ''}}]}}]}
+
+        json_data = json.dumps(config, indent=4, separators=(',', ':'))
+        config_file = open('sample_config.json', 'w')
+        print 'Sample configuration file written to sample_config.json'
+        print "Replicate the site JSON for each site."
+        print "    Valid values for use_https and local are 'True' and 'False'"
+        print "    One site must have local set to 'True'"
+        print 'Replicate the export JSON for each exported contract.'
+        config_file.write(json_data)
+        config_file.close()
+        return
+
+    if args.config is None:
+        print '%% No configuration file given.'
+        parser.print_help()
+        return
+
+    with open(args.config) as config_file:
+        config = json.load(config_file)
+    if 'config' not in config:
+        print '%% Invalid configuration file'
+        return
+
+    collector = MultisiteCollector()
+
+    # Configure all of the sites
+    for site in config['config']:
+        if 'site' in site:
+            if site['site']['use_https'] == 'True':
+                use_https = True
+            else:
+                use_https = False
+            creds = SiteLoginCredentials(site['site']['ip_address'],
+                                         site['site']['username'],
+                                         site['site']['password'],
+                                         use_https)
+            if site['site']['local'] == 'True':
+                is_local = True
+            else:
+                is_local = False
+            collector.add_site(site['site']['name'],
+                               creds,
+                               is_local)
+
+    # Initialize the local site
+    local_site = collector.get_local_site()
+    if local_site is None:
+        print '%% No local site configured'
+        return
+    local_site.initialize_from_apic()
+
+    # Export all of the configured exported contracts
+    for contract in config['config']:
+        if 'export' in contract:
+            remote_sites = []
+            for remote_site in contract['export']['sites']:
+                remote_sites.append(remote_site['site']['name'])
+            local_site.export_contract(contract['export']['contract'],
+                                       contract['export']['tenant'],
+                                       remote_sites)
+
+    # Just wait, add any CLI here
+    while True:
+        pass
+
+    #print json.dumps(config, indent=4, separators=(',', ':'))
 
 if __name__ == '__main__':
     try:
