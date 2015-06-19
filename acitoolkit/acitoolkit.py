@@ -977,8 +977,15 @@ class OutsideEPG(CommonEPG):
                 network_obj = OutsideNetwork(network)
                 network_obj.network = network
                 network = network_obj
+            tags_json = []
+            if network.has_tags():
+                for tag in network.get_tags():
+                    tag_json = {'tagInst': {'attributes': {'name': tag.name}}}
+                    if tag.is_deleted():
+                        tag_json['tagInst']['attributes']['status'] = 'deleted'
+                    tags_json.append(tag_json)
             text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
-                                   'children': []}}
+                                   'children': tags_json}}
             subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
                                       'children': []}}
             if network.is_deleted():
