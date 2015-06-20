@@ -147,6 +147,7 @@ class ConcreteArp(BaseACIPhysObject):
         :param dn:
         """
         data = working_data.get_subtree('arpAdjEp', dn)
+        entry = {}
         for datum in data:
 
             entry = {'interface_id': datum['arpAdjEp']['attributes']['ifId'],
@@ -227,8 +228,11 @@ class ConcreteArp(BaseACIPhysObject):
                     if entry['physical_interface'] is not None:
                         result.append(Searchable('interface', entry['physical_interface']))
             if domain['name']:
-                result.append(Searchable('context', domain['name'], 'indirect'))
+                result.append(Searchable('context', domain['context'], 'indirect'))
                 result.append(Searchable('name', domain['name'], 'primary'))
+            if domain['tenant']:
+                result.append(Searchable('tenant', domain['tenant'], 'indirect'))
+
         return result
 
     def __str__(self):
@@ -2713,11 +2717,12 @@ class ConcreteOverlay(BaseACIPhysObject):
     def __eq__(self, other):
 
         """
-        Checks that the interfaces are equal
+        Checks that the overlays are equal
         :param other:
         :return: True if equal
         """
         if type(self) != type(other):
             return False
-
+        if self.get_parent() != other.get_parent():
+            return False
         return self.attr.get('dn') == other.attr.get('dn')
