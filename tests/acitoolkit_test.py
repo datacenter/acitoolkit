@@ -43,13 +43,12 @@ try:
     from credentials import *
 except ImportError:
     print
-    print 'Please create a credentials.py file with the following variables filled in:'
+    print 'To run live tests, please create a credentials.py file with the following variables filled in:'
     print """
     URL = ''
     LOGIN = ''
     PASSWORD = ''
     """
-    sys.exit(0)
 
 MAX_RANDOM_STRING_SIZE = 20
 
