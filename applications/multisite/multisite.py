@@ -440,6 +440,8 @@ class MultisiteMonitor(threading.Thread):
                     # Next, mark as deleted
                     if len(data):
                         for item in data:
+                            if apic_class not in item:
+                                continue
                             # Delete the fvRsProv/fvRsCons on the remote l3extInstPs
                             dn = '/api/mo/' + item[apic_class]['attributes']['dn'] + '.json'
                             data_json = {apic_class: {'attributes': {'status': 'deleted'}}}

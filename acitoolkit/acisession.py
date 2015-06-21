@@ -365,6 +365,9 @@ class Session(object):
         self.login_thread.start()
         return resp
 
+    def close(self):
+        self.session.close()
+
     def subscribe(self, url):
         """
         Subscribe to events for a particular URL.  Used internally by the
