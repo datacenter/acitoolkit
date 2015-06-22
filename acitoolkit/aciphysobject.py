@@ -2568,13 +2568,21 @@ class WorkingData(object):
 
                     # fix apparent bug in APIC where multiple nodes are returned for the APIC node
                     if apic_class == 'fabricNode':
-                        if item['fabricNode']['attributes']['role'] in ['leaf', 'spine']:
+                        if item[apic_class]['attributes']['role'] in ['leaf', 'spine']:
                             self.by_class[apic_class].append(item)
                         else:
-                            if (item['fabricNode']['attributes']['role'] == 'controller') \
+                            if (item[apic_class]['attributes']['role'] == 'controller') \
                                     and (item not in self.by_class[apic_class]):
-                            #if item not in self.by_class[apic_class]:
-                                self.by_class[apic_class].append(item)
+
+                                # look through all the objects in 'fabricNode' class and only insert if
+                                # this controller not already there.
+                                found = False
+                                for item_in_class in self.by_class[apic_class] :
+                                    if item[apic_class]['attributes']['dn'] == item_in_class[apic_class]['attributes']['dn']:
+                                        found = True
+                                        break
+                                if not found:
+                                    self.by_class[apic_class].append(item)
 
                     else:
                         self.by_class[apic_class].append(item)
