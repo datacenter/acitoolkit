@@ -134,59 +134,59 @@ class FakeSession(Session):
             raise NotImplementedError('url: ' + url)
         return root_n, root_cl, cl_n, cl, query_target, rsp_subtree, target_classes
     
-    def _get_class(self, children, resp, cl_n, cl, root=False):
+    def _get_class(self, db, resp, cl_n, cl, root=False):
         """
         """
-        for kid in children:
-            for node in kid:
-                attributes = kid[node]['attributes']
-                if attributes.get('name'):
-                    valid_name = (cl_n == attributes['name'])
-                    valid_class = (node == cl)
-                    if (valid_class and valid_name) or root:
-                        resp.append(kid)
-                if kid[node].get('children'):
-                    kids = kid[node]['children']
-                    self._get_class(kids, resp, cl_n, cl, root)
+        for node in db:
+            node_cl, contents = next(node.iteritems())
+            attributes = contents['attributes']
+            if attributes.get('name'):
+                valid_name = (cl_n == attributes['name'])
+                valid_class = (node_cl == cl)
+                if (valid_class and valid_name) or root:
+                    resp.append(node)
+            if contents.get('children'):
+                kids = contents['children']
+                self._get_class(kids, resp, cl_n, cl, root)
         
     def _query_target_data(self, db, resp, q_target='self', cl=None, depth=0):
         """
         """
         if q_target != 'self':
-            for nodes in db:
-                for node in nodes:
-                    if node == cl and (depth == 1 or q_target == 'subtree'):
-                        resp.append(nodes)
-                    if nodes[node].get('children'):
-                        children = nodes[node]['children']
-                        #  if we're not looking for a target-subtree-class
-                        if not cl and q_target in ('children', 'subtree'):
-                            resp.extend(children)
-                        if q_target in ('subtree', 'children'):
-                            if q_target == 'children':
-                                #  go only 1 recursive call if the query target is children
-                                q_target, depth = (None, 1)
-                            self._query_target_data(children, resp, q_target, cl, depth)
+            for node in db:
+                node_cl, contents = next(node.iteritems())
+                if node_cl == cl and (depth == 1 or q_target == 'subtree'):
+                    resp.append(node)
+                if contents.get('children'):
+                    children = contents['children']
+                    #  if we're not looking for a target-subtree-class
+                    if not cl and q_target in ('children', 'subtree'):
+                        resp.extend(children)
+                    if q_target in ('subtree', 'children'):
+                        if q_target == 'children':
+                            #  go only 1 recursive call if the query target is children
+                            q_target, depth = (None, 1)
+                        self._query_target_data(children, resp, q_target, cl, depth)
 
     def _rsp_subtree_data(self, db, rsp_subtree='no'):
         """
         """
         if rsp_subtree != 'full':
             resp = []
-            for nodes in db:
-                for node in nodes:
-                    # make a deep copy to avoid deleting other nodes
-                    class_name = deepcopy(nodes[node])
-                    ret = {}
-                    ret[node] = {}
-                    ret[node]['attributes'] = class_name['attributes']
-                    has_children = class_name.get('children')
-                    #  check if the response asks for only direct children
-                    if rsp_subtree == 'children' and has_children:
-                        ret[node]['children'] = class_name['children']
-                        #  delete for subchildren
-                        self._delete_subchildren(ret[node]['children'])
-                    resp.append(ret)
+            for node in db:
+                node_cl, contents = next(node.iteritems())
+                # make a deep copy to avoid deleting other node
+                node_cl_copy = deepcopy(node[node_cl])
+                ret = {}
+                ret[node_cl] = {}
+                ret[node_cl]['attributes'] = node_cl_copy['attributes']
+                has_children = node_cl_copy.get('children')
+                #  check if the response asks for only direct children
+                if rsp_subtree == 'children' and has_children:
+                    ret[node_cl]['children'] = node_cl_copy['children']
+                    #  delete for subchildren
+                    self._delete_subchildren(ret[node_cl]['children'])
+                resp.append(ret)
             return resp
         return db
 
@@ -195,9 +195,9 @@ class FakeSession(Session):
 
         """
         for child in children:
-            for subchild in child:
-                if child[subchild].get('children'):
-                    del child[subchild]['children']
+            _, contents = next(child.iteritems())
+            if contents.get('children'):
+                del contents['children']
             
     def _get_class_name(self, cln):
         """
