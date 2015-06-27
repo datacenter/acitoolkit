@@ -3,6 +3,9 @@ import json
 import re
 import threading
 
+# Imports from standalone mode
+import argparse
+
 # TODO documentation
 # TODO docstrings
 
@@ -50,7 +53,7 @@ class MultisiteTag(object):
             assert len(names) == 2
             contract_name = names[1]
         self._contract_name = contract_name
-        assert export_state in ['imported', 'exported', 'local']
+        #assert export_state in ['imported', 'exported', 'local']
         self._export_state = export_state
         self._remote_site = remote_site
 
@@ -98,6 +101,16 @@ class MultisiteTag(object):
         :returns: True if the export state is 'imported'.  False, otherwise.
         """
         if self._export_state == 'imported':
+            return True
+        return False
+
+    def is_exported(self):
+        """
+        Checks if the multisite tag is exported.
+
+        :returns: True if the export state is 'exported'.  False, otherwise.
+        """
+        if self._export_state == 'exported':
             return True
         return False
 
@@ -182,6 +195,13 @@ class EndpointJsonDB(object):
             network.mark_as_deleted()
         else:
             network.network = endpoint.ip + '/32'
+
+            # Tag the l3extInstP with the EPG and site name
+            epg = endpoint.get_parent()
+            app = epg.get_parent()
+            ntag = MultisiteTag(epg.name, app.name, self._local_site.name)
+            network.add_tag(str(ntag))
+
             if remote_site in remote_contracts:
                 for contract in remote_contracts[remote_site]['provides']:
                     contract_name = self._convert_contract_name_to_other_site(contract)
@@ -314,10 +334,6 @@ class MultisiteMonitor(threading.Thread):
         self._exit = True
 
     def handle_contract(self, tenant_name, contract):
-        # contract_name = contract.name
-        # TODO this needs to handle deleted contracts too and remove from ContractDB when
-        # TODO contract is deleted
-        print 'handle_contract'
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
                                   subtree='full', config_only=True)
         for tenant in tenants:  # a bit overkill, since only 1 tenant should be returned
@@ -331,6 +347,8 @@ class MultisiteMonitor(threading.Thread):
                         self._local_site.outside_db.update_from_apic(tenant.name, remote_site_obj)
                     if contract.name == mtag.get_local_contract_name():
                         if contract.is_deleted():
+                            if mtag.is_exported():
+                                self._local_site.unexport_contract(contract.name, tenant_name, mtag.get_remote_site_name())
                             cdb_entry = ContractDBEntry.from_multisite_tag(tenant.name, mtag)
                             self._local_site.contract_db.remove_entry(cdb_entry)
                             return None
@@ -351,7 +369,6 @@ class MultisiteMonitor(threading.Thread):
         if cdb_entry is None:
             # Check tenant common for the contract
             cdb_entry = self._local_site.contract_db.find_entry('common', contract_name)
-            assert cdb_entry is not None
         return cdb_entry
 
     def handle_contract_relation_event(self, event, apic_class, apic_dn_class):
@@ -370,7 +387,9 @@ class MultisiteMonitor(threading.Thread):
 
         # Get the ContractDB entry
         cdb_entry = self._get_local_contractdb_entry(tenant_name, contract_name)
-
+        if cdb_entry is None:
+            # Contract must have been deleted
+            return
         # If this is local only contract, ignore it
         if cdb_entry.is_local():
             return
@@ -421,6 +440,8 @@ class MultisiteMonitor(threading.Thread):
                     # Next, mark as deleted
                     if len(data):
                         for item in data:
+                            if apic_class not in item:
+                                continue
                             # Delete the fvRsProv/fvRsCons on the remote l3extInstPs
                             dn = '/api/mo/' + item[apic_class]['attributes']['dn'] + '.json'
                             data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
@@ -1380,7 +1401,88 @@ def main():
 
     :return: None
     """
-    pass
+    parser = argparse.ArgumentParser(description='ACI Multisite Tool')
+    parser.add_argument('--config', default=None, help='Configuration file')
+    parser.add_argument('--generateconfig', action='store_true', default=False,
+                        help='Generate an empty example configuration file')
+    args = parser.parse_args()
+
+    if args.generateconfig:
+        config = {'config': [{'site': {'name': '',
+                                       'ip_address': '',
+                                       'username': '',
+                                       'password': '',
+                                       'use_https': '',
+                                       'local': ''}},
+                             {'export': {'contract': '',
+                                         'tenant': '',
+                                         'sites': [{'site': {'name': ''}}]}}]}
+
+        json_data = json.dumps(config, indent=4, separators=(',', ':'))
+        config_file = open('sample_config.json', 'w')
+        print 'Sample configuration file written to sample_config.json'
+        print "Replicate the site JSON for each site."
+        print "    Valid values for use_https and local are 'True' and 'False'"
+        print "    One site must have local set to 'True'"
+        print 'Replicate the export JSON for each exported contract.'
+        config_file.write(json_data)
+        config_file.close()
+        return
+
+    if args.config is None:
+        print '%% No configuration file given.'
+        parser.print_help()
+        return
+
+    with open(args.config) as config_file:
+        config = json.load(config_file)
+    if 'config' not in config:
+        print '%% Invalid configuration file'
+        return
+
+    collector = MultisiteCollector()
+
+    # Configure all of the sites
+    for site in config['config']:
+        if 'site' in site:
+            if site['site']['use_https'] == 'True':
+                use_https = True
+            else:
+                use_https = False
+            creds = SiteLoginCredentials(site['site']['ip_address'],
+                                         site['site']['username'],
+                                         site['site']['password'],
+                                         use_https)
+            if site['site']['local'] == 'True':
+                is_local = True
+            else:
+                is_local = False
+            collector.add_site(site['site']['name'],
+                               creds,
+                               is_local)
+
+    # Initialize the local site
+    local_site = collector.get_local_site()
+    if local_site is None:
+        print '%% No local site configured'
+        return
+    local_site.initialize_from_apic()
+
+    # Export all of the configured exported contracts
+    for contract in config['config']:
+        if 'export' in contract:
+            remote_sites = []
+            for remote_site in contract['export']['sites']:
+                remote_sites.append(remote_site['site']['name'])
+            local_site.export_contract(contract['export']['contract'],
+                                       contract['export']['tenant'],
+                                       remote_sites)
+
+    # Just wait, add any CLI here
+    while True:
+        pass
+
+    #print json.dumps(config, indent=4, separators=(',', ':'))
 
 if __name__ == '__main__':
     try:

@@ -25,8 +25,12 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
+"""
+A table class that allows data and headers to be added to the class and then a nicely formatted table
+retrieved from the class.
+
+"""
 from tabulate import tabulate
-import copy
 
 
 class Table(object):

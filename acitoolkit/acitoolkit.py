@@ -176,14 +176,15 @@ class Tenant(BaseACIObject):
             ret._content = ret._content.replace("\\\'", "'")
 
             data = ret.json()['imdata']
-            obj = super(Tenant, cls).get_deep(full_data=data,
-                                              working_data=data,
-                                              parent=None,
-                                              limit_to=limit_to,
-                                              subtree=subtree,
-                                              config_only=config_only)
-            obj._extract_relationships(data)
-            resp.append(obj)
+            if len(data):
+                obj = super(Tenant, cls).get_deep(full_data=data,
+                                                  working_data=data,
+                                                  parent=None,
+                                                  limit_to=limit_to,
+                                                  subtree=subtree,
+                                                  config_only=config_only)
+                obj._extract_relationships(data)
+                resp.append(obj)
         return resp
 
     @classmethod
@@ -977,8 +978,15 @@ class OutsideEPG(CommonEPG):
                 network_obj = OutsideNetwork(network)
                 network_obj.network = network
                 network = network_obj
+            tags_json = []
+            if network.has_tags():
+                for tag in network.get_tags():
+                    tag_json = {'tagInst': {'attributes': {'name': tag.name}}}
+                    if tag.is_deleted():
+                        tag_json['tagInst']['attributes']['status'] = 'deleted'
+                    tags_json.append(tag_json)
             text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
-                                   'children': []}}
+                                   'children': tags_json}}
             subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
                                       'children': []}}
             if network.is_deleted():

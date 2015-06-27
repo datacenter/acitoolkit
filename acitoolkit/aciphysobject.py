@@ -946,7 +946,9 @@ class Node(BaseACIPhysObject):
         """
         resp = ['fabricNode','firmwareCardRunning', 'topSystem', 'vpcInst','vpcDom',
                 'eqptCh','l1PhysIf','eqptFtSlot','eqptLCSlot','eqptPsuSlot',
-                'eqptSupCSlot','topoctrlLbP','topoctrlVxlanP']
+                'eqptSupCSlot','topoctrlLbP',
+                #'topoctrlVxlanP'
+                ]
         return resp
 
     def get_role(self):
@@ -1013,13 +1015,28 @@ class Node(BaseACIPhysObject):
         if node_id:
             node_dn = 'topology/pod-{0}/node-{1}'.format(pod_id, node_id)
             base_url = '/api/mo/' + node_dn + '.json?'
-        else:
-            base_url = '/api/node/class/fabricNode.json?'
+            working_data = WorkingData(session, Node, base_url)
 
-        working_data = WorkingData(session, Node, base_url)
+        else:
+            class_url = '/api/node/class/fabricNode.json?'
+            ret = session.get(class_url)
+            ret._content = ret._content.replace('\n', '')
+            data = ret.json()['imdata']
+            working_data = WorkingData()
+            for item in data:
+                if 'fabricNode' in item:
+                    if 'role' in item['fabricNode']['attributes']:
+                        if item['fabricNode']['attributes']['role'] in ['leaf', 'spine',  'controller']:
+
+                            node_dn = item['fabricNode']['attributes']['dn']
+                            base_url = '/api/mo/' + node_dn + '.json?'
+                            working_data.add(session, Node, base_url)
+
+            # base_url = '/api/mo/topology/pod-{0}.json?'.format(pod_id)
 
         nodes = []
-        for apic_node in working_data.rawjson:
+        data = working_data.get_class('fabricNode')
+        for apic_node in data:
             if 'fabricNode' in apic_node:
                 dist_name = str(apic_node['fabricNode']['attributes']['dn'])
                 node_name = str(apic_node['fabricNode']['attributes']['name'])
@@ -1086,8 +1103,10 @@ class Node(BaseACIPhysObject):
             data = ret.json()['imdata']
             if data:
                 if 'topSystem' in data[0]:
-                    self.health = data[0]['topSystem']['children'][0]['fabricNodeHealth5min'] \
-                        ['attributes']['healthLast']
+                    if 'children' in data[0]['topSystem']:
+                        if 'fabricNodeHealth5Min' in data[0]['topSystem']['children'][0]:
+                            self.health = data[0]['topSystem']['children'][0]['fabricNodeHealth5min']\
+                                ['attributes']['healthLast']
 
     def _add_vpc_info(self, working_data):
         """
@@ -1245,10 +1264,10 @@ class Node(BaseACIPhysObject):
                 # get vxlan info
                 self.ivxlan_udp_port = 'unknown'
 
-                node_data = working_data.get_subtree('topoctrlVxlanP', self.dn + '/sys')
-                for info in node_data:
-                    if 'topoctrlVxlanP' in info:
-                        self.ivxlan_udp_port = info['topoctrlVxlanP']['attributes']['udpPort']
+                #node_data = working_data.get_subtree('topoctrlVxlanP', self.dn + '/sys')
+                #for info in node_data:
+                #    if 'topoctrlVxlanP' in info:
+                #        self.ivxlan_udp_port = info['topoctrlVxlanP']['attributes']['udpPort']
 
     def populate_children(self, deep=False, include_concrete=False):
         """Will populate all of the children modules such as
@@ -1344,13 +1363,18 @@ class Node(BaseACIPhysObject):
                           str(switch.num_ps_slots) + '(' + str(switch.num_ps_modules) + ')',
                           switch.system_uptime,
                           switch.dynamic_load_balancing_mode])
+        if len(table) > 7:
+            table_orientation = 'horizontal'
+        else:
+            table_orientation = 'vertical'
+
         if len(table) > 3:
             columns = 1
         else:
             columns = 2
         result = [Table(table, headers,
                         title=str(title) + '' if (title != '') else '' + 'Basic Information',
-                        table_orientation='vertical', columns=columns)]
+                        table_orientation=table_orientation, columns=columns)]
         return result
 
     def _define_searchables(self):
@@ -2485,11 +2509,32 @@ class WorkingData(object):
     as a single object.
     """
 
-    def __init__(self, session, toolkit_class, url, deep=False, include_concrete=False):
-        self.session = session
+    def __init__(self, session = None, toolkit_class=None, url=None, deep=False, include_concrete=False):
 
         self.by_class = {}
         self.by_dn = {}
+        self.vnid_dict = {}
+        self.ctx_dict = {}
+        self.bd_dict = {}
+        self.rawjson = {}
+        self.session = session
+        self.add(session, toolkit_class, url, deep, include_concrete)
+
+    def add(self, session = None, toolkit_class=None, url=None, deep=False, include_concrete=False):
+
+        """
+
+        :param session:
+        :param toolkit_class:
+        :param url:
+        :param deep:
+        :param include_concrete:
+        :return:
+        """
+        self.session = session
+        if session is None:
+            return
+
         if deep:
             apic_classes = toolkit_class.get_deep_apic_classes(include_concrete=include_concrete)
         else:
@@ -2499,6 +2544,7 @@ class WorkingData(object):
         ret = session.get(query_url)
         ret._content = ret._content.replace('\n', '')
         data = ret.json()['imdata']
+
         if data:
             self.rawjson = ret.json()['imdata']
         else:
@@ -2507,37 +2553,40 @@ class WorkingData(object):
         if 'error' not in self.rawjson:
             self._index_objects()
 
-            self.vnid_dict = {}
-            self.ctx_dict = {}
-            self.bd_dict = {}
-
             self.build_vnid_dictionary()
 
     def _index_objects(self):
-        """
-        This will go throught the object tree and
-        add absolute dns to each object
-
-        create a dictionary indexed by dn that points to each object dictionary
-
-        create a dictionary indexed by class name that
-        has a list of objects of that class.
-        """
-        self.by_class = {}
-        self.by_dn = {}
-
-        self._index_by_dn_class()
-
-    def _index_by_dn_class(self):
         """
         Will index the json by dn and by class for easy reference
         """
         for item in self.rawjson:
             for apic_class in item:
-                self.by_dn[item[apic_class]['attributes']['dn']] = item
-                if apic_class not in self.by_class:
-                    self.by_class[apic_class] = []
-                self.by_class[apic_class].append(item)
+                if apic_class != u'error':
+                    self.by_dn[item[apic_class]['attributes']['dn']] = item
+                    if apic_class not in self.by_class:
+                        self.by_class[apic_class] = []
+
+                    # fix apparent bug in APIC where multiple nodes are returned for the APIC node
+                    if apic_class == 'fabricNode':
+                        if item[apic_class]['attributes']['role'] in ['leaf', 'spine']:
+                            self.by_class[apic_class].append(item)
+                        else:
+                            if (item[apic_class]['attributes']['role'] == 'controller') \
+                                    and (item not in self.by_class[apic_class]):
+
+                                # look through all the objects in 'fabricNode' class and only insert if
+                                # this controller not already there.
+                                found = False
+                                for item_in_class in self.by_class[apic_class] :
+                                    if item[apic_class]['attributes']['dn'] == item_in_class[apic_class]['attributes']['dn']:
+                                        found = True
+                                        break
+                                if not found:
+                                    self.by_class[apic_class].append(item)
+
+                    else:
+                        self.by_class[apic_class].append(item)
+
 
     def get_class(self, class_name):
         """
@@ -2597,7 +2646,10 @@ class WorkingData(object):
             else:
                 class_id = 'l3Inst'
 
-            vnid = str(ctx[class_id]['attributes']['encap'].split('-')[1])
+            if '-' in ctx[class_id]['attributes']['encap']:
+                vnid = str(ctx[class_id]['attributes']['encap'].split('-')[1])
+            else:
+                vnid = str(ctx[class_id]['attributes']['encap'])
             name = str(ctx[class_id]['attributes']['name'])
             record = {'name': name, 'type': 'context'}
             self.vnid_dict[vnid] = record

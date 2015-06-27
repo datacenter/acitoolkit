@@ -108,12 +108,13 @@ class SiteCredentialsView(CustomView):
     def verify_unique_sitename(form, field):
         if not collector.verify_legal_characters(field):
             raise ValidationError('Site name characters must be belong to the following set of characters: a-zA-Z0-9=!#$%()*,-.:;@ _{|}~?&+')
-        if not collector.verify_unique_sitename(field):
-            raise ValidationError('Site name must be unique')
+        #if not collector.verify_unique_sitename(field):
+        #    raise ValidationError('Site name must be unique')
 
     def verify_unique_ipaddress(form, field):
-        if not collector.verify_unique_ipaddress(field):
-            raise ValidationError('IP address must be unique')
+        pass
+        #if not collector.verify_unique_ipaddress(field):
+        #    raise ValidationError('IP address must be unique')
 
     can_create = True
     can_edit = True
