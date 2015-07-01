@@ -687,8 +687,10 @@ class ContractCollector(object):
         assert remote_site is not None
         self._rename_classes(tenant_json)
         self._tag_remote_config(tenant_json, contract_name)
+        logging.debug('Pushing the following config: %s', tenant_json)
         resp = remote_site.session.push_to_apic(Tenant.get_url(), tenant_json)
         if not resp.ok:
+            logging.warning('Could not export to remote APIC: %s %s', resp, resp.text)
             print '%% Could not export to remote APIC'
         return resp
 
@@ -1274,6 +1276,8 @@ class LocalSite(Site):
 
         # get the old contract data
         old_entry = self.contract_db.find_entry(tenant_name, contract_name)
+        if old_entry is None:
+            raise ValueError('Contract is not known')
         contract_json = None
 
         # compare new remote sites list to old list for new sites to export
@@ -1290,6 +1294,7 @@ class LocalSite(Site):
                     if contract_json is None:
                         logging.debug('No contract JSON collected')
                         return remote_sites
+                    logging.debug('Contract JSON: %s', contract_json)
                 # Export to the remote site
                 remote_site_obj = self.my_collector.get_site(remote_site)
                 resp = self.contract_collector.export_contract_config(contract_json,
