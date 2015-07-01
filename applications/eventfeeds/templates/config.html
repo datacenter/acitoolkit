@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Configure EventFeeds - ACI Toolkit</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='pure-min.css') }}"/>
+</head>
+<body>
+<div class="pure-g">
+    <div class="pure-u-4-5">
+        <div class="1-box" style="padding: 20px">
+            {% if config_saved %}<aside><span style="color: limegreen">Config Saved! (Changes applied on restart)</span></aside>{% endif %}
+            <h2><a href="/">EventFeeds: ACI Events to Atom Feed Configuration</a></h2>
+            <h4><a href="http://acitoolkit.readthedocs.org/en/latest/applications.html">Online Documentation</a></h4>
+
+            <form action="/config/" method="POST" class="pure-form pure-form-aligned">
+                <div class="content">
+                    <legend>Record Events For...</legend>
+                    <br>
+
+                    {% for cls in eligible_classes %}
+                    <div class="pure-control-group">
+                        {% if cls in selected_classes %}
+                        <label for="{{ cls }}">{{ cls }}</label><input id="{{ cls }}"
+                                                                       name="cls"
+                                                                       type="checkbox"
+                                                                       value="{{ cls }}"
+                                                                       checked>
+                        {% else %}
+                        <label for="{{ cls }}">{{ cls }}</label><input id="{{ cls }}"
+                                                                       name="cls"
+                                                                       type="checkbox"
+                                                                       value="{{ cls }}">
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <br>
+
+                    <legend>Configuration Files</legend>
+                    <br>
+
+                    <div class="pure-control-group">
+                        <label for="log_file">Log Filename</label><input id="log_file"
+                                                                         name="log_file"
+                                                                         type="text"
+                                                                         value="{{ cfg.log_file }}"><br>
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="events_db">Events Database</label><input id="events_db"
+                                                                             name="events_db"
+                                                                             type="text"
+                                                                             value="{{ cfg.events_db }}"><br>
+                    </div>
+                    <br>
+
+                    <div class="pure-control-group">
+                        <input type="submit" value="Save Configuration" class="pure-button pure-button-primary">
+                    </div>
+                    </fieldset>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

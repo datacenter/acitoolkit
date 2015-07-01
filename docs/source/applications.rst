@@ -9,3 +9,4 @@ Applications
    cableplan
    snapback
    visualizations
+   eventfeeds

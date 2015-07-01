@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>EventFeeds - ACI Toolkit</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='pure-min.css') }}"/>
+    <style type="text/css">
+    li {
+        padding-bottom: 0.5em;
+        list-style-type: none;
+    }
+    </style>
+</head>
+<body>
+<div class="pure-g">
+    <div class="pure-u-4-5">
+        <div class="1-box" style="padding: 20px; ">
+            <h2>EventFeeds - Available Feeds</h2>
+            <h4><a href="http://acitoolkit.readthedocs.org/en/latest/applications.html">Online Documentation</a></h4>
+            <h4><a href="/config/">Configuration</a></h4>
+
+            <div class="content">
+                <h4>All Subscribed Classes</h4>
+                <ul>
+                    <li><a href="/events/recent/">/events/recent/</a></li>
+                    <li><a href="/events/recent/day/">/events/recent/day/</a></li>
+                    <li><a href="/events/recent/week/">/events/recent/week/</a></li>
+                    <li><a href="/events/recent/month/">/events/recent/month/</a></li>
+                    <li><a href="/events/recent/year/">/events/recent/year/</a></li>
+                    <li><a href="/events/recent/custom/?maxage=10&maxcount=100">/events/recent/custom/?maxage=10&maxcount=100</a></li>
+                </ul>
+            </div>
+            <div class="content">
+                <h4>Class Specific</h4>
+
+                {% for cls in selected_classes %}
+                <p>{{ cls }}</p>
+                <ul>
+                    <li><a href="/events/class/{{cls}}">/events/class/{{cls}}/</a></li>
+                    <li><a href="/events/class/{{cls}}/day/">/events/class/{{cls}}/day/</a></li>
+                    <li><a href="/events/class/{{cls}}/week/">/events/class/{{cls}}/week/</a></li>
+                    <li><a href="/events/class/{{cls}}/month/">/events/class/{{cls}}/month/</a></li>
+                    <li><a href="/events/class/{{cls}}/year/">/events/class/{{cls}}/year/</a></li>
+                    <li><a href="/events/class/{{cls}}/custom/?maxage=10&maxcount=100">/events/class/{{cls}}/custom/?maxage=10&maxcount=100</a></li>
+                </ul>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
