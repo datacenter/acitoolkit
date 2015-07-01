@@ -683,6 +683,7 @@ class ContractCollector(object):
         self.export_contract_config(tenant_json, contract_name, remote_site)
 
     def export_contract_config(self, tenant_json, contract_name, remote_site):
+        logging.info('export_contract_config tenant_json: %s contract: %s remote_site: %s', tenant_json, contract_name, remote_site)
         assert remote_site is not None
         self._rename_classes(tenant_json)
         self._tag_remote_config(tenant_json, contract_name)
@@ -1116,6 +1117,7 @@ class LocalSite(Site):
         return False
 
     def _populate_epgs_from_apic(self):
+        logging.info('_populate_epgs_from_apic')
         resp = []
         contracts = self.get_contracts()
         tenants = Tenant.get_deep(self.session,
@@ -1267,6 +1269,7 @@ class LocalSite(Site):
         self.epg_db.print_db()
 
     def export_contract(self, contract_name, tenant_name, remote_sites):
+        logging.info('export_contract contract: %s tenant: %s remote_sites: %s', contract_name, tenant_name, remote_sites)
         problem_sites = []
 
         # get the old contract data
@@ -1283,7 +1286,9 @@ class LocalSite(Site):
                     # only grab the contract configuration once
                     contract_json = self.contract_collector.get_contract_config(str(tenant_name),
                                                                                 str(contract_name))
+                    logging.debug('Getting the contract JSON for tenant:%s contract: %s', tenant_name, contract_name)
                     if contract_json is None:
+                        logging.debug('No contract JSON collected')
                         return remote_sites
                 # Export to the remote site
                 remote_site_obj = self.my_collector.get_site(remote_site)
@@ -1291,6 +1296,8 @@ class LocalSite(Site):
                                                                       contract_name,
                                                                       remote_site_obj)
                 if not resp.ok:
+                    logging.warning('Problem encountered exporting contract %s to remote site %s', contract_name, remote_site)
+                    logging.warning('Response %s %s', resp, resp.text)
                     problem_sites.append(remote_site)
                 else:
                     # Now tag the local tenant
@@ -1323,6 +1330,11 @@ class LocalSite(Site):
 
         # Update the EPG DB
         self._populate_epgs_from_apic()
+
+        # Handle any existing Endpoints on EPGs using this contract
+        epg_entries = self.epg_db.find_epgs_using_contract(tenant_name, contract_name)
+        for epg_entry in epg_entries:
+            self.monitor.handle_existing_endpoints(epg_entry.tenant_name, epg_entry.app_name, epg_entry.epg_name)
 
         return problem_sites
 
@@ -1399,6 +1411,7 @@ class MultisiteCollector(object):
         return len(self.sites)
 
     def add_site(self, name, credentials, local):
+        logging.info('add_site name:%s local:%s', name, local)
         self.delete_site(name)
         if local:
             site = LocalSite(name, credentials, self)
@@ -1408,6 +1421,7 @@ class MultisiteCollector(object):
         return site.start()
 
     def delete_site(self, name):
+        logging.info('add_site name:%s', name)
         for site in self.sites:
             if name == site.name:
                 site.shutdown()
