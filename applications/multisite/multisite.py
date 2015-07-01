@@ -2,6 +2,7 @@ from acitoolkit.acitoolkit import *
 import json
 import re
 import threading
+import logging
 
 # Imports from standalone mode
 import argparse
@@ -294,10 +295,14 @@ class EndpointJsonDB(object):
         :param data_json: JSON dictionary containing all of the JSON to be pushed to the APIC
         :returns resp: Response object from the Requests library or None if remote site is unknown
         """
+        logging.info('_push_to_remote_site remote_site_name: %s url: %s json: %s',
+                     remote_site_name, url, data_json)
         remote_site_obj = self._local_site.my_collector.get_site(remote_site_name)
         if remote_site_obj is not None:
             remote_session = remote_site_obj.session
             resp = remote_session.push_to_apic(url, data_json)
+            if not resp.ok:
+                logging.warning('Could not push to remote site: %s %s', resp, resp.text)
             return resp
 
     def push_to_remote_sites(self):
@@ -334,6 +339,7 @@ class MultisiteMonitor(threading.Thread):
         self._exit = True
 
     def handle_contract(self, tenant_name, contract):
+        logging.info('handle_contract for Tenant: %s Contract: %s', tenant_name, contract.name)
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
                                   subtree='full', config_only=True)
         for tenant in tenants:  # a bit overkill, since only 1 tenant should be returned
@@ -435,6 +441,9 @@ class MultisiteMonitor(threading.Thread):
                     query_url += remote_contract_name + '")&rsp-prop-include=config-only'
                     remote_site = self._my_collector.get_site(remote_site_name)
                     resp = remote_site.session.get(query_url)
+                    if not resp.ok:
+                        logging.warning('Could not get L3Out from remote site: %s with query: %s Response: %s %s',
+                                        remote_site_name, query_url, resp, resp.text)
                     data = resp.json()['imdata']
 
                     # Next, mark as deleted
@@ -447,6 +456,9 @@ class MultisiteMonitor(threading.Thread):
                             data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
                             # Push to APIC
                             resp = remote_site.session.push_to_apic(dn, data_json)
+                            if not resp.ok:
+                                logging.warning('Could not delete the fvRsProv/fvRsCons from remote site: %s with query: %s data: %s Response: %s %s',
+                                                remote_site_name, dn, data_json, resp, resp.text)
                             # Read back and see if any remaining contracts provided or consumed
                             # If none, delete the l3extInstP
                             query_url = dn + '?query-target=subtree&target-subtree-class=fvRsProv,fvRsCons&'
@@ -454,22 +466,32 @@ class MultisiteMonitor(threading.Thread):
                             query_url += 'query-target-filter=or(wcard(fvRsProv.tnVzBrCPName,"%s"),' % site_name
                             query_url += 'wcard(fvRsProv.tnVzBrCPName,"%s"))&rsp-prop-include=config-only' % site_name
                             resp = remote_site.session.get(query_url)
+                            if not resp.ok:
+                                logging.warning('Could not read back l3extInstP on site: %s with query: %s Response: %s %s',
+                                                remote_site_name, query_url, resp, resp.text)
                             if int(resp.json()['totalCount']) == 0:
                                 dn = dn.split('/%s-' % apic_dn_class)[0]
                                 instp_name = dn.split('/instP-')[1].split('/')[0]
                                 data_json = {'l3extInstP': {'attributes': {'name': instp_name, 'status': 'deleted'}}}
                                 resp = remote_site.session.push_to_apic(dn + '.json', data_json)
+                                if not resp.ok:
+                                    logging.warning('Could not l3extInstP on site: %s with query: %s Response: %s %s',
+                                                    remote_site_name, query_url, resp, resp.text)
         else:
             self._local_site.epg_db.add_entry(epg_entry)
             self.handle_existing_endpoints(tenant_name, app_name, epg_name)
 
     def handle_provided_contract_event(self, event):
+        logging.info('handle_provided_contract_event: %s', event)
         return self.handle_contract_relation_event(event, 'fvRsProv', 'rsprov')
 
     def handle_consumed_contract_event(self, event):
+        logging.info('handle_consumed_contract_event: %s', event)
         return self.handle_contract_relation_event(event, 'fvRsCons', 'rscons')
 
     def handle_existing_endpoints(self, tenant_name, app_name, epg_name):
+        logging.info('handle_existing_endpoints for tenant: %s app_name: %s epg_name: %s',
+                     tenant_name, app_name, epg_name)
         endpoints = Endpoint.get_all_by_epg(self._session,
                                             tenant_name, app_name, epg_name,
                                             with_interface_attachments=False)
@@ -483,6 +505,7 @@ class MultisiteMonitor(threading.Thread):
         num_eps = MAX_ENDPOINTS
         while Endpoint.has_events(self._session) and num_eps:
             ep = Endpoint.get_event(self._session, with_relations=False)
+            logging.info('handle_endpoint_event for Endpoint: %s', ep.mac)
             self._endpointdb.add_endpoint(ep)
             num_eps -= 1
         self._endpointdb.push_to_remote_sites()
@@ -710,6 +733,7 @@ class Site(object):
     def start(self):
         resp = self.login()
         if not resp.ok:
+            logging.warning('Could not login to site: %s due to: %s %s', self.name, resp, resp.text)
             print('%% Could not login to APIC on Site', self.name)
         else:
             print('%% Logged into Site', self.name)
@@ -1381,7 +1405,7 @@ class MultisiteCollector(object):
         else:
             site = RemoteSite(name, credentials)
         self.sites.append(site)
-        site.start()
+        return site.start()
 
     def delete_site(self, name):
         for site in self.sites:
@@ -1486,6 +1510,7 @@ def main():
 
 if __name__ == '__main__':
     try:
+        logging.basicConfig(level=logging.DEBUG)
         main()
     except KeyboardInterrupt:
         pass
