@@ -433,7 +433,7 @@ class TestMultisite(unittest.TestCase):
         self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
 
         # Verify that the other site has the entry in addition to the contract
-        self.assertTrue(has_filter(session, common_tenant, 'Site1:new-contractnew-entry'))
+        self.assertTrue(has_filter(session, common_tenant, 'Site1:multisite-testsuite-entry'))
 
         # Clean up the tenant common config from local site
         filter_json['vzFilter']['attributes']['status'] = 'deleted'

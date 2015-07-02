@@ -601,6 +601,12 @@ class ContractCollector(object):
         return resp
 
     def get_contract_config(self, tenant, contract):
+        uses_common_tenant = False
+
+        # Create tenant common configuration in case needed
+        common_tenant = Tenant('common')
+        common_tenant_json = common_tenant.get_json()
+
         # Create the tenant configuration
         tenant = Tenant(tenant)
         tenant_json = tenant.get_json()
@@ -628,8 +634,22 @@ class ContractCollector(object):
             filter_json = ret.json()['imdata']
             if len(filter_json):
                 tenant_json['fvTenant']['children'].append(filter_json[0])
+            else:
+                # Must be using tenant common
+                query_url = ('/api/mo/uni/tn-%s/flt-%s.json?query-target=self&rsp-subtree=full'
+                             '&rsp-prop-include=config-only' % (common_tenant.name, filter_name))
+                ret = self._session.get(query_url)
+                filter_json = ret.json()['imdata']
+                if len(filter_json):
+                    uses_common_tenant = True
+                    common_tenant_json['fvTenant']['children'].append(filter_json[0])
+                else:
+                    logging.info('Contract %s filters not found', filter_name)
         self._strip_dn(tenant_json)
-        return tenant_json
+        if uses_common_tenant:
+            self._strip_dn(common_tenant_json)
+            return [tenant_json, common_tenant_json]
+        return [tenant_json]
 
     @staticmethod
     def _pprint_json(data):
@@ -1297,14 +1317,17 @@ class LocalSite(Site):
                     logging.debug('Contract JSON: %s', contract_json)
                 # Export to the remote site
                 remote_site_obj = self.my_collector.get_site(remote_site)
-                resp = self.contract_collector.export_contract_config(contract_json,
-                                                                      contract_name,
-                                                                      remote_site_obj)
-                if not resp.ok:
-                    logging.warning('Problem encountered exporting contract %s to remote site %s', contract_name, remote_site)
-                    logging.warning('Response %s %s', resp, resp.text)
-                    problem_sites.append(remote_site)
-                else:
+                all_ok = True
+                for tenant_json in contract_json:
+                    resp = self.contract_collector.export_contract_config(tenant_json,
+                                                                          contract_name,
+                                                                          remote_site_obj)
+                    if not resp.ok:
+                        logging.warning('Problem encountered exporting contract %s to remote site %s', contract_name, remote_site)
+                        logging.warning('Response %s %s', resp, resp.text)
+                        problem_sites.append(remote_site)
+                        all_ok = False
+                if all_ok:
                     # Now tag the local tenant
                     tenant = Tenant(str(tenant_name))
                     tenant.add_tag(self.contract_collector.get_local_tag(contract_name, remote_site))
