@@ -794,7 +794,7 @@ class EPG(CommonEPG):
                 text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
         is_vmms = False
-        for vmm in self.get_all_attached(VMM):
+        for vmm in self.get_all_attached(VmmDomain):
             is_vmms = True
             text = {'fvRsDomAtt': {'attributes': {'tDn': vmm._get_path(),
                                                   'resImedcy': 'immediate'}}}
@@ -3163,6 +3163,13 @@ class VmmDomain(BaseACIObject):
         attr = self._generate_attributes()
         return super(VmmDomain, self).get_json(self._get_apic_classes()[0],
                                                attributes=attr)
+    def _get_path(self):
+        """
+        Get the URL of the VMM
+
+        :return: string containing URL
+        """
+        return self.dn
 
     def _generate_attributes(self):
         """
