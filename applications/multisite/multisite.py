@@ -376,7 +376,10 @@ class MultisiteMonitor(threading.Thread):
         cdb_entry.tenant_name = tenant_name
         cdb_entry.contract_name = contract.name
         cdb_entry.export_state = 'local'
-        self._local_site.contract_db.add_entry(cdb_entry)
+        if contract.is_deleted():
+            self._local_site.contract_db.remove_entry(cdb_entry)
+        else:
+            self._local_site.contract_db.add_entry(cdb_entry)
         return cdb_entry
 
     def _get_local_contractdb_entry(self, tenant_name, contract_name):
