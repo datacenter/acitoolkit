@@ -3,6 +3,7 @@ import unittest
 import random
 from multisite import *
 import time
+import logging
 
 config = None
 site1_tool = MultisiteCollector()
@@ -142,6 +143,20 @@ def has_contract(session, tenant_name, contract_name):
             found = True
     return found
 
+def has_filter(session, tenant, filter_name):
+    class_query_url = ("/api/mo/uni/tn-%s.json?query-target=subtree&"
+                       "target-subtree-class=vzFilter" % tenant.name)
+    resp = session.get(class_query_url)
+    data = resp.json()['imdata']
+    if len(data) == 0:
+        return False
+    found = False
+    for filter in data:
+        assert 'vzFilter' in filter
+        if filter_name == filter['vzFilter']['attributes']['name']:
+            found = True
+    return found
+
 def has_l3extsubnet(session, tenant_name, mac, ip):
     class_query_url = ("/api/mo/uni/tn-%s.json?query-target=subtree&"
                        "target-subtree-class=l3extSubnet" % tenant_name)
@@ -157,14 +172,19 @@ def has_l3extsubnet(session, tenant_name, mac, ip):
             found = True
     return found
 
+def _has_l3extInstP_using_contract(session, tenant_name, mac, ip, contract_name, tag, providing=False):
+    if providing:
+        usage_class_name = 'fvRsProv'
+    else:
+        usage_class_name = 'fvRsCons'
 
-def has_l3extInstP_consuming_contract(session, tenant_name, mac, ip, contract_name, tag):
     # Get all of the l3extOuts in the tenant
     query_url = ("/api/mo/uni/tn-%s.json?query-target=subtree&"
                  "target-subtree-class=l3extOut" % tenant_name)
     resp = session.get(query_url)
     l3extout_data = resp.json()['imdata']
     if len(l3extout_data) == 0:
+        logging.warning('_has_l3extInstP_using_contract: l3extout_data is empty')
         return False
 
     for l3extout in l3extout_data:
@@ -176,6 +196,7 @@ def has_l3extInstP_consuming_contract(session, tenant_name, mac, ip, contract_na
         resp = session.get(query_url)
         l3extsubnet_data = resp.json()['imdata']
         if len(l3extsubnet_data) == 0:
+            logging.warning('_has_l3extInstP_using_contract: l3extsubnet_data is empty')
             return False
 
         # Verify that the l3extInstP is each l3extOut
@@ -184,19 +205,21 @@ def has_l3extInstP_consuming_contract(session, tenant_name, mac, ip, contract_na
         resp = session.get(query_url)
         l3extinstp_data = resp.json()['imdata']
         if len(l3extinstp_data) == 0:
+            logging.warning('_has_l3extInstP_using_contract: l3extinstp_data is empty')
             return False
 
-        # Verify that the l3extInstP is consuming the contract
-        all_consume = True
+        # Verify that the l3extInstP is providing or consuming the contract
+        all_used = True
         for l3extinstp in l3extinstp_data:
             query_url = '/api/mo/' + l3extinstp['l3extInstP']['attributes']['dn']
-            query_url += '.json?query-target=subtree&target-subtree-class=fvRsCons'
-            query_url += '&query-target-filter=eq(fvRsCons.tnVzBrCPName,"%s")' % contract_name
+            query_url += '.json?query-target=subtree&target-subtree-class=%s' % usage_class_name
+            query_url += '&query-target-filter=eq(%s.tnVzBrCPName,"%s")' % (usage_class_name, contract_name)
             resp = session.get(query_url)
             contract_data = resp.json()['imdata']
             if len(contract_data) == 0:
-                all_consume = False
-        if not all_consume:
+                all_used = False
+        if not all_used:
+            logging.warning('_has_l3extInstP_using_contract: all_used is False')
             return False
 
         # Verify that the l3extInstP is tagged
@@ -207,13 +230,20 @@ def has_l3extInstP_consuming_contract(session, tenant_name, mac, ip, contract_na
             resp = session.get(query_url)
             tag_data = resp.json()['imdata']
             if len(tag_data) == 0:
+                logging.warning('_has_l3extInstP_using_contract: tag_data is empty')
                 return False
 
         return True
 
+def has_l3extInstP_consuming_contract(session, tenant_name, mac, ip, contract_name, tag):
+    return _has_l3extInstP_using_contract(session, tenant_name, mac, ip, contract_name, tag, providing=False)
+
+def has_l3extInstP_providing_contract(session, tenant_name, mac, ip, contract_name, tag):
+    return _has_l3extInstP_using_contract(session, tenant_name, mac, ip, contract_name, tag, providing=True)
+
 
 class TestMultisite(unittest.TestCase):
-    def setup_tool(self, collector, config_params):
+    def setup_tool(self, collector, config_params, setup_done=False):
         # Configure all of the sites
         for site in config_params['config']:
             if 'site' in site:
@@ -230,21 +260,22 @@ class TestMultisite(unittest.TestCase):
                 else:
                     is_local = False
 
-                # Set the APIC into a known state
-                if use_https:
-                    url = 'https://'
-                else:
-                    url = 'http://'
-                url += site['site']['ip_address']
-                session = Session(url,
-                                  site['site']['username'],
-                                  site['site']['password'])
-                session.login(timeout=5)
-                if is_local:
-                    resp = setup_local_apic(session)
-                else:
-                    resp = setup_remote_apic(session)
-                session.close()
+                if not setup_done:
+                    # Set the APIC into a known state
+                    if use_https:
+                        url = 'https://'
+                    else:
+                        url = 'http://'
+                    url += site['site']['ip_address']
+                    session = Session(url,
+                                      site['site']['username'],
+                                      site['site']['password'])
+                    session.login(timeout=5)
+                    if is_local:
+                        resp = setup_local_apic(session)
+                    else:
+                        resp = setup_remote_apic(session)
+                    session.close()
 
                 collector.add_site(site['site']['name'],
                                    creds,
@@ -261,10 +292,12 @@ class TestMultisite(unittest.TestCase):
         global config
 
         assert len(config['sitetoolconfig']) == len(collectors)
+        setup_done = False
         for i in range(0, len(config['sitetoolconfig'])):
             collector = collectors[i]
             config_params = config['sitetoolconfig'][i]
-            self.setup_tool(collector, config_params)
+            self.setup_tool(collector, config_params, setup_done)
+            setup_done = True
 
     def test_export_contract(self):
         # Export the contract
@@ -285,6 +318,134 @@ class TestMultisite(unittest.TestCase):
         # Verify that the Remote Tag was created
         mtag = MultisiteTag('http-contract', 'imported', 'Site1')
         self.assertTrue(verify_tag(session, 'multisite-testsuite', mtag))
+
+    def test_full_export_contract(self):
+        local_site = site1_tool.get_local_site()
+        # Create the Tenant
+        tenant = Tenant('multisite-testsuite')
+        # Create a new Contract
+        contract = Contract('new-contract', tenant)
+        entry = FilterEntry('new-entry',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='500',
+                             dToPort='5000',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='1',
+                             sToPort='65535',
+                             tcpRules='unspecified',
+                             parent=contract)
+        resp = tenant.push_to_apic(local_site.session)
+        self.assertTrue(resp.ok)
+
+        # Wait for the contract event to be handled
+        time.sleep(2)
+
+        # Verify that the local site has the contract entries
+        self.assertTrue(has_filter(local_site.session, tenant, 'new-contractnew-entry'))
+
+        # Export the new contract
+        problem_sites = local_site.export_contract('new-contract', 'multisite-testsuite', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site has the entry in addition to the contract
+        self.assertTrue(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
+
+    def test_export_tenant_contract_with_filter_in_common(self):
+        local_site = site1_tool.get_local_site()
+
+        # Add a filter to tenant common
+        common_tenant = Tenant('common')
+        common_tenant_json = common_tenant.get_json()
+        filter_json = {
+                        "vzFilter":{
+                            "attributes":{
+                                "name":"multisite-testsuite-entry"
+                            },
+                            "children":[
+                                {
+                                    "vzEntry":{
+                                        "attributes":{
+                                            "tcpRules":"unspecified",
+                                            "arpOpc":"unspecified",
+                                            "applyToFrag":"no",
+                                            "name":"new-entry",
+                                            "prot":"tcp",
+                                            "sFromPort":"1",
+                                            "sToPort":"65535",
+                                            "etherT":"ip",
+                                            "dFromPort":"500",
+                                            "dToPort":"5000"
+                                        },
+                                        "children":[]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+        common_tenant_json['fvTenant']['children'] = [filter_json]
+        resp = local_site.session.push_to_apic(common_tenant.get_url(), common_tenant_json)
+        self.assertTrue(resp.ok)
+
+        # Add a contract using the tenant common filter
+        tenant = Tenant('multisite-testsuite')
+        contract = Contract('new-contract', tenant)
+        tenant_json = tenant.get_json()
+        subject_json = {
+                        "vzSubj":{
+                            "attributes":{
+                                "name":"multisite-testsuite-subject"
+                            },
+                            "children":[
+                                {
+                                    "vzRsSubjFiltAtt":{
+                                        "attributes":{
+                                            "tnVzFilterName":"multisite-testsuite-entry",
+                                        },
+                                        "children":[]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+        tenant_json['fvTenant']['children'][0]['vzBrCP']['children'] = [subject_json]
+        resp = local_site.session.push_to_apic(tenant.get_url(), tenant_json)
+        self.assertTrue(resp.ok)
+
+        # Give some time for the contract event to occur
+        time.sleep(5)
+
+        # Export the contract
+        problem_sites = local_site.export_contract('new-contract', 'multisite-testsuite', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site has the entry in addition to the contract
+        self.assertTrue(has_filter(session, common_tenant, 'Site1:multisite-testsuite-entry'))
+
+        # Clean up the tenant common config from local site
+        filter_json['vzFilter']['attributes']['status'] = 'deleted'
+        common_tenant_json['fvTenant']['children'] = [filter_json]
+        resp = local_site.session.push_to_apic(common_tenant.get_url(), common_tenant_json)
+        self.assertTrue(resp.ok)
+
+        # Clean up the tenant common config from remote site
+        filter_json['vzFilter']['attributes']['name'] = 'Site1:multisite-testsuite-entry'
+        common_tenant_json['fvTenant']['children'] = [filter_json]
+        resp = session.push_to_apic(common_tenant.get_url(), common_tenant_json)
+        self.assertTrue(resp.ok)
 
     def test_unexport_contract(self):
         # Export the contract
@@ -424,7 +585,7 @@ class TestMultisite(unittest.TestCase):
         self.assertTrue(resp.ok)
 
         # Wait for the event to clear things up
-        time.sleep(2)
+        time.sleep(5)
 
         # Verify that the EPG DB is updated
         found = False
@@ -689,7 +850,7 @@ class TestMultisite(unittest.TestCase):
         # Push to the APIC
         resp = tenant.push_to_apic(session)
         self.assertTrue(resp.ok)
-        time.sleep(2)
+        time.sleep(5)
 
         # Verify that the l3InstP is consuming the contract
         tag = MultisiteTag(epg.name, app.name, 'Site2')
@@ -697,6 +858,75 @@ class TestMultisite(unittest.TestCase):
         self.assertFalse(has_l3extInstP_consuming_contract(site1_session, tenant_name, mac, ip, 'http-contract', tag))
 
         self.assertFalse(has_l3extsubnet(site1_session, tenant_name, mac, ip))
+
+    def test_export_existing_contract(self):
+        local_site = site1_tool.get_local_site()
+        # Create the Tenant
+        tenant = Tenant('multisite-testsuite')
+        app = AppProfile('my-demo-app', tenant)
+        # Create a new EPG
+        epg = EPG('new-epg', app)
+        contract = Contract('new-contract', tenant)
+        entry = FilterEntry('new-entry',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='500',
+                             dToPort='5000',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='1',
+                             sToPort='65535',
+                             tcpRules='unspecified',
+                             parent=contract)
+        epg.provide(contract)
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-8', 'vlan', '8')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        epg.attach(vlan_intf)
+
+        # Add an Endpoint to the providing EPG
+        mac = '00:33:33:33:33:44'
+        ip = '1.2.3.6'
+        ep = Endpoint(mac, epg)
+        ep.mac = mac
+        ep.ip = ip
+        ep.attach(vlan_intf)
+
+        # Push to the APIC
+        resp = tenant.push_to_apic(local_site.session)
+        self.assertTrue(resp.ok)
+
+        # Give enough time for the event to be handled
+        time.sleep(2)
+
+        # Verify that the contract has been configured locally
+        self.assertTrue(has_contract(local_site.session, 'multisite-testsuite', 'new-contract'))
+
+        # Export the contract
+        problem_sites = local_site.export_contract('new-contract', 'multisite-testsuite', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify that the local tag was created
+        mtag = MultisiteTag('new-contract', 'exported', 'Site2')
+        self.assertTrue(verify_tag(local_site.session, 'multisite-testsuite', mtag))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the Remote Tag was created
+        mtag = MultisiteTag('new-contract', 'imported', 'Site1')
+        self.assertTrue(verify_tag(session, 'multisite-testsuite', mtag))
+
+        # Verify that the l3extInstP was created on the other site and providing the contract
+        tag = MultisiteTag(epg.name, app.name, 'Site1')
+        self.assertTrue(has_l3extInstP_providing_contract(session, tenant.name, mac, ip, 'Site1:new-contract', tag))
+
+        self.assertTrue(has_l3extsubnet(session, tenant.name, mac, ip))
 
     def tearDown(self):
         # Delete tenant from the APIC
@@ -715,6 +945,7 @@ def main():
     parser.add_argument('--config', default=None, help='Configuration file')
     parser.add_argument('unittest_args', nargs='*')
     args = parser.parse_args()
+    logging.basicConfig(level=logging.DEBUG, format='%(filename)s:%(message)s')
 
     if args.config is None:
         print '%% No configuration file given.'

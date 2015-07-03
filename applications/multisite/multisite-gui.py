@@ -26,6 +26,8 @@ from wtforms import widgets
 from acitoolkit.acitoolkit import Credentials
 #from flask_wtf.csrf import CsrfProtect
 import sys
+import logging
+from requests import ConnectionError, Timeout
 
 LAB_TEST_MODE = False
 
@@ -133,9 +135,20 @@ class SiteCredentialsView(CustomView):
     def after_model_change(self, form, model, is_created):
         creds = SiteLoginCredentials(model.ip_address, model.user_name, model.password,
                                      model.use_https)
-        collector.add_site(model.site_name, creds, model.local)
-        update_db(model)
-        collector.print_sites()
+        try:
+            resp = collector.add_site(model.site_name, creds, model.local)
+            if not resp.ok:
+                if 'imdata' in resp.json():
+                    flash('Could not logon to Site %s due to' % (model.site_name, resp.json()['imdata'][0]['error']['attributes']['text']))
+                else:
+                    flash('Could not logon to Site %s' % model.site_name)
+            update_db(model)
+            collector.print_sites()
+        except ConnectionError, e:
+            logging.warning('Could not logon to Site %s due to %s', model.site_name, e)
+            flash('Could not logon to Site %s due to %s' % (model.site_name, e))
+        except Timeout:
+            logging.warning('Could not logon to Site %s due to connection timeout')
 
     def on_model_delete(self, model):
         collector.delete_site(model.site_name)
@@ -374,7 +387,7 @@ def update_db(site):
     if not site.local:
         return
     local_site = collector.get_site(site.site_name)
-    if local_site is None:
+    if local_site is None or not local_site.logged_in:
         return
 
     # TODO initialize the info from APIC but should learn to rely on Monitor and use a callback to update GUI db
@@ -396,6 +409,10 @@ if __name__ == '__main__':
     description = ('ACI Multisite tool.')
     creds = Credentials('server', description)
     args = creds.get()
+    if args.debug == 'verbose':
+        logging.basicConfig(level=logging.DEBUG, format='%(filename)s:%(message)s')
+    elif args.debug == 'warnings':
+        logging.basicConfig(level=logging.WARNING, format='%(filename)s:%(message)s')
     LAB_TEST_MODE = args.test
 
     if dbfile_exists():
@@ -410,7 +427,17 @@ if __name__ == '__main__':
         for site in sites:
             creds = SiteLoginCredentials(site.ip_address, site.user_name, site.password,
                                          site.use_https)
-            collector.add_site(site.site_name, creds, site.local)
+            try:
+                resp = collector.add_site(site.site_name, creds, site.local)
+                if not resp.ok:
+                    if 'imdata' in resp.json():
+                        logging.warning('Could not logon to Site %s due to %s', site.site_name, str(resp.json()['imdata'][0]['error']['attributes']['text']))
+                    else:
+                        logging.warning('Could not logon to Site %s', site.site_name)
+            except ConnectionError, e:
+                logging.warning('Could not logon to Site %s due to %s', site.site_name, e)
+            except Timeout:
+                logging.warning('Could not logon to Site %s due to connection timeout')
         for site in sites:
             update_db(site)
     else:

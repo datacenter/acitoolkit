@@ -2,6 +2,7 @@ from acitoolkit.acitoolkit import *
 import json
 import re
 import threading
+import logging
 
 # Imports from standalone mode
 import argparse
@@ -294,10 +295,14 @@ class EndpointJsonDB(object):
         :param data_json: JSON dictionary containing all of the JSON to be pushed to the APIC
         :returns resp: Response object from the Requests library or None if remote site is unknown
         """
+        logging.info('_push_to_remote_site remote_site_name: %s url: %s json: %s',
+                     remote_site_name, url, data_json)
         remote_site_obj = self._local_site.my_collector.get_site(remote_site_name)
         if remote_site_obj is not None:
             remote_session = remote_site_obj.session
             resp = remote_session.push_to_apic(url, data_json)
+            if not resp.ok:
+                logging.warning('Could not push to remote site: %s %s', resp, resp.text)
             return resp
 
     def push_to_remote_sites(self):
@@ -334,6 +339,7 @@ class MultisiteMonitor(threading.Thread):
         self._exit = True
 
     def handle_contract(self, tenant_name, contract):
+        logging.info('handle_contract for Tenant: %s Contract: %s', tenant_name, contract.name)
         tenants = Tenant.get_deep(self._local_site.session, names=[tenant_name], limit_to=['fvTenant', 'tagInst'],
                                   subtree='full', config_only=True)
         for tenant in tenants:  # a bit overkill, since only 1 tenant should be returned
@@ -435,6 +441,9 @@ class MultisiteMonitor(threading.Thread):
                     query_url += remote_contract_name + '")&rsp-prop-include=config-only'
                     remote_site = self._my_collector.get_site(remote_site_name)
                     resp = remote_site.session.get(query_url)
+                    if not resp.ok:
+                        logging.warning('Could not get L3Out from remote site: %s with query: %s Response: %s %s',
+                                        remote_site_name, query_url, resp, resp.text)
                     data = resp.json()['imdata']
 
                     # Next, mark as deleted
@@ -447,6 +456,9 @@ class MultisiteMonitor(threading.Thread):
                             data_json = {apic_class: {'attributes': {'status': 'deleted'}}}
                             # Push to APIC
                             resp = remote_site.session.push_to_apic(dn, data_json)
+                            if not resp.ok:
+                                logging.warning('Could not delete the fvRsProv/fvRsCons from remote site: %s with query: %s data: %s Response: %s %s',
+                                                remote_site_name, dn, data_json, resp, resp.text)
                             # Read back and see if any remaining contracts provided or consumed
                             # If none, delete the l3extInstP
                             query_url = dn + '?query-target=subtree&target-subtree-class=fvRsProv,fvRsCons&'
@@ -454,22 +466,32 @@ class MultisiteMonitor(threading.Thread):
                             query_url += 'query-target-filter=or(wcard(fvRsProv.tnVzBrCPName,"%s"),' % site_name
                             query_url += 'wcard(fvRsProv.tnVzBrCPName,"%s"))&rsp-prop-include=config-only' % site_name
                             resp = remote_site.session.get(query_url)
+                            if not resp.ok:
+                                logging.warning('Could not read back l3extInstP on site: %s with query: %s Response: %s %s',
+                                                remote_site_name, query_url, resp, resp.text)
                             if int(resp.json()['totalCount']) == 0:
                                 dn = dn.split('/%s-' % apic_dn_class)[0]
                                 instp_name = dn.split('/instP-')[1].split('/')[0]
                                 data_json = {'l3extInstP': {'attributes': {'name': instp_name, 'status': 'deleted'}}}
                                 resp = remote_site.session.push_to_apic(dn + '.json', data_json)
+                                if not resp.ok:
+                                    logging.warning('Could not l3extInstP on site: %s with query: %s Response: %s %s',
+                                                    remote_site_name, query_url, resp, resp.text)
         else:
             self._local_site.epg_db.add_entry(epg_entry)
             self.handle_existing_endpoints(tenant_name, app_name, epg_name)
 
     def handle_provided_contract_event(self, event):
+        logging.info('handle_provided_contract_event: %s', event)
         return self.handle_contract_relation_event(event, 'fvRsProv', 'rsprov')
 
     def handle_consumed_contract_event(self, event):
+        logging.info('handle_consumed_contract_event: %s', event)
         return self.handle_contract_relation_event(event, 'fvRsCons', 'rscons')
 
     def handle_existing_endpoints(self, tenant_name, app_name, epg_name):
+        logging.info('handle_existing_endpoints for tenant: %s app_name: %s epg_name: %s',
+                     tenant_name, app_name, epg_name)
         endpoints = Endpoint.get_all_by_epg(self._session,
                                             tenant_name, app_name, epg_name,
                                             with_interface_attachments=False)
@@ -483,6 +505,7 @@ class MultisiteMonitor(threading.Thread):
         num_eps = MAX_ENDPOINTS
         while Endpoint.has_events(self._session) and num_eps:
             ep = Endpoint.get_event(self._session, with_relations=False)
+            logging.info('handle_endpoint_event for Endpoint: %s', ep.mac)
             self._endpointdb.add_endpoint(ep)
             num_eps -= 1
         self._endpointdb.push_to_remote_sites()
@@ -578,6 +601,12 @@ class ContractCollector(object):
         return resp
 
     def get_contract_config(self, tenant, contract):
+        uses_common_tenant = False
+
+        # Create tenant common configuration in case needed
+        common_tenant = Tenant('common')
+        common_tenant_json = common_tenant.get_json()
+
         # Create the tenant configuration
         tenant = Tenant(tenant)
         tenant_json = tenant.get_json()
@@ -605,8 +634,22 @@ class ContractCollector(object):
             filter_json = ret.json()['imdata']
             if len(filter_json):
                 tenant_json['fvTenant']['children'].append(filter_json[0])
+            else:
+                # Must be using tenant common
+                query_url = ('/api/mo/uni/tn-%s/flt-%s.json?query-target=self&rsp-subtree=full'
+                             '&rsp-prop-include=config-only' % (common_tenant.name, filter_name))
+                ret = self._session.get(query_url)
+                filter_json = ret.json()['imdata']
+                if len(filter_json):
+                    uses_common_tenant = True
+                    common_tenant_json['fvTenant']['children'].append(filter_json[0])
+                else:
+                    logging.info('Contract %s filters not found', filter_name)
         self._strip_dn(tenant_json)
-        return tenant_json
+        if uses_common_tenant:
+            self._strip_dn(common_tenant_json)
+            return [tenant_json, common_tenant_json]
+        return [tenant_json]
 
     @staticmethod
     def _pprint_json(data):
@@ -660,11 +703,14 @@ class ContractCollector(object):
         self.export_contract_config(tenant_json, contract_name, remote_site)
 
     def export_contract_config(self, tenant_json, contract_name, remote_site):
+        logging.info('export_contract_config tenant_json: %s contract: %s remote_site: %s', tenant_json, contract_name, remote_site)
         assert remote_site is not None
         self._rename_classes(tenant_json)
         self._tag_remote_config(tenant_json, contract_name)
+        logging.debug('Pushing the following config: %s', tenant_json)
         resp = remote_site.session.push_to_apic(Tenant.get_url(), tenant_json)
         if not resp.ok:
+            logging.warning('Could not export to remote APIC: %s %s', resp, resp.text)
             print '%% Could not export to remote APIC'
         return resp
 
@@ -710,6 +756,7 @@ class Site(object):
     def start(self):
         resp = self.login()
         if not resp.ok:
+            logging.warning('Could not login to site: %s due to: %s %s', self.name, resp, resp.text)
             print('%% Could not login to APIC on Site', self.name)
         else:
             print('%% Logged into Site', self.name)
@@ -1092,6 +1139,7 @@ class LocalSite(Site):
         return False
 
     def _populate_epgs_from_apic(self):
+        logging.info('_populate_epgs_from_apic')
         resp = []
         contracts = self.get_contracts()
         tenants = Tenant.get_deep(self.session,
@@ -1243,10 +1291,13 @@ class LocalSite(Site):
         self.epg_db.print_db()
 
     def export_contract(self, contract_name, tenant_name, remote_sites):
+        logging.info('export_contract contract: %s tenant: %s remote_sites: %s', contract_name, tenant_name, remote_sites)
         problem_sites = []
 
         # get the old contract data
         old_entry = self.contract_db.find_entry(tenant_name, contract_name)
+        if old_entry is None:
+            raise ValueError('Contract is not known')
         contract_json = None
 
         # compare new remote sites list to old list for new sites to export
@@ -1259,16 +1310,24 @@ class LocalSite(Site):
                     # only grab the contract configuration once
                     contract_json = self.contract_collector.get_contract_config(str(tenant_name),
                                                                                 str(contract_name))
+                    logging.debug('Getting the contract JSON for tenant:%s contract: %s', tenant_name, contract_name)
                     if contract_json is None:
+                        logging.debug('No contract JSON collected')
                         return remote_sites
+                    logging.debug('Contract JSON: %s', contract_json)
                 # Export to the remote site
                 remote_site_obj = self.my_collector.get_site(remote_site)
-                resp = self.contract_collector.export_contract_config(contract_json,
-                                                                      contract_name,
-                                                                      remote_site_obj)
-                if not resp.ok:
-                    problem_sites.append(remote_site)
-                else:
+                all_ok = True
+                for tenant_json in contract_json:
+                    resp = self.contract_collector.export_contract_config(tenant_json,
+                                                                          contract_name,
+                                                                          remote_site_obj)
+                    if not resp.ok:
+                        logging.warning('Problem encountered exporting contract %s to remote site %s', contract_name, remote_site)
+                        logging.warning('Response %s %s', resp, resp.text)
+                        problem_sites.append(remote_site)
+                        all_ok = False
+                if all_ok:
                     # Now tag the local tenant
                     tenant = Tenant(str(tenant_name))
                     tenant.add_tag(self.contract_collector.get_local_tag(contract_name, remote_site))
@@ -1299,6 +1358,11 @@ class LocalSite(Site):
 
         # Update the EPG DB
         self._populate_epgs_from_apic()
+
+        # Handle any existing Endpoints on EPGs using this contract
+        epg_entries = self.epg_db.find_epgs_using_contract(tenant_name, contract_name)
+        for epg_entry in epg_entries:
+            self.monitor.handle_existing_endpoints(epg_entry.tenant_name, epg_entry.app_name, epg_entry.epg_name)
 
         return problem_sites
 
@@ -1375,15 +1439,17 @@ class MultisiteCollector(object):
         return len(self.sites)
 
     def add_site(self, name, credentials, local):
+        logging.info('add_site name:%s local:%s', name, local)
         self.delete_site(name)
         if local:
             site = LocalSite(name, credentials, self)
         else:
             site = RemoteSite(name, credentials)
         self.sites.append(site)
-        site.start()
+        return site.start()
 
     def delete_site(self, name):
+        logging.info('add_site name:%s', name)
         for site in self.sites:
             if name == site.name:
                 site.shutdown()
@@ -1486,6 +1552,7 @@ def main():
 
 if __name__ == '__main__':
     try:
+        logging.basicConfig(level=logging.DEBUG)
         main()
     except KeyboardInterrupt:
         pass

@@ -186,6 +186,8 @@ class Subscriber(threading.Thread):
                 self._ws.close()
                 self.event_handler_thread.exit()
         self._ws = create_connection(self._ws_url, sslopt=sslopt, **kwargs)
+        if not self._ws.connected:
+            logging.error('Unable to open websocket connection')
         self.event_handler_thread = EventHandler(self)
         self.event_handler_thread.daemon = True
         self.event_handler_thread.start()
@@ -234,6 +236,7 @@ class Subscriber(threading.Thread):
 
         :param url: URL string to send as a subscription
         """
+        logging.info('Subscribing to url: %s', url)
         # Check if already subscribed.  If so, skip
         if url in self._subscriptions:
             return
@@ -277,6 +280,7 @@ class Subscriber(threading.Thread):
 
         :param url: URL string to unsubscribe
         """
+        logging.info('Unsubscribing to url: %s', url)
         if url not in self._subscriptions:
             return
         del self._subscriptions[url]

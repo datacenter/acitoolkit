@@ -2895,8 +2895,8 @@ class Endpoint(BaseACIObject):
                                 endpoint.if_name = InterfaceFactory.create_from_dn(interface_dn).if_name
                             else:
                                 endpoint.if_name = interface['name']
-                    endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
-                    ret = session.get(endpoint_query_url)
+                    #endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
+                    #ret = session.get(endpoint_query_url)
             endpoints.append(endpoint)
         return endpoints
 
