@@ -10,6 +10,7 @@ site1_tool = MultisiteCollector()
 site2_tool = MultisiteCollector()
 collectors = [site1_tool, site2_tool]
 
+
 def setup_local_apic(session, delete=False):
     # Create the Tenant
     tenant1 = Tenant('multisite-testsuite')
@@ -47,8 +48,8 @@ def setup_local_apic(session, delete=False):
     db_epg.provide(contract)
     web_epg.consume(contract)
 
-    context = Context('ctx0', tenant1)
-    #contract = Contract('contract', tenant)
+    # context = Context('ctx0', tenant1)
+    # contract = Contract('contract', tenant)
     phyif = Interface('eth', '1', '102', '1', '25')
     l2if = L2Interface('eth 1/102/1/25', 'vlan', '500')
     l2if.attach(phyif)
@@ -58,8 +59,8 @@ def setup_local_apic(session, delete=False):
     l3if.add_context(context)
     l3if.attach(l2if)
 
-    #l3if.networks.append('1.1.1.1/32')
-    #outside.provide(contract)
+    # l3if.networks.append('1.1.1.1/32')
+    # outside.provide(contract)
     l3if.attach(l2if)
     rtr = OSPFRouter('rtr-1')
     rtr.set_router_id('101.101.101.101')
@@ -72,7 +73,7 @@ def setup_local_apic(session, delete=False):
     # ospfif.networks.append(net1)
     outside = OutsideEPG('multisite-testsuite-l3out', tenant1)
     outside.attach(ospfif)
-    #outside.add_context(context)
+    # outside.add_context(context)
 
     # Cleanup (uncomment the next line to delete the config)
     if delete:
@@ -83,6 +84,140 @@ def setup_local_apic(session, delete=False):
         print resp, resp.text, session.ipaddr
     assert resp.ok
     return resp
+
+
+def setup_local_apic_with_l3out_on_tenant_common(session, delete=False):
+    # Create the Tenant
+    multisite_tenant = Tenant('multisite-testsuite')
+
+    # Create the Application Profile
+    app = AppProfile('my-demo-app', multisite_tenant)
+
+    # Create the EPGs
+    web_epg = EPG('web-frontend', app)
+    db_epg = EPG('database-backend', app)
+
+    # Create a Context and BridgeDomain
+    # Place both EPGs in the Context and in the same BD
+    tenant = Tenant('common')
+    context = Context('VRF-1', tenant)
+    bd = BridgeDomain('BD-1', tenant)
+    bd.add_context(context)
+    web_epg.add_bd(bd)
+    db_epg.add_bd(bd)
+
+    # Define a contract with a single entry
+    contract = Contract('http-contract', tenant)
+    entry1 = FilterEntry('entry1',
+                         applyToFrag='no',
+                         arpOpc='unspecified',
+                         dFromPort='3306',
+                         dToPort='3306',
+                         etherT='ip',
+                         prot='tcp',
+                         sFromPort='1',
+                         sToPort='65535',
+                         tcpRules='unspecified',
+                         parent=contract)
+
+    # Provide the contract from 1 EPG and consume from the other
+    db_epg.provide(contract)
+    web_epg.consume(contract)
+
+    # context = Context('ctx0', tenant)
+    # contract = Contract('contract', tenant)
+    phyif = Interface('eth', '1', '102', '1', '25')
+    l2if = L2Interface('eth 1/102/1/25', 'vlan', '500')
+    l2if.attach(phyif)
+    l3if = L3Interface('l3if')
+    l3if.set_l3if_type('ext-svi')
+    l3if.set_addr('20.0.0.1/16')
+    l3if.add_context(context)
+    l3if.attach(l2if)
+
+    # l3if.networks.append('1.1.1.1/32')
+    # outside.provide(contract)
+    l3if.attach(l2if)
+    rtr = OSPFRouter('rtr-1')
+    rtr.set_router_id('101.101.101.101')
+    rtr.set_node_id('102')
+    # net1 = OutsideNetwork('1.1.1.1/32')
+    # net1.network = '1.1.1.1/32'
+    # net1.provide(contract)
+    ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='0.0.0.1')
+    ospfif.attach(l3if)
+    # ospfif.networks.append(net1)
+    outside = OutsideEPG('multisite-testsuite-l3out', tenant)
+    outside.attach(ospfif)
+    # outside.add_context(context)
+
+    # Cleanup (uncomment the next line to delete the config)
+    if delete:
+        print 'Deleting...'
+        multisite_tenant.mark_as_deleted()
+        context.mark_as_deleted()
+        bd.mark_as_deleted()
+        outside.mark_as_deleted()
+        contract.mark_as_deleted()
+    resp = multisite_tenant.push_to_apic(session)
+    if not resp.ok:
+        print resp, resp.text, session.ipaddr
+    assert resp.ok
+    resp = tenant.push_to_apic(session)
+    if not resp.ok:
+        print resp, resp.text, session.ipaddr
+    assert resp.ok
+    return resp
+
+
+def setup_remote_apic_with_l3out_on_tenant_common(session, delete=False):
+    # Create the Tenant
+    multisite_tenant = Tenant('multisite-testsuite')
+
+    # Create the Application Profile
+    app = AppProfile('my-demo-app', multisite_tenant)
+
+    # Create the EPGs
+    web_epg = EPG('web-frontend', app)
+
+    # Create a Context and BridgeDomain
+    # Place both EPGs in the Context and in the same BD
+    tenant = Tenant('common')
+    context = Context('VRF-1', tenant)
+    bd = BridgeDomain('BD-1', tenant)
+    bd.add_context(context)
+    web_epg.add_bd(bd)
+
+    # context = Context('ctx0', tenant)
+    phyif = Interface('eth', '1', '102', '1', '25')
+    l2if = L2Interface('eth 1/102/1/25', 'vlan', '500')
+    l2if.attach(phyif)
+    l3if = L3Interface('l3if')
+    l3if.set_l3if_type('ext-svi')
+    l3if.set_addr('20.0.0.2/16')
+    l3if.add_context(context)
+    l3if.attach(l2if)
+    l3if.attach(l2if)
+    rtr = OSPFRouter('rtr-1')
+    rtr.set_router_id('102.102.102.102')
+    rtr.set_node_id('102')
+    ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='0.0.0.1')
+    ospfif.attach(l3if)
+    outside = OutsideEPG('multisite-testsuite-l3out', tenant)
+    outside.attach(ospfif)
+
+    # Cleanup (uncomment the next line to delete the config)
+    if delete:
+        context.mark_as_deleted()
+        bd.mark_as_deleted()
+        outside.mark_as_deleted()
+        multisite_tenant.mark_as_deleted()
+    resp = tenant.push_to_apic(session)
+    assert resp.ok
+    resp = multisite_tenant.push_to_apic(session)
+    assert resp.ok
+    return resp
+
 
 def setup_remote_apic(session, delete=False):
     # Create the Tenant
@@ -101,7 +236,7 @@ def setup_remote_apic(session, delete=False):
     bd.add_context(context)
     web_epg.add_bd(bd)
 
-    context = Context('ctx0', tenant)
+    # context = Context('ctx0', tenant)
     phyif = Interface('eth', '1', '102', '1', '25')
     l2if = L2Interface('eth 1/102/1/25', 'vlan', '500')
     l2if.attach(phyif)
@@ -126,6 +261,7 @@ def setup_remote_apic(session, delete=False):
     assert resp.ok
     return resp
 
+
 def verify_tag(session, tenant_name, tag):
     class_query_url = ('/api/mo/uni/tn-%s.json?query-target=subtree&'
                        'target-subtree-class=tagInst&'
@@ -133,6 +269,7 @@ def verify_tag(session, tenant_name, tag):
     resp = session.get(class_query_url)
     data = resp.json()['imdata']
     return len(data)
+
 
 def has_contract(session, tenant_name, contract_name):
     tenant = Tenant(tenant_name)
@@ -142,6 +279,7 @@ def has_contract(session, tenant_name, contract_name):
         if contract.name == contract_name:
             found = True
     return found
+
 
 def has_filter(session, tenant, filter_name):
     class_query_url = ("/api/mo/uni/tn-%s.json?query-target=subtree&"
@@ -157,6 +295,7 @@ def has_filter(session, tenant, filter_name):
             found = True
     return found
 
+
 def has_l3extsubnet(session, tenant_name, mac, ip):
     class_query_url = ("/api/mo/uni/tn-%s.json?query-target=subtree&"
                        "target-subtree-class=l3extSubnet" % tenant_name)
@@ -171,6 +310,7 @@ def has_l3extsubnet(session, tenant_name, mac, ip):
         if mac in dn and ip in dn:
             found = True
     return found
+
 
 def _has_l3extInstP_using_contract(session, tenant_name, mac, ip, contract_name, tag, providing=False):
     if providing:
@@ -235,8 +375,10 @@ def _has_l3extInstP_using_contract(session, tenant_name, mac, ip, contract_name,
 
         return True
 
+
 def has_l3extInstP_consuming_contract(session, tenant_name, mac, ip, contract_name, tag):
     return _has_l3extInstP_using_contract(session, tenant_name, mac, ip, contract_name, tag, providing=False)
+
 
 def has_l3extInstP_providing_contract(session, tenant_name, mac, ip, contract_name, tag):
     return _has_l3extInstP_using_contract(session, tenant_name, mac, ip, contract_name, tag, providing=True)
@@ -287,7 +429,6 @@ class TestMultisite(unittest.TestCase):
             return
         local_site.initialize_from_apic()
 
-
     def setUp(self):
         global config
 
@@ -326,16 +467,16 @@ class TestMultisite(unittest.TestCase):
         # Create a new Contract
         contract = Contract('new-contract', tenant)
         entry = FilterEntry('new-entry',
-                             applyToFrag='no',
-                             arpOpc='unspecified',
-                             dFromPort='500',
-                             dToPort='5000',
-                             etherT='ip',
-                             prot='tcp',
-                             sFromPort='1',
-                             sToPort='65535',
-                             tcpRules='unspecified',
-                             parent=contract)
+                            applyToFrag='no',
+                            arpOpc='unspecified',
+                            dFromPort='500',
+                            dToPort='5000',
+                            etherT='ip',
+                            prot='tcp',
+                            sFromPort='1',
+                            sToPort='65535',
+                            tcpRules='unspecified',
+                            parent=contract)
         resp = tenant.push_to_apic(local_site.session)
         self.assertTrue(resp.ok)
 
@@ -365,26 +506,26 @@ class TestMultisite(unittest.TestCase):
         common_tenant = Tenant('common')
         common_tenant_json = common_tenant.get_json()
         filter_json = {
-                        "vzFilter":{
-                            "attributes":{
-                                "name":"multisite-testsuite-entry"
+                        "vzFilter": {
+                            "attributes": {
+                                "name": "multisite-testsuite-entry"
                             },
-                            "children":[
+                            "children": [
                                 {
-                                    "vzEntry":{
-                                        "attributes":{
-                                            "tcpRules":"unspecified",
-                                            "arpOpc":"unspecified",
-                                            "applyToFrag":"no",
-                                            "name":"new-entry",
-                                            "prot":"tcp",
-                                            "sFromPort":"1",
-                                            "sToPort":"65535",
-                                            "etherT":"ip",
-                                            "dFromPort":"500",
-                                            "dToPort":"5000"
+                                    "vzEntry": {
+                                        "attributes": {
+                                            "tcpRules": "unspecified",
+                                            "arpOpc": "unspecified",
+                                            "applyToFrag": "no",
+                                            "name": "new-entry",
+                                            "prot": "tcp",
+                                            "sFromPort": "1",
+                                            "sToPort": "65535",
+                                            "etherT": "ip",
+                                            "dFromPort": "500",
+                                            "dToPort": "5000"
                                         },
-                                        "children":[]
+                                        "children": []
                                     }
                                 }
                             ]
@@ -399,17 +540,17 @@ class TestMultisite(unittest.TestCase):
         contract = Contract('new-contract', tenant)
         tenant_json = tenant.get_json()
         subject_json = {
-                        "vzSubj":{
-                            "attributes":{
-                                "name":"multisite-testsuite-subject"
+                        "vzSubj": {
+                            "attributes": {
+                                "name": "multisite-testsuite-subject"
                             },
-                            "children":[
+                            "children": [
                                 {
-                                    "vzRsSubjFiltAtt":{
-                                        "attributes":{
-                                            "tnVzFilterName":"multisite-testsuite-entry",
+                                    "vzRsSubjFiltAtt": {
+                                        "attributes": {
+                                            "tnVzFilterName": "multisite-testsuite-entry",
                                         },
-                                        "children":[]
+                                        "children": []
                                     }
                                 }
                             ]
@@ -485,7 +626,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract('http-contract')
+        contract = Contract('http-contract', tenant)
         epg.consume(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -525,7 +666,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract('Site1:http-contract')
+        contract = Contract('Site1:http-contract', tenant)
         epg.consume(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -548,9 +689,7 @@ class TestMultisite(unittest.TestCase):
             contract_db_entry = local_site.contract_db.find_entry(tenant.name, epgdb_entry.contract_name)
             if contract_db_entry is not None:
                 found = True
-
         self.assertTrue(found)
-
 
     def test_unconsume_contract_in_local_site(self):
         tenant_name = 'multisite-testsuite'
@@ -566,7 +705,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract('http-contract')
+        contract = Contract('http-contract', tenant)
         epg.consume(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -615,7 +754,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract('Site1:http-contract')
+        contract = Contract('Site1:http-contract', tenant)
         epg.consume(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -671,7 +810,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract('Site1:http-contract')
+        contract = Contract('Site1:http-contract', tenant)
         epg.consume(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -719,7 +858,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract(contract_name)
+        contract = Contract(contract_name, tenant)
         epg.provide(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -745,6 +884,54 @@ class TestMultisite(unittest.TestCase):
                     found = True
         self.assertTrue(found)
 
+    def test_provide_contract_in_local_site_with_endpoint(self):
+        tenant_name = 'multisite-testsuite'
+
+        contract_name = 'http-contract'
+        # Export the contract
+        local_site = site1_tool.get_local_site()
+        problem_sites = local_site.export_contract(contract_name, tenant_name, ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Provide the contract
+        tenant = Tenant(tenant_name)
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        contract = Contract(contract_name, tenant)
+        epg.provide(contract)
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        epg.attach(vlan_intf)
+
+        # Add an Endpoint to the providing EPG
+        mac = '00:33:33:33:44:33'
+        ip = '1.2.33.4'
+        ep = Endpoint(mac, epg)
+        ep.mac = mac
+        ep.ip = ip
+        ep.attach(vlan_intf)
+
+        # Push to the local site
+        resp = tenant.push_to_apic(local_site.session)
+        self.assertTrue(resp.ok)
+
+        time.sleep(2)
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site2_session = site1_tool.get_site('Site2').session
+        #site1_session = site1_tool.get_local_site().session
+        self.assertTrue(has_l3extsubnet(site2_session, tenant_name, mac, ip))
+
+        # Verify that the l3InstP is providing the contract
+        tag = MultisiteTag(epg.name, app.name, 'Site1')
+        self.assertTrue(has_l3extInstP_providing_contract(site2_session, tenant_name, mac, ip, 'Site1:http-contract', tag))
+
     def test_unprovide_contract_in_local_site(self):
         tenant_name = 'multisite-testsuite'
 
@@ -760,7 +947,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract(contract_name)
+        contract = Contract(contract_name, tenant)
         epg.provide(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -806,7 +993,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract('Site1:http-contract')
+        contract = Contract('Site1:http-contract', tenant)
         epg.consume(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -821,7 +1008,7 @@ class TestMultisite(unittest.TestCase):
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
-        contract = Contract('Site1:http-contract')
+        contract = Contract('Site1:http-contract', tenant)
         epg.consume(contract)
         intf = Interface('eth', '1', '101', '1', '38')
         # Create a VLAN interface and attach to the physical interface
@@ -929,6 +1116,7 @@ class TestMultisite(unittest.TestCase):
         self.assertTrue(has_l3extsubnet(session, tenant.name, mac, ip))
 
     def tearDown(self):
+        time.sleep(2)
         # Delete tenant from the APIC
         for collector in collectors:
             for site in collector.get_sites():
@@ -936,6 +1124,339 @@ class TestMultisite(unittest.TestCase):
                     setup_local_apic(site.session, delete=True)
                 else:
                     setup_remote_apic(site.session, delete=True)
+                site.session.close()
+        time.sleep(5)
+
+
+class TestTenantCommonL3Out(unittest.TestCase):
+    def setup_tool(self, collector, config_params, setup_done=False):
+        # Configure all of the sites
+        for site in config_params['config']:
+            if 'site' in site:
+                if site['site']['use_https'] == 'True':
+                    use_https = True
+                else:
+                    use_https = False
+                creds = SiteLoginCredentials(site['site']['ip_address'],
+                                             site['site']['username'],
+                                             site['site']['password'],
+                                             use_https)
+                if site['site']['local'] == 'True':
+                    is_local = True
+                else:
+                    is_local = False
+
+                if not setup_done:
+                    # Set the APIC into a known state
+                    if use_https:
+                        url = 'https://'
+                    else:
+                        url = 'http://'
+                    url += site['site']['ip_address']
+                    session = Session(url,
+                                      site['site']['username'],
+                                      site['site']['password'])
+                    session.login(timeout=5)
+                    if is_local:
+                        resp = setup_local_apic_with_l3out_on_tenant_common(session)
+                    else:
+                        resp = setup_remote_apic_with_l3out_on_tenant_common(session)
+                    session.close()
+
+                collector.add_site(site['site']['name'],
+                                   creds,
+                                   is_local)
+        # Initialize the local site
+        local_site = collector.get_local_site()
+        if local_site is None:
+            print '%% No local site configured'
+            return
+        local_site.initialize_from_apic()
+
+    def setUp(self):
+        global config
+
+        assert len(config['sitetoolconfig']) == len(collectors)
+        setup_done = False
+        for i in range(0, len(config['sitetoolconfig'])):
+            collector = collectors[i]
+            config_params = config['sitetoolconfig'][i]
+            self.setup_tool(collector, config_params, setup_done)
+            setup_done = True
+
+    def consume_imported_contract(self, tenant_name, mac, ip, epg_name, app_name):
+        # Export the contract
+        local_site = site1_tool.get_local_site()
+        problem_sites = local_site.export_contract('http-contract', 'common', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify that the local tag was created
+        mtag = MultisiteTag('http-contract', 'exported', 'Site2')
+        self.assertTrue(verify_tag(local_site.session, 'common', mtag))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'common', 'Site1:http-contract'))
+
+        # Verify that the Remote Tag was created
+        mtag = MultisiteTag('http-contract', 'imported', 'Site1')
+        self.assertTrue(verify_tag(session, 'common', mtag))
+
+        # Consume the contract on the Imported Site
+        session = site1_tool.get_site('Site2').session
+        tenant = Tenant(tenant_name)
+        app = AppProfile(app_name, tenant)
+        epg = EPG(epg_name, app)
+        common_tenant = Tenant('common')
+        contract = Contract('Site1:http-contract', common_tenant)
+        epg.consume(contract)
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        epg.attach(vlan_intf)
+
+        # Add an Endpoint to the consuming EPG
+        ep = Endpoint(mac, epg)
+        ep.mac = mac
+        ep.ip = ip
+        ep.attach(vlan_intf)
+
+        # Push to the APIC
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Give enough time for the event to be handled
+        time.sleep(5)
+
+    def test_consume_imported_contract(self):
+        tenant_name = 'multisite-testsuite'
+        mac = '00:33:33:33:33:33'
+        ip = '1.2.3.4'
+        epg_name = 'epg'
+        app_name = 'app'
+        self.consume_imported_contract(tenant_name, mac, ip, epg_name, app_name)
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site1_session = site1_tool.get_local_site().session
+        self.assertTrue(has_l3extsubnet(site1_session, 'common', mac, ip))
+
+        # Verify that the l3InstP is consuming the contract
+        tag = MultisiteTag(epg_name, app_name, 'Site2')
+        self.assertTrue(has_l3extInstP_consuming_contract(site1_session, 'common', mac, ip, 'http-contract', tag))
+
+    def test_consume_imported_contract_with_multiple_endpoints(self):
+        tenant_name = 'multisite-testsuite'
+        mac1 = '00:33:33:33:33:33'
+        ip1 = '1.2.3.4'
+        mac2 = '00:33:33:33:33:34'
+        ip2 = '1.2.3.5'
+        epg_name = 'epg'
+        app_name = 'app'
+        self.consume_imported_contract(tenant_name, mac1, ip1, epg_name, app_name)
+        self.consume_imported_contract(tenant_name, mac2, ip2, epg_name, app_name)
+
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site1_session = site1_tool.get_local_site().session
+        self.assertTrue(has_l3extsubnet(site1_session, 'common', mac1, ip1))
+        self.assertTrue(has_l3extsubnet(site1_session, 'common', mac2, ip2))
+
+        # Verify that the l3InstP is consuming the contract
+        tag = MultisiteTag(epg_name, app_name, 'Site2')
+        self.assertTrue(has_l3extInstP_consuming_contract(site1_session, 'common', mac1, ip1, 'http-contract', tag))
+        self.assertTrue(has_l3extInstP_consuming_contract(site1_session, 'common', mac2, ip2, 'http-contract', tag))
+
+    def test_unconsume_imported_contract_with_one_of_multiple_endpoints(self):
+        tenant_name = 'multisite-testsuite'
+        mac1 = '00:33:33:33:33:33'
+        ip1 = '1.2.3.4'
+        mac2 = '00:33:33:33:33:34'
+        ip2 = '1.2.3.5'
+        epg_name = 'epg'
+        app_name = 'app'
+        self.consume_imported_contract(tenant_name, mac1, ip1, epg_name, app_name)
+        self.consume_imported_contract(tenant_name, mac2, ip2, epg_name, app_name)
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site1_session = site1_tool.get_local_site().session
+        self.assertTrue(has_l3extsubnet(site1_session, 'common', mac1, ip1))
+        self.assertTrue(has_l3extsubnet(site1_session, 'common', mac2, ip2))
+
+        # Verify that the l3InstP is consuming the contract
+        tag = MultisiteTag(epg_name, app_name, 'Site2')
+        self.assertTrue(has_l3extInstP_consuming_contract(site1_session, 'common', mac1, ip1, 'http-contract', tag))
+        self.assertTrue(has_l3extInstP_consuming_contract(site1_session, 'common', mac2, ip2, 'http-contract', tag))
+
+        tenant = Tenant(tenant_name)
+        app = AppProfile(app_name, tenant)
+        epg = EPG(epg_name, app)
+        common_tenant = Tenant('common')
+        contract = Contract('Site1:http-contract', common_tenant)
+        epg.consume(contract)
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        epg.attach(vlan_intf)
+
+        # Add an Endpoint to the consuming EPG
+        ep = Endpoint(mac1, epg)
+        ep.mac = mac1
+        ep.ip = ip1
+        ep.attach(vlan_intf)
+
+        ep.mark_as_deleted()
+
+        # Push to the APIC
+        session = site1_tool.get_site('Site2').session
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Wait for the events to take place
+        time.sleep(4)
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site1_session = site1_tool.get_local_site().session
+        self.assertFalse(has_l3extsubnet(site1_session, 'common', mac1, ip1))
+        self.assertTrue(has_l3extsubnet(site1_session, 'common', mac2, ip2))
+
+        # Verify that the l3InstP is consuming the contract
+        tag = MultisiteTag(epg_name, app_name, 'Site2')
+        self.assertFalse(has_l3extInstP_consuming_contract(site1_session, 'common', mac1, ip1, 'http-contract', tag))
+        self.assertTrue(has_l3extInstP_consuming_contract(site1_session, 'common', mac2, ip2, 'http-contract', tag))
+
+
+    def test_unconsume_imported_contract(self):
+        tenant_name = 'multisite-testsuite'
+        mac = '00:33:33:33:33:33'
+        ip = '1.2.3.4'
+        epg_name = 'epg'
+        app_name = 'app'
+        self.consume_imported_contract(tenant_name, mac, ip, epg_name, app_name)
+
+        tenant = Tenant(tenant_name)
+        app = AppProfile(app_name, tenant)
+        epg = EPG(epg_name, app)
+        common_tenant = Tenant('common')
+        contract = Contract('Site1:http-contract', common_tenant)
+        epg.consume(contract)
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        epg.attach(vlan_intf)
+
+        # Add an Endpoint to the consuming EPG
+        ep = Endpoint(mac, epg)
+        ep.mac = mac
+        ep.ip = ip
+        ep.attach(vlan_intf)
+
+        ep.mark_as_deleted()
+
+        # Push to the APIC
+        session = site1_tool.get_site('Site2').session
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Wait for the events to take place
+        time.sleep(4)
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site1_session = site1_tool.get_local_site().session
+        self.assertFalse(has_l3extsubnet(site1_session, 'common', mac, ip))
+
+        # Verify that the l3InstP is consuming the contract
+        tag = MultisiteTag(epg.name, app.name, 'Site2')
+        self.assertFalse(has_l3extInstP_consuming_contract(site1_session, 'common', mac, ip, 'http-contract', tag))
+
+    def test_provide_exported_contract(self):
+        tenant_name = 'multisite-testsuite'
+        # Export the contract
+        local_site = site1_tool.get_local_site()
+        problem_sites = local_site.export_contract('http-contract', 'common', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify that the local tag was created
+        mtag = MultisiteTag('http-contract', 'exported', 'Site2')
+        self.assertTrue(verify_tag(local_site.session, 'common', mtag))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'common', 'Site1:http-contract'))
+
+        # Verify that the Remote Tag was created
+        mtag = MultisiteTag('http-contract', 'imported', 'Site1')
+        self.assertTrue(verify_tag(session, 'common', mtag))
+
+        # Provide the contract on the Exported Site
+        #session = site1_tool.get_site('Site2').session
+        tenant = Tenant(tenant_name)
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        common_tenant = Tenant('common')
+        contract = Contract('http-contract', common_tenant)
+        epg.provide(contract)
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        epg.attach(vlan_intf)
+
+        # Add an Endpoint to the consuming EPG
+        mac = '00:33:33:33:33:33'
+        ip = '1.2.3.4'
+        ep = Endpoint(mac, epg)
+        ep.mac = mac
+        ep.ip = ip
+        ep.attach(vlan_intf)
+
+        # Push to the APIC
+        resp = tenant.push_to_apic(local_site.session)
+        self.assertTrue(resp.ok)
+
+        # Give enough time for the event to be handled
+        time.sleep(2)
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site2_session = site1_tool.get_site('Site2').session
+        #site1_session = site1_tool.get_local_site().session
+        self.assertTrue(has_l3extsubnet(site2_session, 'common', mac, ip))
+
+        # Verify that the l3InstP is providing the contract
+        tag = MultisiteTag(epg.name, app.name, 'Site1')
+        self.assertTrue(has_l3extInstP_providing_contract(site2_session, 'common', mac, ip, 'Site1:http-contract', tag))
+
+
+    def tearDown(self):
+        time.sleep(2)
+
+        # Unexport the contract
+        local_site = site1_tool.get_local_site()
+        problem_sites = local_site.unexport_contract('http-contract', 'common', 'Site2')
+
+        # Delete tenant from the APIC
+        for collector in collectors:
+            for site in collector.get_sites():
+                if site.local:
+                    setup_local_apic_with_l3out_on_tenant_common(site.session, delete=True)
+                else:
+                    setup_remote_apic_with_l3out_on_tenant_common(site.session, delete=True)
                 site.session.close()
 
 
