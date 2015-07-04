@@ -190,8 +190,9 @@ class EndpointJsonDB(object):
             contract_name = str(contract_name).partition(':')[2]
         return contract_name
 
-    def _add_endpoint_subnet(self, tenant, endpoint, remote_site,
-                             remote_contracts={}):
+    def _add_endpoint_subnet(self, tenant, endpoint, remote_site, remote_contracts=None):
+        if not remote_contracts:
+            remote_contracts = {}
         logging.info('EndpointJsonDB:_add_endpoint_subnet tenant: %s endpoint: %s remote_site: %s',
                      tenant.name, endpoint.mac, remote_site)
         network = OutsideNetwork(endpoint.name)
@@ -306,6 +307,7 @@ class EndpointJsonDB(object):
         logging.info('_push_to_remote_site remote_site_name: %s url: %s json: %s',
                      remote_site_name, url, data_json)
         remote_site_obj = self._local_site.my_collector.get_site(remote_site_name)
+        assert remote_site_obj is not None
         if remote_site_obj is not None:
             remote_session = remote_site_obj.session
             resp = remote_session.push_to_apic(url, data_json)
@@ -324,7 +326,7 @@ class EndpointJsonDB(object):
                 tenant_json = tenant.get_json()
                 self._remove_contracts_from_json(tenant_json)
                 # self._local_site.contract_collector._rename_classes(tenant_json)
-                resp = self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
+                self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
         self.db = {}
 
 
