@@ -499,6 +499,60 @@ class TestMultisite(unittest.TestCase):
         # Verify that the other site has the entry in addition to the contract
         self.assertTrue(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
 
+    def test_remove_full_export_contract(self):
+        local_site = site1_tool.get_local_site()
+        # Create the Tenant
+        tenant = Tenant('multisite-testsuite')
+        # Create a new Contract
+        contract = Contract('new-contract', tenant)
+        entry = FilterEntry('new-entry',
+                            applyToFrag='no',
+                            arpOpc='unspecified',
+                            dFromPort='500',
+                            dToPort='5000',
+                            etherT='ip',
+                            prot='tcp',
+                            sFromPort='1',
+                            sToPort='65535',
+                            tcpRules='unspecified',
+                            parent=contract)
+        resp = tenant.push_to_apic(local_site.session)
+        self.assertTrue(resp.ok)
+
+        # Wait for the contract event to be handled
+        time.sleep(2)
+
+        # Verify that the local site has the contract entries
+        self.assertTrue(has_filter(local_site.session, tenant, 'new-contractnew-entry'))
+
+        # Export the new contract
+        problem_sites = local_site.export_contract('new-contract', 'multisite-testsuite', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site has the entry in addition to the contract
+        self.assertTrue(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
+
+        # Unexport the new contract
+        # problem_sites = local_site.unexport_contract('new-contract', 'multisite-testsuite', 'Site2')
+        local_site.unexport_contract('new-contract', 'multisite-testsuite', 'Site2')
+
+        # Verify successful
+        # self.assertFalse(len(problem_sites))
+
+        # Verify contract was removed from the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertFalse(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site has the entry in addition to the contract
+        self.assertFalse(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
+
+
     def test_export_tenant_contract_with_filter_in_common(self):
         local_site = site1_tool.get_local_site()
 

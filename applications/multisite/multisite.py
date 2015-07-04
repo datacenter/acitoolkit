@@ -1226,6 +1226,41 @@ class LocalSite(Site):
         # (in case they were imported during a downtime)
         self.export_epgs_consuming_imported_contract()
 
+    def _get_contracts_using_filter(self, session, tenant_name, filter_name):
+        contracts = []
+        query_url = ('/api/mo/uni/tn-%s/flt-%s.json?query-target=subtree&'
+                     'target-subtree-class=vzRtSubjFiltAtt' % (tenant_name, filter_name))
+        resp = session.get(query_url)
+        if resp.ok and 'imdata' in resp.json():
+            for item in resp.json()['imdata']:
+                if 'vzRtSubjFiltAtt' not in item:
+                    raise NotImplementedError
+                contract_name = item['vzRtSubjFiltAtt']['attributes']['tDn'].split('/brc-')[1].split('/')[0]
+                contracts.append(contract_name)
+        return contracts
+
+    def _get_filter_tenant_name(self, session, tenant_name, filter_name):
+            filter_tenant_name = 'common'
+            if tenant_name != 'common':
+                query_url = '/api/mo/uni/tn-%s/flt-%s.json' % (tenant_name, filter_name)
+                resp = session.get(query_url)
+                if resp.ok and 'imdata' in resp.json():
+                    if int(resp.json()['totalCount']):
+                        filter_tenant_name = tenant_name
+            return filter_tenant_name
+
+    def _get_filter_names(self, session, tenant_name, contract_name):
+        filter_names = []
+        query_url = ('/api/mo/uni/tn-%s/brc-%s.json?query-target=subtree&'
+                     'target-subtree-class=vzRsSubjFiltAtt' % (tenant_name, contract_name))
+        resp = session.get(query_url)
+        if resp.ok and 'imdata' in resp.json():
+            data = resp.json()['imdata']
+            for item in data:
+                filter_names.append(item['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'])
+        return filter_names
+
+
     def unexport_contract(self, contract_name, tenant_name, remote_site):
         unexport_tenant = Tenant(str(tenant_name))
         local_contract_name = strip_illegal_characters(str(self.name)) + ':' + str(contract_name)
@@ -1271,7 +1306,20 @@ class LocalSite(Site):
         unexport_contract = Contract(local_contract_name, unexport_tenant)
         unexport_contract.mark_as_deleted()
 
-        # TODO: Filters need to be removed
+        # Remove the filters from the remote site as long as no other contract is using them
+        filter_names = self._get_filter_names(remote_session, tenant_name, local_contract_name)
+        for filter_name in filter_names:
+            # Check if filter is in tenant or common
+            filter_tenant_name = self._get_filter_tenant_name(remote_session, tenant_name, filter_name)
+            # Check if the filter is being used by any other contracts
+            contract_names = self._get_contracts_using_filter(remote_session, filter_tenant_name, filter_name)
+            # If only 1 contract uses the filter and it is this contract, then we can delete the filter
+            if len(contract_names) == 1 and local_contract_name == contract_names[0]:
+                url = '/api/mo/uni/tn-%s/flt-%s.json' % (filter_tenant_name, filter_name)
+                data_json = {'vzFilter': {'attributes':{'name': filter_name, 'status': 'deleted'}}}
+                resp = remote_session.push_to_apic(url, data_json)
+                if not resp.ok:
+                    logging.warning('Could not remove filter %s from tenant %s', filter_name, filter_tenant_name)
 
         # Remove tag from tenant in remote site
         mtag = MultisiteTag(str(contract_name), 'imported', str(self.name))
