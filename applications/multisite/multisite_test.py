@@ -1401,6 +1401,54 @@ class TestMultisite(unittest.TestCase):
         tag = MultisiteTag(epg.name, app.name, 'Site1')
         self.assertTrue(has_l3extInstP_providing_contract(site2_session, tenant_name, mac, ip, 'Site1:http-contract', tag))
 
+    def test_provide_contract_in_local_site_with_endpoint(self):
+        tenant_name = 'multisite-testsuite'
+
+        contract_name = 'http-contract'
+        # Export the contract
+        local_site = site1_tool.get_local_site()
+        problem_sites = local_site.export_contract(contract_name, tenant_name, ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Provide the contract
+        tenant = Tenant(tenant_name)
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        contract = Contract(contract_name, tenant)
+        epg.provide(contract)
+        intf = Interface('eth', '1', '101', '1', '38')
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+        vlan_intf.attach(intf)
+        # Attach the EPG to the VLAN interface
+        epg.attach(vlan_intf)
+
+        # Add an Endpoint to the providing EPG
+        mac = '00:33:33:33:44:33'
+        ip = '1.2.33.4'
+        ep = Endpoint(mac, epg)
+        ep.mac = mac
+        ep.ip = ip
+        ep.attach(vlan_intf)
+
+        # Push to the local site
+        resp = tenant.push_to_apic(local_site.session)
+        self.assertTrue(resp.ok)
+
+        time.sleep(2)
+
+        # Verify that the l3extSubnet shows up on the local
+        # site (Site1) as consuming the contract
+        site2_session = site1_tool.get_site('Site2').session
+        #site1_session = site1_tool.get_local_site().session
+        self.assertTrue(has_l3extsubnet(site2_session, tenant_name, mac, ip))
+
+        # Verify that the l3InstP is providing the contract
+        tag = MultisiteTag(epg.name, app.name, 'Site1')
+        self.assertTrue(has_l3extInstP_providing_contract(site2_session, tenant_name, mac, ip, 'Site1:http-contract', tag))
+
     def test_provide_contract_in_local_site_with_endpoint_and_remove_epg_provides_contract(self):
         tenant_name = 'multisite-testsuite'
 
