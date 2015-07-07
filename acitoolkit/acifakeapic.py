@@ -90,11 +90,10 @@ class FakeSession(Session):
         :param url: string containing the URL to search the configuration
         :return: list of the found objects
         """
-        # print 'query: {}'.format(url)
         queries = self._parse_url(url)
         dn, query_target, rsp_subtree, target_cls, node_cl = queries
         data, cl_data = [], []
-        # the loop will execute even if there are no target clasess
+        # the loop will execute even if there are no target classes
         # this ensures the get_class function gets called at least once
         for target in target_cls.split(','):
             cl_data = self._get_class(dn, node_cl, target, query_target)
@@ -114,7 +113,7 @@ class FakeSession(Session):
         url_parsed = urlparse.urlparse(url)
         cl_path = url_parsed.path.partition('.json')[0]
         path_regex = '/api/(?:mo|node/class)/(([^/]*).*)'
-        dn, root_cl= re.search(path_regex, cl_path).groups()
+        dn, root_cl = re.search(path_regex, cl_path).groups()
         # get the queries as a dict
         url_queries = urlparse.parse_qs(url_parsed.query)
         # get the queries and convert them to a string
@@ -143,8 +142,8 @@ class FakeSession(Session):
         resp = []
         if cl:
             lst = self._classes[cl]
-            return [cl_obj for dn_, cl_obj in lst]
-        for cl_name, lst in self._classes.iteritems():
+            return [cl_obj for _, cl_obj in lst]
+        for _, lst in self._classes.iteritems():
             if target and query_target != 'self':
                 lst = self._classes[target]
             for tup in lst:
@@ -176,7 +175,7 @@ class FakeSession(Session):
         if rsp_subtree != 'full':
             resp = []
             for node in db:
-                node_cl, contents = next(node.iteritems())
+                node_cl, _ = next(node.iteritems())
                 # make a deep copy to avoid deleting other nodes 
                 node_cl_copy = deepcopy(node[node_cl])
                 ret = {}
