@@ -499,7 +499,7 @@ class TestMultisite(unittest.TestCase):
         # Verify that the other site has the entry in addition to the contract
         self.assertTrue(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
 
-    def test_remove_full_export_contract(self):
+    def test_unexport_full_export_contract(self):
         local_site = site1_tool.get_local_site()
         # Create the Tenant
         tenant = Tenant('multisite-testsuite')
@@ -552,6 +552,165 @@ class TestMultisite(unittest.TestCase):
         # Verify that the other site removes the filter
         self.assertFalse(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
 
+    def test_unexport_full_export_contract_with_filters_still_used_by_other_contract(self):
+        local_site = site1_tool.get_local_site()
+        # Create the Tenant
+        tenant_json = {
+            "fvTenant":{
+                "attributes":{
+                    "name":"multisite-testsuite"
+                },
+                "children":[
+                    {
+                        "vzBrCP":{
+                            "attributes":{
+                                "scope":"context",
+                                "name":"new-contract"
+                            },
+                            "children":[
+                                {
+                                    "vzSubj":{
+                                        "attributes":{
+                                            "name":"new-contractnew-entry"
+                                        },
+                                        "children":[
+                                            {
+                                                "vzRsSubjFiltAtt":{
+                                                    "attributes":{
+                                                        "tnVzFilterName":"new-contractnew-entry"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "vzFilter":{
+                            "attributes":{
+                                "name":"new-contractnew-entry"
+                            },
+                            "children":[
+                                {
+                                    "vzEntry":{
+                                        "attributes":{
+                                            "tcpRules":"unspecified",
+                                            "arpOpc":"unspecified",
+                                            "applyToFrag":"no",
+                                            "name":"new-entry",
+                                            "prot":"tcp",
+                                            "sFromPort":"1",
+                                            "sToPort":"65535",
+                                            "etherT":"ip",
+                                            "dFromPort":"500",
+                                            "dToPort":"5000"
+                                        },
+                                        "children":[]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+
+        resp = local_site.session.push_to_apic(Tenant.get_url(), tenant_json)
+        self.assertTrue(resp.ok)
+
+        # Wait for the contract event to be handled
+        time.sleep(2)
+
+        tenant = Tenant('multisite-testsuite')
+        # Verify that the local site has the contract entries
+        self.assertTrue(has_filter(local_site.session, tenant, 'new-contractnew-entry'))
+
+        # Push another contract
+        tenant_json = {
+            "fvTenant":{
+                "attributes":{
+                    "name":"multisite-testsuite"
+                },
+                "children":[
+                    {
+                        "vzBrCP":{
+                            "attributes":{
+                                "scope":"context",
+                                "name":"another-contract"
+                            },
+                            "children":[
+                                {
+                                    "vzSubj":{
+                                        "attributes":{
+                                            "name":"new-contractnew-entry"
+                                        },
+                                        "children":[
+                                            {
+                                                "vzRsSubjFiltAtt":{
+                                                    "attributes":{
+                                                        "tnVzFilterName":"new-contractnew-entry"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        resp = local_site.session.push_to_apic(Tenant.get_url(), tenant_json)
+        self.assertTrue(resp.ok)
+
+        # Wait for the contract event to be handled
+        time.sleep(2)
+
+        # Export the new contract
+        problem_sites = local_site.export_contract('new-contract', 'multisite-testsuite', ['Site2'])
+        time.sleep(2)
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Export the new contract
+        problem_sites = local_site.export_contract('another-contract', 'multisite-testsuite', ['Site2'])
+        time.sleep(2)
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site has the entry in addition to the contract
+        self.assertTrue(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
+
+        # Unexport the new contract
+        # problem_sites = local_site.unexport_contract('new-contract', 'multisite-testsuite', 'Site2')
+        local_site.unexport_contract('new-contract', 'multisite-testsuite', 'Site2')
+
+        # Verify contract was removed from the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertFalse(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site still has the filter
+        self.assertTrue(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
+
+        # Unexport the new contract
+        # problem_sites = local_site.unexport_contract('new-contract', 'multisite-testsuite', 'Site2')
+        local_site.unexport_contract('another-contract', 'multisite-testsuite', 'Site2')
+
+        # Verify contract was removed from the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertFalse(has_contract(session, 'multisite-testsuite', 'Site1:another-contract'))
+
+        # Verify that the other site removes the filter
+        self.assertFalse(has_filter(session, tenant, 'Site1:new-contractnew-entry'))
 
     def test_export_tenant_contract_with_filter_in_common(self):
         local_site = site1_tool.get_local_site()
@@ -729,6 +888,167 @@ class TestMultisite(unittest.TestCase):
         self.assertFalse(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
 
         # Verify that the other site removes the filter
+        self.assertFalse(has_filter(session, common_tenant, 'Site1:multisite-testsuite-entry'))
+
+        # Clean up the tenant common config from local site
+        filter_json['vzFilter']['attributes']['status'] = 'deleted'
+        common_tenant_json['fvTenant']['children'] = [filter_json]
+        resp = local_site.session.push_to_apic(common_tenant.get_url(), common_tenant_json)
+        self.assertTrue(resp.ok)
+
+    def test_unexport_tenant_contract_with_filter_in_common_but_still_used_by_other_contract(self):
+        local_site = site1_tool.get_local_site()
+
+        # Add a filter to tenant common
+        common_tenant = Tenant('common')
+        common_tenant_json = common_tenant.get_json()
+        filter_json = {
+                        "vzFilter": {
+                            "attributes": {
+                                "name": "multisite-testsuite-entry"
+                            },
+                            "children": [
+                                {
+                                    "vzEntry": {
+                                        "attributes": {
+                                            "tcpRules": "unspecified",
+                                            "arpOpc": "unspecified",
+                                            "applyToFrag": "no",
+                                            "name": "new-entry",
+                                            "prot": "tcp",
+                                            "sFromPort": "1",
+                                            "sToPort": "65535",
+                                            "etherT": "ip",
+                                            "dFromPort": "500",
+                                            "dToPort": "5000"
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+        common_tenant_json['fvTenant']['children'] = [filter_json]
+        resp = local_site.session.push_to_apic(common_tenant.get_url(), common_tenant_json)
+        self.assertTrue(resp.ok)
+
+        # Add a contract using the tenant common filter
+        tenant = Tenant('multisite-testsuite')
+        contract = Contract('new-contract', tenant)
+        tenant_json = tenant.get_json()
+        subject_json = {
+                        "vzSubj": {
+                            "attributes": {
+                                "name": "multisite-testsuite-subject"
+                            },
+                            "children": [
+                                {
+                                    "vzRsSubjFiltAtt": {
+                                        "attributes": {
+                                            "tnVzFilterName": "multisite-testsuite-entry",
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+        tenant_json['fvTenant']['children'][0]['vzBrCP']['children'] = [subject_json]
+        resp = local_site.session.push_to_apic(tenant.get_url(), tenant_json)
+        self.assertTrue(resp.ok)
+
+        # Give some time for the contract event to occur
+        time.sleep(5)
+
+        # Export the contract
+        problem_sites = local_site.export_contract('new-contract', 'multisite-testsuite', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site has the entry in addition to the contract
+        self.assertTrue(has_filter(session, common_tenant, 'Site1:multisite-testsuite-entry'))
+
+        # Push another contract
+        tenant_json = {
+            "fvTenant":{
+                "attributes":{
+                    "name":"multisite-testsuite"
+                },
+                "children":[
+                    {
+                        "vzBrCP":{
+                            "attributes":{
+                                "scope":"context",
+                                "name":"another-contract"
+                            },
+                            "children":[
+                                {
+                                    "vzSubj":{
+                                        "attributes":{
+                                            "name":"new-subject"
+                                        },
+                                        "children":[
+                                            {
+                                                "vzRsSubjFiltAtt":{
+                                                    "attributes":{
+                                                        "tnVzFilterName":"multisite-testsuite-entry"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        resp = local_site.session.push_to_apic(Tenant.get_url(), tenant_json)
+        self.assertTrue(resp.ok)
+
+        time.sleep(2)
+
+        # Export the contract
+        problem_sites = local_site.export_contract('another-contract', 'multisite-testsuite', ['Site2'])
+
+        # Verify successful
+        self.assertFalse(len(problem_sites))
+
+        # Verify contract was actually pushed to the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertTrue(has_contract(session, 'multisite-testsuite', 'Site1:another-contract'))
+
+        # Verify that the other site has the entry in addition to the contract
+        self.assertTrue(has_filter(session, common_tenant, 'Site1:multisite-testsuite-entry'))
+
+        # Unexport contract
+        time.sleep(4)
+        local_site.unexport_contract('new-contract', 'multisite-testsuite', 'Site2')
+        time.sleep(4)
+
+        # Verify contract was removed from the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertFalse(has_contract(session, 'multisite-testsuite', 'Site1:new-contract'))
+
+        # Verify that the other site did not remove the filter
+        self.assertTrue(has_filter(session, common_tenant, 'Site1:multisite-testsuite-entry'))
+
+        # Unexport contract
+        time.sleep(4)
+        local_site.unexport_contract('another-contract', 'multisite-testsuite', 'Site2')
+        time.sleep(4)
+
+        # Verify contract was removed from the other site
+        session = site1_tool.get_site('Site2').session
+        self.assertFalse(has_contract(session, 'multisite-testsuite', 'Site1:another-contract'))
+
+        # Verify that the other site did not remove the filter
         self.assertFalse(has_filter(session, common_tenant, 'Site1:multisite-testsuite-entry'))
 
         # Clean up the tenant common config from local site
