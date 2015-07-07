@@ -54,7 +54,6 @@ class MultisiteTag(object):
             assert len(names) == 2
             contract_name = names[1]
         self._contract_name = contract_name
-        #assert export_state in ['imported', 'exported', 'local']
         self._export_state = export_state
         self._remote_site = remote_site
 
@@ -178,6 +177,8 @@ class EndpointJsonDB(object):
         epgdb_entries = epg_db.find_entries(tenant.name, app.name, epg.name)
         for epgdb_entry in epgdb_entries:
             contract_db_entry = contract_db.find_entry(tenant.name, epgdb_entry.contract_name)
+            if contract_db_entry is None:
+                contract_db_entry = contract_db.find_entry('common', epgdb_entry.contract_name)
             for remote_site in contract_db_entry.remote_sites:
                 remote_sites.append(remote_site)
         return remote_sites
@@ -189,8 +190,11 @@ class EndpointJsonDB(object):
             contract_name = str(contract_name).partition(':')[2]
         return contract_name
 
-    def _add_endpoint_subnet(self, tenant, endpoint, remote_site,
-                             remote_contracts={}):
+    def _add_endpoint_subnet(self, tenant, endpoint, remote_site, remote_contracts=None):
+        if not remote_contracts:
+            remote_contracts = {}
+        logging.info('EndpointJsonDB:_add_endpoint_subnet tenant: %s endpoint: %s remote_site: %s',
+                     tenant.name, endpoint.mac, remote_site)
         network = OutsideNetwork(endpoint.name)
         if endpoint.is_deleted():
             network.mark_as_deleted()
@@ -231,7 +235,8 @@ class EndpointJsonDB(object):
             if not has_outside_epg:
                 outside = OutsideEPG(outside_epg_entry.outside_epg_name,
                                      current_tenant)
-            outside.networks.append(network)
+            if network not in outside.networks:
+                outside.networks.append(network)
 
     def get_tenant_from_db(self, remote_site, tenant):
         if remote_site in self.db:
@@ -254,6 +259,8 @@ class EndpointJsonDB(object):
         epgdb_entries = self._local_site.epg_db.find_entries(tenant_name, app_name, epg_name)
         for epgdb_entry in epgdb_entries:
             contract_db_entry = self._local_site.contract_db.find_entry(tenant_name, epgdb_entry.contract_name)
+            if contract_db_entry is None:
+                contract_db_entry = self._local_site.contract_db.find_entry('common', epgdb_entry.contract_name)
             for remote_site in contract_db_entry.remote_sites:
                 if remote_site not in remote_contracts:
                     remote_contracts[remote_site] = {}
@@ -263,9 +270,11 @@ class EndpointJsonDB(object):
         return remote_contracts
 
     def add_endpoint(self, endpoint):
+        logging.info('EndpointJsonDB:add_endpoint endpoint: %s', endpoint.mac)
         epg = endpoint.get_parent()
         if not self._local_site.uses_multisite_contract(epg):
             # Ignore this event.  Endpoint uses only local contracts
+            logging.debug('EndpointJsonDB:add_endpoint endpoint uses only local contracts')
             return
         app = epg.get_parent()
         tenant = app.get_parent()
@@ -298,6 +307,7 @@ class EndpointJsonDB(object):
         logging.info('_push_to_remote_site remote_site_name: %s url: %s json: %s',
                      remote_site_name, url, data_json)
         remote_site_obj = self._local_site.my_collector.get_site(remote_site_name)
+        assert remote_site_obj is not None
         if remote_site_obj is not None:
             remote_session = remote_site_obj.session
             resp = remote_session.push_to_apic(url, data_json)
@@ -309,13 +319,14 @@ class EndpointJsonDB(object):
         """
         Push the endpoints to the remote sites
         """
+        logging.debug('EndpointJsonDB:push_to_remote_sites')
         for remote_site in self.db:
             for tenant_name in self.db[remote_site]:
                 tenant = self.db[remote_site][tenant_name]
                 tenant_json = tenant.get_json()
                 self._remove_contracts_from_json(tenant_json)
-                #self._local_site.contract_collector._rename_classes(tenant_json)
-                resp = self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
+                # self._local_site.contract_collector._rename_classes(tenant_json)
+                self._push_to_remote_site(remote_site, tenant.get_url(), tenant_json)
         self.db = {}
 
 
@@ -367,7 +378,10 @@ class MultisiteMonitor(threading.Thread):
         cdb_entry.tenant_name = tenant_name
         cdb_entry.contract_name = contract.name
         cdb_entry.export_state = 'local'
-        self._local_site.contract_db.add_entry(cdb_entry)
+        if contract.is_deleted():
+            self._local_site.contract_db.remove_entry(cdb_entry)
+        else:
+            self._local_site.contract_db.add_entry(cdb_entry)
         return cdb_entry
 
     def _get_local_contractdb_entry(self, tenant_name, contract_name):
@@ -876,7 +890,7 @@ class ContractDB(MultisiteDB):
     def print_entries(self):
         print 'Contract DB Entries:'
         for entry in self._db:
-            print entry.tenant_name, ':', entry.contract_name, ':', entry.export_state
+            print entry.tenant_name, ':', entry.contract_name, ':', entry.export_state, ':', entry.remote_sites
 
 
 class EpgDBEntry(object):
@@ -928,10 +942,17 @@ class OutsideDBEntry(object):
         self.uses_tenant_common = False
 
     def __eq__(self, other):
-        if self.tenant_name == other.tenant_name and self.remote_site_name == other.remote_site_name:
+        if self.tenant_name == other.tenant_name and self.remote_site_name == other.remote_site_name and self.outside_epg_name == other.outside_epg_name:
             return True
         else:
             return False
+
+    def __str__(self):
+        return ('tenant_name: %s remote_site_name: %s '
+                'outside_epg_name: %s uses_tenant_common: %s' % (self.tenant_name,
+                                                                 self.remote_site_name,
+                                                                 self.outside_epg_name,
+                                                                 self.uses_tenant_common))
 
 
 class OutsideDB(MultisiteDB):
@@ -940,6 +961,8 @@ class OutsideDB(MultisiteDB):
         self.local_site = local_site
 
     def add_entry(self, tenant_name, remote_site_name, outside_epg_name, uses_tenant_common=False):
+        logging.debug('OutsideDB:add_entry tenant_name: %s remote_site_name: %s outside_epg_name: %s uses_tenant_common: %s',
+                      tenant_name, remote_site_name, outside_epg_name, uses_tenant_common)
         db_entry = OutsideDBEntry()
         db_entry.tenant_name = tenant_name
         db_entry.remote_site_name = remote_site_name
@@ -950,25 +973,25 @@ class OutsideDB(MultisiteDB):
         self._db.append(db_entry)
         self.trigger_callback()
 
-    def _get_entries(self, search_entry):
+    def _get_entries(self, tenant_name, remote_site_name):
         resp = []
         for db_entry in self._db:
-            if db_entry == search_entry:
+            if db_entry.tenant_name == tenant_name and db_entry.remote_site_name == remote_site_name:
                 resp.append(db_entry)
         return resp
 
     def get_outside_epg_entries(self, tenant_name, remote_site_name):
-        search_entry = OutsideDBEntry()
-        search_entry.tenant_name = tenant_name
-        search_entry.remote_site_name = remote_site_name
-        db_entries = self._get_entries(search_entry)
+        logging.debug('OutsideDB:get_outside_epg_entries tenant: %s remote_site: %s',
+                      tenant_name, remote_site_name)
+        db_entries = self._get_entries(tenant_name, remote_site_name)
         if len(db_entries):
             return db_entries
+        logging.debug('OutsideDB:get_outside_epg_entries - Need to get from APIC')
         # Don't have it.  Go get it from APIC
         remote_site_obj = self.local_site.my_collector.get_site(remote_site_name)
         if remote_site_obj is not None:
             self.update_from_apic(tenant_name, remote_site_obj)
-            return self._get_entries(search_entry)
+            return self._get_entries(tenant_name, remote_site_name)
         else:
             return []
 
@@ -991,6 +1014,7 @@ class OutsideDB(MultisiteDB):
         :param remote_site: Instance of RemoteSite
         :return: None
         """
+        logging.info('OutsideDB:update_from_apic tenant: %s remote_site: %s', tenant_name, remote_site)
         if isinstance(remote_site, str):
             remote_site = self.local_site.my_collector.get_site(remote_site)
         if remote_site is None:
@@ -1010,6 +1034,12 @@ class OutsideDB(MultisiteDB):
                     self.add_entry(tenant_name, remote_site.name, outside_epg.name, uses_tenant_common=True)
             else:
                 print '%% No Outside EPG found in remote site', remote_site.name
+
+    def print_db(self):
+        print 'OutsideDB database:'
+        for db_entry in self._db:
+            print 'Outside EPG name:', db_entry.outside_epg_name, 'Tenant:', db_entry.tenant_name, 'remote_site_name:', db_entry.remote_site_name,\
+                'uses_tenant_common:', db_entry.uses_tenant_common
 
 # TODO need to update get_outside_epg_name to return multiple entries.
 # TODO also, need to handle be careful to handle the tenant common case properly since tenant common can't be
@@ -1133,7 +1163,10 @@ class LocalSite(Site):
         for epg_db_entry in epg_db_entries:
             contract_db_entry = self.contract_db.find_entry(tenant.name, epg_db_entry.contract_name)
             if contract_db_entry is None:
-                continue
+                # Check if the contract is in tenant common
+                contract_db_entry = self.contract_db.find_entry('common', epg_db_entry.contract_name)
+                if contract_db_entry is None:
+                    continue
             if contract_db_entry.is_exported() or contract_db_entry.is_imported():
                 return True
         return False
@@ -1193,6 +1226,41 @@ class LocalSite(Site):
         # (in case they were imported during a downtime)
         self.export_epgs_consuming_imported_contract()
 
+    def _get_contracts_using_filter(self, session, tenant_name, filter_name):
+        contracts = []
+        query_url = ('/api/mo/uni/tn-%s/flt-%s.json?query-target=subtree&'
+                     'target-subtree-class=vzRtSubjFiltAtt' % (tenant_name, filter_name))
+        resp = session.get(query_url)
+        if resp.ok and 'imdata' in resp.json():
+            for item in resp.json()['imdata']:
+                if 'vzRtSubjFiltAtt' not in item:
+                    raise NotImplementedError
+                contract_name = item['vzRtSubjFiltAtt']['attributes']['tDn'].split('/brc-')[1].split('/')[0]
+                contracts.append(contract_name)
+        return contracts
+
+    def _get_filter_tenant_name(self, session, tenant_name, filter_name):
+            filter_tenant_name = 'common'
+            if tenant_name != 'common':
+                query_url = '/api/mo/uni/tn-%s/flt-%s.json' % (tenant_name, filter_name)
+                resp = session.get(query_url)
+                if resp.ok and 'imdata' in resp.json():
+                    if int(resp.json()['totalCount']):
+                        filter_tenant_name = tenant_name
+            return filter_tenant_name
+
+    def _get_filter_names(self, session, tenant_name, contract_name):
+        filter_names = []
+        query_url = ('/api/mo/uni/tn-%s/brc-%s.json?query-target=subtree&'
+                     'target-subtree-class=vzRsSubjFiltAtt' % (tenant_name, contract_name))
+        resp = session.get(query_url)
+        if resp.ok and 'imdata' in resp.json():
+            data = resp.json()['imdata']
+            for item in data:
+                filter_names.append(item['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'])
+        return filter_names
+
+
     def unexport_contract(self, contract_name, tenant_name, remote_site):
         unexport_tenant = Tenant(str(tenant_name))
         local_contract_name = strip_illegal_characters(str(self.name)) + ':' + str(contract_name)
@@ -1238,7 +1306,20 @@ class LocalSite(Site):
         unexport_contract = Contract(local_contract_name, unexport_tenant)
         unexport_contract.mark_as_deleted()
 
-        # TODO: Filters need to be removed
+        # Remove the filters from the remote site as long as no other contract is using them
+        filter_names = self._get_filter_names(remote_session, tenant_name, local_contract_name)
+        for filter_name in filter_names:
+            # Check if filter is in tenant or common
+            filter_tenant_name = self._get_filter_tenant_name(remote_session, tenant_name, filter_name)
+            # Check if the filter is being used by any other contracts
+            contract_names = self._get_contracts_using_filter(remote_session, filter_tenant_name, filter_name)
+            # If only 1 contract uses the filter and it is this contract, then we can delete the filter
+            if len(contract_names) == 1 and local_contract_name == contract_names[0]:
+                url = '/api/mo/uni/tn-%s/flt-%s.json' % (filter_tenant_name, filter_name)
+                data_json = {'vzFilter': {'attributes':{'name': filter_name, 'status': 'deleted'}}}
+                resp = remote_session.push_to_apic(url, data_json)
+                if not resp.ok:
+                    logging.warning('Could not remove filter %s from tenant %s', filter_name, filter_tenant_name)
 
         # Remove tag from tenant in remote site
         mtag = MultisiteTag(str(contract_name), 'imported', str(self.name))
@@ -1548,7 +1629,6 @@ def main():
     while True:
         pass
 
-    #print json.dumps(config, indent=4, separators=(',', ':'))
 
 if __name__ == '__main__':
     try:

@@ -17,8 +17,10 @@
      there is no actual APIC and the configuration comes from JSON files.
 """
 import json
+import urlparse
+import re
+from copy import deepcopy
 from acisession import Session
-
 
 class FakeResponse(object):
     """
@@ -28,6 +30,7 @@ class FakeResponse(object):
         self.ok = True
         self._data = {}
         self._data['imdata'] = data
+        self._content = ''
 
     def json(self):
         """
@@ -58,7 +61,6 @@ class FakeSubscriber(object):
         """
         pass
 
-
 class FakeSession(Session):
     """
     Class to fake an APIC Session
@@ -71,57 +73,16 @@ class FakeSession(Session):
         """
         self.db = []
         self.subscription_thread = FakeSubscriber()
+        self._classes = {}
         for filename in filenames:
             f = open(filename, 'r')
             data = json.loads(f.read())
-            self._fill_dn(data['imdata'], None)
+            self._fill_data(data['imdata'], None)
             self.db.append(data)
             f.close()
             with open(filename, "w") as f:
-                f.write(unicode(json.dumps(data, indent=4)))
-
-    def _get_class(self, class_name, resp, db,
-                   with_children=False, with_name=None):
-        """
-        Recursively search the configuration for the specified class instances
-
-        :param class_name: APIC class to search the config
-        :param resp: list of found configuration
-        :param db: JSON configuration to search
-        :param with_children: True or False.  True if the response should
-                              include the children of the found objects.
-        :param with_name: Name of the object to find.  If None, then all
-                          objects of the specified class will be found.
-        :return: list of found objects
-        """
-        if isinstance(db, list):
-            for obj in db:
-                assert not isinstance(obj, list)
-                self._get_class(class_name, resp, obj,
-                                with_children, with_name)
-            return resp
-        if class_name in db:
-            if with_name and db[class_name]['attributes']['name'] != with_name:
-                return resp
-            if with_children:
-                resp.append(db)
-            else:
-                ret = {}
-                ret[class_name] = {}
-                ret[class_name]['attributes'] = db[class_name]['attributes']
-                resp.append(ret)
-        else:
-            for key in db:
-                if 'imdata' == key:
-                    for child in db[key]:
-                        self._get_class(class_name, resp, child,
-                                        with_children, with_name)
-                elif 'children' in db[key]:
-                    for child in db[key]['children']:
-                        self._get_class(class_name, resp, child,
-                                        with_children, with_name)
-        return resp
-
+                 f.write(unicode(json.dumps(data, indent=4)))
+                 
     def _get_config(self, url):
         """
         Get the configuration of a specified URL
@@ -129,93 +90,185 @@ class FakeSession(Session):
         :param url: string containing the URL to search the configuration
         :return: list of the found objects
         """
-        # Check for class queries made under uni using class filter
-        class_query = ('/api/mo/uni.json?query-target=subtree'
-                       '&target-subtree-class=')
-        if class_query in url:
-            search_class = url[len(class_query):]
-            resp = []
-            self._get_class(search_class, resp, self.db)
-            return resp
-        # Check for other class queries
-        class_query = '/api/node/class/'
-        if url.startswith(class_query) and '?query-target=self' in url:
-            search_class = url.rpartition('/')[2].partition('.')[0]
-            resp = []
-            self._get_class(search_class, resp, self.db)
-            return resp
-        subtree_class_query = ('.json?query-target=subtree&'
-                               'target-subtree-class=')
-        if url.startswith(class_query) and subtree_class_query in url:
-            (parent_class, subtree_class) = url.split(subtree_class_query)
-            parent_class = parent_class.split(class_query)[1]
-            search_db = []
-            self._get_class(parent_class, search_db, self.db,
-                            with_children=True)
-            resp = []
-            self._get_class(subtree_class, resp, search_db)
-            return resp
-        tenant_query = '/api/mo/uni/tn-'
-        if url.startswith(tenant_query) and subtree_class_query in url:
-            tenant_name = url.split(tenant_query)[1]
-            tenant_name = tenant_name.split(subtree_class_query)[0]
-            subtree_class = url.split(subtree_class_query)[1]
-            if '/' in tenant_name:
-                name = tenant_name.split('/')
-                tenant_name = name[0]
-                bd_name = name[1]
-                if '/' in bd_name:
-                    print url
-                    raise NotImplementedError
-                search_db = []
-                self._get_class('fvTenant', search_db, self.db,
-                                with_children=True,
-                                with_name=tenant_name)
-                bd_search_db = []
-                self._get_class('fvBD', bd_search_db, search_db,
-                                with_children=True,
-                                with_name=bd_name)
-                resp = []
-                self._get_class(subtree_class, resp, bd_search_db)
-                return resp
-            search_db = []
-            self._get_class('fvTenant', search_db, self.db,
-                            with_children=True,
-                            with_name=tenant_name)
-            resp = []
-            self._get_class(subtree_class, resp, search_db)
-            return resp
-        object_subtree_query = '.json?query-target=self&rsp-subtree=full'
-        if url.startswith(tenant_query) and object_subtree_query in url:
-            tenant_name = url.split(tenant_query)[1]
-            tenant_name = tenant_name.split(object_subtree_query)[0]
-            if '/' in tenant_name:
-                raise NotImplementedError
-            resp = []
-            self._get_class('fvTenant', resp, self.db,
-                            with_children=True,
-                            with_name=tenant_name)
-            return resp
-        else:
-            raise NotImplementedError
-        
-    def _fill_dn(self, children, parent_dn):
+        # print 'query: {}'.format(url)
+        queries = self._parse_url(url)
+        dn, query_target, rsp_subtree, target_cls, node_cl = queries
+        data, cl_data = [], []
+        # the loop will execute even if there are no target clasess
+        # this ensures the get_class function gets called at least once
+        for target in target_cls.split(','):
+            cl_data = self._get_class(dn, node_cl, target, query_target)
+            data.extend(cl_data)
+        return self._rsp_subtree_data(data, rsp_subtree)
+
+    def _parse_url(self, url):
         """
-        Recursively fill in the distinguished name (dn) for the configuration 
-        JSON files.
+        Parse the url to get the dn, query-target, rsp-subtree, 
+        target-subtree-class(es), and the node class 
+
+        :param url: string containing the URL to be parsed
+        :return: a tuple of data
+        """
+        # set a dummy url scheme to make the url look like a real one
+        url = 'scheme://apic' + url
+        url_parsed = urlparse.urlparse(url)
+        cl_path = url_parsed.path.partition('.json')[0]
+        path_regex = '/api/(?:mo|node/class)/(([^/]*).*)'
+        dn, root_cl= re.search(path_regex, cl_path).groups()
+        # get the queries as a dict
+        url_queries = urlparse.parse_qs(url_parsed.query)
+        # get the queries and convert them to a string
+        query_target = ''.join(url_queries.get('query-target', ['self']))
+        rsp_subtree = ''.join(url_queries.get('rsp-subtree', ['no']))
+        target_classes = ','.join(url_queries.get('target-subtree-class', ['']))
+        node_class = None
+        if dn == root_cl:
+            node_class = root_cl
+            if node_class == 'uni':
+                node_class = target_classes
+            dn = None
+        return dn, query_target, rsp_subtree, target_classes, node_class
+
+    def _get_class(self, dn, cl, target, query_target='self'):
+        """
+        Gets the configuration for the specified class instances based on 
+        the dn, node class, target class, and query-target
+
+        :param dn: The distinguished name of the class 
+        :param cl: The node class 
+        :param target: The target class based on the target-subtree-class
+        :param query_target: The query-target class in the url
+        :return list of found objects
+        """
+        resp = []
+        if cl:
+            lst = self._classes[cl]
+            return [cl_obj for dn_, cl_obj in lst]
+        for cl_name, lst in self._classes.iteritems():
+            if target and query_target != 'self':
+                lst = self._classes[target]
+            for tup in lst:
+                node_dn, node_cl = tup
+                valid_dn = (dn == node_dn)
+                if query_target == 'self' and valid_dn:
+                    resp.append(node_cl)
+                elif query_target == 'children':
+                    if self._is_child(node_dn, dn):  
+                        resp.append(node_cl)
+                elif query_target == 'subtree':
+                    if self._is_subtree(node_dn, dn):
+                        resp.append(node_cl)
+            if target and resp:
+                return resp
+        return resp
+
+    def _rsp_subtree_data(self, db, rsp_subtree='no'):
+        """
+        Gets the configuration based on the rsp-subtree value
+
+        This function will copy the class objects and checks if 
+        deleting subchildren is necessary.
+
+        :param db: The list of class objects to search
+        :rsp_subtree: The rsp-subtree value
+        :return: a list objects 
+        """
+        if rsp_subtree != 'full':
+            resp = []
+            for node in db:
+                node_cl, contents = next(node.iteritems())
+                # make a deep copy to avoid deleting other nodes 
+                node_cl_copy = deepcopy(node[node_cl])
+                ret = {}
+                ret[node_cl] = {}
+                ret[node_cl]['attributes'] = node_cl_copy['attributes']
+                has_children = node_cl_copy.get('children')
+                #  check if the response asks for only direct children
+                if rsp_subtree == 'children' and has_children:
+                    ret[node_cl]['children'] = node_cl_copy['children']
+                    #  delete for subchildren
+                    self._delete_subchildren(ret[node_cl]['children'])
+                resp.append(ret)
+            return resp
+        return db
+    
+    def _delete_subchildren(self, db):
+        """
+        Deletes the children of the class object
+
+        :param db: The list of class objects
+        :return: None
+        """
+        for child in db:
+            _, contents = next(child.iteritems())
+            if contents.get('children'):
+                del contents['children']
+
+    def _is_child(self, child_dn, parent_dn):
+        """
+        Checks if the child dn is a direct child of the parent dn
+
+        :param child_dn: The child distinguished name
+        :param parent_dn: The parent distinguished name
+        :return: True or False. True if the child_dn is a child      
+        """
+        if not child_dn.startswith(parent_dn):
+            return False
+        child_dn_parse = child_dn[len(parent_dn) + 1:]
+        # checks for a foward slash outside brackets (may be nested)
+        if '[' in child_dn_parse:
+            count = 0
+            for char in child_dn_parse:
+                if char == '[':
+                    count += 1
+                elif char == ']':
+                    count -= 1
+                elif char == '/' and not count:
+                    return False
+            return True
+        return '/' not in child_dn_parse and child_dn_parse
+
+    def _is_subtree(self, child_dn, parent_dn):
+        """
+        Checks if child dn is a subtree of the parent dn
+
+        :param child_dn: The child distinguished name
+        :param parent_dn: The parent distinguished name
+        :return: True or False. True if the child_dn is a subtree
+        """
+        if not child_dn.startswith(parent_dn):
+            return False
+        path_parse = child_dn[len(parent_dn):]
+        # the empty string means the two dn's are the same
+        # therefore it should be included as a subtree
+        return (not path_parse or path_parse[0] == '/')
+
+    def _fill_data(self, children, parent_dn):
+        """
+        Recursively fill in the distinguished name (dn) for the 
+        configuration JSON files and sets the classes dictionary 
+        to be used for searching for class objects
+        
+        The classes dict is a key: list(tuple()...) configuration
+        The key is the class name (e.g. fvTenant)
+        The list contains a tuple of dn's and the class object itself
 
         :param children: Children of the parent node
         :param parent_dn: Parent dn to be passed on to their children
         :return: None
         """
         for child in children:
-            for node in child:
-                attributes = child[node]['attributes']
-                if not attributes.get('dn'):
-                    rn = attributes['rn']
-                    attributes['dn'] = parent_dn + '/' + rn
-                if child[node].get('children'):
-                    self._fill_dn(child[node]['children'], attributes['dn'])
+            node_cl, contents = next(child.iteritems())
+            attributes = contents['attributes']
+            if not attributes.get('dn'):
+                rn = attributes['rn']
+                attributes['dn'] = parent_dn + '/' + rn
+            tup = (attributes['dn'], child)
+            if not self._classes.get(node_cl):
+                self._classes[node_cl] = []
+            self._classes[node_cl].append(tup)                
+            if contents.get('children'):
+                self._fill_data(contents['children'], attributes['dn'])
                     
     def login(self, timeout=None):
         """
@@ -280,7 +333,7 @@ class FakeSession(Session):
         """
         resp = FakeResponse()
         return resp
-
+ 
     def get(self, url):
         """
         Perform a REST GET call to the APIC.
