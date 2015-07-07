@@ -284,7 +284,7 @@ class EndpointJsonDB(object):
                 tenant = self.get_tenant_from_db(remote_site, tenant)
                 self._add_endpoint_subnet(tenant, endpoint, remote_site)
             return  # Done handling deleted Endpoint
-        elif endpoint.ip == '0.0.0.0':
+        elif endpoint.ip == '0.0.0.0' or endpoint.ip is None:
             # Ignore this event
             return
         # Need to push this to the remote sites
