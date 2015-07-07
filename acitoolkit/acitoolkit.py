@@ -797,7 +797,11 @@ class EPG(CommonEPG):
         for vmm in self.get_all_attached(VmmDomain):
             is_vmms = True
             text = {'fvRsDomAtt': {'attributes': {'tDn': vmm._get_path(),
-                                                  'resImedcy': 'immediate'}}}
+                                                  'resImedcy': 'immediate',}}}
+
+            if self._deployment_immediacy:
+                text['fvRsDomAtt']['attributes']['instrImedcy'] = self._deployment_immediacy
+
             children.append(text)
         for interface in self.get_interfaces('detached'):
             text = {'fvRsPathAtt': {'attributes': {'encap': '%s-%s' % (interface.encap_type,
