@@ -81,7 +81,7 @@ class FakeSession(Session):
             self.db.append(data)
             f.close()
             with open(filename, "w") as f:
-                 f.write(unicode(json.dumps(data, indent=4)))
+                f.write(unicode(json.dumps(data, indent=4)))
                  
     def _get_config(self, url):
         """
@@ -100,7 +100,8 @@ class FakeSession(Session):
             data.extend(cl_data)
         return self._rsp_subtree_data(data, rsp_subtree)
 
-    def _parse_url(self, url):
+    @staticmethod
+    def _parse_url(url):
         """
         Parse the url to get the dn, query-target, rsp-subtree, 
         target-subtree-class(es), and the node class 
@@ -191,7 +192,8 @@ class FakeSession(Session):
             return resp
         return db
     
-    def _delete_subchildren(self, db):
+    @staticmethod
+    def _delete_subchildren(db):
         """
         Deletes the children of the class object
 
@@ -202,8 +204,9 @@ class FakeSession(Session):
             _, contents = next(child.iteritems())
             if contents.get('children'):
                 del contents['children']
-
-    def _is_child(self, child_dn, parent_dn):
+                
+    @staticmethod
+    def _is_child(child_dn, parent_dn):
         """
         Checks if the child dn is a direct child of the parent dn
 
@@ -226,8 +229,9 @@ class FakeSession(Session):
                     return False
             return True
         return '/' not in child_dn_parse and child_dn_parse
-
-    def _is_subtree(self, child_dn, parent_dn):
+    
+    @staticmethod
+    def _is_subtree(child_dn, parent_dn):
         """
         Checks if child dn is a subtree of the parent dn
 
