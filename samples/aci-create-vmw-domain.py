@@ -72,18 +72,15 @@ def main():
     if not resp.ok:
         print('%% Could not login to APIC')
 
-
     # Define dynamic vlan range
     vlans = aci.NetworkPool(POOL_NAME, ENCAP_TYPE, VLAN_START, VLAN_END, POOL_MODE)
 
     # Commit VLAN Range
     vlanresp = session.push_to_apic(vlans.get_url(), vlans.get_json())
 
-
     if not vlanresp.ok:
-       print('%% Error: Could not push configuration to APIC')
-       print(vlanresp.text)
-
+        print('%% Error: Could not push configuration to APIC')
+        print(vlanresp.text)
 
     # Create Credentials object
     vcenter_creds = aci.VMMCredentials(VCENTER_CREDS, VCENTER_USER, VCENTER_PASS)
@@ -97,10 +94,9 @@ def main():
     # Commit Changes
     resp = session.push_to_apic(vmm.get_url(), vmm.get_json())
 
-
     if not resp.ok:
-       print('%% Error: Could not push configuration to APIC')
-       print(resp.text)
+        print('%% Error: Could not push configuration to APIC')
+        print(resp.text)
 
 
 if __name__ == '__main__':
