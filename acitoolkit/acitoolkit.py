@@ -3858,8 +3858,8 @@ class VMM(BaseACIObject):
                                                   'rootContName': self.vswitch_info.container_name},
                                    'children': [vmmRsAcc]}}
         infraNsDn = 'uni/infra/%sns-[%s]-%s' % (self.network_pool.encap_type,
-                                              self.network_pool.name,
-                                              self.network_pool.mode)
+                                                self.network_pool.name,
+                                                self.network_pool.mode)
 
         if self.network_pool.encap_type == 'vlan':
             infraNsType = 'infraRsVlanNs'
