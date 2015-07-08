@@ -196,7 +196,7 @@ class ConfigDB(object):
             print 'Unable to initialize repository. Are you sure git is installed ?'
             sys.exit(0)
         self._snapshot_scheduler = None
-        self._rsp_prop_include = 'config-only'
+        self.rsp_prop_include = 'config-only'
 
     def login(self, args, timeout=2):
         """
@@ -271,11 +271,14 @@ class ConfigDB(object):
 
         :param filename: string containing the filename
         """
-        config_resp = self._rsp_prop_include
+        config_resp = self.rsp_prop_include
         if filename.startswith('tenant-'):
             tenant_name = filename.split('tenant-')[1].split('.json')[0]
             url = ('/api/mo/uni/tn-%s.json?rsp-subtree=full&'
                    'rsp-prop-include=%s' % (tenant_name, config_resp))
+        elif filename.startswith('node-'):
+            url = ('/api/mo/', '/sys.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
         elif filename == 'infra.json':
             url = ('/api/mo/uni/infra.json?rsp-subtree=full&'
                    'rsp-prop-include=%s' % config_resp)
@@ -294,6 +297,12 @@ class ConfigDB(object):
         elif filename == 'l3ext-domain.json':
             url = ('/api/node/class/l3extDomP.json?query-target=self&'
                    'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
+        elif filename == 'topology.json':
+            url = ('/api/mo/topology.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
+        elif filename == 'comp.json':
+            url = ('/api/mo/comp.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
         return url
 
     def take_snapshot(self, callback=None):
@@ -313,10 +322,20 @@ class ConfigDB(object):
             filename = 'tenant-%s.json' % tenant.name
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
+            
+        # Save each nodes config
+        nodes = ACI.Node.get(self.session)
+        for node in nodes:
+            filename = 'node-%s.json' % node.name
+            url_prefix, url_suff = self._get_url_for_file(filename)
+            url = '%s%s%s' % (url_prefix, node.dn, url_suff)
+            print 'filename: {}, URL: {}'.format(filename, url)
+            self._snapshot(url, filename)
 
         # Save the rest of the config
         filenames = ['infra.json', 'fabric.json', 'phys-domain.json',
-                     'vmm-domain.json', 'l2ext-domain.json', 'l3ext-domain.json']
+                     'vmm-domain.json', 'l2ext-domain.json', 'l3ext-domain.json',
+                     'topology.json', 'comp.json']
         for filename in filenames:
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
@@ -794,8 +813,8 @@ def main():
     elif args.list_snapshots:
         cdb.print_versions()
     elif args.snapshot:
-        if args.all_objects:
-            cdb._rsp_prop_include = 'all'
+        if args.all_properties:
+            cdb.rsp_prop_include = 'all'
         cdb.take_snapshot()
     elif args.rollback is not None:
         version = args.rollback[0]
