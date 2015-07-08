@@ -329,7 +329,6 @@ class ConfigDB(object):
             filename = 'node-%s.json' % node.name
             url_prefix, url_suff = self._get_url_for_file(filename)
             url = '%s%s%s' % (url_prefix, node.dn, url_suff)
-            print 'filename: {}, URL: {}'.format(filename, url)
             self._snapshot(url, filename)
 
         # Save the rest of the config
