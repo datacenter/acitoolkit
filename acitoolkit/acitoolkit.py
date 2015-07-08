@@ -3747,6 +3747,20 @@ class NetworkPool(BaseACIObject):
             raise ValueError('Mode specified is not a valid mode')
         self.mode = mode
 
+    @staticmethod
+    def get_url(fmt='json'):
+        """
+        Get the URL used to push the configuration to the APIC
+        if no format parameter is specified, the format will be 'json'
+        otherwise it will return '/api/mo/uni.' with the format string
+        appended.
+
+        :param fmt: optional format string, default is 'json'
+        :returns: URL string
+        """
+        return '/api/mo/uni/infra.' + fmt
+
+
     def get_json(self):
         from_id = self.encap_type + '-' + self.start_id
         to_id = self.encap_type + '-' + self.end_id
@@ -3819,6 +3833,19 @@ class VMM(BaseACIObject):
         return 'uni/vmmp-%s/dom-%s' % (self.vswitch_info.vendor,
                                        self.vswitch_info.vswitch_name)
 
+    @staticmethod
+    def get_url(fmt='json'):
+        """
+        Get the URL used to push the configuration to the APIC
+        if no format parameter is specified, the format will be 'json'
+        otherwise it will return '/api/mo/uni.' with the format string
+        appended.
+
+        :param fmt: optional format string, default is 'json'
+        :returns: URL string
+        """
+        return '/api/mo/uni.' + fmt
+
     def get_json(self):
         vmmUsrAccP = self.credentials.get_json()
         vmmUsrAccDn = 'uni/vmmp-%s/dom-%s/usracc-%s' % (self.vswitch_info.vendor,
@@ -3830,9 +3857,9 @@ class VMM(BaseACIObject):
                                                   'hostOrIp': self.ipaddr,
                                                   'rootContName': self.vswitch_info.container_name},
                                    'children': [vmmRsAcc]}}
-        infraNsDn = 'uni/infra/%sns-%s-%s' % (self.network_pool.encap_type,
-                                              self.network_pool.name,
-                                              self.network_pool.mode)
+        infraNsDn = 'uni/infra/%sns-[%s]-%s' % (self.network_pool.encap_type,
+                                                self.network_pool.name,
+                                                self.network_pool.mode)
 
         if self.network_pool.encap_type == 'vlan':
             infraNsType = 'infraRsVlanNs'
