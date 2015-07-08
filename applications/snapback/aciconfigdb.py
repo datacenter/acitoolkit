@@ -196,7 +196,7 @@ class ConfigDB(object):
             print 'Unable to initialize repository. Are you sure git is installed ?'
             sys.exit(0)
         self._snapshot_scheduler = None
-        self._rsp_prop_include = 'config-only'
+        self.rsp_prop_include = 'config-only'
 
     def login(self, args, timeout=2):
         """
@@ -271,7 +271,7 @@ class ConfigDB(object):
 
         :param filename: string containing the filename
         """
-        config_resp = self._rsp_prop_include
+        config_resp = self.rsp_prop_include
         if filename.startswith('tenant-'):
             tenant_name = filename.split('tenant-')[1].split('.json')[0]
             url = ('/api/mo/uni/tn-%s.json?rsp-subtree=full&'
@@ -814,7 +814,7 @@ def main():
         cdb.print_versions()
     elif args.snapshot:
         if args.all_properties:
-            cdb._rsp_prop_include = 'all'
+            cdb.rsp_prop_include = 'all'
         cdb.take_snapshot()
     elif args.rollback is not None:
         version = args.rollback[0]
