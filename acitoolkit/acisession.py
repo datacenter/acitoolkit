@@ -39,6 +39,7 @@ import time
 from websocket import create_connection, WebSocketException
 # import websocket
 import ssl
+import copy
 
 # Queue library is named "queue" in Python3
 try:
@@ -129,6 +130,7 @@ class Subscriber(threading.Thread):
         self._event_q = Queue()
         self._events = {}
         self._exit = False
+        self.event_handler_thread = None
 
     def exit(self):
         """
@@ -163,6 +165,8 @@ class Subscriber(threading.Thread):
             subscription_id = self._subscriptions[subscription]
             refresh_url = '/api/subscriptionRefresh.json?id=' + str(subscription_id)
             resp = self._apic.get(refresh_url)
+            if not resp.ok:
+                logging.warning('Could not refresh subscription: %s', refresh_url)
 
     def _open_web_socket(self, use_secure=True):
         """
@@ -219,15 +223,18 @@ class Subscriber(threading.Thread):
             event = self._event_q.get()
             event = json.loads(event)
             # Find the URL for this event
-            url = None
-            for k in self._subscriptions:
-                for id in event['subscriptionId']:
-                    if self._subscriptions[k] == str(id):
+            num_subscriptions = len(event['subscriptionId'])
+            for i in range(0, num_subscriptions):
+                url = None
+                for k in self._subscriptions:
+                    if self._subscriptions[k] == str(event['subscriptionId'][i]):
                         url = k
                         break
-            if url not in self._events:
-                self._events[url] = []
-            self._events[url].append(event)
+                if url not in self._events:
+                    self._events[url] = []
+                self._events[url].append(event)
+                if num_subscriptions > 1:
+                    event = copy.deepcopy(event)
 
     def subscribe(self, url):
         """
@@ -247,6 +254,14 @@ class Subscriber(threading.Thread):
 
         resp = self._send_subscription(url)
         return resp
+
+    def is_subscribed(self, url):
+        """
+        Check if subscribed to a particular APIC URL.
+
+        :param url: URL string to send as a subscription
+        """
+        return url in self._subscriptions
 
     def has_events(self, url):
         """
@@ -271,6 +286,7 @@ class Subscriber(threading.Thread):
         if url not in self._events:
             raise ValueError
         event = self._events[url].pop(0)
+        logging.debug('Event received %s', event)
         return event
 
     def unsubscribe(self, url):
@@ -280,9 +296,16 @@ class Subscriber(threading.Thread):
 
         :param url: URL string to unsubscribe
         """
-        logging.info('Unsubscribing to url: %s', url)
+        logging.info('Unsubscribing from url: %s', url)
         if url not in self._subscriptions:
             return
+        unsubscribe_url = url.split('&subscription=yes')[0] + '&subscription=no'
+        resp = self._apic.get(unsubscribe_url)
+        if resp.ok:
+            logging.warning('Could not unsubscribe from url: %s', unsubscribe_url)
+        # Chew up any outstanding events
+        while self.has_events(url):
+            self.get_event(url)
         del self._subscriptions[url]
         if not self._subscriptions:
             self._ws.close()
@@ -370,6 +393,9 @@ class Session(object):
         return resp
 
     def close(self):
+        """
+        Close the session
+        """
         self.session.close()
 
     def subscribe(self, url):
@@ -382,6 +408,16 @@ class Session(object):
         if self._subscription_enabled:
             resp = self.subscription_thread.subscribe(url)
             return resp
+
+    def is_subscribed(self, url):
+        """
+        Check if subscribed to events for a particular URL.
+
+        :param url:  URL string to issue subscription
+        """
+        if not self._subscription_enabled:
+            return False
+        return self.subscription_thread.is_subscribed(url)
 
     def resubscribe(self):
         """
