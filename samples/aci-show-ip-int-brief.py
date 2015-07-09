@@ -35,7 +35,7 @@ of the Interfaces.
 import sys
 import re
 import json
-import acitoolkit.acitoolkit as ACI
+import acitoolkit.acitoolkit as aci
 
 
 def main():
@@ -47,33 +47,32 @@ def main():
     # Take login credentials from the command line if provided
     # Otherwise, take them from your environment variables file ~/.profile
     description = 'Simple application that logs on to the APIC and displays all of the Interfaces.'
-    creds = ACI.Credentials('apic', description)
+    creds = aci.Credentials('apic', description)
     args = creds.get()
 
     # Login to APIC
-    session = ACI.Session(args.url, args.login, args.password)
+    session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
         sys.exit(0)
 
-
     resp = session.get('/api/class/ipv4Addr.json')
     intfs = json.loads(resp.text)['imdata']
     data = {}
-    data
-    for int in intfs:
-        ip = int['ipv4Addr']['attributes']['addr']
-        oper = int['ipv4Addr']['attributes']['operSt']
-        cfg = int['ipv4Addr']['attributes']['operStQual']
-        dn = int['ipv4Addr']['attributes']['dn']
-        node = re.split('/',dn)[2]
+
+    for i in intfs:
+        ip = i['ipv4Addr']['attributes']['addr']
+        op = i['ipv4Addr']['attributes']['operSt']
+        cfg = i['ipv4Addr']['attributes']['operStQual']
+        dn = i['ipv4Addr']['attributes']['dn']
+        node = re.split('/', dn)[2]
         intf = re.split('\[|\]', dn)[1]
         vrf = re.split('/|dom-', dn)[7]
         if vrf not in data.keys():
             data[vrf] = []
         else:
-            data[vrf].append((node,intf,ip,cfg,oper))
+            data[vrf].append((node, intf, ip, cfg, op))
 
     for k in data.keys():
         header = 'IP Interface Status for VRF "{}"'.format(k)
@@ -82,11 +81,6 @@ def main():
         print(template.format("Node", "Interface", "IP Address ", "Admin Status", "Status"))
         for rec in sorted(data[k]):
             print(template.format(*rec))
-
-
-
-
-
 
 if __name__ == '__main__':
     main()
