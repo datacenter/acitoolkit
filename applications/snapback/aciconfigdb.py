@@ -232,6 +232,8 @@ class ConfigDB(object):
         :returns: JSON dictionary of returned data
         """
         ret = self.session.get(url)
+        ret._content = ret.content.replace('\n', '')
+        ret._content = ret.content.replace("\\\'", "'")
         data = ret.json()
         return data
 
