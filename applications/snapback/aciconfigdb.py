@@ -196,6 +196,7 @@ class ConfigDB(object):
             print 'Unable to initialize repository. Are you sure git is installed ?'
             sys.exit(0)
         self._snapshot_scheduler = None
+        self.rsp_prop_include = 'config-only'
 
     def login(self, args, timeout=2):
         """
@@ -231,6 +232,8 @@ class ConfigDB(object):
         :returns: JSON dictionary of returned data
         """
         ret = self.session.get(url)
+        ret._content = ret.content.replace('\n', '')
+        ret._content = ret.content.replace("\\\'", "'")
         data = ret.json()
         return data
 
@@ -263,36 +266,45 @@ class ConfigDB(object):
         # Add the file to Git
         self.repo.index.add([filename])
 
-    @staticmethod
-    def _get_url_for_file(filename):
+    def _get_url_for_file(self, filename):
         """
         Internal function to generate a URL for communicating with the APIC
         that will get the configuration for a given filename
 
         :param filename: string containing the filename
         """
+        config_resp = self.rsp_prop_include
         if filename.startswith('tenant-'):
             tenant_name = filename.split('tenant-')[1].split('.json')[0]
             url = ('/api/mo/uni/tn-%s.json?rsp-subtree=full&'
-                   'rsp-prop-include=config-only' % tenant_name)
+                   'rsp-prop-include=%s' % (tenant_name, config_resp))
+        elif filename.startswith('node-'):
+            url = ('/api/mo/', '/sys.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
         elif filename == 'infra.json':
             url = ('/api/mo/uni/infra.json?rsp-subtree=full&'
-                   'rsp-prop-include=config-only')
+                   'rsp-prop-include=%s' % config_resp)
         elif filename == 'fabric.json':
             url = ('/api/mo/uni/fabric.json?rsp-subtree=full&'
-                   'rsp-prop-include=config-only')
+                   'rsp-prop-include=%s' % config_resp)
         elif filename == 'phys-domain.json':
             url = ('/api/node/class/physDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
         elif filename == 'vmm-domain.json':
             url = ('/api/node/class/vmmDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
         elif filename == 'l2ext-domain.json':
             url = ('/api/node/class/l2extDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
         elif filename == 'l3ext-domain.json':
             url = ('/api/node/class/l3extDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
+        elif filename == 'topology.json':
+            url = ('/api/mo/topology.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
+        elif filename == 'comp.json':
+            url = ('/api/mo/comp.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
         return url
 
     def take_snapshot(self, callback=None):
@@ -312,10 +324,19 @@ class ConfigDB(object):
             filename = 'tenant-%s.json' % tenant.name
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
+            
+        # Save each nodes config
+        nodes = ACI.Node.get(self.session)
+        for node in nodes:
+            filename = 'node-%s.json' % node.name
+            url_prefix, url_suff = self._get_url_for_file(filename)
+            url = '%s%s%s' % (url_prefix, node.dn, url_suff)
+            self._snapshot(url, filename)
 
         # Save the rest of the config
         filenames = ['infra.json', 'fabric.json', 'phys-domain.json',
-                     'vmm-domain.json', 'l2ext-domain.json', 'l3ext-domain.json']
+                     'vmm-domain.json', 'l2ext-domain.json', 'l3ext-domain.json',
+                     'topology.json', 'comp.json']
         for filename in filenames:
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
@@ -750,7 +771,12 @@ def main():
     commands.add_argument('-s', '--snapshot', action='store_true',
                           help='Take a snapshot of the APIC configuration')
     commands.add_argument('-ls', '--list-snapshots', action='store_true',
-                          help='List all of the available snapshots')
+                          help='List all of the available snapshots')    
+    help_txt = ('Configuration file responses include all properties of'
+                ' the returned managed objects.')
+    creds.add_argument('-a', '--all-properties', action='store_true',
+                       default=False,
+                       help=help_txt)    
     help_txt = 'List all of the available configuration files.'
     commands.add_argument('-lc', '--list-configfiles', nargs='*',
                           metavar=('VERSION'),
@@ -788,6 +814,8 @@ def main():
     elif args.list_snapshots:
         cdb.print_versions()
     elif args.snapshot:
+        if args.all_properties:
+            cdb.rsp_prop_include = 'all'
         cdb.take_snapshot()
     elif args.rollback is not None:
         version = args.rollback[0]
