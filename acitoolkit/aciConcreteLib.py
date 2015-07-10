@@ -115,7 +115,7 @@ class ConcreteArp(BaseACIPhysObject):
                       'name': domain['arpDom']['attributes']['name'],
                       'encap': domain['arpDom']['attributes']['encap']}
             arpdom_dn = domain['arpDom']['attributes']['dn']
-            result['stats'].update(self.get_stats('arpDomStatsAdj',arpdom_dn, working_data))
+            result['stats'].update(self.get_stats('arpDomStatsAdj', arpdom_dn, working_data))
             result['stats'].update(self.get_stats('arpDomStatsRx', arpdom_dn, working_data))
             result['stats'].update(self.get_stats('arpDomStatsTx', arpdom_dn, working_data))
 
@@ -133,7 +133,15 @@ class ConcreteArp(BaseACIPhysObject):
 
             self.domain.append(result)
 
-    def get_stats(self, apic_class, dn, working_data):
+    @staticmethod
+    def get_stats(apic_class, dn, working_data):
+        """
+        Will get the statistics from the specified apic_class
+        :param apic_class:
+        :param dn:
+        :param working_data:
+        :return:
+        """
         stat_data = working_data.get_subtree(apic_class, dn)
         if stat_data:
             return stat_data[0][apic_class]['attributes']
@@ -216,27 +224,27 @@ class ConcreteArp(BaseACIPhysObject):
         Create all of the searchable terms
 
         """
-        result = [Searchable('arp')]
-
+        result = Searchable()
+        result.add_term('arp')
         for domain in self.domain:
             if 'entry' in domain:
                 for entry in domain['entry']:
                     if entry['ip'] is not None:
-                        result.append(Searchable('ipv4', entry['ip'], 'indirect'))
+                        result.add_term('ipv4', entry['ip'], 'indirect')
                     if entry['mac'] is not None:
-                        result.append(Searchable('mac', entry['mac'], 'indirect'))
+                        result.add_term('mac', entry['mac'], 'indirect')
                     if entry['physical_interface'] is not None:
-                        result.append(Searchable('interface', entry['physical_interface']))
+                        result.add_term('interface', entry['physical_interface'])
             if domain['name']:
-                result.append(Searchable('context', domain['context'], 'indirect'))
-                result.append(Searchable('name', domain['name'], 'primary'))
+                result.add_term('context', domain['context'], 'indirect')
+                result.add_term('name', domain['name'], 'primary')
             if domain['tenant']:
-                result.append(Searchable('tenant', domain['tenant'], 'indirect'))
+                result.add_term('tenant', domain['tenant'], 'indirect')
 
-        return result
+        return [result]
 
     def __str__(self):
-        return 'ConcreteARP'
+        return 'ARP'
 
     def __eq__(self, other):
 
@@ -424,35 +432,36 @@ class ConcreteVpc(BaseACIPhysObject):
         Create all of the searchable terms
 
         """
-        result = [Searchable('vpc')]
+        result = Searchable()
+        result.add_term('vpc')
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'virtual_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['virtual_mac']))
+            result.add_term('mac', self.attr['virtual_mac'])
 
         if 'local_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['local_mac']))
+            result.add_term('mac', self.attr['local_mac'])
 
         if 'sys_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['sys_mac']))
+            result.add_term('mac', self.attr['sys_mac'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'role' in self.attr:
-            result.append(Searchable('role', self.attr['role']))
+            result.add_term('role', self.attr['role'])
 
         if 'mac' in self.peer_info:
-            result.append(Searchable('mac', self.peer_info['mac'], 'indirect'))
+            result.add_term('mac', self.peer_info['mac'], 'indirect')
 
         if 'ip' in self.peer_info:
-            result.append(Searchable('ipv4', self.peer_info['ip'].split('/')[0], 'indirect'))
+            result.add_term('ipv4', self.peer_info['ip'].split('/')[0], 'indirect')
 
         if 'virtual_ip' in self.attr:
-            result.append(Searchable('ipv4', self.attr['virtual_ip'].split('/')[0]))
+            result.add_term('ipv4', self.attr['virtual_ip'].split('/')[0])
 
-        return result
+        return [result]
 
     def __str__(self):
         return 'VPC_' + self.attr['id']
@@ -588,32 +597,32 @@ class ConcreteVpcIf(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'interface' in self.attr:
-            result.append(Searchable('interface', self.attr['interface']))
+            result.add_term('interface', self.attr['interface'])
 
         if 'up_vlans' in self.attr:
             vlan_list = self.expand_vlans(self.attr['up_vlans'].replace(' ', ''))
             for vlan in vlan_list:
-                result.append(Searchable('vlan', str(vlan)))
+                result.add_term('vlan', str(vlan))
         if 'remote_up_vlans' in self.attr:
             vlan_list = self.expand_vlans(self.attr['remote_up_vlans'].replace(' ', ''))
             for vlan in vlan_list:
-                result.append(Searchable('vlan', str(vlan), 'indirect'))
+                result.add_term('vlan', str(vlan), 'indirect')
 
         if 'access_vlan' in self.attr:
-            result.append(Searchable('vlan', self.attr['access_vlan']))
+            result.add_term('vlan', self.attr['access_vlan'])
 
         if 'susp_vlans' in self.attr:
             vlan_list = self.expand_vlans(self.attr['susp_vlans'].replace(' ', ''))
             for vlan in vlan_list:
-                result.append(Searchable('vlan', str(vlan)))
+                result.add_term('vlan', str(vlan))
 
-        return result
+        return [result]
 
     @staticmethod
     def expand_vlans(vlans):
@@ -788,22 +797,22 @@ class ConcreteContext(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
-            result.append(Searchable('context', self.attr['name']))
+            result.add_term('name', self.attr['name'])
+            result.add_term('context', self.attr['name'])
 
         if 'vnid' in self.attr:
-            result.append(Searchable('vnid', self.attr['vnid']))
+            result.add_term('vnid', self.attr['vnid'])
 
         if 'scope' in self.attr:
-            result.append(Searchable('scope', self.attr['scope']))
+            result.add_term('scope', self.attr['scope'])
 
         if 'mcst_class_id' in self.attr:
-            result.append(Searchable('class', self.attr['mcst_class_id']))
+            result.add_term('class', self.attr['mcst_class_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -937,21 +946,20 @@ class ConcreteSVI(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = [(Searchable('svi'))]
+        result = Searchable()
+        result.add_term('svi')
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
-
+            result.add_term('name', self.attr['name'])
         if 'mac' in self.attr:
-            result.append(Searchable('mac', self.attr['mac']))
-
+            result.add_term('mac', self.attr['mac'])
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'vlan_id' in self.attr:
-            result.append(Searchable('vlan', self.attr['vlan_id']))
+            result.add_term('vlan', self.attr['vlan_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1061,12 +1069,12 @@ class ConcreteLoopback(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1284,28 +1292,28 @@ class ConcreteBD(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if ':' in self.attr['name']:
-            result.append(Searchable('name', self.attr['name'].split(':')[-1]))
+            result.add_term('name', self.attr['name'].split(':')[-1])
         else:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'context_name' in self.attr:
             if ':' in self.attr['context_name']:
                 tenant = self.attr['context_name'].split(':')[0]
                 context = self.attr['context_name'].split(':')[1]
-                result.append(Searchable('context', context))
-                result.append(Searchable('tenant', tenant))
+                result.add_term('context', context)
+                result.add_term('tenant', tenant)
             else:
-                result.append(Searchable('context', self.attr['context_name']))
+                result.add_term('context', self.attr['context_name'])
 
         if 'vnid' in self.attr:
-            result.append(Searchable('vnid', self.attr['vnid']))
+            result.add_term('vnid', self.attr['vnid'])
         if 'flood_gipo' in self.attr:
-            result.append(Searchable('ipv4', self.attr['flood_gipo']))
+            result.add_term('ipv4', self.attr['flood_gipo'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1523,39 +1531,39 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'tenant' in self.attr:
-            result.append(Searchable('tenant', self.attr['tenant']))
+            result.add_term('tenant', self.attr['tenant'])
 
         if 'context' in self.attr:
-            result.append(Searchable('context', self.attr['context']))
+            result.add_term('context', self.attr['context'])
 
         if 'scope' in self.attr:
-            result.append(Searchable('scope', self.attr['scope']))
+            result.add_term('scope', self.attr['scope'])
 
         if 's_epg' in self.attr:
-            result.append(Searchable('epg', self.attr['s_epg']))
+            result.add_term('epg', self.attr['s_epg'])
 
         if 'd_epg' in self.attr:
-            result.append(Searchable('epg', self.attr['d_epg']))
+            result.add_term('epg', self.attr['d_epg'])
 
         if 'dclass' in self.attr:
-            result.append(Searchable('class', self.attr['dclass']))
+            result.add_term('class', self.attr['dclass'])
 
         if 'sclass' in self.attr:
-            result.append(Searchable('class', self.attr['sclass']))
+            result.add_term('class', self.attr['sclass'])
 
         if 'scope' in self.attr:
-            result.append(Searchable('scope', self.attr['scope']))
+            result.add_term('scope', self.attr['scope'])
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'filter_id' in self.attr:
-            result.append(Searchable('filter', self.attr['filter_id']))
+            result.add_term('filter', self.attr['filter_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1563,7 +1571,8 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
 
         :return: str
         """
-        return 'Concrete_Access_Rule' + self.attr.get('name')
+        return 'Access_Rule-{0}_{1}_{2}'.\
+            format(self.attr.get('s_epg'), self.attr.get('d_epg'), self.attr.get('filter_id'))
 
     def __eq__(self, other):
 
@@ -1720,15 +1729,15 @@ class ConcreteFilter(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1871,18 +1880,18 @@ class ConcreteFilterEntry(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'filter_name' in self.attr:
-            result.append(Searchable('name', self.attr['filter_name']))
+            result.add_term('name', self.attr['filter_name'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -2256,22 +2265,22 @@ class ConcreteEp(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'context' in self.attr:
-            result.append(Searchable('context', self.attr['context']))
+            result.add_term('context', self.attr['context'])
 
         if 'bridge_domain' in self.attr:
-            result.append(Searchable('bridgedomain', self.attr['bridge_domain']))
+            result.add_term('bridgedomain', self.attr['bridge_domain'])
 
         if 'mac' in self.attr:
-            result.append(Searchable('mac', self.attr['mac']))
+            result.add_term('mac', self.attr['mac'])
         if 'ip' in self.attr:
-            result.append(Searchable('ipv4', self.attr['ip']))
+            result.add_term('ipv4', self.attr['ip'])
         if 'interface_id' in self.attr:
-            result.append(Searchable('interface', self.attr['interface_id']))
+            result.add_term('interface', self.attr['interface_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -2279,7 +2288,7 @@ class ConcreteEp(BaseACIPhysObject):
 
         :return: str
         """
-        return 'Concrete_Endpoint' + 'MAC-{0} IP-{1}'.format(self.attr.get('mac'), self.attr.get('ip'))
+        return 'Concrete_Endpoint-' + 'MAC({0})_IP({1})'.format(self.attr.get('mac'), self.attr.get('ip'))
 
     def __eq__(self, other):
 
@@ -2504,25 +2513,25 @@ class ConcretePortChannel(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'router_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['router_mac']))
+            result.add_term('mac', self.attr['router_mac'])
 
         if 'backplane_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['backplane_mac']))
+            result.add_term('mac', self.attr['backplane_mac'])
 
         for member in self.members:
             if 'id' in member:
-                result.append(Searchable('interface', member['id']))
+                result.add_term('interface', member['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -2680,31 +2689,32 @@ class ConcreteOverlay(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = [Searchable('overlay')]
+        result = Searchable()
+        result.add_term('overlay')
         if 'src_tep_ip' in self.attr:
-            result.append(Searchable('ipv4', self.attr['src_tep_ip']))
+            result.add_term('ipv4', self.attr['src_tep_ip'])
 
         if 'proxy_ip_v4' in self.attr:
-            result.append(Searchable('ipv4', self.attr['proxy_ip_v4'], 'indirect'))
+            result.add_term('ipv4', self.attr['proxy_ip_v4'], 'indirect')
 
         if 'proxy_ip_v6' in self.attr:
-            result.append(Searchable('ipv4', self.attr['proxy_ip_v6'], 'indirect'))
+            result.add_term('ipv4', self.attr['proxy_ip_v6'], 'indirect')
 
         if 'proxy_ip_mac' in self.attr:
-            result.append(Searchable('ipv4', self.attr['proxy_ip_mac'], 'indirect'))
+            result.add_term('ipv4', self.attr['proxy_ip_mac'], 'indirect')
 
         for tunnel in self.tunnels:
-            result.append(Searchable('tunnel'))
+            result.add_term('tunnel')
             if 'id' in tunnel:
-                result.append(Searchable('id', tunnel['id']))
+                result.add_term('id', tunnel['id'])
 
             if 'context' in tunnel:
-                result.append(Searchable('context', tunnel['context']))
+                result.add_term('context', tunnel['context'])
 
             if 'dest_tep_ip' in tunnel:
-                result.append(Searchable('ipv4', tunnel['dest_tep_ip'], 'indirect'))
+                result.add_term('ipv4', tunnel['dest_tep_ip'], 'indirect')
 
-        return result
+        return [result]
 
     def __str__(self):
         """
