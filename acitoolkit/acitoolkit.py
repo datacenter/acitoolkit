@@ -525,6 +525,49 @@ class CommonEPG(BaseACIObject):
         else:
             return self._get_all_relation(Contract, 'consumed')
 
+    def protect(self, taboo):
+        """
+        Make this EPG protected by a Taboo
+
+        :param taboo: Instance of Taboo class to protect this EPG.
+        :returns: True
+        """
+        if self.does_protect(taboo):
+            return True
+        self._add_relation(taboo, 'protected')
+        return True
+
+    def does_protect(self, taboo):
+        """
+        Check if this EPG is protected by a specific Taboo.
+
+        :param taboo: Instance of Taboo class to check if it protects
+                         this EPG.
+        :returns: True or False.  True if the EPG is protected by the Taboo.
+        """
+        return self._has_relation(taboo, 'protected')
+
+    def dont_protect(self, taboo):
+        """
+        Make this EPG not protected by a Taboo
+
+        :param taboo: Instance of Taboo class to no longer protect\
+                         this EPG.
+        :returns: True
+        """
+        self._remove_relation(taboo, 'protected')
+
+    def get_all_protected(self, deleted=False):
+        """
+        Get all of the Taboos protecting this EPG
+
+        :returns: List of Taboo objects that are protecting the EPG.
+        """
+        if deleted:
+            return self._get_all_detached_relation(Taboo, 'protected')
+        else:
+            return self._get_all_relation(Taboo, 'protected')
+
     def get_interfaces(self, status='attached'):
         """
         Get all of the interfaces that this EPG is attached.
@@ -553,11 +596,17 @@ class CommonEPG(BaseACIObject):
         for contract in self.get_all_consumed():
             text = {'fvRsCons': {'attributes': {'tnVzBrCPName': contract.name}}}
             children.append(text)
+        for taboo in self.get_all_protected():
+            text = {'fvRsProtBy': {'attributes': {'tnVzTabooName': taboo.name}}}
+            children.append(text)
         for contract in self.get_all_provided(deleted=True):
             text = {'fvRsProv': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
             children.append(text)
         for contract in self.get_all_consumed(deleted=True):
             text = {'fvRsCons': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for taboo in self.get_all_protected(deleted=True):
+            text = {'fvRsProtBy': {'attributes': {'status': 'deleted', 'tnVzTabooName': taboo.name}}}
             children.append(text)
         return children
 
