@@ -292,6 +292,23 @@ class Linecard(BaseACIPhysModule):
         result.append(Table(table, headers, title=super_title + 'Linecards'))
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        results = super(Linecard, self)._define_searchables()
+
+        for result in results:
+            if self.hardware_version is not None:
+                result.add_term('version', self.hardware_version)
+
+            if self.hardware_revision is not None:
+                result.add_term('revision', self.hardware_revision)
+
+        return results
+
 
 class Supervisorcard(BaseACIPhysModule):
     """Class representing the supervisor card of a switch
@@ -397,6 +414,24 @@ class Supervisorcard(BaseACIPhysModule):
 
         result.append(Table(table, headers, title=super_title + 'Supervisors'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+
+        results = super(Supervisorcard, self)._define_searchables()
+
+        for result in results:
+            if self.hardware_version is not None:
+                result.add_term('version', self.hardware_version)
+
+            if self.hardware_revision is not None:
+                result.add_term('revision', self.hardware_revision)
+
+        return results
 
 
 class Fantray(BaseACIPhysModule):
@@ -526,6 +561,14 @@ class Fantray(BaseACIPhysModule):
         result.append(Table(table, headers, title=title + 'Fan Trays'))
         return result
 
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'FanTray-'+self.name
+
 
 class Fan(BaseACIPhysModule):
     """Class for the fan of a fan tray"""
@@ -640,6 +683,35 @@ class Fan(BaseACIPhysModule):
                         return True
         return False
 
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'Fan-'+self.id
+
+    @staticmethod
+    def get_table(modules, title=''):
+        """
+        Will create table of fantry information
+        :param title:
+        :param modules:
+        """
+        result = []
+
+        headers = ['Fan ID', 'Oper St', 'Direction', 'Speed', 'Fan Serial']
+        table = []
+        for fan in sorted(modules, key=lambda x: x.id):
+            table.append(['fan-' + fan.id,
+                          fan.oper_st,
+                          fan.direction,
+                          fan.speed,
+                              fan.serial])
+
+        result.append(Table(table, headers, title=title + 'Fan Trays'))
+        return result
+
 
 class Powersupply(BaseACIPhysModule):
     """ class for a power supply in a node   """
@@ -747,6 +819,23 @@ class Powersupply(BaseACIPhysModule):
 
         result.append(Table(table, headers, title=super_title + 'Power Supplies'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        results = super(Powersupply, self)._define_searchables()
+        for result in results:
+            if self.hardware_version is not None:
+                result.add_term('version', self.hardware_version)
+            if self.hardware_revision is not None:
+                result.add_term('revision', self.hardware_revision)
+            if self.voltage_source is not None:
+                result.add_term('voltage', self.voltage_source)
+
+        return results
 
 
 class Pod(BaseACIPhysObject):
@@ -1383,25 +1472,22 @@ class Node(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
-
+        search_terms = []
         if self.name:
-            result.append(Searchable('name', self.name))
-            result.append(Searchable('switch', self.name))
-            result.append(Searchable('node', self.name))
+            search_terms.append(('name', self.name))
+            search_terms.append(('switch', self.name))
         if self.node:
-            result.append(Searchable('switch', self.node))
-            result.append(Searchable('node', self.node))
+            search_terms.append(('switch', self.node))
         if self.serial:
-            result.append(Searchable('serial', self.serial))
+            search_terms.append(('serial', self.serial))
         if self.model:
-            result.append(Searchable('model', self.model))
+            search_terms.append(('model', self.model))
         if self.firmware:
-            result.append(Searchable('firmware', self.firmware))
+            search_terms.append(('firmware', self.firmware))
         if self.role:
-            result.append(Searchable('role', self.role))
+            search_terms.append(('role', self.role))
 
-        return result
+        return [Searchable(search_terms)]
 
 
 class ExternalSwitch(BaseACIPhysObject):
@@ -2496,7 +2582,6 @@ class Interface(BaseInterface):
         return result
 
 
-
 class WorkingData(object):
     """
     This class will hold the entire json tree
@@ -2586,7 +2671,6 @@ class WorkingData(object):
 
                     else:
                         self.by_class[apic_class].append(item)
-
 
     def get_class(self, class_name):
         """
