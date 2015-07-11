@@ -121,7 +121,7 @@ class ReportDB(object):
         tenants = ACI.Tenant.get(self.session)
         for tenant in tenants:
             result.append((tenant.name, tenant.name))
-        return result
+        return sorted(result, key=lambda x: x[0])
 
     def get_switch_summary(self):
         """

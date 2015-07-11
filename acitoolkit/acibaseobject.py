@@ -31,7 +31,7 @@
 This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
-from .aciSearch import AciSearch
+from .aciSearch import AciSearch, Searchable
 from .acisession import Session
 
 
@@ -1152,7 +1152,7 @@ class BaseACIPhysObject(BaseACIObject):
                     children.append(child)
             return children
         else:
-            return self._children
+            return list(self._children)
 
     @classmethod
     def exists(cls, session, phys_obj):
@@ -1383,6 +1383,40 @@ class BaseACIPhysModule(BaseACIPhysObject):
         :returns: serial number string
         """
         return self.serial
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        search_terms = [('node', self.node, 'indirect'), ('slot', self.slot)]
+
+        #result = [Searchable('node', self.node, 'indirect'), Searchable('slot', self.slot)]
+
+        if self.firmware is not None:
+            search_terms.append(('firmware', self.firmware))
+
+        if self.bios is not None:
+            search_terms.append(('bios', self.bios))
+
+        if self.serial is not None:
+            search_terms.append(('serial', self.serial))
+
+        if self.model is not None:
+            search_terms.append(('model', self.model))
+
+        if self.type is not None:
+            search_terms.append(('type', self.type))
+
+        if self.name is not None:
+            search_terms.append(('name', self.name))
+
+        if self.oper_st is not None:
+            search_terms.append(('oper_st', self.oper_st))
+
+        return [Searchable(search_terms)]
+
 
 
 class BaseInterface(BaseACIObject):

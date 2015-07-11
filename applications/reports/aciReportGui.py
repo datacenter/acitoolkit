@@ -222,6 +222,8 @@ class CredentialsView(BaseView):
         """
         form = CredentialsForm()
         reset_form = ResetForm()
+        apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
+        rdb.set_login_credentials(apic_args)
         if form.validate_on_submit() and form.submit.data:
             old_ipaddr = session.get('ipaddr')
             old_username = session.get('username')

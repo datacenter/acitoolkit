@@ -352,6 +352,14 @@ class Session(object):
             self.subscription_thread.daemon = True
             self.subscription_thread.start()
 
+    def __reduce__(self):
+        """
+        This will enable this class to be pickled by only saving api, uid and pwd when
+        pickling.
+        :return:
+        """
+        return self.__class__, (self.api, self.uid, self.pwd)
+
     def _send_login(self, timeout=None):
         """
         Send the actual login request to the APIC and open the web
