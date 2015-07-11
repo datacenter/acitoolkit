@@ -567,7 +567,7 @@ class Fantray(BaseACIPhysModule):
 
         :return: str
         """
-        return 'FanTray-'+self.name
+        return self.get_name()
 
 
 class Fan(BaseACIPhysModule):
