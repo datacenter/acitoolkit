@@ -60,7 +60,7 @@ class Table(object):
     of the formatting options.
     """
 
-    def __init__(self, data=None, headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
+    def __init__(self, data=(), headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
                  stralign="center",
                  missingval="", columns = 1, table_orientation = 'horizontal'):
         """
@@ -78,7 +78,10 @@ class Table(object):
         """
         # TODO: make table_orientation dynamic, i.e. determined based on the number of rows vs. number of columns.
         # TODO: make titles conform to tablefmt
-        self.data = data
+        self.data = [
+            [str(cell) if cell is not None else '' for cell in row]
+            for row in data
+        ]
         self.headers = headers
         self.tablefmt = tablefmt
         self.floatfmt = floatfmt
@@ -89,13 +92,6 @@ class Table(object):
         self.columns = columns
         assert(table_orientation in ['horizontal', 'vertical'])
         self.table_orientation = table_orientation
-
-        for row_index in range(len(self.data)):
-            for column_index in range(len(self.data[row_index])):
-                if self.data[row_index][column_index] is None:
-                    self.data[row_index][column_index] = ''
-                if type(self.data[row_index][column_index]) is not str:
-                    self.data[row_index][column_index] = str(self.data[row_index][column_index])
 
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
                  missingval=None, supresstitle=False, columns=None, table_orientation=None):
@@ -137,18 +133,10 @@ class Table(object):
                 assert len(self.data[0]) == len(self.headers),\
                     'Headers and Data have different lenghts - {0} and {1} respectively'\
                     .format(len(self.headers), len(self.data[0]))
-
-            # rotate table
-            table_data = []
-            row_len = len(self.data[0])
-            for index in range(row_len):
-                new_row = []
-                if self.headers:
-                    new_row.append(self.headers[index])
-                for row in self.data:
-                    new_row.append(row[index])
-                table_data.append(new_row)
-
+                rows = [self.headers] + self.data
+            else:
+                rows = self.data
+            table_data = list(zip(*rows))  # transpose table
             header_data = []
         else:
             table_data = self.data
