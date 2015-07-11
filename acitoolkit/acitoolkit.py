@@ -525,6 +525,52 @@ class CommonEPG(BaseACIObject):
         else:
             return self._get_all_relation(Contract, 'consumed')
 
+    def consume_cif(self, contract_interface):
+        """
+        Make this EPG consume a ContractInterface
+
+        :param contract_interface: ContractInterface class instance to be consumed by this EPG.
+        :returns: True
+        """
+
+        if self.does_consume_cif(contract_interface):
+            return True
+        self._add_relation(contract_interface, 'consumed')
+        return True
+
+    def does_consume_cif(self, contract_interface):
+        """
+        Check if this EPG consumes a specific Contract
+
+        :param contract: Instance of ContractInterface class to check if it is\
+                         consumed by this EPG.
+        :returns: True or False.  True if the EPG does consume the ContractInterface.
+        """
+        return self._has_relation(contract_interface, 'consumed')
+
+    def dont_consume_cif(self, contract_interface):
+        """
+        Make this EPG not consume a ContractInterface.  It does not check to see
+        if the ContractInterface was already consumed
+
+        :param contract: Instance of ContractInterface class to be no longer consumed\
+                         by this EPG.
+        :returns: True
+        """
+        self._remove_relation(contract_interface, 'consumed')
+        return True
+
+    def get_all_consumed_cif(self, deleted=False):
+        """
+        Get all of the ContractInterfaces consumed by this EPG
+
+        :returns: List of ContractInterface objects that are consumed by the EPG.
+        """
+        if deleted:
+            return self._get_all_detached_relation(ContractInterface, 'consumed')
+        else:
+            return self._get_all_relation(ContractInterface, 'consumed')
+
     def protect(self, taboo):
         """
         Make this EPG protected by a Taboo
@@ -596,6 +642,9 @@ class CommonEPG(BaseACIObject):
         for contract in self.get_all_consumed():
             text = {'fvRsCons': {'attributes': {'tnVzBrCPName': contract.name}}}
             children.append(text)
+        for contract_interface in self.get_all_consumed_cif():
+            text = {'fvRsConsIf': {'attributes': {'tnVzCPIfName': contract_interface.name}}}
+            children.append(text)
         for taboo in self.get_all_protected():
             text = {'fvRsProtBy': {'attributes': {'tnVzTabooName': taboo.name}}}
             children.append(text)
@@ -604,6 +653,9 @@ class CommonEPG(BaseACIObject):
             children.append(text)
         for contract in self.get_all_consumed(deleted=True):
             text = {'fvRsCons': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract_interface in self.get_all_consumed_cif(deleted=True):
+            text = {'fvRsConsIf': {'attributes': {'status': 'deleted', 'tnVzCPIfName': contract_interface.name}}}
             children.append(text)
         for taboo in self.get_all_protected(deleted=True):
             text = {'fvRsProtBy': {'attributes': {'status': 'deleted', 'tnVzTabooName': taboo.name}}}
@@ -846,7 +898,7 @@ class EPG(CommonEPG):
         for vmm in self.get_all_attached(VmmDomain):
             is_vmms = True
             text = {'fvRsDomAtt': {'attributes': {'tDn': vmm._get_path(),
-                                                  'resImedcy': 'immediate',}}}
+                                                  'resImedcy': 'immediate'}}}
 
             if self._deployment_immediacy:
                 text['fvRsDomAtt']['attributes']['instrImedcy'] = self._deployment_immediacy
@@ -2084,6 +2136,104 @@ class Context(BaseACIObject):
         return [table, ]
 
 
+class ContractInterface(BaseACIObject):
+    """ ContractInterface :  roughly equivalent to vzCPIf """
+
+    def __init__(self, contractif_name, parent=None):
+        """
+        :param contractif_name: String containing the ContractInterface name
+        :param parent: An instance of Tenant class representing the Tenant\
+                       which contains this ContractInterface.
+
+        """
+        super(ContractInterface, self).__init__(contractif_name, parent)
+        self.allow_all = False
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+        resp.append('vzCPIf')
+        return resp
+
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Tenant
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/cif-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/cif-')[1].split('/')[0]
+
+    @staticmethod
+    def _get_tenant_from_dn(dn):
+        """
+        Get the tenant name from the DN
+
+        :param dn: String containing the DN
+        :return: string containing the tenant name
+        """
+        return dn.split('/tn-')[1].split('/')[0]
+
+    def _populate_from_attributes(self, attributes):
+        """
+        Sets the attributes when creating objects from the APIC.
+        Called from the base object when calling the classmethod get()
+        """
+        self.descr = attributes.get('descr')
+        self.modified_time = attributes.get('modTs')
+        self.name = attributes.get('name')
+        dn = attributes.get('dn')
+        if dn is not None:
+            self.tenant = self._get_tenant_from_dn(dn)
+        else:
+            self.tenant = None
+
+    def get_json(self):
+        """
+        Returns json representation of vzCPIf object
+
+        :returns: json dictionary of vzCPIf object
+        """
+        attributes = self._generate_attributes()
+        return super(ContractInterface, self).get_json(self._get_apic_classes()[0],
+                                                       attributes=attributes)
+
+    @classmethod
+    def get(cls, session, tenant=None):
+        """
+        Gets all of the ContractInterfaces from the APIC.
+
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the ContractInterfaces\
+                       retrieved from the APIC
+        :returns: List of ContractInterface objects
+        """
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
+                                 tenant, tenant)
+
+
 class BaseContract(BaseACIObject):
     """ BaseContract :  Base class for Contracts and Taboos """
 
@@ -2948,8 +3098,8 @@ class Endpoint(BaseACIObject):
                                 endpoint.if_name = InterfaceFactory.create_from_dn(interface_dn).if_name
                             else:
                                 endpoint.if_name = interface['name']
-                    #endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
-                    #ret = session.get(endpoint_query_url)
+                    # endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
+                    # ret = session.get(endpoint_query_url)
             endpoints.append(endpoint)
         return endpoints
 
@@ -3216,6 +3366,7 @@ class VmmDomain(BaseACIObject):
         attr = self._generate_attributes()
         return super(VmmDomain, self).get_json(self._get_apic_classes()[0],
                                                attributes=attr)
+
     def _get_path(self):
         """
         Get the URL of the VMM
@@ -3808,7 +3959,6 @@ class NetworkPool(BaseACIObject):
         :returns: URL string
         """
         return '/api/mo/uni/infra.' + fmt
-
 
     def get_json(self):
         from_id = self.encap_type + '-' + self.start_id
