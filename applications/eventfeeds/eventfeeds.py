@@ -11,21 +11,23 @@ from acitoolkit.acitoolkit import *
 
 disable_warnings()
 app = Flask(__name__)
+logger = logging.getLogger('feed')
+feed = cursor = None
 
 
-def _get_db(persist=False):
+def _get_db():
     """Get a handle to the SQLite3 datbase specified in the Configuration file"""
     conn = sqlite3.connect(feed.cfg['events_db'], detect_types=sqlite3.PARSE_DECLTYPES)
     return conn
 
 
-def _get_query_filters(request, limiter):
+def _get_query_filters(flask_request, limiter):
     """ Take a HTTP request and limiter keyword (i.e. day, week, etc..) and build
         a 3 item tuple that is used in the SELECT query. Missing values are filled
         in via a lookup to the configuration dictionary.
     """
 
-    maxage, maxcount = _get_request_args(request.args)
+    maxage, maxcount = _get_request_args(flask_request.args)
     timestamp_limit = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
 
     if limiter:
@@ -49,18 +51,26 @@ def _get_query_filters(request, limiter):
     return timestamp_limit, maxage, maxcount
 
 
-def _produce_feed(feed, events):
+def _produce_feed(atom_feed, events):
+    """Populate the atom_feed object with a list of ACI events"""
     for event in events:
         cls, name, timestamp, json_dump, url = event
 
-        feed.add(cls, content=json_dump,
-                 content_type='text',
-                 author=name,
-                 id=name,
-                 updated=timestamp)
+        atom_feed.add(cls, content=json_dump,
+                      content_type='text',
+                      author=name,
+                      id=name,
+                      updated=timestamp)
 
 
 def _get_request_args(args):
+    """
+        Build a tuple of the maximum age an event can be plus the maximum amount
+        of records to return in the SQL query.
+
+        If no argument is provided, or the value is uncastable to an int the
+        respective default value or 360 and 1000 will be returned.
+    """
     try:
         maxage = int(args.get('maxage', 360))
     except ValueError:
@@ -97,43 +107,43 @@ class EventMonitor(threading.Thread):
             the ACI Toolkit that implements a Websocket connection
             to listen for events pushed by the APIC.
         """
-        logger = logging.getLogger('monitor')
+        evnt_logger = logging.getLogger('monitor')
         stdout = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         stdout.setFormatter(formatter)
-        logger.addHandler(stdout)
-        logger.info('Starting Thread')
-        logger.info('Getting DB Connection')
+        evnt_logger.addHandler(stdout)
+        evnt_logger.info('Starting Thread')
+        evnt_logger.info('Getting DB Connection')
         try:
             conn = _get_db()
         except sqlite3.Error as e:
-            logger.critical('Could not get handle to DB: {}'.format(e.message))
+            evnt_logger.critical('Could not get handle to DB: %s', e.message)
             sys.exit(1)
 
         # Create table
-        cursor = conn.cursor()
+        evnt_cursor = conn.cursor()
         try:
-            cursor.execute(
+            evnt_cursor.execute(
                 '''CREATE TABLE IF NOT EXISTS events (cls TEXT, name TEXT, timestamp timestamp, json TEXT, url TEXT)''')
-            cursor.execute(
+            evnt_cursor.execute(
                 '''CREATE INDEX IF NOT EXISTS datetime_index ON events (timestamp DESC)''')
             conn.commit()
         except sqlite3.OperationalError:
-            logger.info('No need to create Table')
+            evnt_logger.info('No need to create Table')
 
         # Login to APIC
         session = Session(self.url, self.login, self.password)
         resp = session.login()
         if not resp.ok:
-            logger.critical('Could not login to APIC')
+            evnt_logger.critical('Could not login to APIC')
             return
 
         selected_classes = feed.selected_classes
 
         for cls in selected_classes:
-            logger.info('Subscribing to {}'.format(cls.__name__))
+            evnt_logger.info('Subscribing to %s', cls.__name__)
             cls.subscribe(session)
-            logger.info('Subscribed to {}'.format(cls.__name__))
+            evnt_logger.info('Subscribed to %s', cls.__name__)
 
         TableRow = namedtuple('TableRow', ('cls', 'name', 'timestamp', 'json', 'url'))
         while True:
@@ -149,12 +159,12 @@ class EventMonitor(threading.Thread):
                             json=json.dumps(event_object.get_json()),
                             url='Not Implemented')
 
-                        cursor.execute('INSERT INTO events VALUES (?, ?, ?, ?, ?)', row)
+                        evnt_cursor.execute('INSERT INTO events VALUES (?, ?, ?, ?, ?)', row)
                         conn.commit()
-                        logger.info('[{}] Update to {}'.format(event_object.__class__.__name__, event_object))
+                        evnt_logger.info('[%s] Update to %s', event_object.__class__.__name__, event_object)
 
             except KeyboardInterrupt:
-                logger.info('Closing Down')
+                evnt_logger.info('Closing Down')
                 return
 
 
@@ -163,23 +173,23 @@ class EventMonitor(threading.Thread):
 def events_recent(limiter=None):
     """ Return an Atom Feed of _all_ classes currently subscribed to
     """
-    logger.info('Rendering feed ALL with limiter {} and args {}'.format(limiter, request.args))
+    logger.info('Rendering feed ALL with limiter %s and args %s', limiter, request.args)
     try:
         timestamp_limit, maxage, maxcount = _get_query_filters(request, limiter)
     except ValueError:
         return 'Did not provide a valid limiter', 404
 
-    feed = AtomFeed('Recent ACI events',
-                    feed_url=request.url,
-                    url=request.url_root,
-                    generator=('ACI Toolkit', request.url_root, '1.0'))
+    atom_feed = AtomFeed('Recent ACI events',
+                         feed_url=request.url,
+                         url=request.url_root,
+                         generator=('ACI Toolkit', request.url_root, '1.0'))
 
     events = cursor.execute("SELECT * FROM events WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?",
                             (timestamp_limit, maxcount))
 
-    _produce_feed(feed, events)
+    _produce_feed(atom_feed, events)
 
-    return feed.get_response()
+    return atom_feed.get_response()
 
 
 @app.route('/events/class/<string:cls>/')
@@ -187,24 +197,24 @@ def events_recent(limiter=None):
 def events_for_class(cls, limiter=None):
     """ Return an Atom Feed of the class specified in the URL param <cls>
     """
-    logger.info('Rendering feed {} with limiter {} and args {}'.format(cls, limiter, request.args))
+    logger.info('Rendering feed %s with limiter %s and args %s', cls, limiter, request.args)
     try:
         timestamp_limit, maxage, maxcount = _get_query_filters(request, limiter)
     except ValueError:
         return 'Did not provide a valid limiter', 404
 
-    feed = AtomFeed('ACI events for class {}'.format(cls),
-                    generator=('ACI Toolkit', request.url_root, '1.0'),
-                    feed_url=request.url,
-                    url=request.url_root)
+    atom_feed = AtomFeed('ACI events for class {}'.format(cls),
+                         generator=('ACI Toolkit', request.url_root, '1.0'),
+                         feed_url=request.url,
+                         url=request.url_root)
 
     timestamp_limit = datetime.datetime.now() - datetime.timedelta(days=maxage)
     events = cursor.execute("SELECT * FROM events WHERE cls = ? AND timestamp >= ? ORDER BY timestamp DESC LIMIT ?",
                             (cls, timestamp_limit, maxcount))
 
-    _produce_feed(feed, events)
+    _produce_feed(atom_feed, events)
 
-    return feed.get_response()
+    return atom_feed.get_response()
 
 
 @app.route('/config/', methods=['POST', 'GET'])
@@ -307,18 +317,30 @@ class FeedCfg(object):
 
 
 def main():
+    """
+        Use the Credentials class of ACI toolkit to get the needed args to run the
+        app.
+
+        Set up an instance of FeedCfg and EventMonitor with provided args.
+
+        Start the the EventMonitor thread as a daemon and then start the Flask server.
+    """
+    global feed, cursor, logger
+
+    # Grab APIC credentials and ip/port for Flask
     creds = Credentials(qualifier=('apic', 'server'),
                         description='ACI Toolkit')
     args = creds.get()
 
-    global feed, logger, cursor
-    logger = logging.getLogger('feed')
+    # Get EventFeeds configuration from disk and instantiate worker thread
     feed = FeedCfg()
     event_monitor = EventMonitor(args.url, args.login, args.password)
-    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(filename=feed.cfg['log_file'], level=logging.INFO, format=format)
+
+    # Set up file and stdout logging
+    msg_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(filename=feed.cfg['log_file'], level=logging.INFO, format=msg_format)
     stdout = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(format)
+    formatter = logging.Formatter(msg_format)
     stdout.setFormatter(formatter)
     logger.addHandler(stdout)
 
@@ -327,10 +349,12 @@ def main():
         conn = _get_db()
         cursor = conn.cursor()
     except sqlite3.Error as e:
-        logger.critical('Could not get handle to DB: {}'.format(e.message))
-        sys.exit(1)
+        logger.critical('Could not get handle to DB: %s', e.message)
 
+    # Start worker thread
     event_monitor.start()
+
+    # Start Flask server
     app.run(host=args.ip, port=int(args.port), debug=False, use_reloader=False)
 
 
