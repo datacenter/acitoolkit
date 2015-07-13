@@ -34,13 +34,13 @@ class IntersiteTag(object):
         self._remote_site = remote_site
 
     @staticmethod
-    def is_multisite_tag(tag):
+    def is_intersite_tag(tag):
         """
-        Indicates whether the tag is a multisite tag
+        Indicates whether the tag is an intersite tag
 
         :param tag: String containing the tag from the APIC
         :returns: True or False.  True if the tag is considered a
-                  multisite tag. False otherwise.
+                  intersite tag. False otherwise.
         """
         return re.match(r'intersite:.*:.*:.*:site:.*', tag)
 
