@@ -55,7 +55,7 @@ def _produce_feed(feed, events):
 
         feed.add(cls, content=json_dump,
                  content_type='text',
-                 author='APIC',
+                 author=name,
                  id=name,
                  updated=timestamp)
 
