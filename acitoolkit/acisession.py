@@ -34,7 +34,10 @@ import logging
 import json
 import requests
 from requests import Timeout, ConnectionError
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+try:
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+except ImportError:
+    pass
 import threading
 import time
 from websocket import create_connection, WebSocketException
@@ -371,7 +374,10 @@ class Session(object):
                                                'pwd': self.pwd}}}
         jcred = json.dumps(name_pwd)
         if not self.verify_ssl:
-            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+            try:
+                requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+            except AttributeError:
+                pass
         self.session = requests.Session()
         ret = self.session.post(login_url, data=jcred, verify=self.verify_ssl, timeout=timeout)
         if not ret.ok:
