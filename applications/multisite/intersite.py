@@ -893,17 +893,43 @@ def main():
     logging.basicConfig(level=level, format='%(filename)s:%(message)s')
 
     if args.generateconfig:
-        config = {'config': [{'site': {'name': '',
+        config = {'config': [
+                                {'site': {'name': '',
                                        'ip_address': '',
                                        'username': '',
                                        'password': '',
                                        'use_https': '',
                                        'local': ''}},
-                             {'export': {'contract': '',
-                                         'tenant': '',
-                                         'sites': [{'site': {'name': ''}}]}}]}
+                            {
+                                "export": {
+                                    "tenant": "",
+                                    "app": "",
+                                    "epg": "",
+                                    "remote_sites": [
+                                        {
+                                            "site": {
+                                                "name": "",
+                                                "interfaces": [
+                                                    {
+                                                        "l3out": {
+                                                            "name": "",
+                                                            "tenant": "",
+                                                            "provides": [{"contract_name": ""}],
+                                                            "consumes": [{"contract_name": ""}],
+                                                            "protected_by": [{"taboo_name": ""}],
+                                                            "consumes_interface": [{"cif_name": ""}]
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                  }
 
-        json_data = json.dumps(config, indent=4, separators=(',', ':'))
+        json_data = json.dumps(config, indent=4, separators=(',', ': '))
         config_file = open('sample_config.json', 'w')
         print 'Sample configuration file written to sample_config.json'
         print "Replicate the site JSON for each site."
