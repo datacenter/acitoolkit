@@ -33,7 +33,7 @@ This module implements the Base Class for creating all of the ACI Objects.
 import logging
 from .aciSearch import AciSearch, Searchable
 from .acisession import Session
-
+import sys
 
 class BaseRelation(object):
     """
@@ -116,6 +116,9 @@ class BaseACIObject(AciSearch):
                      instance
         :param parent: Parent object within the acitoolkit object model.
         """
+        if sys.version_info < (3,0,0):
+            if (isinstance(name, unicode)):
+                name = str(name)
         if name is None or not isinstance(name, str):
             raise TypeError
         if isinstance(parent, str):
