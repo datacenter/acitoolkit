@@ -273,7 +273,79 @@ class MultisiteMonitor(threading.Thread):
         self._exit = True
 
     def verify_endpoints(self, policy):
-        raise NotImplementedError
+        export_policy = ExportPolicy(policy)
+        for site in export_policy.get_sites():
+            site_name = site['site']['name']
+            site_obj = self._my_collector.get_site(site_name)
+            for l3out in site['site']['interfaces']:
+                l3out_name = l3out['l3out']['name']
+                l3out_tenant = l3out['l3out']['tenant']
+                itag = IntersiteTag(export_policy.get_tenant_name(),
+                                    export_policy.get_app_name(),
+                                    export_policy.get_epg_name(),
+                                    self._local_site.name)
+
+                # Get all of the Endpoints with the tags
+                query_url = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
+                             'target-subtree-class=l3extInstP&'
+                             'rsp-subtree=children&'
+                             'rsp-subtree-filter=eq(tagInst.name,"%s")&'
+                             'rsp-subtree-include=required' % (l3out_tenant, l3out_name, itag))
+                resp = site_obj.session.get(query_url)
+                if not resp.ok:
+                    logging.warning('Could not get remote site entries %s %s', resp, resp.text)
+                    return
+
+                # Get all of the children for the Endpoints with tags
+                names = ''
+                num_names = 0
+                for l3instp in resp.json()['imdata']:
+                    if num_names > 0:
+                        names += ','
+                    names += 'eq(l3extInstP.name,"%s")' % l3instp['l3extInstP']['attributes']['name']
+                    num_names += 1
+                if num_names > 1:
+                    names = 'or(' + names + ')'
+
+                query = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
+                         'target-subtree-class=l3extInstP&'
+                         'query-target-filter=%s&'
+                         'rsp-subtree=children&'
+                         'rsp-prop-include=config-only') % (l3out_tenant, l3out_name, names)
+                resp = site_obj.session.get(query)
+                if not resp.ok:
+                    logging.warning('Could not get remote site entries %s %s', resp, resp.text)
+                    return
+
+                # Check that each entry matches the current policy
+                for entry in resp.json()['imdata']:
+                    dirty = False
+                    for child in entry['l3extInstP']['children']:
+                        if 'fvRsProv' in child:
+                            if export_policy.provides(site_name, l3out_name, l3out_tenant,
+                                                      child['fvRsProv']['attributes']['tnVzBrCPName']):
+                                continue
+                            dirty = True
+                            # Need to mark as deleted and push back to APIC
+                            raise NotImplementedError
+                        elif 'fvRsCons' in child:
+                            if export_policy.consumes(site_name, l3out_name, l3out_tenant,
+                                                      child['fvRsCons']['attributes']['tnVzBrCPName']):
+                                continue
+                            dirty = True
+                            raise NotImplementedError
+                        elif 'fvRsProtBy' in child:
+                            if export_policy.protected_by(site_name, l3out_name, l3out_tenant,
+                                                          child['fvRsProtBy']['attributes']['tnVzTabooName']):
+                                continue
+                            dirty = True
+                            raise NotImplementedError
+                        elif 'fvRsConsIf' in child:
+                            if export_policy.consumes_cif(site_name, l3out_name, l3out_tenant,
+                                                          child['fvRsConsIf']['attributes']['tnVzCPIfName']):
+                                continue
+                            dirty = True
+                            raise NotImplementedError
 
     def handle_existing_endpoints(self, policy):
         tenant_name = policy['export']['tenant']
@@ -382,6 +454,40 @@ class ExportPolicy(object):
 
     def get_sites(self):
         return self._policy['export']['remote_sites']
+
+    def _get_l3out_config(self, site_name, l3out_name, l3out_tenant):
+        for site in self.get_sites():
+            if site['site']['name'] == site_name:
+                for l3out in site['site']['interfaces']:
+                    if l3out['l3out']['name'] == l3out_name and l3out['l3out']['tenant'] == l3out_tenant:
+                        return l3out
+
+    def _check_config(self, site_name, l3out_name, l3out_tenant, contract_name,
+                      contract_type, contract_type_name):
+        l3out = self._get_l3out_config(site_name, l3out_name, l3out_tenant)
+        if l3out is None:
+            return False
+        for contract in l3out['l3out'][contract_type]:
+            if contract[contract_type_name] == contract_name:
+                return True
+        return False
+
+
+    def provides(self, site_name, l3out_name, l3out_tenant, contract_name):
+        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
+                                  'provides', 'contract_name')
+
+    def consumes(self, site_name, l3out_name, l3out_tenant, contract_name):
+        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
+                                  'consumes', 'contract_name')
+
+    def protected_by(self, site_name, l3out_name, l3out_tenant, contract_name):
+        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
+                                  'protected_by', 'taboo_name')
+
+    def consumes_cif(self, site_name, l3out_name, l3out_tenant, contract_name):
+        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
+                                  'consumes_interface', 'cif_name')
 
 
 class LocalSite(Site):
@@ -644,7 +750,7 @@ class MultisiteCollector(object):
                 itag = IntersiteTag(export_policy.get_tenant_name(),
                                     export_policy.get_app_name(),
                                     export_policy.get_epg_name(),
-                                    site_name)
+                                    self.get_local_site().name)
                 site_obj.remove_all_entries(str(itag), l3out_name, l3out_tenant)
 
 
