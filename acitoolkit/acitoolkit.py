@@ -1556,6 +1556,7 @@ class BridgeDomain(BaseACIObject):
         self.unknown_multicast = 'flood'
         self.arp_flood = 'no'
         self.unicast_route = 'yes'
+        self.mac = None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1612,6 +1613,16 @@ class BridgeDomain(BaseACIObject):
         :returns: unknown mac unicast of the BridgeDomain
         """
         return self.unknown_mac_unicast
+
+    def set_mac(self, mac):
+        """
+        Set the mac address for the BD
+
+        :param mac: string mac address (XX:XX:XX:XX:XX:XX)
+        """
+
+        self.mac = mac
+
 
     def set_unknown_multicast(self, multicast):
         """
@@ -1681,6 +1692,8 @@ class BridgeDomain(BaseACIObject):
         attr['unkMcastAct'] = self.unknown_multicast
         attr['arpFlood'] = self.arp_flood
         attr['unicastRoute'] = self.unicast_route
+        if self.mac:
+            attr['mac'] = self.mac
         return super(BridgeDomain, self).get_json(self._get_apic_classes()[0],
                                                   attributes=attr,
                                                   children=children)
