@@ -10,3 +10,4 @@ Applications
    snapback
    visualizations
    eventfeeds
+   intersite
