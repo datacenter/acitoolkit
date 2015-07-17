@@ -1,9 +1,9 @@
 ################################################################################
-# _    ____ ___                               #
-# / \  / ___|_ _|                              #
-# / _ \| |    | |                               #
-# / ___ \ |___ | |                               #
-# _____/_/   \_\____|___|_ _                           #
+#                                  _    ____ ___                               #
+#                                 / \  / ___|_ _|                              #
+#                                / _ \| |    | |                               #
+#                               / ___ \ |___ | |                               #
+#                         _____/_/   \_\____|___|_ _                           #
 #                        |_   _|__   ___ | | | _(_) |_                         #
 #                          | |/ _ \ / _ \| | |/ / | __|                        #
 #                          | | (_) | (_) | |   <| | |_                         #
@@ -2194,7 +2194,7 @@ class Interface(BaseInterface):
                                     'children': [vlan_ns_ref]}}
 
         # Infra json
-        infra = {'infraInfra': {'children': []}}
+        infra = {'infraInfra': {'attributes': {}, 'children': []}}
         node_profile, accport_selector = self.get_port_selector_json()
         infra['infraInfra']['children'].append(node_profile)
         infra['infraInfra']['children'].append(accport_selector)
