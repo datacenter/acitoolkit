@@ -2888,7 +2888,7 @@ class PortChannel(BaseInterface):
         pc_mode = 'link'
         if vpc:
             pc_mode = 'node'
-        infra = {'infraInfra': {'children': []}}
+        infra = {'infraInfra': {'attributes': {}, 'children': []}}
         # Add the node and port selectors
         for interface in self._interfaces:
             node_profile, accport_selector = interface.get_port_channel_selector_json(self.name)
