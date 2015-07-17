@@ -1071,7 +1071,7 @@ class TestInterface(unittest.TestCase):
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
         (phydomain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
                          "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
@@ -1109,7 +1109,7 @@ class TestInterface(unittest.TestCase):
         intf = Interface('eth', '1', '101', '1', '5')
         intf.speed = '10G'
         (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-101-1-5'}, 'children': [{'infraLe"
                          "afS': {'attributes': {'type': 'range', 'name': '1-10"
                          "1-1-5'}, 'children': [{'infraNodeBlk': {'attributes'"
@@ -1146,7 +1146,7 @@ class TestInterface(unittest.TestCase):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.speed = '1G'
         (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
                          "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
