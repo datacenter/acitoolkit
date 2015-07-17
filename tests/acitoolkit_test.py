@@ -1644,7 +1644,7 @@ class TestPortChannel(unittest.TestCase):
         self.assertFalse(pc.is_vpc())
         fabric, infra = pc.get_json()
 
-        expected_resp = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_resp = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-101-1-8'}, 'children': [{'infraLe"
                          "afS': {'attributes': {'type': 'range', 'name': '1-10"
                          "1-1-8'}, 'children': [{'infraNodeBlk': {'attributes'"
@@ -2342,10 +2342,10 @@ class TestApic(TestLiveAPIC):
                     ' "children": [{"fvAp": {"attributes": {"name": "app1"}, '
                     '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
                     '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
-                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"arpFlood": "no", '
-                    '"unkMacUcastAct": "proxy", "name": "bd1", '
-                    '"unicastRoute": "yes", "unkMcastAct": "flood"},'
-                    ' "children": []}}]}}')
+                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"name": "bd1", '
+                    '"unkMacUcastAct": "proxy", "arpFlood": "no", '
+                    '"mac": "00:22:BD:F8:19:FF", "unicastRoute": "yes", '
+                    '"unkMcastAct": "flood"}, "children": []}}]}}')
         actual = json.dumps(tenant.get_json())
         self.assertTrue(actual == expected)
 
