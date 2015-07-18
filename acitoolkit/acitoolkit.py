@@ -30,8 +30,10 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
+from collections import Sequence
 from operator import attrgetter, itemgetter
 import sys
+from requests.compat import urlencode
 from .aciTable import Table
 # from .aciphysobject import Interface
 from .aciphysobject import *
@@ -144,30 +146,22 @@ class Tenant(BaseACIObject):
                 'l3extOut': OutsideEPG}
 
     @classmethod
-    def get_deep(cls, session, names=[], limit_to=[], subtree='full', config_only=False):
+    def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False):
         resp = []
-        assert isinstance(names, list), ('names should be a list'
-                                         ' of strings')
+        if (isinstance(names, str) or not isinstance(names, Sequence) or
+            not all(isinstance(name, str) for name in names)):
+            raise TypeError('names should be a Sequence of strings')
+        names = names or [tenant.name for tenant in Tenant.get(session)]
+        limit = ','.join(limit_to)
 
-        # If no tenant names passed, get all tenant names from APIC
-        if len(names) == 0:
-            tenants = Tenant.get(session)
-            for tenant in tenants:
-                names.append(tenant.name)
-
-        if len(limit_to):
-            limit = '&rsp-subtree-class='
-            for class_name in limit_to:
-                limit += class_name + ','
-            limit = limit[:-1]
-        else:
-            limit = ''
         for name in names:
-            query_url = ('/api/mo/uni/tn-%s.json?query-target=self&'
-                         'rsp-subtree=%s' % (name, subtree))
-            query_url += limit
+            params = {
+                'query-target': 'self', 'rsp-subtree': subtree,
+                'rsp-subtree-class': limit
+            }
             if config_only:
-                query_url += '&rsp-prop-include=config-only'
+                params['rsp-prop-include'] = 'config-only'
+            query_url = '/api/mo/uni/tn-{}.json?{}'.format(name, urlencode(params))
             ret = session.get(query_url)
 
             # the following works around a bug encountered in the json returned from the APIC
@@ -2379,20 +2373,15 @@ class Contract(BaseContract):
         return attributes
 
     @classmethod
-    def get_deep(cls, full_data, working_data, parent=None, limit_to=[], subtree='full', config_only=False):
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
         contract_data = working_data[0]['vzBrCP']
         contract = Contract(str(contract_data['attributes']['name']),
                             parent)
 
-        if 'children' not in contract_data:
-            return
-
-        for child in contract_data['children']:
+        for child in contract_data.get('children', ()):
             if 'vzSubj' in child:
                 subject = child['vzSubj']
-                if 'children' not in subject:
-                    continue
-                for subj_child in subject['children']:
+                for subj_child in subject.get('children', ()):
                     if 'vzRsSubjFiltAtt' in subj_child:
                         filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
                         filter_name = filter_attributes['tnVzFilterName']
