@@ -4,6 +4,8 @@ import re
 import threading
 import logging
 import cmd
+import sys
+import socket
 
 # Imports from standalone mode
 import argparse
@@ -119,15 +121,13 @@ class EndpointHandler(object):
         # Find the remote site's list of tenant JSONs
         db_entry = self.db[remote_site]
         # Find the l3outs we should be looking at based on the policy
-        l3out_tenant = l3out_policy['l3out']['tenant']
-        l3out_name = l3out_policy['l3out']
         for tenant_json in db_entry:
-            if tenant_json['fvTenant']['attributes']['name'] != l3out_tenant:
+            if tenant_json['fvTenant']['attributes']['name'] != l3out_policy.tenant:
                 continue
             for l3out in tenant_json['fvTenant']['children']:
                 if 'l3extOut' not in l3out:
                     continue
-                if l3out['l3extOut']['attributes']['name'] != l3out_name:
+                if l3out['l3extOut']['attributes']['name'] != l3out_policy.name:
                     continue
                 for l3instp in l3out:
                     if 'l3extInstP' not in l3instp:
@@ -137,31 +137,25 @@ class EndpointHandler(object):
                         l3out.remove(l3instp)
 
     def _create_tenant_with_l3instp(self, l3out_policy, endpoint, tag):
-        l3out_name = l3out_policy['l3out']['name']
-        l3out_tenant = l3out_policy['l3out']['tenant']
-        remote_tenant = Tenant(l3out_tenant)
+        remote_tenant = Tenant(l3out_policy.tenant)
         network = OutsideNetwork(endpoint.mac)
         if endpoint.is_deleted():
             network.mark_as_deleted()
         else:
             network.network = endpoint.ip + '/32'
-        if 'provides' in l3out_policy['l3out']:
-            for provided_contract in l3out_policy['l3out']['provides']:
-                contract = Contract(provided_contract['contract_name'])
-                network.provide(contract)
-        if 'consumes' in l3out_policy['l3out']:
-            for consumed_contract in l3out_policy['l3out']['consumes']:
-                contract = Contract(consumed_contract['contract_name'])
-                network.consume(contract)
-        if 'protected_by' in l3out_policy['l3out']:
-            for protecting_taboo in l3out_policy['l3out']['protected_by']:
-                taboo = Taboo(protecting_taboo['taboo_name'])
-                network.protect(taboo)
-        if 'consumes_interface' in l3out_policy['l3out']:
-            for consumes_interface in l3out_policy['l3out']['consumes_interface']:
-                cif = ContractInterface(consumes_interface['cif_name'])
-                network.consume_cif(cif)
-        outside = OutsideEPG(l3out_name, remote_tenant)
+        for provided_contract in l3out_policy.get_provided_contract_policies():
+            contract = Contract(provided_contract.contract_name)
+            network.provide(contract)
+        for consumed_contract in l3out_policy.get_consumed_contract_policies():
+            contract = Contract(consumed_contract.contract_name)
+            network.consume(contract)
+        for protecting_taboo in l3out_policy.get_protected_by_policies():
+            taboo = Taboo(protecting_taboo.taboo_name)
+            network.protect(taboo)
+        for consumes_interface in l3out_policy.get_consumes_interface_policies():
+            cif = ContractInterface(consumes_interface.cif_name)
+            network.consume_cif(cif)
+        outside = OutsideEPG(l3out_policy.name, remote_tenant)
         network.add_tag(str(tag))
         outside.networks.append(network)
         return remote_tenant.get_json()
@@ -224,19 +218,18 @@ class EndpointHandler(object):
             return
 
         # Process the endpoint policy
-        for remote_site in policy['export']['remote_sites']:
-            remote_site_name = remote_site['site']['name']
-            for l3out_policy in remote_site['site']['interfaces']:
+        for remote_site_policy in policy.get_site_policies():
+            for l3out_policy in remote_site_policy.get_interfaces():
                 # Remove existing JSON for the endpoint if any already queued since this
                 # update will override that
-                self._remove_queued_endpoint(remote_site_name, l3out_policy, endpoint)
+                self._remove_queued_endpoint(remote_site_policy.name, l3out_policy, endpoint)
 
                 # Create the JSON
                 tag = IntersiteTag(tenant.name, app.name, epg.name, local_site.name)
                 tenant_json = self._create_tenant_with_l3instp(l3out_policy, endpoint, tag)
 
                 # Add to the database
-                self._merge_tenant_json(remote_site_name, tenant_json)
+                self._merge_tenant_json(remote_site_policy.name, tenant_json)
 
     def push_to_remote_sites(self, collector):
         """
@@ -272,17 +265,11 @@ class MultisiteMonitor(threading.Thread):
         """
         self._exit = True
 
-    def verify_endpoints(self, policy):
-        export_policy = ExportPolicy(policy)
-        for site in export_policy.get_sites():
-            site_name = site['site']['name']
-            site_obj = self._my_collector.get_site(site_name)
-            for l3out in site['site']['interfaces']:
-                l3out_name = l3out['l3out']['name']
-                l3out_tenant = l3out['l3out']['tenant']
-                itag = IntersiteTag(export_policy.get_tenant_name(),
-                                    export_policy.get_app_name(),
-                                    export_policy.get_epg_name(),
+    def verify_endpoints(self, export_policy):
+        for site in export_policy.get_site_policies():
+            site_obj = self._my_collector.get_site(site.name)
+            for l3out in site.get_interfaces():
+                itag = IntersiteTag(export_policy.tenant, export_policy.app, export_policy.epg,
                                     self._local_site.name)
 
                 # Get all of the Endpoints with the tags
@@ -290,11 +277,15 @@ class MultisiteMonitor(threading.Thread):
                              'target-subtree-class=l3extInstP&'
                              'rsp-subtree=children&'
                              'rsp-subtree-filter=eq(tagInst.name,"%s")&'
-                             'rsp-subtree-include=required' % (l3out_tenant, l3out_name, itag))
+                             'rsp-subtree-include=required' % (l3out.tenant, l3out.name, itag))
+
                 resp = site_obj.session.get(query_url)
                 if not resp.ok:
                     logging.warning('Could not get remote site entries %s %s', resp, resp.text)
                     return
+
+                if resp.json()['totalCount'] == '0':
+                    continue
 
                 # Get all of the children for the Endpoints with tags
                 names = ''
@@ -311,7 +302,7 @@ class MultisiteMonitor(threading.Thread):
                          'target-subtree-class=l3extInstP&'
                          'query-target-filter=%s&'
                          'rsp-subtree=children&'
-                         'rsp-prop-include=config-only') % (l3out_tenant, l3out_name, names)
+                         'rsp-prop-include=config-only') % (l3out.tenant, l3out.name, names)
                 resp = site_obj.session.get(query)
                 if not resp.ok:
                     logging.warning('Could not get remote site entries %s %s', resp, resp.text)
@@ -322,39 +313,36 @@ class MultisiteMonitor(threading.Thread):
                     dirty = False
                     for child in entry['l3extInstP']['children']:
                         if 'fvRsProv' in child:
-                            if export_policy.provides(site_name, l3out_name, l3out_tenant,
+                            if export_policy.provides(site.name, l3out.name, l3out.tenant,
                                                       child['fvRsProv']['attributes']['tnVzBrCPName']):
                                 continue
                             dirty = True
                             # Need to mark as deleted and push back to APIC
                             raise NotImplementedError
                         elif 'fvRsCons' in child:
-                            if export_policy.consumes(site_name, l3out_name, l3out_tenant,
+                            if export_policy.consumes(site.name, l3out.name, l3out.tenant,
                                                       child['fvRsCons']['attributes']['tnVzBrCPName']):
                                 continue
                             dirty = True
                             raise NotImplementedError
                         elif 'fvRsProtBy' in child:
-                            if export_policy.protected_by(site_name, l3out_name, l3out_tenant,
+                            if export_policy.protected_by(site.name, l3out.name, l3out.tenant,
                                                           child['fvRsProtBy']['attributes']['tnVzTabooName']):
                                 continue
                             dirty = True
                             raise NotImplementedError
                         elif 'fvRsConsIf' in child:
-                            if export_policy.consumes_cif(site_name, l3out_name, l3out_tenant,
+                            if export_policy.consumes_cif(site.name, l3out.name, l3out.tenant,
                                                           child['fvRsConsIf']['attributes']['tnVzCPIfName']):
                                 continue
                             dirty = True
                             raise NotImplementedError
 
     def handle_existing_endpoints(self, policy):
-        tenant_name = policy['export']['tenant']
-        app_name = policy['export']['app']
-        epg_name = policy['export']['epg']
         logging.info('handle_existing_endpoints for tenant: %s app_name: %s epg_name: %s',
-                     tenant_name, app_name, epg_name)
+                     policy.tenant, policy.app, policy.epg)
         endpoints = Endpoint.get_all_by_epg(self._session,
-                                            tenant_name, app_name, epg_name,
+                                            policy.tenant, policy.app, policy.epg,
                                             with_interface_attachments=False)
         for endpoint in endpoints:
             self._endpoints.add_endpoint(endpoint, self._local_site)
@@ -414,6 +402,12 @@ class Site(object):
         else:
             return False
 
+    def __ne__(self, other):
+        if self == other:
+            return False
+        else:
+            return True
+
     def shutdown(self):
         pass
 
@@ -428,66 +422,269 @@ class Site(object):
         return resp
 
 
-class ExportPolicy(object):
+class IntersiteConfiguration(object):
+    def __init__(self, config):
+        self.site_policies = []
+        self.export_policies = []
+
+        if 'config' not in config:
+            raise ValueError('Expected "config" in configuration')
+
+        for item in config['config']:
+            if 'site' in item:
+                site_policy = SitePolicy(item)
+                if site_policy is not None:
+                    self.site_policies.append(site_policy)
+            elif 'export' in item:
+                export_policy = ExportPolicy(item)
+                if export_policy is not None:
+                    self.export_policies.append(export_policy)
+
+
+class ConfigObject(object):
     def __init__(self, policy):
         self._policy = policy
+        self.validate()
 
-    def get_tenant_name(self):
+    def _validate_string(self, item):
+        if sys.version_info < (3,0,0):
+            if (isinstance(item, unicode)):
+                return
+        if not isinstance(item, str):
+            raise ValueError('Expected string')
+
+    def _validate_ip_address(self, item):
+        try:
+            if sys.version_info < (3,0,0):
+                if (isinstance(item, unicode)):
+                    item = str(item)
+            socket.inet_aton(item)
+        except socket.error:
+            raise ValueError('Expected IP address')
+
+    def _validate_boolean_string(self, item):
+        if item not in ['True', 'False']:
+            raise ValueError('Expected "True" or "False"')
+
+    def validate(self):
+        pass
+
+class SitePolicy(ConfigObject):
+    @property
+    def username(self):
+        return self._policy['site']['username']
+
+    @username.setter
+    def username(self, username):
+        self._policy['site']['username'] = username
+
+    @property
+    def name(self):
+        return self._policy['site']['name']
+
+    @name.setter
+    def name(self, name):
+        self._policy['site']['name'] = name
+
+    @property
+    def ip_address(self):
+        return self._policy['site']['ip_address']
+
+    @ip_address.setter
+    def ip_address(self, ip_address):
+        self._policy['site']['ip_address'] = ip_address
+
+    @property
+    def password(self):
+        return self._policy['site']['password']
+
+    @password.setter
+    def password(self, password):
+        self._policy['site']['password'] = password
+
+    @property
+    def local(self):
+        return self._policy['site']['local']
+
+    @local.setter
+    def local(self, local):
+        self._policy['site']['local'] = local
+
+    @property
+    def use_https(self):
+        return self._policy['site']['use_https']
+
+    @use_https.setter
+    def use_https(self, use_https):
+        self._policy['site']['use_https'] = use_https
+
+    def __eq__(self, other):
+        if self.username != other.username or self.ip_address != other.ip_address:
+            return False
+        if self.password != other.password or self.local != other.local:
+            return False
+        if self.use_https != other.use_https:
+            return False
+        else:
+            return True
+
+    def __ne__(self, other):
+        if self == other:
+            return False
+        else:
+            return True
+
+    def validate(self):
+        if 'site' not in self._policy:
+            raise ValueError('Expecting "site" in configuration')
+        policy = self._policy['site']
+        for item in policy:
+            keyword_validators = {'username': '_validate_string',
+                                  'name': '_validate_string',
+                                  'ip_address': '_validate_ip_address',
+                                  'password': '_validate_string',
+                                  'local': '_validate_boolean_string',
+                                  'use_https': '_validate_boolean_string'}
+            if item not in keyword_validators:
+                raise ValueError('Unknown keyword: %s' % item)
+            self.__getattribute__(keyword_validators[item])(policy[item])
+
+
+class ProvidedContractPolicy(ConfigObject):
+    @property
+    def contract_name(self):
+        return self._policy['contract_name']
+
+
+class ConsumedContractPolicy(ProvidedContractPolicy):
+    pass
+
+
+class ProtectedByPolicy(ConfigObject):
+    @property
+    def taboo_name(self):
+        return self._policy['taboo_name']
+
+
+class ConsumedInterfacePolicy(ConfigObject):
+    @property
+    def consumes_interface(self):
+        return self._policy['cif_name']
+
+
+class L3OutPolicy(ConfigObject):
+    @property
+    def name(self):
+        return self._policy['l3out']['name']
+
+    @property
+    def tenant(self):
+        return self._policy['l3out']['tenant']
+
+    def _get_policies(self, cls, keyword):
+        policies = []
+        if keyword not in self._policy['l3out']:
+            return policies
+        for policy in self._policy['l3out'][keyword]:
+            policies.append(cls(policy))
+        return policies
+
+    def get_provided_contract_policies(self):
+        return self._get_policies(ProvidedContractPolicy, 'provides')
+
+    def get_consumed_contract_policies(self):
+        return self._get_policies(ConsumedContractPolicy, 'consumes')
+
+    def get_protected_by_policies(self):
+        return self._get_policies(ProtectedByPolicy, 'protected_by')
+
+    def get_consumes_interface_policies(self):
+        return self._get_policies(ConsumedInterfacePolicy, 'consumes_interface')
+
+
+class RemoteSitePolicy(ConfigObject):
+    @property
+    def name(self):
+        return self._policy['site']['name']
+
+    def get_interfaces(self):
+        interfaces = []
+        for interface in self._policy['site']['interfaces']:
+            interfaces.append(L3OutPolicy(interface))
+        return interfaces
+
+
+class ExportPolicy(ConfigObject):
+    @property
+    def tenant(self):
         return self._policy['export']['tenant']
 
-    def get_app_name(self):
+    @property
+    def app(self):
         return self._policy['export']['app']
 
-    def get_epg_name(self):
+    @property
+    def epg(self):
         return self._policy['export']['epg']
 
     def has_same_epg(self, policy):
-        if isinstance(policy, dict):
-            policy = ExportPolicy(policy)
-        if self.get_tenant_name() != policy.get_tenant_name():
-            return False
-        if self.get_app_name() != policy.get_app_name():
-            return False
-        if self.get_epg_name() != policy.get_epg_name():
+        assert isinstance(policy, ExportPolicy)
+        if self.tenant != policy.tenant or self.app != policy.app or self.epg != policy.epg:
             return False
         return True
 
-    def get_sites(self):
-        return self._policy['export']['remote_sites']
+    def get_site_policies(self):
+        sites = []
+        for site in self._policy['export']['remote_sites']:
+            sites.append(RemoteSitePolicy(site))
+        return sites
 
-    def _get_l3out_config(self, site_name, l3out_name, l3out_tenant):
-        for site in self.get_sites():
-            if site['site']['name'] == site_name:
-                for l3out in site['site']['interfaces']:
-                    if l3out['l3out']['name'] == l3out_name and l3out['l3out']['tenant'] == l3out_tenant:
+    def _get_l3out_policy(self, site_name, l3out_name, l3out_tenant):
+        for site in self.get_site_policies():
+            if site.name == site_name:
+                for l3out in site.get_interfaces():
+                    if l3out.name == l3out_name and l3out.tenant == l3out_tenant:
                         return l3out
 
-    def _check_config(self, site_name, l3out_name, l3out_tenant, contract_name,
-                      contract_type, contract_type_name):
-        l3out = self._get_l3out_config(site_name, l3out_name, l3out_tenant)
+    def provides(self, site_name, l3out_name, l3out_tenant, contract_name):
+        l3out = self._get_l3out_policy(site_name, l3out_name, l3out_tenant)
         if l3out is None:
             return False
-        for contract in l3out['l3out'][contract_type]:
-            if contract[contract_type_name] == contract_name:
+        for contract in l3out.get_provided_contract_policies():
+            if contract.contract_name == contract_name:
                 return True
-        return False
-
-
-    def provides(self, site_name, l3out_name, l3out_tenant, contract_name):
-        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
-                                  'provides', 'contract_name')
+            else:
+                return False
 
     def consumes(self, site_name, l3out_name, l3out_tenant, contract_name):
-        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
-                                  'consumes', 'contract_name')
+        l3out = self._get_l3out_policy(site_name, l3out_name, l3out_tenant)
+        if l3out is None:
+            return False
+        for contract in l3out.get_consumed_contract_policies():
+            if contract.contract_name == contract_name:
+                return True
+            else:
+                return False
 
-    def protected_by(self, site_name, l3out_name, l3out_tenant, contract_name):
-        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
-                                  'protected_by', 'taboo_name')
+    def protected_by(self, site_name, l3out_name, l3out_tenant, taboo_name):
+        l3out = self._get_l3out_policy(site_name, l3out_name, l3out_tenant)
+        if l3out is None:
+            return False
+        for taboo in l3out.get_protected_by_policies():
+            if taboo.taboo_name == taboo_name:
+                return True
+            else:
+                return False
 
-    def consumes_cif(self, site_name, l3out_name, l3out_tenant, contract_name):
-        return self._check_config(site_name, l3out_name, l3out_tenant, contract_name,
-                                  'consumes_interface', 'cif_name')
+    def consumes_cif(self, site_name, l3out_name, l3out_tenant, consumes_interface):
+        l3out = self._get_l3out_policy(site_name, l3out_name, l3out_tenant)
+        if l3out is None:
+            return False
+        for contract_if in l3out.get_consumes_interface_policies():
+            if contract_if.consumes_interface == consumes_interface:
+                return True
+            else:
+                return False
 
 
 class LocalSite(Site):
@@ -506,9 +703,10 @@ class LocalSite(Site):
         return resp
 
     def add_policy(self, policy):
-        old_policy = self.get_policy_for_epg(policy['export']['tenant'],
-                                             policy['export']['app'],
-                                             policy['export']['epg'])
+        logging.info('add_policy')
+        old_policy = self.get_policy_for_epg(policy.tenant,
+                                             policy.app,
+                                             policy.epg)
         if old_policy is not None:
             self.policy_db.remove(old_policy)
         if policy not in self.policy_db:
@@ -516,15 +714,16 @@ class LocalSite(Site):
         self.monitor.handle_existing_endpoints(policy)
 
     def validate_policy(self, policy):
+        logging.warning('validate_policy needs to be implemented')
         pass
 
     def remove_policy(self, policy):
+        logging.info('remove_policy')
         self.policy_db.remove(policy)
 
     def get_policy_for_epg(self, tenant_name, app_name, epg_name):
         for policy in self.policy_db:
-            attributes = policy['export']
-            if attributes['tenant'] == tenant_name and attributes['app'] == app_name and attributes['epg'] == epg_name:
+            if policy.tenant == tenant_name and policy.app == app_name and policy.epg == epg_name:
                 return policy
 
 
@@ -556,7 +755,7 @@ class MultisiteCollector(object):
     """
     def __init__(self):
         self.sites = []
-        self.config = {}
+        self.config = None
         self.config_filename = None
 
     def initialize_local_site(self):
@@ -567,9 +766,8 @@ class MultisiteCollector(object):
             return
 
         # Export all of the configured exported contracts
-        for export_policy in self.config['config']:
-            if 'export' in export_policy:
-                local_site.add_policy(export_policy)
+        for export_policy in self.config.export_policies:
+            local_site.add_policy(export_policy)
 
     def get_sites(self, local_only=False, remote_only=False):
         if local_only:
@@ -614,22 +812,22 @@ class MultisiteCollector(object):
         return site.start()
 
     def add_site_from_config(self, site):
-        if site['site']['use_https'] == 'True':
+        if site.use_https == 'True':
             use_https = True
         else:
             use_https = False
-        creds = SiteLoginCredentials(site['site']['ip_address'],
-                                     site['site']['username'],
-                                     site['site']['password'],
+        creds = SiteLoginCredentials(site.ip_address,
+                                     site.username,
+                                     site.password,
                                      use_https)
-        if site['site']['local'] == 'True':
+        if site.local == 'True':
             is_local = True
         else:
             is_local = False
-        self.add_site(site['site']['name'], creds, is_local)
+        self.add_site(site.name, creds, is_local)
 
     def delete_site(self, name):
-        logging.info('add_site name:%s', name)
+        logging.info('delete_site name:%s', name)
         for site in self.sites:
             if name == site.name:
                 site.shutdown()
@@ -644,50 +842,42 @@ class MultisiteCollector(object):
         added_local_site = False
         # Check the old sites for deleted sites or changed configs
         logging.info('Loading site configurations...')
-        for old_site in old_config['config']:
-            if 'site' not in old_site:
-                continue
+        for old_site in old_config.site_policies:
             found_site = False
-            for new_site in new_config['config']:
-                if 'site' not in new_site:
-                    continue
-                site_name = new_site['site']['name']
-                if site_name == old_site['site']['name']:
+            for new_site in new_config.site_policies:
+                if new_site == old_site:
                     if new_site != old_site:
-                        logging.info('Site config for site %s has changed.', site_name)
+                        logging.info('Site config for site %s has changed.', new_site.name)
                         # Something changed, remove the old site and add the new site
-                        self.delete_site(site_name)
+                        self.delete_site(new_site.name)
                         self.add_site_from_config(new_site)
-                        if new_site['site']['local'] == 'True':
+                        if new_site.local == 'True':
                             added_local_site = True
                     else:
-                        logging.info('Site config for site %s is the same so no change.', site_name)
+                        logging.info('Site config for site %s is the same so no change.', new_site.name)
                         found_site = True
                         break
             if not found_site:
                 # Old site is not in new sites
-                logging.info('Could not find site config for site %s.  Deleting site...', old_site['site']['name'])
-                self.delete_site(old_site)
+                logging.info('Could not find site config for site %s.  Deleting site...', old_site.name)
+                self.delete_site(old_site.name)
 
         # Loop back through and check for new sites that didn't exist previously
-        for new_site in new_config['config']:
-            if 'site' not in new_site:
-                continue
+        for new_site in new_config.site_policies:
             site_found = False
-            for old_site in old_config['config']:
-                if 'site' not in old_site:
-                    continue
-                if new_site['site']['name'] == old_site['site']['name']:
+            for old_site in old_config.site_policies:
+                if new_site.name == old_site.name:
                     site_found = True
                     break
             if not site_found:
-                logging.info('Could not find site config for site %s.  Adding site...', new_site['site']['name'])
+                logging.info('Could not find site config for site %s.  Adding site...', new_site.name)
                 self.add_site_from_config(new_site)
-                if new_site['site']['local'] == 'True':
+                if new_site.local == 'True':
                     added_local_site = True
         return added_local_site
 
     def reload_config(self):
+        logging.info('reload_config')
         with open(self.config_filename) as config_file:
             new_config = json.load(config_file)
         if 'config' not in new_config:
@@ -695,21 +885,20 @@ class MultisiteCollector(object):
             return
         old_config = self.config
 
+        new_config = IntersiteConfiguration(new_config)
         # Handle any changes in site configuration
         added_local_site = self._reload_sites(old_config, new_config)
         if added_local_site:
+            logging.info('New local site added')
             self.config = new_config
             self.initialize_local_site()
             return
 
         # Handle any export policies for new EPGs
-        for new_policy in new_config:
-            if 'export' not in new_policy:
-                continue
-            new_export_policy = ExportPolicy(new_policy)
+        for new_policy in new_config.export_policies:
             policy_found = False
-            for old_policy in old_config:
-                if new_export_policy.has_same_epg(old_policy):
+            for old_policy in old_config.export_policies:
+                if new_policy.has_same_epg(old_policy):
                     policy_found = True
                     break
             local_site = self.get_local_site()
@@ -722,13 +911,10 @@ class MultisiteCollector(object):
             local_site.monitor.handle_existing_endpoints(new_policy)
 
         # Handle any policies that have been deleted
-        for old_policy in old_config:
-            if 'export' not in old_policy:
-                continue
-            old_export_policy = ExportPolicy(old_policy)
+        for old_policy in old_config.export_policies:
             policy_found = False
-            for new_policy in new_config:
-                if old_export_policy.has_same_epg(new_policy):
+            for new_policy in new_config.export_policies:
+                if old_policy.has_same_epg(new_policy):
                     policy_found = True
                     break
             if not policy_found:
@@ -739,30 +925,25 @@ class MultisiteCollector(object):
                 local_site.remove_policy(old_policy)
                 self.remove_all_entries_for_policy(old_policy)
 
-    def remove_all_entries_for_policy(self, policy):
-        export_policy = ExportPolicy(policy)
-        for site in export_policy.get_sites():
-            site_name = site['site']['name']
-            site_obj = self.get_site(site_name)
-            for l3out in site['site']['interfaces']:
-                l3out_name = l3out['l3out']['name']
-                l3out_tenant = l3out['l3out']['tenant']
-                itag = IntersiteTag(export_policy.get_tenant_name(),
-                                    export_policy.get_app_name(),
-                                    export_policy.get_epg_name(),
+    def remove_all_entries_for_policy(self, export_policy):
+        assert isinstance(export_policy, ExportPolicy)
+        for site in export_policy.get_site_policies():
+            site_obj = self.get_site(site.name)
+            for l3out in site.get_interfaces():
+                itag = IntersiteTag(export_policy.tenant,
+                                    export_policy.app,
+                                    export_policy.epg,
                                     self.get_local_site().name)
-                site_obj.remove_all_entries(str(itag), l3out_name, l3out_tenant)
+                site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant)
 
 
 def initialize_tool(config):
     collector = MultisiteCollector()
 
-    # Configure all of the sites
-    for site in config['config']:
-        if 'site' in site:
-            collector.add_site_from_config(site)
+    collector.config = IntersiteConfiguration(config)
+    for site_policy in collector.config.site_policies:
+        collector.add_site_from_config(site_policy)
 
-    collector.config = config
     collector.initialize_local_site()
     return collector
 
@@ -799,7 +980,7 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'configfile':
             print 'Configuration file is set to:', self.collector.config_filename
         elif keyword == 'config':
-            print json.dumps(self.collector.config, indent=4, separators=(',', ':'))
+            print json.dumps(self.collector.config.get_json(), indent=4, separators=(',', ':'))
         pass
 
     def emptyline(self):
@@ -865,13 +1046,7 @@ class CommandLine(cmd.Cmd):
                            ]
         return completions
 
-
-def main():
-    """
-    Main execution routine
-
-    :return: None
-    """
+def parse_args():
     parser = argparse.ArgumentParser(description='ACI Multisite Tool')
     parser.add_argument('--config', default=None, help='Configuration file')
     parser.add_argument('--generateconfig', action='store_true', default=False,
@@ -881,6 +1056,17 @@ def main():
                         const='critical',
                         help='Enable debug messages.')
     args = parser.parse_args()
+    return args
+
+def main():
+    """
+    Main execution routine
+
+    :return: None
+    """
+    execute_tool(parse_args())
+
+def execute_tool(args, test_mode=False):
     if args.debug is not None:
         if args.debug == 'verbose':
             level = logging.DEBUG
@@ -890,7 +1076,8 @@ def main():
             level = logging.CRITICAL
     else:
         level = logging.CRITICAL
-    logging.basicConfig(level=level, format='%(filename)s:%(message)s')
+    logging.basicConfig(format='%(filename)s:%(message)s')
+    logging.getLogger().setLevel(logging.DEBUG)
 
     if args.generateconfig:
         config = {'config': [
@@ -900,32 +1087,32 @@ def main():
                                        'password': '',
                                        'use_https': '',
                                        'local': ''}},
-                            {
-                                "export": {
-                                    "tenant": "",
-                                    "app": "",
-                                    "epg": "",
-                                    "remote_sites": [
-                                        {
-                                            "site": {
-                                                "name": "",
-                                                "interfaces": [
-                                                    {
-                                                        "l3out": {
-                                                            "name": "",
-                                                            "tenant": "",
-                                                            "provides": [{"contract_name": ""}],
-                                                            "consumes": [{"contract_name": ""}],
-                                                            "protected_by": [{"taboo_name": ""}],
-                                                            "consumes_interface": [{"cif_name": ""}]
+                                {
+                                    "export": {
+                                        "tenant": "",
+                                        "app": "",
+                                        "epg": "",
+                                        "remote_sites": [
+                                            {
+                                                "site": {
+                                                    "name": "",
+                                                    "interfaces": [
+                                                        {
+                                                            "l3out": {
+                                                                "name": "",
+                                                                "tenant": "",
+                                                                "provides": [{"contract_name": ""}],
+                                                                "consumes": [{"contract_name": ""}],
+                                                                "protected_by": [{"taboo_name": ""}],
+                                                                "consumes_interface": [{"cif_name": ""}]
+                                                            }
                                                         }
-                                                    }
-                                                ]
+                                                    ]
+                                                }
                                             }
-                                        }
-                                    ]
+                                        ]
+                                    }
                                 }
-                            }
                         ]
                   }
 
@@ -942,11 +1129,14 @@ def main():
 
     if args.config is None:
         print '%% No configuration file given.'
-        parser.print_help()
         return
 
-    with open(args.config) as config_file:
-        config = json.load(config_file)
+    try:
+        with open(args.config) as config_file:
+            config = json.load(config_file)
+    except IOError:
+        print '%% Unable to open configuration file', args.config
+        return
     if 'config' not in config:
         print '%% Invalid configuration file'
         return
@@ -955,6 +1145,8 @@ def main():
     collector.config_filename = args.config
 
     # Just wait, add any CLI here
+    if test_mode:
+        return collector
     CommandLine(collector).cmdloop()
     while True:
         pass
