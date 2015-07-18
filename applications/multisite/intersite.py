@@ -1137,6 +1137,9 @@ def execute_tool(args, test_mode=False):
     except IOError:
         print '%% Unable to open configuration file', args.config
         return
+    except ValueError:
+        print '%% File could not be decoded as JSON.'
+        return
     if 'config' not in config:
         print '%% Invalid configuration file'
         return
