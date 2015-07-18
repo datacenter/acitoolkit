@@ -2546,11 +2546,8 @@ class Interface(BaseInterface):
         return resp
 
     def __str__(self):
-        items = [self.if_name, '\t', self.porttype, '\t',
-                 self.adminstatus, '\t', self.speed, '\t',
-                 self.mtu]
-        ret = ''.join(items)
-        return ret
+        attr_names = 'if_name', 'porttype', 'adminstatus', 'speed', 'mtu'
+        return '\t'.join(attrgetter(*attr_names)(self))
 
     def __eq__(self, other):
         if type(self) != type(other):
