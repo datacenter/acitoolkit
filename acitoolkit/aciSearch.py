@@ -159,9 +159,7 @@ class AciSearch(object):
         the object.  They are placed in a list and returned as the result
         :rtype : list
         """
-        result = []
-        # result.append(Searchable(keyword, value, relationship))
-        return result
+        return []
 
     @staticmethod
     def _dedup_searchables(result):

@@ -70,9 +70,7 @@ class Tenant(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvTenant')
-        return resp
+        return ['fvTenant']
 
     @staticmethod
     def _get_parent_class():
@@ -84,9 +82,8 @@ class Tenant(BaseACIObject):
         return None
 
     def _get_instance_subscription_urls(self):
-        resp = []
-        resp.append('/api/mo/uni/tn-%s.json?subscription=yes' % self.name)
-        return resp
+        url = '/api/mo/uni/tn-{}.json?subscription=yes'.format(self.name)
+        return [url]
 
     @staticmethod
     def _get_name_from_dn(dn):
@@ -276,9 +273,7 @@ class AppProfile(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvAp')
-        return resp
+        return ['fvAp']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -705,9 +700,7 @@ class EPG(CommonEPG):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvAEPg')
-        return resp
+        return ['fvAEPg']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -1043,9 +1036,7 @@ class OutsideEPG(CommonEPG):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('l3extOut')
-        return resp
+        return ['l3extOut']
 
     def _extract_relationships(self, data):
         tenant_children = data[0]['fvTenant']['children']
@@ -1565,9 +1556,7 @@ class BridgeDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvBD')
-        return resp
+        return ['fvBD']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -1909,9 +1898,7 @@ class Subnet(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvSubnet')
-        return resp
+        return ['fvSubnet']
 
     def get_addr(self):
         """
@@ -2009,9 +1996,7 @@ class Context(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvCtx')
-        return resp
+        return ['fvCtx']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -2169,9 +2154,7 @@ class ContractInterface(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('vzCPIf')
-        return resp
+        return ['vzCPIf']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -2287,9 +2270,7 @@ class BaseContract(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append(cls._get_contract_code())
-        return resp
+        return [cls._get_contract_code()]
 
     @staticmethod
     def _get_parent_class():
@@ -2969,10 +2950,7 @@ class Endpoint(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvCEp')
-        resp.append('fvStCEp')
-        return resp
+        return ['fvCEp', 'fvStCEp']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -3258,9 +3236,7 @@ class PhysDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('physDomP')
-        return resp
+        return ['physDomP']
 
     def get_parent(self):
         """
@@ -3410,9 +3386,7 @@ class VmmDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('vmmDomP')
-        return resp
+        return ['vmmDomP']
 
     def get_parent(self):
         """
@@ -3531,9 +3505,7 @@ class L2ExtDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('l2extDomP')
-        return resp
+        return ['l2extDomP']
 
     def get_parent(self):
         """
@@ -3654,9 +3626,7 @@ class L3ExtDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('l3extDomP')
-        return resp
+        return ['l3extDomP']
 
     def get_parent(self):
         """
@@ -3776,9 +3746,7 @@ class EPGDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvRsDomAtt')
-        return resp
+        return ['fvRsDomAtt']
 
     @staticmethod
     def _get_parent_class():
@@ -3849,9 +3817,7 @@ class EPGDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvRsDomAtt')
-        return resp
+        return ['fvRsDomAtt']
 
     def get_parent(self):
         """
