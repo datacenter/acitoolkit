@@ -30,6 +30,7 @@
 """ACI Toolkit module for physical objects
 """
 import datetime
+from operator import attrgetter, itemgetter
 from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseInterface
 from .aciConcreteLib import *
 from .acisession import Session
@@ -277,7 +278,7 @@ class Linecard(BaseACIPhysModule):
                    'Firmware', 'Bios', 'HW Ver', 'Hw Rev',
                    'Oper St', 'Serial', 'Modify Time']
         table = []
-        for module in sorted(linecards, key=lambda x: x.slot):
+        for module in sorted(linecards, key=attrgetter('slot')):
             table.append([module.slot,
                           module.model,
                           module.num_ports,
@@ -400,7 +401,7 @@ class Supervisorcard(BaseACIPhysModule):
         headers = ['Slot', 'Model', 'Ports', 'Firmware', 'Bios',
                    'HW Ver', 'Hw Rev', 'Oper St', 'Serial', 'Modify Time']
         table = []
-        for module in sorted(modules, key=lambda x: x.slot):
+        for module in sorted(modules, key=attrgetter('slot')):
             table.append([module.slot,
                           module.model,
                           module.num_ports,
@@ -533,10 +534,11 @@ class Fantray(BaseACIPhysModule):
         headers = ['Slot', 'Model', 'Name', 'Tray Serial',
                    'Fan ID', 'Oper St', 'Direction', 'Speed', 'Fan Serial']
         table = []
-        for fantray in sorted(modules, key=lambda x: x.slot):
+        by_id = attrgetter('id')
+        for fantray in sorted(modules, key=attrgetter('slot')):
             fans = fantray.get_children(Fan)
 
-            first_fan = sorted(fans, key=lambda x: x.id)[0]
+            first_fan = sorted(fans, key=by_id)[0]
             table.append([fantray.slot,
                           fantray.model,
                           fantray.name,
@@ -546,7 +548,7 @@ class Fantray(BaseACIPhysModule):
                           first_fan.direction,
                           first_fan.speed,
                           first_fan.serial])
-            for fan in sorted(fans, key=lambda x: x.id):
+            for fan in sorted(fans, key=by_id):
                 if fan != first_fan:
                     table.append([fantray.slot,
                                   fantray.model,
@@ -702,7 +704,7 @@ class Fan(BaseACIPhysModule):
 
         headers = ['Fan ID', 'Oper St', 'Direction', 'Speed', 'Fan Serial']
         table = []
-        for fan in sorted(modules, key=lambda x: x.id):
+        for fan in sorted(modules, key=attrgetter('id')):
             table.append(['fan-' + fan.id,
                           fan.oper_st,
                           fan.direction,
@@ -805,7 +807,7 @@ class Powersupply(BaseACIPhysModule):
                    'Oper St', 'Fan State', 'HW Ver', 'Hw Rev', 'Serial', 'Uptime']
 
         table = []
-        for pwr_sup in sorted(modules, key=lambda x: x.slot):
+        for pwr_sup in sorted(modules, key=attrgetter('slot')):
             # pwr_sup = modules[slot]
             table.append([pwr_sup.slot,
                           pwr_sup.model,
@@ -1432,7 +1434,7 @@ class Node(BaseACIPhysObject):
                    'System Uptime',
                    'Dynamic Load Balancing']
         table = []
-        for switch in sorted(switches, key=lambda x: x.node):
+        for switch in sorted(switches, key=attrgetter('node')):
             table.append([switch.name,
                           switch.pod,
                           switch.node,
@@ -2898,7 +2900,7 @@ class Process(BaseACIPhysObject):
                 aci_object.mem_used_last
             ])
 
-        table = sorted(table, key=lambda x: (x[0], x[1]))
+        table = sorted(table, key=itemgetter(0, 1))
         result.append(Table(table, headers, title=title + 'Process CPU and MEM'))
 
         return result

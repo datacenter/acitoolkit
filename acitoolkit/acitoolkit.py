@@ -30,6 +30,7 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
+from operator import attrgetter, itemgetter
 import sys
 from .aciTable import Table
 # from .aciphysobject import Interface
@@ -341,9 +342,10 @@ class AppProfile(BaseACIObject):
                    'EPGs']
 
         data = []
-        for app_profile in sorted(app_profiles, key=lambda x: (x.name)):
+        by_name = attrgetter('name')
+        for app_profile in sorted(app_profiles, key=by_name):
             data = []
-            for epg in sorted(app_profile.get_children(EPG), key=lambda x: x.name):
+            for epg in sorted(app_profile.get_children(EPG), key=by_name):
                 data.append([
                     app_profile.get_parent().name,
                     app_profile.name,
@@ -923,7 +925,7 @@ class EPG(CommonEPG):
                    'Deployment Immed.']
 
         data = []
-        for epg in sorted(epgs, key=lambda x: (x.name)):
+        for epg in sorted(epgs, key=attrgetter('name')):
             context = 'None'
             bd = 'None'
             if epg.has_bd():
@@ -2418,7 +2420,7 @@ class Contract(BaseContract):
         """
         result = []
         headers = ['Tenant', 'Contract', 'Scope', 'Filter']
-        for contract in sorted(contracts, key=lambda x: (x.name)):
+        for contract in sorted(contracts, key=attrgetter('name')):
             data = []
             for filter in contract.get_children(FilterEntry):
                 data.append([
@@ -2475,7 +2477,7 @@ class Taboo(BaseContract):
         result = []
         headers = ['Tenant', 'Taboo', 'Scope']
         data = []
-        for taboo in sorted(taboos, key=lambda x: (x.name)):
+        for taboo in sorted(taboos, key=attrgetter('name')):
             data.append([
                 taboo.get_parent().name,
                 taboo.name,
@@ -2642,7 +2644,7 @@ class FilterEntry(BaseACIObject):
                    'Protocol', 'Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags', 'Apply to Fragment']
 
         data = []
-        for filter in sorted(filters, key=lambda x: (x.name)):
+        for filter in sorted(filters, key=attrgetter('name')):
             data.append([
                 filter.name,
                 filter.etherT,
@@ -3162,7 +3164,7 @@ class Endpoint(BaseACIObject):
         headers = ['Tenant', 'Context', 'Bridge Domain', 'App Profile', 'EPG', 'Name', 'MAC', 'IP', 'Interface',
                    'Encap']
         data = []
-        for endpoint in sorted(endpoints, key=lambda x: (x.name)):
+        for endpoint in sorted(endpoints, key=attrgetter('name')):
             epg = endpoint.get_parent()
             bd = 'Not Set'
             context = 'Not Set'
@@ -3183,7 +3185,7 @@ class Endpoint(BaseACIObject):
                 endpoint.if_name,
                 endpoint.encap
             ])
-        data = sorted(data, key=lambda x: (x[1], x[2], x[3], x[4]))
+        data = sorted(data, key=itemgetter(1, 2, 3, 4))
         result.append(Table(data, headers, title=title + 'Endpoints'))
         return result
 

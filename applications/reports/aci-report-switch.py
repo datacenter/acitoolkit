@@ -29,6 +29,7 @@
 Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
+from operator import attrgetter
 import sys
 import acitoolkit.acitoolkit as ACI
 from acitoolkit.acitoolkitlib import Credentials
@@ -182,7 +183,7 @@ def show_switch_long():
     else:
         switches = ACI.Node.get(session)
 
-    for switch in sorted(switches, key=lambda x: x.node):
+    for switch in sorted(switches, key=attrgetter('node')):
         if switch.role != 'controller':
 
             switch.populate_children(deep=True, include_concrete=True)

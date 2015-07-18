@@ -20,6 +20,7 @@
 This is the report generator for the aciReportGui application
 """
 __author__ = 'edsall'
+from operator import itemgetter
 import acitoolkit.acitoolkit as ACI
 
 
@@ -110,7 +111,7 @@ class ReportDB(object):
             switch_name = self.switches[switch_id].name
             s_tuple = (switch_id, '{0:>3} : {1}'.format(switch_id, switch_name))
             result.append(s_tuple)
-        return sorted(result, key=lambda x: x[0])
+        return sorted(result, key=itemgetter(0))
 
     def get_tenants(self):
         """
@@ -121,7 +122,7 @@ class ReportDB(object):
         tenants = ACI.Tenant.get(self.session)
         for tenant in tenants:
             result.append((tenant.name, tenant.name))
-        return sorted(result, key=lambda x: x[0])
+        return sorted(result, key=itemgetter(0))
 
     def get_switch_summary(self):
         """
