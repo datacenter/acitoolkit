@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ################################################################################
-# _    ____ ___   ____                       _                   #
+#               _    ____ ___   ____                       _                   #
 #              / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
 #             / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
 #            / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
@@ -173,7 +173,6 @@ def render_tables(switch, concrete_class, title, table_format):
 
 
 def show_switch_long():
-    
     """
     This function will display the long version of the switch information.
     What to display is controlled through args

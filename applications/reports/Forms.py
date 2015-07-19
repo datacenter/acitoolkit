@@ -57,6 +57,3 @@ class ResetForm(Form):
     Reset form
     """
     reset = SubmitField('Reset')
-
-
-

@@ -55,6 +55,7 @@ def send_to_apic(tenant):
         print('Success')
     return resp
 
+
 def main():
     """
     Main execution routine
@@ -85,7 +86,7 @@ def main():
     epg.attach(vlan5_on_if2)
 
     # Dump the necessary configuration
-    print('URL: '  + str(tenant.get_url()))
+    print('URL: ' + str(tenant.get_url()))
     print('JSON: ' + str(tenant.get_json()))
 
     send_to_apic(tenant)

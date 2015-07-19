@@ -90,7 +90,7 @@ def main():
     if resp.ok:
         # Print what was sent
         print('Pushed the following JSON to the APIC')
-        print('URL: '  + str(tenant.get_url()))
+        print('URL: ' + str(tenant.get_url()))
         print('JSON: ' + str(tenant.get_json()))
 
 if __name__ == '__main__':

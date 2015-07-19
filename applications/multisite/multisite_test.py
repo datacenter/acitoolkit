@@ -556,27 +556,27 @@ class TestMultisite(unittest.TestCase):
         local_site = site1_tool.get_local_site()
         # Create the Tenant
         tenant_json = {
-            "fvTenant":{
-                "attributes":{
+            "fvTenant": {
+                "attributes": {
                     "name":"multisite-testsuite"
                 },
                 "children":[
                     {
-                        "vzBrCP":{
-                            "attributes":{
+                        "vzBrCP": {
+                            "attributes": {
                                 "scope":"context",
                                 "name":"new-contract"
                             },
                             "children":[
                                 {
-                                    "vzSubj":{
-                                        "attributes":{
+                                    "vzSubj": {
+                                        "attributes": {
                                             "name":"new-contractnew-entry"
                                         },
                                         "children":[
                                             {
-                                                "vzRsSubjFiltAtt":{
-                                                    "attributes":{
+                                                "vzRsSubjFiltAtt": {
+                                                    "attributes": {
                                                         "tnVzFilterName":"new-contractnew-entry"
                                                     }
                                                 }
@@ -588,14 +588,14 @@ class TestMultisite(unittest.TestCase):
                         }
                     },
                     {
-                        "vzFilter":{
-                            "attributes":{
+                        "vzFilter": {
+                            "attributes": {
                                 "name":"new-contractnew-entry"
                             },
                             "children":[
                                 {
-                                    "vzEntry":{
-                                        "attributes":{
+                                    "vzEntry": {
+                                        "attributes": {
                                             "tcpRules":"unspecified",
                                             "arpOpc":"unspecified",
                                             "applyToFrag":"no",
@@ -629,27 +629,27 @@ class TestMultisite(unittest.TestCase):
 
         # Push another contract
         tenant_json = {
-            "fvTenant":{
-                "attributes":{
+            "fvTenant": {
+                "attributes": {
                     "name":"multisite-testsuite"
                 },
                 "children":[
                     {
-                        "vzBrCP":{
-                            "attributes":{
+                        "vzBrCP": {
+                            "attributes": {
                                 "scope":"context",
                                 "name":"another-contract"
                             },
                             "children":[
                                 {
-                                    "vzSubj":{
-                                        "attributes":{
+                                    "vzSubj": {
+                                        "attributes": {
                                             "name":"new-contractnew-entry"
                                         },
                                         "children":[
                                             {
-                                                "vzRsSubjFiltAtt":{
-                                                    "attributes":{
+                                                "vzRsSubjFiltAtt": {
+                                                    "attributes": {
                                                         "tnVzFilterName":"new-contractnew-entry"
                                                     }
                                                 }
@@ -975,27 +975,27 @@ class TestMultisite(unittest.TestCase):
 
         # Push another contract
         tenant_json = {
-            "fvTenant":{
-                "attributes":{
+            "fvTenant": {
+                "attributes": {
                     "name":"multisite-testsuite"
                 },
                 "children":[
                     {
-                        "vzBrCP":{
-                            "attributes":{
+                        "vzBrCP": {
+                            "attributes": {
                                 "scope":"context",
                                 "name":"another-contract"
                             },
                             "children":[
                                 {
-                                    "vzSubj":{
-                                        "attributes":{
+                                    "vzSubj": {
+                                        "attributes": {
                                             "name":"new-subject"
                                         },
                                         "children":[
                                             {
-                                                "vzRsSubjFiltAtt":{
-                                                    "attributes":{
+                                                "vzRsSubjFiltAtt": {
+                                                    "attributes": {
                                                         "tnVzFilterName":"multisite-testsuite-entry"
                                                     }
                                                 }

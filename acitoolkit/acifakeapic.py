@@ -22,6 +22,7 @@ import re
 from copy import deepcopy
 from acisession import Session
 
+
 class FakeResponse(object):
     """
     Create a Fake shell of a Requests.Response object
@@ -103,8 +104,8 @@ class FakeSession(Session):
     @staticmethod
     def _parse_url(url):
         """
-        Parse the url to get the dn, query-target, rsp-subtree, 
-        target-subtree-class(es), and the node class 
+        Parse the url to get the dn, query-target, rsp-subtree,
+        target-subtree-class(es), and the node class
 
         :param url: string containing the URL to be parsed
         :return: a tuple of data
@@ -131,11 +132,11 @@ class FakeSession(Session):
 
     def _get_class(self, dn, cl, target, query_target='self'):
         """
-        Gets the configuration for the specified class instances based on 
+        Gets the configuration for the specified class instances based on
         the dn, node class, target class, and query-target
 
-        :param dn: The distinguished name of the class 
-        :param cl: The node class 
+        :param dn: The distinguished name of the class
+        :param cl: The node class
         :param target: The target class based on the target-subtree-class
         :param query_target: The query-target class in the url
         :return list of found objects
@@ -153,7 +154,7 @@ class FakeSession(Session):
                 if query_target == 'self' and valid_dn:
                     resp.append(node_cl)
                 elif query_target == 'children':
-                    if self._is_child(node_dn, dn):  
+                    if self._is_child(node_dn, dn):
                         resp.append(node_cl)
                 elif query_target == 'subtree':
                     if self._is_subtree(node_dn, dn):
@@ -166,18 +167,18 @@ class FakeSession(Session):
         """
         Gets the configuration based on the rsp-subtree value
 
-        This function will copy the class objects and checks if 
+        This function will copy the class objects and checks if
         deleting subchildren is necessary.
 
         :param db: The list of class objects to search
         :rsp_subtree: The rsp-subtree value
-        :return: a list objects 
+        :return: a list objects
         """
         if rsp_subtree != 'full':
             resp = []
             for node in db:
                 node_cl, _ = next(node.iteritems())
-                # make a deep copy to avoid deleting other nodes 
+                # make a deep copy to avoid deleting other nodes
                 node_cl_copy = deepcopy(node[node_cl])
                 ret = {}
                 ret[node_cl] = {}
@@ -191,7 +192,7 @@ class FakeSession(Session):
                 resp.append(ret)
             return resp
         return db
-    
+
     @staticmethod
     def _delete_subchildren(db):
         """
@@ -204,7 +205,7 @@ class FakeSession(Session):
             _, contents = next(child.iteritems())
             if contents.get('children'):
                 del contents['children']
-                
+
     @staticmethod
     def _is_child(child_dn, parent_dn):
         """
@@ -212,7 +213,7 @@ class FakeSession(Session):
 
         :param child_dn: The child distinguished name
         :param parent_dn: The parent distinguished name
-        :return: True or False. True if the child_dn is a child      
+        :return: True or False. True if the child_dn is a child
         """
         if not child_dn.startswith(parent_dn):
             return False
@@ -229,7 +230,7 @@ class FakeSession(Session):
                     return False
             return True
         return '/' not in child_dn_parse and child_dn_parse
-    
+
     @staticmethod
     def _is_subtree(child_dn, parent_dn):
         """
@@ -248,10 +249,10 @@ class FakeSession(Session):
 
     def _fill_data(self, children, parent_dn):
         """
-        Recursively fill in the distinguished name (dn) for the 
-        configuration JSON files and sets the classes dictionary 
+        Recursively fill in the distinguished name (dn) for the
+        configuration JSON files and sets the classes dictionary
         to be used for searching for class objects
-        
+
         The classes dict is a key: list(tuple()...) configuration
         The key is the class name (e.g. fvTenant)
         The list contains a tuple of dn's and the class object itself
@@ -269,10 +270,10 @@ class FakeSession(Session):
             tup = (attributes['dn'], child)
             if not self._classes.get(node_cl):
                 self._classes[node_cl] = []
-            self._classes[node_cl].append(tup)                
+            self._classes[node_cl].append(tup)
             if contents.get('children'):
                 self._fill_data(contents['children'], attributes['dn'])
-                    
+
     def login(self, timeout=None):
         """
         Initiate login to the APIC.  Opens a communication session with the\
@@ -336,7 +337,7 @@ class FakeSession(Session):
         """
         resp = FakeResponse()
         return resp
- 
+
     def get(self, url):
         """
         Perform a REST GET call to the APIC.
