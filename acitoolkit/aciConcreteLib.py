@@ -25,9 +25,10 @@ This is a library of all the Concrete classes that are on a switch.
 """
 """
 # all the import
+import copy
+from operator import itemgetter
 from .acibaseobject import BaseACIPhysObject
 import acitoolkit as ACI
-import copy
 from .aciTable import Table
 from .aciSearch import Searchable
 
@@ -936,7 +937,7 @@ class ConcreteSVI(BaseACIPhysObject):
                 aci_object.attr.get('oper_st_qual', '')
             ])
 
-        data = sorted(data, key=lambda x: (x[0], x[1]))
+        data = sorted(data, key=itemgetter(0, 1))
         result.append(Table(data, headers, title=title + 'SVI (Router Interfaces)'))
         return result
 
@@ -1520,7 +1521,7 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
                 rule.attr.get('priority', ''),
                 rule.attr.get('relative_priority', '')])
 
-        table = sorted(table, key=lambda x: (x[11], x[0], x[1]))
+        table = sorted(table, key=itemgetter(11, 0, 1))
         result.append(Table(table, headers, title=title + 'Access Rules (Contracts/Access Policies)'))
 
         return result
@@ -2494,7 +2495,7 @@ class ConcretePortChannel(BaseACIPhysObject):
                        'Oper Qualifier', 'Usage']
 
             table = []
-            for member in sorted(pch.members, key=lambda x: (x['id'])):
+            for member in sorted(pch.members, key=itemgetter('id')):
                 table.append([member.get('id', ''),
                               member.get('state', ''),
                               member.get('admin_st', ''),
@@ -2615,7 +2616,7 @@ class ConcreteOverlay(BaseACIPhysObject):
             if apic_class in obj:
                 tunnels.append(ovly._populate_from_attributes(obj['tunnelIf']['attributes']))
         if tunnels:
-            ovly.tunnels = sorted(tunnels, key=lambda x: (x['id']))
+            ovly.tunnels = sorted(tunnels, key=itemgetter('id'))
         else:
             ovly.tunnels = tunnels
         if parent:

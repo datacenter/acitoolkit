@@ -346,7 +346,7 @@ class BaseACIObject(AciSearch):
         return parent_obj
 
     @classmethod
-    def get_deep(cls, full_data, working_data, parent=None, limit_to=[], subtree='full', config_only=False):
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
         """
         Gets all instances of this class from the APIC and gets all of the
         children as well.

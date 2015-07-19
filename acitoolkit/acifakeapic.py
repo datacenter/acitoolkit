@@ -61,11 +61,12 @@ class FakeSubscriber(object):
         """
         pass
 
+
 class FakeSession(Session):
     """
     Class to fake an APIC Session
     """
-    def __init__(self, filenames=[]):
+    def __init__(self, filenames=()):
         """
         Create a fake APIC session based off of the supplied JSON files
         :param filenames: list of filenames containing the JSON configuration
@@ -75,14 +76,13 @@ class FakeSession(Session):
         self.subscription_thread = FakeSubscriber()
         self._classes = {}
         for filename in filenames:
-            f = open(filename, 'r')
-            data = json.loads(f.read())
-            self._fill_data(data['imdata'], None)
-            self.db.append(data)
-            f.close()
+            with open(filename, 'r') as f:
+                data = json.loads(f.read())
+                self._fill_data(data['imdata'], None)
+                self.db.append(data)
             with open(filename, "w") as f:
                 f.write(unicode(json.dumps(data, indent=4)))
-                 
+
     def _get_config(self, url):
         """
         Get the configuration of a specified URL

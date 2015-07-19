@@ -30,7 +30,10 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
+from collections import Sequence
+from operator import attrgetter, itemgetter
 import sys
+from requests.compat import urlencode
 from .aciTable import Table
 # from .aciphysobject import Interface
 from .aciphysobject import *
@@ -70,9 +73,7 @@ class Tenant(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvTenant')
-        return resp
+        return ['fvTenant']
 
     @staticmethod
     def _get_parent_class():
@@ -84,9 +85,8 @@ class Tenant(BaseACIObject):
         return None
 
     def _get_instance_subscription_urls(self):
-        resp = []
-        resp.append('/api/mo/uni/tn-%s.json?subscription=yes' % self.name)
-        return resp
+        url = '/api/mo/uni/tn-{}.json?subscription=yes'.format(self.name)
+        return [url]
 
     @staticmethod
     def _get_name_from_dn(dn):
@@ -146,30 +146,22 @@ class Tenant(BaseACIObject):
                 'l3extOut': OutsideEPG}
 
     @classmethod
-    def get_deep(cls, session, names=[], limit_to=[], subtree='full', config_only=False):
+    def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False):
         resp = []
-        assert isinstance(names, list), ('names should be a list'
-                                         ' of strings')
+        if (isinstance(names, str) or not isinstance(names, Sequence) or
+            not all(isinstance(name, str) for name in names)):
+            raise TypeError('names should be a Sequence of strings')
+        names = names or [tenant.name for tenant in Tenant.get(session)]
+        limit = ','.join(limit_to)
 
-        # If no tenant names passed, get all tenant names from APIC
-        if len(names) == 0:
-            tenants = Tenant.get(session)
-            for tenant in tenants:
-                names.append(tenant.name)
-
-        if len(limit_to):
-            limit = '&rsp-subtree-class='
-            for class_name in limit_to:
-                limit += class_name + ','
-            limit = limit[:-1]
-        else:
-            limit = ''
         for name in names:
-            query_url = ('/api/mo/uni/tn-%s.json?query-target=self&'
-                         'rsp-subtree=%s' % (name, subtree))
-            query_url += limit
+            params = {
+                'query-target': 'self', 'rsp-subtree': subtree,
+                'rsp-subtree-class': limit
+            }
             if config_only:
-                query_url += '&rsp-prop-include=config-only'
+                params['rsp-prop-include'] = 'config-only'
+            query_url = '/api/mo/uni/tn-{}.json?{}'.format(name, urlencode(params))
             ret = session.get(query_url)
 
             # the following works around a bug encountered in the json returned from the APIC
@@ -276,9 +268,7 @@ class AppProfile(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvAp')
-        return resp
+        return ['fvAp']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -346,9 +336,10 @@ class AppProfile(BaseACIObject):
                    'EPGs']
 
         data = []
-        for app_profile in sorted(app_profiles, key=lambda x: (x.name)):
+        by_name = attrgetter('name')
+        for app_profile in sorted(app_profiles, key=by_name):
             data = []
-            for epg in sorted(app_profile.get_children(EPG), key=lambda x: x.name):
+            for epg in sorted(app_profile.get_children(EPG), key=by_name):
                 data.append([
                     app_profile.get_parent().name,
                     app_profile.name,
@@ -705,9 +696,7 @@ class EPG(CommonEPG):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvAEPg')
-        return resp
+        return ['fvAEPg']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -930,7 +919,7 @@ class EPG(CommonEPG):
                    'Deployment Immed.']
 
         data = []
-        for epg in sorted(epgs, key=lambda x: (x.name)):
+        for epg in sorted(epgs, key=attrgetter('name')):
             context = 'None'
             bd = 'None'
             if epg.has_bd():
@@ -1043,9 +1032,7 @@ class OutsideEPG(CommonEPG):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('l3extOut')
-        return resp
+        return ['l3extOut']
 
     def _extract_relationships(self, data):
         tenant_children = data[0]['fvTenant']['children']
@@ -1565,9 +1552,7 @@ class BridgeDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvBD')
-        return resp
+        return ['fvBD']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -1909,9 +1894,7 @@ class Subnet(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvSubnet')
-        return resp
+        return ['fvSubnet']
 
     def get_addr(self):
         """
@@ -2009,9 +1992,7 @@ class Context(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvCtx')
-        return resp
+        return ['fvCtx']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -2169,9 +2150,7 @@ class ContractInterface(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('vzCPIf')
-        return resp
+        return ['vzCPIf']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -2287,9 +2266,7 @@ class BaseContract(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append(cls._get_contract_code())
-        return resp
+        return [cls._get_contract_code()]
 
     @staticmethod
     def _get_parent_class():
@@ -2396,20 +2373,15 @@ class Contract(BaseContract):
         return attributes
 
     @classmethod
-    def get_deep(cls, full_data, working_data, parent=None, limit_to=[], subtree='full', config_only=False):
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
         contract_data = working_data[0]['vzBrCP']
         contract = Contract(str(contract_data['attributes']['name']),
                             parent)
 
-        if 'children' not in contract_data:
-            return
-
-        for child in contract_data['children']:
+        for child in contract_data.get('children', ()):
             if 'vzSubj' in child:
                 subject = child['vzSubj']
-                if 'children' not in subject:
-                    continue
-                for subj_child in subject['children']:
+                for subj_child in subject.get('children', ()):
                     if 'vzRsSubjFiltAtt' in subj_child:
                         filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
                         filter_name = filter_attributes['tnVzFilterName']
@@ -2437,7 +2409,7 @@ class Contract(BaseContract):
         """
         result = []
         headers = ['Tenant', 'Contract', 'Scope', 'Filter']
-        for contract in sorted(contracts, key=lambda x: (x.name)):
+        for contract in sorted(contracts, key=attrgetter('name')):
             data = []
             for filter in contract.get_children(FilterEntry):
                 data.append([
@@ -2494,7 +2466,7 @@ class Taboo(BaseContract):
         result = []
         headers = ['Tenant', 'Taboo', 'Scope']
         data = []
-        for taboo in sorted(taboos, key=lambda x: (x.name)):
+        for taboo in sorted(taboos, key=attrgetter('name')):
             data.append([
                 taboo.get_parent().name,
                 taboo.name,
@@ -2661,7 +2633,7 @@ class FilterEntry(BaseACIObject):
                    'Protocol', 'Arp Opcode', 'L4 DPort', 'L4 SPort', 'TCP Flags', 'Apply to Fragment']
 
         data = []
-        for filter in sorted(filters, key=lambda x: (x.name)):
+        for filter in sorted(filters, key=attrgetter('name')):
             data.append([
                 filter.name,
                 filter.etherT,
@@ -2969,10 +2941,7 @@ class Endpoint(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvCEp')
-        resp.append('fvStCEp')
-        return resp
+        return ['fvCEp', 'fvStCEp']
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -3184,7 +3153,7 @@ class Endpoint(BaseACIObject):
         headers = ['Tenant', 'Context', 'Bridge Domain', 'App Profile', 'EPG', 'Name', 'MAC', 'IP', 'Interface',
                    'Encap']
         data = []
-        for endpoint in sorted(endpoints, key=lambda x: (x.name)):
+        for endpoint in sorted(endpoints, key=attrgetter('name')):
             epg = endpoint.get_parent()
             bd = 'Not Set'
             context = 'Not Set'
@@ -3205,7 +3174,7 @@ class Endpoint(BaseACIObject):
                 endpoint.if_name,
                 endpoint.encap
             ])
-        data = sorted(data, key=lambda x: (x[1], x[2], x[3], x[4]))
+        data = sorted(data, key=itemgetter(1, 2, 3, 4))
         result.append(Table(data, headers, title=title + 'Endpoints'))
         return result
 
@@ -3258,9 +3227,7 @@ class PhysDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('physDomP')
-        return resp
+        return ['physDomP']
 
     def get_parent(self):
         """
@@ -3410,9 +3377,7 @@ class VmmDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('vmmDomP')
-        return resp
+        return ['vmmDomP']
 
     def get_parent(self):
         """
@@ -3531,9 +3496,7 @@ class L2ExtDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('l2extDomP')
-        return resp
+        return ['l2extDomP']
 
     def get_parent(self):
         """
@@ -3654,9 +3617,7 @@ class L3ExtDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('l3extDomP')
-        return resp
+        return ['l3extDomP']
 
     def get_parent(self):
         """
@@ -3776,9 +3737,7 @@ class EPGDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvRsDomAtt')
-        return resp
+        return ['fvRsDomAtt']
 
     @staticmethod
     def _get_parent_class():
@@ -3849,9 +3808,7 @@ class EPGDomain(BaseACIObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = []
-        resp.append('fvRsDomAtt')
-        return resp
+        return ['fvRsDomAtt']
 
     def get_parent(self):
         """
