@@ -316,27 +316,33 @@ class MultisiteMonitor(threading.Thread):
                             if export_policy.provides(site.name, l3out.name, l3out.tenant,
                                                       child['fvRsProv']['attributes']['tnVzBrCPName']):
                                 continue
-                            dirty = True
+                            print 'michsmit: export_policy does not provide', site.name, l3out.name, l3out.tenant, child['fvRsProv']['attributes']['tnVzBrCPName']
                             # Need to mark as deleted and push back to APIC
-                            raise NotImplementedError
+                            dirty = True
+                            child['fvRsProv']['attributes']['status'] = 'deleted'
                         elif 'fvRsCons' in child:
                             if export_policy.consumes(site.name, l3out.name, l3out.tenant,
                                                       child['fvRsCons']['attributes']['tnVzBrCPName']):
                                 continue
                             dirty = True
-                            raise NotImplementedError
+                            child['fvRsCons']['attributes']['status'] = 'deleted'
                         elif 'fvRsProtBy' in child:
                             if export_policy.protected_by(site.name, l3out.name, l3out.tenant,
                                                           child['fvRsProtBy']['attributes']['tnVzTabooName']):
                                 continue
                             dirty = True
-                            raise NotImplementedError
+                            child['fvRsProtBy']['attributes']['status'] = 'deleted'
                         elif 'fvRsConsIf' in child:
                             if export_policy.consumes_cif(site.name, l3out.name, l3out.tenant,
                                                           child['fvRsConsIf']['attributes']['tnVzCPIfName']):
                                 continue
                             dirty = True
-                            raise NotImplementedError
+                            child['fvRsConsIf']['attributes']['status'] = 'deleted'
+                    if dirty:
+                        url = '/api/mo/uni/tn-%s/out-%s.json' % (l3out.tenant, l3out.name)
+                        resp = site_obj.session.push_to_apic(url, entry)
+                        if not resp.ok:
+                            logging.warning('Could not push modified entry to remote site %s %s', resp, resp.text)
 
     def handle_existing_endpoints(self, policy):
         logging.info('handle_existing_endpoints for tenant: %s app_name: %s epg_name: %s',
