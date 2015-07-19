@@ -46,19 +46,15 @@ class Searchable(object):
     This `direct`/`indirect` relationship can be used by an application that is displaying the information to
     prioritize which ones are displayed first, i.e. to rank them.
     """
-    def __init__(self, dirty_terms=[]):
+    def __init__(self, dirty_terms=()):
         """
         Creates a search item which is the list of search terms, the items the search terms come from
         and the context of the item.
         """
         self.terms = set()
         for term in dirty_terms:
-            if len(term) == 2:
-                (keyword, value) = term
-                relation = 'primary'
-            else:
-                (keyword, value, relation) = term
-
+            keyword, value = term[:2]
+            relation = term[2] if len(term) == 3 else 'primary'
             self.add_term(keyword, value, relation)
         self.context = []
 
@@ -159,9 +155,7 @@ class AciSearch(object):
         the object.  They are placed in a list and returned as the result
         :rtype : list
         """
-        result = []
-        # result.append(Searchable(keyword, value, relationship))
-        return result
+        return []
 
     @staticmethod
     def _dedup_searchables(result):

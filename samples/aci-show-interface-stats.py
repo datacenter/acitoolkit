@@ -32,6 +32,7 @@
 Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
+from operator import attrgetter
 import sys
 import acitoolkit.acitoolkit as ACI
 
@@ -52,7 +53,7 @@ def show_stats_short(args, interfaces):
                           "---------------", "---------------", "---------------"))
     template = "{0:17} {1:12,} {2:12,} {3:16,.2f} {4:16,.2f} {5:16,.2f} {6:16,.2f}"
 
-    for interface in sorted(interfaces, key=lambda x: x.if_name):
+    for interface in sorted(interfaces, key=attrgetter('if_name')):
         interface.stats.get()
 
         rec = []

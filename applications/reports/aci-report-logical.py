@@ -29,6 +29,7 @@
 Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
+from operator import attrgetter
 import sys
 import acitoolkit.acitoolkit as ACI
 from acitoolkit.acitoolkitlib import Credentials
@@ -184,7 +185,7 @@ def show_tenant_long():
     if args.tenant:
         tenants = [ten for ten in tenants if ten.name == args.tenant]
 
-    for tenant in sorted(tenants, key=lambda x: x.name):
+    for tenant in sorted(tenants, key=attrgetter('name')):
         tenant = ACI.Tenant.get_deep(session, names=[tenant])
 
         if tenant:
