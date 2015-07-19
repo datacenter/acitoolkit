@@ -146,22 +146,30 @@ class Tenant(BaseACIObject):
                 'l3extOut': OutsideEPG}
 
     @classmethod
-    def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False):
+    def get_deep(cls, session, names=[], limit_to=[], subtree='full', config_only=False):
         resp = []
-        if (isinstance(names, str) or not isinstance(names, Sequence) or
-            not all(isinstance(name, str) for name in names)):
-            raise TypeError('names should be a Sequence of strings')
-        names = names or [tenant.name for tenant in Tenant.get(session)]
-        limit = ','.join(limit_to)
+        assert isinstance(names, list), ('names should be a list'
+                                         ' of strings')
 
+        # If no tenant names passed, get all tenant names from APIC
+        if len(names) == 0:
+            tenants = Tenant.get(session)
+            for tenant in tenants:
+                names.append(tenant.name)
+
+        if len(limit_to):
+            limit = '&rsp-subtree-class='
+            for class_name in limit_to:
+                limit += class_name + ','
+            limit = limit[:-1]
+        else:
+            limit = ''
         for name in names:
-            params = {
-                'query-target': 'self', 'rsp-subtree': subtree,
-                'rsp-subtree-class': limit
-            }
+            query_url = ('/api/mo/uni/tn-%s.json?query-target=self&'
+                         'rsp-subtree=%s' % (name, subtree))
+            query_url += limit
             if config_only:
-                params['rsp-prop-include'] = 'config-only'
-            query_url = '/api/mo/uni/tn-{}.json?{}'.format(name, urlencode(params))
+                query_url += '&rsp-prop-include=config-only'
             ret = session.get(query_url)
 
             # the following works around a bug encountered in the json returned from the APIC
