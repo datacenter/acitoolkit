@@ -153,7 +153,7 @@ class EndpointHandler(object):
             taboo = Taboo(protecting_taboo.taboo_name)
             network.protect(taboo)
         for consumes_interface in l3out_policy.get_consumes_interface_policies():
-            cif = ContractInterface(consumes_interface.cif_name)
+            cif = ContractInterface(consumes_interface.consumes_interface)
             network.consume_cif(cif)
         outside = OutsideEPG(l3out_policy.name, remote_tenant)
         network.add_tag(str(tag))
@@ -316,8 +316,6 @@ class MultisiteMonitor(threading.Thread):
                             if export_policy.provides(site.name, l3out.name, l3out.tenant,
                                                       child['fvRsProv']['attributes']['tnVzBrCPName']):
                                 continue
-                            print 'michsmit: export_policy does not provide', site.name, l3out.name, l3out.tenant, child['fvRsProv']['attributes']['tnVzBrCPName']
-                            # Need to mark as deleted and push back to APIC
                             dirty = True
                             child['fvRsProv']['attributes']['status'] = 'deleted'
                         elif 'fvRsCons' in child:
@@ -472,8 +470,12 @@ class ConfigObject(object):
         if item not in ['True', 'False']:
             raise ValueError('Expected "True" or "False"')
 
+    def _validate_list(self, item):
+        if not isinstance(item, list):
+            raise ValueError('Expected list')
+
     def validate(self):
-        pass
+        raise NotImplementedError
 
 class SitePolicy(ConfigObject):
     @property
@@ -561,6 +563,11 @@ class ProvidedContractPolicy(ConfigObject):
     def contract_name(self):
         return self._policy['contract_name']
 
+    def validate(self):
+        if 'contract_name' not in self._policy:
+            raise ValueError('Expecting "contract_name" in contract policy')
+        self._validate_string(self._policy['contract_name'])
+
 
 class ConsumedContractPolicy(ProvidedContractPolicy):
     pass
@@ -571,11 +578,21 @@ class ProtectedByPolicy(ConfigObject):
     def taboo_name(self):
         return self._policy['taboo_name']
 
+    def validate(self):
+        if 'taboo_name' not in self._policy:
+            raise ValueError('Expecting "taboo_name" in protected by policy')
+        self._validate_string(self._policy['taboo_name'])
+
 
 class ConsumedInterfacePolicy(ConfigObject):
     @property
     def consumes_interface(self):
         return self._policy['cif_name']
+
+    def validate(self):
+        if 'cif_name' not in self._policy:
+            raise ValueError('Expecting "cif_name" in consumed interface policy')
+        self._validate_string(self._policy['cif_name'])
 
 
 class L3OutPolicy(ConfigObject):
@@ -586,6 +603,26 @@ class L3OutPolicy(ConfigObject):
     @property
     def tenant(self):
         return self._policy['l3out']['tenant']
+
+    def validate(self):
+        if 'l3out' not in self._policy:
+            raise ValueError('Expecting "l3out" in interface policy')
+        policy = self._policy['l3out']
+        for item in policy:
+            keyword_validators = {'name': '_validate_string',
+                                  'tenant': '_validate_string',
+                                  'provides': '_validate_list',
+                                  'consumes': '_validate_list',
+                                  'protected_by': '_validate_list',
+                                  'consumes_interface': '_validate_list',
+                                  }
+            if item not in keyword_validators:
+                raise ValueError('Unknown keyword: %s' % item)
+            self.__getattribute__(keyword_validators[item])(policy[item])
+            self.get_provided_contract_policies()
+            self.get_consumed_contract_policies()
+            self.get_protected_by_policies()
+            self.get_consumes_interface_policies()
 
     def _get_policies(self, cls, keyword):
         policies = []
@@ -613,6 +650,18 @@ class RemoteSitePolicy(ConfigObject):
     def name(self):
         return self._policy['site']['name']
 
+    def validate(self):
+        if 'site' not in self._policy:
+            raise ValueError('Expecting "site" in remote site policy')
+        policy = self._policy['site']
+        for item in policy:
+            keyword_validators = {'name': '_validate_string',
+                                  'interfaces': '_validate_list'}
+            if item not in keyword_validators:
+                raise ValueError('Unknown keyword: %s' % item)
+            self.__getattribute__(keyword_validators[item])(policy[item])
+            self.get_interfaces()
+
     def get_interfaces(self):
         interfaces = []
         for interface in self._policy['site']['interfaces']:
@@ -632,6 +681,20 @@ class ExportPolicy(ConfigObject):
     @property
     def epg(self):
         return self._policy['export']['epg']
+
+    def validate(self):
+        if 'export' not in self._policy:
+            raise ValueError('Expecting "export" in configuration')
+        policy = self._policy['export']
+        for item in policy:
+            keyword_validators = {'tenant': '_validate_string',
+                                  'app': '_validate_string',
+                                  'epg': '_validate_string',
+                                  'remote_sites': '_validate_list'}
+            if item not in keyword_validators:
+                raise ValueError('Unknown keyword: %s' % item)
+            self.__getattribute__(keyword_validators[item])(policy[item])
+            self.get_site_policies()
 
     def has_same_epg(self, policy):
         assert isinstance(policy, ExportPolicy)
@@ -891,7 +954,12 @@ class MultisiteCollector(object):
             return
         old_config = self.config
 
-        new_config = IntersiteConfiguration(new_config)
+        try:
+            new_config = IntersiteConfiguration(new_config)
+        except ValueError as e:
+            print 'Could not load improperly formatted configuration file'
+            print e
+            return
         # Handle any changes in site configuration
         added_local_site = self._reload_sites(old_config, new_config)
         if added_local_site:
@@ -944,9 +1012,15 @@ class MultisiteCollector(object):
 
 
 def initialize_tool(config):
+    try:
+        IntersiteConfiguration(config)
+    except ValueError as e:
+        print 'Could not load improperly formatted configuration file'
+        print e
+        sys.exit(0)
     collector = MultisiteCollector()
-
     collector.config = IntersiteConfiguration(config)
+
     for site_policy in collector.config.site_policies:
         collector.add_site_from_config(site_policy)
 
