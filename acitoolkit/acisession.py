@@ -489,7 +489,7 @@ class Session(object):
         """
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)
-        resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True))
+        resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl)
         logging.debug('Response: %s %s', resp, resp.text)
         return resp
 
