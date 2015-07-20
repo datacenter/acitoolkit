@@ -1815,7 +1815,7 @@ class BridgeDomain(BaseACIObject):
         self.mac = attributes.get('mac')
         self.arp_flood = attributes.get('arpFlood')
         self.unicast_route = attributes.get('unicastRoute')
-        self.unknown_unicast = attributes.get('unkMacUcastAct')
+        self.unknown_mac_unicast = attributes.get('unkMacUcastAct')
         self.unknown_multicast = attributes.get('unkMcastAct')
         self.modified_time = attributes.get('modTs')
 
@@ -1858,7 +1858,7 @@ class BridgeDomain(BaseACIObject):
                 ', '.join(subnet_str),
                 bridge_domain.mac,
                 bridge_domain.unicast_route,
-                bridge_domain.unknown_unicast,
+                bridge_domain.unknown_mac_unicast,
                 bridge_domain.unknown_multicast,
                 bridge_domain.vnid,
                 bridge_domain.scope,
