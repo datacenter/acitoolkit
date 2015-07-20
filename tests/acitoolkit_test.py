@@ -674,6 +674,15 @@ class TestBridgeDomain(unittest.TestCase):
         tenant, bd = self.create_bd()
         bd.set_unknown_mac_unicast('flood')
         self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+
+    def test_set_mac(self):
+        """
+        Test an invalid unknown mac unicast
+        """
+        tenant, bd = self.create_bd()
+        bd.set_mac('00:11:22:33:44:55')
+        self.assertTrue(bd.mac, '00:11:22:33:44:55')
+
         
     def test_unknown_mac_unicast_invalid(self):
         """
