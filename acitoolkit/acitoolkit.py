@@ -1813,6 +1813,7 @@ class BridgeDomain(BaseACIObject):
         self.vnid = attributes.get('seg')
         self.mtu = attributes.get('mtu')
         self.mac = attributes.get('mac')
+        self.arp_flood = attributes.get('arpFlood')
         self.unicast_route = attributes.get('unicastRoute')
         self.unknown_unicast = attributes.get('unkMacUcastAct')
         self.unknown_multicast = attributes.get('unkMcastAct')
