@@ -1052,6 +1052,23 @@ class OutsideEPG(CommonEPG):
                     break
         super(OutsideEPG, self)._extract_relationships(data)
 
+    # L3 External Domain
+    def add_l3extdom(self, extdom):
+        """
+        Set the L3Out for this BD
+        :param l3out: OutsideEPG to assign this BridgeDomain
+
+        """
+        if not isinstance(extdom, L3ExtDomain):
+            raise TypeError('add_extdom not called with L3ExtDom')
+        self._add_relation(extdom)
+
+    def has_l3extdom(self):
+        """
+        :return: Boolean indicating presence of L3 External Domain Attachment
+        """
+        return len(self._get_all_relation(L3ExtDomain)) > 0
+
     def get_json(self):
         """
         Returns json representation of OutsideEPG
@@ -1063,6 +1080,14 @@ class OutsideEPG(CommonEPG):
             context = {'l3extRsEctx': {'attributes': {'tnFvCtxName':
                                                       self.context_name}}}
             children.append(context)
+
+        # Attach L3 External Domains if present
+        if self.has_l3extdom():
+            domain = {"l3extRsL3DomAtt":
+                      {"attributes":
+                       {"tDn": "uni/l3dom-{}".format(self._get_any_relation(L3ExtDomain))}}}
+            children.append(domain)
+
         for network in self.networks:  # TODO clean this up - duplicate of code below
             if isinstance(network, str):
                 network_obj = OutsideNetwork(network)
@@ -1670,6 +1695,10 @@ class BridgeDomain(BaseACIObject):
         if self.has_context():
             text = {'fvRsCtx': {'attributes': {'tnFvCtxName': self.get_context().name}}}
             children.append(text)
+        if self.has_l3out():
+            for l3out in self.get_l3out():
+                fvRsBDToOut = {"fvRsBDToOut":{"attributes":{"tnL3extOutName": l3out.name}}}
+                children.append(fvRsBDToOut)
         attr = self._generate_attributes()
         attr['unkMacUcastAct'] = self.unknown_mac_unicast
         attr['unkMcastAct'] = self.unknown_multicast
@@ -1733,6 +1762,26 @@ class BridgeDomain(BaseACIObject):
                   Context.
         """
         return self._has_any_relation(Context)
+
+    # L3 Outs
+    def add_l3out(self, l3out):
+        """
+        Set the L3Out for this BD
+        :param l3out: OutsideEPG to assign this BridgeDomain
+
+        """
+        if not isinstance(l3out, OutsideEPG):
+            raise TypeError('add_l3out not called with OutsideEPG')
+        self._add_relation(l3out)
+
+    def has_l3out(self):
+        return len(self._get_all_relation(OutsideEPG)) > 0
+
+    def get_l3out(self):
+        """
+        :returns: List of OutsideEPG objects
+        """
+        return self._get_all_relation(OutsideEPG)
 
     # Subnet
     def add_subnet(self, subnet):
