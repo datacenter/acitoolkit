@@ -129,12 +129,13 @@ class EndpointHandler(object):
                     continue
                 if l3out['l3extOut']['attributes']['name'] != l3out_policy.name:
                     continue
-                for l3instp in l3out:
+                for l3instp in l3out['l3extOut']['children']:
                     if 'l3extInstP' not in l3instp:
                         continue
                     mac = l3instp['l3extInstP']['attributes']['name']
+                    mac = mac.rpartition('-')[-1]
                     if mac == endpoint.mac:
-                        l3out.remove(l3instp)
+                        l3out['l3extOut']['children'].remove(l3instp)
 
     def _create_tenant_with_l3instp(self, l3out_policy, endpoint, tag):
         remote_tenant = Tenant(l3out_policy.tenant)
@@ -199,7 +200,8 @@ class EndpointHandler(object):
         # Add the l3instP configuration with the existing JSON
         new_l3instp = new_l3out['l3extOut']['children'][0]
         assert 'l3extInstP' in new_l3instp
-        l3out['l3extOut']['children'].append(new_l3instp)
+        if new_l3instp not in l3out['l3extOut']['children']:
+            l3out['l3extOut']['children'].append(new_l3instp)
 
     def add_endpoint(self, endpoint, local_site):
         logging.info('EndpointHandler:add_endpoint endpoint: %s', endpoint.mac)
