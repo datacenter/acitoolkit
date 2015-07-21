@@ -457,7 +457,18 @@ class ConfigObject(object):
             if (isinstance(item, unicode)):
                 return
         if not isinstance(item, str):
-            raise ValueError('Expected string')
+            raise ValueError(self.__class__.__name__, 'Expected string')
+
+    def _validate_non_empty_string(self, item):
+        if sys.version_info < (3,0,0):
+            if (isinstance(item, unicode)):
+                if len(item) < 1 or len(item) > 64:
+                    raise ValueError(self.__class__.__name__, 'Expected string of correct size', item)
+                return
+        if not isinstance(item, str):
+            raise ValueError(self.__class__.__name__, 'Expected string')
+        elif len(item) < 1 or len(item) > 64:
+            raise ValueError(self.__class__.__name__, 'Expected string of correct size', item)
 
     def _validate_ip_address(self, item):
         try:
@@ -466,15 +477,15 @@ class ConfigObject(object):
                     item = str(item)
             socket.inet_aton(item)
         except socket.error:
-            raise ValueError('Expected IP address')
+            raise ValueError(self.__class__.__name__, 'Expected IP address')
 
     def _validate_boolean_string(self, item):
         if item not in ['True', 'False']:
-            raise ValueError('Expected "True" or "False"')
+            raise ValueError(self.__class__.__name__, 'Expected "True" or "False"')
 
     def _validate_list(self, item):
         if not isinstance(item, list):
-            raise ValueError('Expected list')
+            raise ValueError(self.__class__.__name__, 'Expected list')
 
     def validate(self):
         raise NotImplementedError
@@ -546,7 +557,7 @@ class SitePolicy(ConfigObject):
 
     def validate(self):
         if 'site' not in self._policy:
-            raise ValueError('Expecting "site" in configuration')
+            raise ValueError(self.__class__.__name__, 'Expecting "site" in configuration')
         policy = self._policy['site']
         for item in policy:
             keyword_validators = {'username': '_validate_string',
@@ -556,7 +567,7 @@ class SitePolicy(ConfigObject):
                                   'local': '_validate_boolean_string',
                                   'use_https': '_validate_boolean_string'}
             if item not in keyword_validators:
-                raise ValueError('Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
 
 
@@ -567,8 +578,8 @@ class ProvidedContractPolicy(ConfigObject):
 
     def validate(self):
         if 'contract_name' not in self._policy:
-            raise ValueError('Expecting "contract_name" in contract policy')
-        self._validate_string(self._policy['contract_name'])
+            raise ValueError(self.__class__.__name__, 'Expecting "contract_name" in contract policy')
+        self._validate_non_empty_string(self._policy['contract_name'])
 
 
 class ConsumedContractPolicy(ProvidedContractPolicy):
@@ -582,8 +593,8 @@ class ProtectedByPolicy(ConfigObject):
 
     def validate(self):
         if 'taboo_name' not in self._policy:
-            raise ValueError('Expecting "taboo_name" in protected by policy')
-        self._validate_string(self._policy['taboo_name'])
+            raise ValueError(self.__class__.__name__, 'Expecting "taboo_name" in protected by policy')
+        self._validate_non_empty_string(self._policy['taboo_name'])
 
 
 class ConsumedInterfacePolicy(ConfigObject):
@@ -593,8 +604,8 @@ class ConsumedInterfacePolicy(ConfigObject):
 
     def validate(self):
         if 'cif_name' not in self._policy:
-            raise ValueError('Expecting "cif_name" in consumed interface policy')
-        self._validate_string(self._policy['cif_name'])
+            raise ValueError(self.__class__.__name__, 'Expecting "cif_name" in consumed interface policy')
+        self._validate_non_empty_string(self._policy['cif_name'])
 
 
 class L3OutPolicy(ConfigObject):
@@ -619,7 +630,7 @@ class L3OutPolicy(ConfigObject):
                                   'consumes_interface': '_validate_list',
                                   }
             if item not in keyword_validators:
-                raise ValueError('Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_provided_contract_policies()
             self.get_consumed_contract_policies()
@@ -654,13 +665,13 @@ class RemoteSitePolicy(ConfigObject):
 
     def validate(self):
         if 'site' not in self._policy:
-            raise ValueError('Expecting "site" in remote site policy')
+            raise ValueError(self.__class__.__name__, 'Expecting "site" in remote site policy')
         policy = self._policy['site']
         for item in policy:
             keyword_validators = {'name': '_validate_string',
                                   'interfaces': '_validate_list'}
             if item not in keyword_validators:
-                raise ValueError('Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_interfaces()
 
@@ -686,7 +697,7 @@ class ExportPolicy(ConfigObject):
 
     def validate(self):
         if 'export' not in self._policy:
-            raise ValueError('Expecting "export" in configuration')
+            raise ValueError(self.__class__.__name__, 'Expecting "export" in configuration')
         policy = self._policy['export']
         for item in policy:
             keyword_validators = {'tenant': '_validate_string',
@@ -694,7 +705,7 @@ class ExportPolicy(ConfigObject):
                                   'epg': '_validate_string',
                                   'remote_sites': '_validate_list'}
             if item not in keyword_validators:
-                raise ValueError('Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_site_policies()
 
