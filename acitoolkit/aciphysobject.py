@@ -157,6 +157,52 @@ class Systemcontroller(BaseACIPhysModule):
             self.type = 'systemctrlcard'
 
 
+class Cluster(BaseACIObject):
+    """
+    Represents the global settings of the Cluster
+    """
+
+    def __init__(self, name):
+        """
+        :param name:  String containing the name of this Cluster object.
+        """
+        super(Cluster, self).__init__(name)
+        self.name = name
+        self.config_size = None
+        self.cluster_size = None
+        self.cluster_info = None
+
+    def get_config_size(self, session):
+        """
+        :returns: configured size of the cluster, i.e. # of APICs
+        """
+        if self.config_size is None:
+            infra_cluster_url = '/api/node/class/infraClusterPol.json'
+            ret = session.get(infra_cluster_url)
+            ret_cluster= ret.json()['imdata']
+            self.config_size=ret_cluster[0]['infraClusterPol']['attributes']['size']
+            
+        return self.config_size
+
+    def get_cluster_size(self, session):
+        if self.cluster_size is None:
+            infra_query_url = '/api/node/class/infraCont.json'
+            ret = session.get(infra_query_url)
+            self.cluster_info=ret.json()['imdata']
+            self.cluster_size = self.cluster_info[0]['infraCont']['attributes']['size']
+        return self.cluster_size
+
+    def get_cluster_info(self, session):
+        if self.cluster_info is None:
+            infra_query_url = '/api/node/class/infraCont.json'
+            ret = session.get(infra_query_url)
+            self.cluster_info=ret.json()['imdata']
+            self.cluster_size = self.cluster_info[0]['infraCont']['attributes']['size']
+        return self.cluster_info
+
+
+
+
 class Linecard(BaseACIPhysModule):
     """ class for a linecard of a switch   """
 
