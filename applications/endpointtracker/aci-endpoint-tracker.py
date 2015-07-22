@@ -38,11 +38,19 @@ of the Endpoints.
 import sys
 import acitoolkit.acitoolkit as aci
 import warnings
+import argparse
+import os
+import logging
+from daemon import Daemon
+
+import requests
+requests.packages.urllib3.disable_warnings()
+
+
 try:
     import mysql.connector as mysql
 except ImportError:
     import pymysql as mysql
-
 
 def convert_timestamp_to_mysql(timestamp):
     """
@@ -56,21 +64,7 @@ def convert_timestamp_to_mysql(timestamp):
     resp_ts = resp_ts + remaining.split('+')[0].split('.')[0]
     return resp_ts
 
-
-def main():
-    """
-    Main Endpoint Tracker routine
-
-    :return: None
-    """
-    # Take login credentials from the command line if provided
-    # Otherwise, take them from your environment variables file ~/.profile
-    description = ('Application that logs on to the APIC and tracks'
-                   ' all of the Endpoints in a MySQL database.')
-    creds = aci.Credentials(qualifier=('apic', 'mysql'),
-                            description=description)
-    args = creds.get()
-
+def tracker(args):
     # Login to APIC
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
@@ -104,7 +98,10 @@ def main():
     # Download all of the Endpoints and store in the database
     endpoints = aci.Endpoint.get(session)
     for ep in endpoints:
-        epg = ep.get_parent()
+        try:
+            epg = ep.get_parent()
+        except AttributeError:
+            continue
         app_profile = epg.get_parent()
         tenant = app_profile.get_parent()
         data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
@@ -120,7 +117,10 @@ def main():
     while True:
         if aci.Endpoint.has_events(session):
             ep = aci.Endpoint.get_event(session)
-            epg = ep.get_parent()
+            try:
+                epg = ep.get_parent()
+            except AttributeError:
+                continue
             app_profile = epg.get_parent()
             tenant = app_profile.get_parent()
             if ep.is_deleted():
@@ -150,6 +150,45 @@ def main():
                                         VALUES (%s)""" % insert_data
                         c.execute(insert_cmd)
             cnx.commit()
+
+class Daemonize(Daemon):
+    """
+    Daemonize the endpointracker
+    Creates a daemon and then runs the tracker function
+    """
+    def __init__(self,
+                args,
+                pidfile,
+                stdin='/dev/null',
+                stdout='/var/log/endpointracker.log',
+                stderr='/var/log/endpointracker.log'
+                ):
+        self.args = args
+        super(Daemonize, self).__init__(pidfile, stdin, stdout, stderr)
+
+    def run(self):
+        """If --daemon is set we run the tracker function
+        """
+        tracker(self.args)
+
+def main():
+    """
+    Main Endpoint Tracker routine
+    :return: None
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = ('Application that logs on to the APIC and tracks'
+                   ' all of the Endpoints in a MySQL database.')
+    creds = aci.Credentials(qualifier=('apic', 'mysql', 'eptracker'),
+                            description=description)
+    args = creds.get()
+
+    if args.daemon:
+        daemon = Daemonize(args, args.pid + 'endpointracker.pid')
+        daemon.start()
+    else:
+        tracker(args)
 
 if __name__ == '__main__':
     try:

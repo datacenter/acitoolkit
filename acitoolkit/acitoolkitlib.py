@@ -108,6 +108,12 @@ class Credentials(object):
             self._parser.add_argument('-s', '--mysqlpassword',
                                       default=DEFAULT_MYSQL_PASSWORD,
                                       help='MySQL login password.')
+        if 'eptracker' in qualifier:
+            self._parser.add_argument('-d', '--daemon',
+                                      help='Run as a Daemon',
+                                      action='store_true')
+            self._parser.add_argument('--pid',
+                                     help='Where to save pidfile')
         if 'server' in qualifier:
             DEFAULT_PORT = '5000'
             DEFAULT_IPADDRESS = '127.0.0.1'

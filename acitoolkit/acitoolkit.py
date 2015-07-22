@@ -2649,11 +2649,14 @@ class Endpoint(BaseACIObject):
             obj.timestamp = str(attributes.get('modTs'))
             if obj.mac is None:
                 obj.mac = name
-            if status == 'deleted':
-                obj.mark_as_deleted()
-            else:
-                obj = cls.get(session, name)[0]
-            return obj
+            try:
+                if status == 'deleted':
+                    obj.mark_as_deleted()
+                else:
+                    obj = cls.get(session, name)[0]
+                return obj
+            except IndexError:
+                continue
 
     @staticmethod
     def _get(session, endpoint_name, interfaces, endpoints,
@@ -2684,7 +2687,10 @@ class Endpoint(BaseACIObject):
         for ep in ep_data:
             if ep[apic_endpoint_class]['attributes']['lcC'] == 'static':
                 continue
-            children = ep[apic_endpoint_class]['children']
+            try:
+                children = ep[apic_endpoint_class]['children']
+            except KeyError:
+                continue
             ep = ep[apic_endpoint_class]['attributes']
             tenant = Tenant(str(ep['dn']).split('/')[1][3:])
             if '/LDevInst-' in str(ep['dn']):
