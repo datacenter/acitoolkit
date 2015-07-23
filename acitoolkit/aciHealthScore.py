@@ -90,9 +90,9 @@ class HealthScore(object):
     @classmethod
     def get(cls, session, obj):
         """
-        Gets all of the Health Scores from the APIC.
+        Gets HealthScore for an object
         :param session: the instance of Session used for APIC communication
-        :param obj: optional ACI Toolkit object
+        :param obj: ACI Toolkit object
         :returns: HealthScore object
         """
 
