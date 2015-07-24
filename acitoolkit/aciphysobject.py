@@ -1446,7 +1446,7 @@ class Node(BaseACIPhysObject):
         :returns: chassis type of node of type str
         """
         if self.model:
-            fields = re.split('-', self.model)
+            fields = self.model.split('-')
             chassis_type = fields[0].lower()
         else:
             chassis_type = None
@@ -1746,7 +1746,7 @@ class ExternalSwitch(BaseACIPhysObject):
                 pod = name[1].split('-')[1]
                 node = str(name[2].split('-')[1])
                 if 'phys' in name[4]:
-                    result = re.search('phys-\[(.+)\]', dn)
+                    result = re.search(r'phys-\[(.+)\]', dn)
                     lldp_dn = 'topology/pod-' + pod + '/node-' + \
                               node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
                 else:
@@ -2743,7 +2743,7 @@ class WorkingData(object):
             for class_record in classes:
                 for class_id in class_record:
                     obj_dn = class_record[class_id]['attributes']['dn']
-                    if obj_dn[0:len(dname)] == dname:
+                    if obj_dn.startswith(dname):
                         result.append(class_record)
         return result
 

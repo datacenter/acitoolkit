@@ -66,9 +66,9 @@ def main():
         op = i['ipv4Addr']['attributes']['operSt']
         cfg = i['ipv4Addr']['attributes']['operStQual']
         dn = i['ipv4Addr']['attributes']['dn']
-        node = re.split('/', dn)[2]
-        intf = re.split('\[|\]', dn)[1]
-        vrf = re.split('/|dom-', dn)[7]
+        node = dn.split('/')[2]
+        intf = re.split(r'\[|\]', dn)[1]
+        vrf = re.split(r'/|dom-', dn)[7]
         if vrf not in data.keys():
             data[vrf] = []
         else:

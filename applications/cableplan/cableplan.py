@@ -104,10 +104,7 @@ Tag_pattern_ = re.compile(r'({.*})?(.*)')
 
 
 def indent(level):
-    indent_string = ''
-    for idx in range(level):
-        indent_string += '   '
-    return indent_string
+    return level * '    '
 
 
 def quote_attrib(in_str):
@@ -124,6 +121,10 @@ def quote_attrib(in_str):
     else:
         s1 = '"%s"' % s1
     return s1
+
+
+def suffix_to_int(string):
+    return int(re.search(r'(\d+)$', string).group(1))
 
 
 class CABLEPLAN:
@@ -650,24 +651,24 @@ class CpPort:
 
         # use a set so that there are no duplicate ports
         port_list = set()
-        port_set = re.sub('\s+', '', port_set)  # remove unnecessary white space
-        ports_n_ranges = re.split(',', port_set)
+        port_set = re.sub(r'\s+', '', port_set)  # remove unnecessary white space
+        ports_n_ranges = port_set.split(',')
         for portOrRange in ports_n_ranges:
             if '-' in portOrRange:
                 # this is a range
-                [startport, endport] = re.split('-', portOrRange)
-                prefix = re.findall('(.*/)\d+$', startport)
+                startport, endport = portOrRange.split('-')
+                prefix = re.findall(r'(.*/)\d+$', startport)
                 if len(prefix) != 1:
                     raise ValueError('Badly formed port name in range:"' + startport + '"')
 
-                prefix_e = re.findall('(.*/)\d+$', endport)
+                prefix_e = re.findall(r'(.*/)\d+$', endport)
                 if len(prefix_e) != 1:
                     raise ValueError('Badly formed port name in range:"' + endport + '"')
 
                 if prefix[0] != prefix_e[0]:
                     raise ValueError('port range invalid:"' + portOrRange + '"')
-                start_num = int(re.findall('(\d+)$', startport)[0])
-                end_num = int(re.findall('(\d+)$', endport)[0])
+                start_num = suffix_to_int(startport)
+                end_num = suffix_to_int(endport)
 
                 if start_num > end_num:
                     raise ValueError(
@@ -694,13 +695,13 @@ class CpPort:
 
         start_port = self.ports[index]
         cur_port = start_port
-        cur_num = int(re.findall('(\d+)$', cur_port)[0])
-        cur_prefix = re.findall('(.*/)\d+$', cur_port)[0]
-        start_num = int(re.findall('(\d+)$', start_port)[0])
+        cur_num = suffix_to_int(cur_port)
+        cur_prefix = re.findall(r'(.*/)\d+$', cur_port)[0]
+        start_num = suffix_to_int(start_port)
         while index < (numports - 1):
             next_port = self.ports[index + 1]
-            next_num = int(re.findall('(\d+)$', next_port)[0])
-            next_prefix = re.findall('(.*/)\d+$', next_port)[0]
+            next_num = suffix_to_int(next_port)
+            next_prefix = re.findall(r'(.*/)\d+$', next_port)[0]
             if next_num != cur_num + 1 or next_prefix != cur_prefix:
                 # there is a break in the sequence terminate the range
                 if cur_num == start_num:
@@ -712,12 +713,12 @@ class CpPort:
                     text_list.append(start_port + ' - ' + cur_port)
 
                 start_port = next_port
-                start_num = int(re.findall('(\d+)$', start_port)[0])
+                start_num = suffix_to_int(start_port)
 
             index += 1
             cur_port = self.ports[index]
-            cur_num = int(re.findall('(\d+)$', cur_port)[0])
-            cur_prefix = re.findall('(.*/)\d+$', cur_port)[0]
+            cur_num = suffix_to_int(cur_port)
+            cur_prefix = re.findall(r'(.*/)\d+$', cur_port)[0]
 
         # clean-up - index is one past end, cur is last one looked at
         if cur_num == start_num:
