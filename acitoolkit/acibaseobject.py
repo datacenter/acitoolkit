@@ -435,10 +435,7 @@ class BaseACIObject(AciSearch):
         :returns: True or False.  True if there are events pending.
         """
         urls = cls._get_subscription_urls()
-        for url in urls:
-            if session.has_events(url):
-                return True
-        return False
+        return any(session.has_events(url) for url in urls)
 
     def _instance_subscribe(self, session, extension=''):
         """
@@ -462,10 +459,7 @@ class BaseACIObject(AciSearch):
         :returns: True or False.  True if there are events pending.
         """
         urls = self._get_instance_subscription_urls()
-        for url in urls:
-            if session.has_events(url + extension):
-                return True
-        return False
+        return any(session.has_events(url + extension) for url in urls)
 
     def _instance_get_event(self, session, extension=''):
         """
@@ -670,10 +664,7 @@ class BaseACIObject(AciSearch):
         :returns:  True or False, True indicates that it does indeed\
                    have the `obj` object as a child.
         """
-        for child in self._children:
-            if child == obj:
-                return True
-        return False
+        return any(child == obj for child in self._children)
 
     def remove_child(self, obj):
         """
@@ -1167,10 +1158,7 @@ class BaseACIPhysObject(BaseACIObject):
 
         # TODO: this does not work.  There are more parameters in the .get method.
         apic_nodes = cls.get(session)
-        for apic_node in apic_nodes:
-            if phys_obj == apic_node:
-                return True
-        return False
+        return any(apic_node == phys_obj for apic_node in apic_nodes)
 
     def get_type(self):
         """Gets physical object type

@@ -204,10 +204,7 @@ class Tenant(BaseACIObject):
         :returns: True or False
         """
         apic_tenants = cls.get(session)
-        for apic_tenant in apic_tenants:
-            if tenant == apic_tenant:
-                return True
-        return False
+        return any(apic_tenant == tenant for apic_tenant in apic_tenants)
 
     @staticmethod
     def get_url(fmt='json'):

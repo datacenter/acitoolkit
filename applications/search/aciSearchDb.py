@@ -319,11 +319,7 @@ class SearchDb(object):
         :param p_set:
         :return:
         """
-        for result_item in p_set:
-            if item == result_item.primary:
-                return True
-
-        return False
+        return any(elem.primary == item for elem in p_set)
 
     @classmethod
     def is_secondary(cls, item, s_set):
@@ -334,11 +330,9 @@ class SearchDb(object):
         :param s_set:
         :return:
         """
-        if len(item.context) > 1:
-            for index in range(1, len(item.context)):
-                if cls.is_primary(item.context[index], s_set):
-                    return True
-        return False
+        return any(
+            cls.is_primary(item_context, s_set)
+            for item_context in item.context[1:])
 
 
     @staticmethod
