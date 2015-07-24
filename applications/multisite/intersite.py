@@ -440,6 +440,13 @@ class IntersiteConfiguration(object):
                 if export_policy is not None:
                     self.export_policies.append(export_policy)
 
+    def get_config(self):
+        policies = []
+        for policy in self.site_policies:
+            policies.append(policy._policy)
+        for policy in self.export_policies:
+            policies.append(policy._policy)
+        return {'config': policies}
 
 class ConfigObject(object):
     def __init__(self, policy):
@@ -483,6 +490,7 @@ class ConfigObject(object):
 
     def validate(self):
         raise NotImplementedError
+
 
 class SitePolicy(ConfigObject):
     @property
@@ -1020,17 +1028,10 @@ class MultisiteCollector(object):
 
         # Handle any export policies for new EPGs
         for new_policy in new_config.export_policies:
-            policy_found = False
-            for old_policy in old_config.export_policies:
-                if new_policy.has_same_epg(old_policy):
-                    policy_found = True
-                    break
             local_site = self.get_local_site()
             if local_site is None:
                 print '%% No local site configured'
                 return
-            if policy_found:
-                local_site.remove_policy(old_policy)
             local_site.add_policy(new_policy)
             local_site.monitor.handle_existing_endpoints(new_policy)
 
@@ -1110,8 +1111,7 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'configfile':
             print 'Configuration file is set to:', self.collector.config_filename
         elif keyword == 'config':
-            print json.dumps(self.collector.config.get_json(), indent=4, separators=(',', ':'))
-        pass
+            print json.dumps(self.collector.config.get_config(), indent=4, separators=(',', ':'))
 
     def emptyline(self):
         pass
