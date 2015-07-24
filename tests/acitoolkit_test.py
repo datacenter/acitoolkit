@@ -30,6 +30,7 @@
 """ACI Toolkit Test module
 """
 from acitoolkit.acitoolkit import *
+from acitoolkit.aciHealthScore import HealthScore
 # from acitoolkit.aciphysobject import *
 # from acitoolkit.acibaseobject import *
 import unittest
@@ -2921,9 +2922,67 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
                     self.assertIsInstance(monitor_stat.name, str)
                     self.check_collection_policy(monitor_stat)
 
+class TestLiveHealthScores(TestLiveAPIC):
+
+    def base_test_setup(self):
+        session = self.login_to_apic()
+
+        # Create the Tenant
+        tenant = Tenant('aci-toolkit-test')
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Create the Application Profile
+        app = AppProfile('app1', tenant)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Create the EPG
+        epg = EPG('epg1', app)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        return (session, tenant, app, epg)
+
+    def base_test_teardown(self, session, tenant):
+        # Delete the tenant
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+    def test_get_all_healthscores(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        session = self.login_to_apic()
+        scores = HealthScore.get_all(session)
+        scores = HealthScore.get_all(session)
+        test = scores > 1
+        self.assertTrue(test)
+        self.base_test_teardown(session, tenant)
+
+    def test_get_object_healthscore(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        push = session.push_to_apic(tenant.get_url(), tenant.get_json())
+        scores = []
+        for o in [tenant,app,epg]:
+            hs = HealthScore.get(session, o)
+            scores.append(hs.cur)
+        self.assertEqual(scores, ['100','100','100'])
+
+    def test_get_healthscore_by_dn(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        ts = HealthScore.get_by_dn(session, 'uni/tn-aci-toolkit-test')
+        self.assertIsInstance(ts.cur, unicode)
+        self.assertEqual(ts.cur, '100')
+        self.assertEqual(ts.__str__(), '100')
+        self.base_test_teardown(session, tenant)
+
+    def test_get_unhealthy(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        unhealthy = HealthScore.get_unhealthy(session, 100)
+
 
 if __name__ == '__main__':
     live = unittest.TestSuite()
+    live.addTest(unittest.makeSuite(TestLiveHealthScores))
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
     live.addTest(unittest.makeSuite(TestLiveInterface))
