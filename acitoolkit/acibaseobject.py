@@ -86,6 +86,9 @@ class BaseRelation(object):
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
 
+    def __ne__(self, other):
+        return not self == other
+
 
 class Tag(object):
     def __init__(self, name=None):
@@ -103,6 +106,8 @@ class Tag(object):
             other = Tag(other)
         return self.name == other.name and self._deleted == other._deleted
 
+    def __ne__(self, other):
+        return not self == other
 
 class BaseACIObject(AciSearch):
     """
