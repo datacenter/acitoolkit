@@ -54,7 +54,11 @@ VLAN = {'name': 'vlan5',
         'encap_type': 'vlan',
         'encap_id': '5'}
 
+
 def main():
+    """
+    Main execution routine
+    """
     # Login to the APIC
     session = aci.Session(credentials.URL, credentials.LOGIN, credentials.PASSWORD)
     resp = session.login()
@@ -91,7 +95,7 @@ def main():
     # Assign it to the L2Interface
     ep.attach(vlan_intf)
 
-    print('JSON to be pushed: '  + str(tenant.get_json()))
+    print('JSON to be pushed: ' + str(tenant.get_json()))
 
     # Push it all to the APIC
     resp = tenant.push_to_apic(session)

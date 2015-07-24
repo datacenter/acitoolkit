@@ -54,27 +54,25 @@ def main():
         print '%% Could not login to APIC'
         sys.exit(0)
 
-    
     cluster = ACI.Cluster('Cluster')
     configured_size = cluster.get_config_size(session)
     cluster_size = cluster.get_cluster_size(session)
     cluster_info = cluster.get_cluster_info(session)
 
-    if (configured_size != cluster_size):
+    if configured_size != cluster_size:
         print("*******************************************************")
-        sys.stdout.write ("WARNING, configured cluster size ")
-        sys.stdout.write( configured_size)
-        sys.stdout.write (" :not equal to the actual size ")
+        sys.stdout.write("WARNING, configured cluster size ")
+        sys.stdout.write(configured_size)
+        sys.stdout.write(" :not equal to the actual size ")
         print cluster_size
         print "WARNING, desired stats collection might be lost"
         print("*******************************************************")
         print("APICs in the cluster are:")
         for apic in cluster_info:
-            print json.dumps(apic['infraCont']['attributes']['dn'],indent=4, sort_keys = True)
+            print json.dumps(apic['infraCont']['attributes']['dn'], indent=4, sort_keys=True)
     else:
         print("PASS")
-    
-        
+
 
 if __name__ == '__main__':
     try:
