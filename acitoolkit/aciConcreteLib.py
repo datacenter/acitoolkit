@@ -22,8 +22,6 @@
 """
 This is a library of all the Concrete classes that are on a switch.
 """
-"""
-"""
 # all the import
 import copy
 from operator import itemgetter
@@ -33,7 +31,25 @@ from .aciTable import Table
 from .aciSearch import Searchable
 
 
-class ConcreteArp(BaseACIPhysObject):
+class CommonConcreteObject(BaseACIPhysObject):
+    """
+    Intermediate abstract class that provides common methods for physical
+    objects storing data in an 'attr' dictionary.
+    """
+
+    def __eq__(self, other):
+        """
+        True when instances equal or derivative types and distinguished name
+        matches.
+        :param other:
+        :return: True if equal
+        """
+        if isinstance(other, self.__class__):
+            return self.attr.get('dn') == other.attr.get('dn')
+        return NotImplemented
+
+
+class ConcreteArp(CommonConcreteObject):
     """
     This class is for the ARP state on a switch.  It is organized into two data structures.
     The first is self.attr which holds attributes for the Arp in general.
@@ -247,15 +263,8 @@ class ConcreteArp(BaseACIPhysObject):
     def __str__(self):
         return 'ARP'
 
-    def __eq__(self, other):
 
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteVpc(BaseACIPhysObject):
+class ConcreteVpc(CommonConcreteObject):
     """
     class for the VPC information for a switch
 
@@ -467,15 +476,8 @@ class ConcreteVpc(BaseACIPhysObject):
     def __str__(self):
         return 'VPC_' + self.attr['id']
 
-    def __eq__(self, other):
 
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteVpcIf(BaseACIPhysObject):
+class ConcreteVpcIf(CommonConcreteObject):
     """
     Class to hold a VPC interface
     """
@@ -650,20 +652,8 @@ class ConcreteVpcIf(BaseACIPhysObject):
         """
         return 'VPC_Interface' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteContext(BaseACIPhysObject):
+class ConcreteContext(CommonConcreteObject):
     """
     The l3-context on a switch.  This is derived from
     the concrete model
@@ -823,20 +813,8 @@ class ConcreteContext(BaseACIPhysObject):
         """
         return 'Concrete_Context' + self.attr.get('name')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteSVI(BaseACIPhysObject):
+class ConcreteSVI(CommonConcreteObject):
     """
     The SVIs on a switch.  This is derived from
     the concrete model in the switch
@@ -970,20 +948,8 @@ class ConcreteSVI(BaseACIPhysObject):
         """
         return 'Concrete_SVI' + self.attr.get('name')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteLoopback(BaseACIPhysObject):
+class ConcreteLoopback(CommonConcreteObject):
     """
     Loopback interfaces on the switch
     """
@@ -1085,20 +1051,8 @@ class ConcreteLoopback(BaseACIPhysObject):
         """
         return 'Concrete_Loopback' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteBD(BaseACIPhysObject):
+class ConcreteBD(CommonConcreteObject):
     """
     The bridge domain on a switch.  This is derived from
     the concrete model
@@ -1324,20 +1278,8 @@ class ConcreteBD(BaseACIPhysObject):
         """
         return 'Concrete_BD' + self.attr.get('name')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteAccCtrlRule(BaseACIPhysObject):
+class ConcreteAccCtrlRule(CommonConcreteObject):
     """
     Access control rules on a switch
     """
@@ -1575,20 +1517,8 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         return 'Access_Rule-{0}_{1}_{2}'.\
             format(self.attr.get('s_epg'), self.attr.get('d_epg'), self.attr.get('filter_id'))
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteFilter(BaseACIPhysObject):
+class ConcreteFilter(CommonConcreteObject):
     """
     Access control filters on a switch
     """
@@ -1748,20 +1678,8 @@ class ConcreteFilter(BaseACIPhysObject):
         """
         return 'Concrete_Filter' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteFilterEntry(BaseACIPhysObject):
+class ConcreteFilterEntry(CommonConcreteObject):
     """
     Access control entries of a filter
     """
@@ -1902,20 +1820,8 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         """
         return 'Concrete_Filter_Entry' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteEp(BaseACIPhysObject):
+class ConcreteEp(CommonConcreteObject):
     """
     Endpoint on the switch
     """
@@ -2291,20 +2197,8 @@ class ConcreteEp(BaseACIPhysObject):
         """
         return 'Concrete_Endpoint-' + 'MAC({0})_IP({1})'.format(self.attr.get('mac'), self.attr.get('ip'))
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcretePortChannel(BaseACIPhysObject):
+class ConcretePortChannel(CommonConcreteObject):
     """
     This gets the port channels for the switch
     """
@@ -2542,18 +2436,6 @@ class ConcretePortChannel(BaseACIPhysObject):
         """
         return 'Concrete_Portchannel' + self.attr.get('id')
 
-    def __eq__(self, other):
-
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        if type(self) != type(other):
-            return False
-
-        return self.attr.get('dn') == other.attr.get('dn')
-
 
 class ConcreteOverlay(BaseACIPhysObject):
     """
@@ -2732,8 +2614,8 @@ class ConcreteOverlay(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
-        if type(self) != type(other):
-            return False
-        if self.get_parent() != other.get_parent():
-            return False
-        return self.attr.get('dn') == other.attr.get('dn')
+        if isinstance(other, self.__class__):
+            self_key = (self.get_parent(), self.attr.get('dn'))
+            other_key = (other.get_parent(), other.attr.get('dn'))
+            return self_key == other_key
+        return NotImplemented

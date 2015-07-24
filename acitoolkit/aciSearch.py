@@ -103,7 +103,7 @@ class Searchable(object):
         self.context.append(aci_object)
 
     def __str__(self):
-        return '{2} {3}'.format(self.primary, self.path())
+        return '{} {}'.format(self.primary, self.path())
 
     def path(self):
         """
