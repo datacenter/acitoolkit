@@ -37,7 +37,11 @@ from acitoolkit.acitoolkit import OutsideEPG, Interface, L2Interface
 from acitoolkit.acitoolkit import L3Interface, OSPFRouter, OSPFInterfacePolicy
 from acitoolkit.acitoolkit import OSPFInterface, Contract
 
+
 def main():
+    """
+    Main execution routine
+    """
     creds = Credentials('apic')
     args = creds.get()
     session = Session(args.url, args.login, args.password)

@@ -62,7 +62,7 @@ class Table(object):
 
     def __init__(self, data=(), headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
                  stralign="center",
-                 missingval="", columns = 1, table_orientation = 'horizontal'):
+                 missingval="", columns=1, table_orientation='horizontal'):
         """
 
         :param data: list of table data.  Each row is a list and each table is a list of rows
@@ -144,9 +144,9 @@ class Table(object):
 
         if columns == 1:
             result += tabulate(table_data, header_data, tablefmt=tablefmt, floatfmt=floatfmt,
-                               numalign=numalign, stralign=stralign, missingval=missingval)+'\n'
+                               numalign=numalign, stralign=stralign, missingval=missingval) + '\n'
         else:
-            table1_len = (len(table_data)+1)/2
+            table1_len = (len(table_data) + 1) / 2
             table2_len = len(table_data) - table1_len
 
             data1 = table_data[0:table1_len]
@@ -177,7 +177,7 @@ class Table(object):
 
         :return: "title"
         """
-        return '\"'+self.title+'\"'
+        return '\"' + self.title + '\"'
 
     # def multi_column(self, table_text):
     #     """
