@@ -31,6 +31,7 @@
 This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
+from operator import attrgetter
 from .aciSearch import AciSearch, Searchable
 from .acisession import Session
 import sys
@@ -80,9 +81,10 @@ class BaseRelation(object):
         self.status = 'detached'
 
     def __eq__(self, other):
-        return (self.item == other.item and
-                self.status == other.status and
-                self.relation_type == other.relation_type)
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter('item', 'status', 'relation_type')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
 
 
 class Tag(object):
@@ -889,14 +891,14 @@ class BaseACIObject(AciSearch):
         return resp
 
     def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        if self.get_parent() != other.get_parent():
-            return False
-        return self.name == other.name
+        if isinstance(other, self.__class__):
+            self_key = (self.get_parent(), self.name)
+            other_key = (other.get_parent(), other.name)
+            return self_key == other_key
+        return NotImplemented
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def _populate_from_attributes(self, attributes):
         """Fills in an object with the desired attributes.
@@ -1264,11 +1266,10 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """ Two modules are considered equal if their class type is the same
         and pod, node, slot, type all match.
         """
-        if type(self) is not type(other):
-            return False
-
-        return (self.pod == other.pod) and (self.node == other.node) and \
-               (self.slot == other.slot) and (self.get_type() == other.type)
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter('pod', 'node', 'slot', 'type')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
 
     @staticmethod
     def _parse_dn(dn):

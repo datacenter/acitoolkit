@@ -2614,8 +2614,8 @@ class ConcreteOverlay(BaseACIPhysObject):
         :param other:
         :return: True if equal
         """
-        if type(self) != type(other):
-            return False
-        if self.get_parent() != other.get_parent():
-            return False
-        return self.attr.get('dn') == other.attr.get('dn')
+        if isinstance(other, self.__class__):
+            self_key = (self.get_parent(), self.attr.get('dn'))
+            other_key = (other.get_parent(), other.attr.get('dn'))
+            return self_key == other_key
+        return NotImplemented

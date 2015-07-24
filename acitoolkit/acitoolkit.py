@@ -2704,27 +2704,12 @@ class FilterEntry(BaseACIObject):
         return '{0}-{1}'.format(str(from_port), str(to_port))
 
     def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        if self.applyToFrag != other.applyToFrag:
-            return False
-        if self.arpOpc != other.arpOpc:
-            return False
-        if self.dFromPort != other.dFromPort:
-            return False
-        if self.dToPort != other.dToPort:
-            return False
-        if self.etherT != other.etherT:
-            return False
-        if self.prot != other.prot:
-            return False
-        if self.sFromPort != other.sFromPort:
-            return False
-        if self.sToPort != other.sToPort:
-            return False
-        if self.tcpRules != other.tcpRules:
-            return False
-        return True
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter(
+                'applyToFrag', 'arpOpc', 'dFromPort', 'dToPort', 'etherT',
+                'prot', 'sFromPort', 'sToPort', 'tcpRules')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
 
 
 class TunnelInterface(object):
