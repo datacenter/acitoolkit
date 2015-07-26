@@ -278,7 +278,7 @@ class BaseACIObject(AciSearch):
                   tag assigned.
         """
         if not isinstance(tag, Tag):
-            search_tag = Tag(tag)
+            tag = Tag(tag)
         return tag in self.get_tags()
 
     def has_tags(self):
@@ -320,7 +320,7 @@ class BaseACIObject(AciSearch):
                     or an instance of Tag
         """
         if not isinstance(tag, Tag):
-            search_tag = Tag(tag)
+            tag = Tag(tag)
         self.get_tags().remove(tag)
 
     def delete_tag(self, tag):
