@@ -306,6 +306,8 @@ class MultisiteMonitor(threading.Thread):
                 for entry in resp.json()['imdata']:
                     if entry['l3extInstP']['attributes']['name'] not in valid_names:
                         continue
+                    if 'children' not in entry['l3extInstP']:
+                        continue
                     dirty = False
                     for child in entry['l3extInstP']['children']:
                         if 'fvRsProv' in child:
