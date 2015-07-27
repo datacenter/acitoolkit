@@ -2958,14 +2958,16 @@ class TestLiveHealthScores(TestLiveAPIC):
         self.assertTrue(test)
         self.base_test_teardown(session, tenant)
 
-    def test_get_object_healthscore(self):
-        (session, tenant, app, epg) = self.base_test_setup()
-        push = session.push_to_apic(tenant.get_url(), tenant.get_json())
-        scores = []
-        for o in [tenant,app,epg]:
-            hs = HealthScore.get(session, o)
-            scores.append(hs.cur)
-        self.assertEqual(scores, ['100','100','100'])
+    # TODO: the following lines are commented out until .dn attribute is implemented more pervasively
+    #
+    # def test_get_object_healthscore(self):
+    #     (session, tenant, app, epg) = self.base_test_setup()
+    #     push = session.push_to_apic(tenant.get_url(), tenant.get_json())
+    #     scores = []
+    #     for o in [tenant,app,epg]:
+    #         hs = HealthScore.get(session, o)
+    #         scores.append(hs.cur)
+    #     self.assertEqual(scores, ['100','100','100'])
 
     def test_get_healthscore_by_dn(self):
         (session, tenant, app, epg) = self.base_test_setup()
