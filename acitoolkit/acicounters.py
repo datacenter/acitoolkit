@@ -123,7 +123,7 @@ class AtomicCountersOnGoing():
                 for grandchildren in children:
                     for count in grandchildren:
                         counterAttr = grandchildren[count]['attributes']
-                        if re.search('^C', counterAttr['rn']):
+                        if counterAttr['rn'].startswith('C'):
                             period = 0
                         else:
                             period = int(counterAttr['index']) + 1
@@ -135,7 +135,7 @@ class AtomicCountersOnGoing():
                         else:
                             countName = count
 
-                        granularity = re.search('(\d+\D+)$', count).group(1)
+                        granularity = re.search(r'(\d+\D+)$', count).group(1)
 
                         if countName not in result:
                             result[countName] = {}
@@ -410,7 +410,7 @@ class InterfaceStats(object):
                 for grandchildren in children:
                     for count in grandchildren:
                         counterAttr = grandchildren[count]['attributes']
-                        if re.search('^C', counterAttr['rn']):
+                        if counterAttr['rn'].startswith('C'):
                             period = 0
                         else:
                             period = int(counterAttr['index']) + 1
@@ -440,7 +440,7 @@ class InterfaceStats(object):
                         else:
                             countName = count
 
-                        granularity = re.search('(\d+\D+)$', count).group(1)
+                        granularity = re.search(r'(\d+\D+)$', count).group(1)
 
                         if countName not in result:
                             result[countName] = {}

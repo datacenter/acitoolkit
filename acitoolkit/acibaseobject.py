@@ -31,6 +31,7 @@
 This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
+from operator import attrgetter
 from .aciSearch import AciSearch, Searchable
 from .acisession import Session
 import sys
@@ -80,9 +81,13 @@ class BaseRelation(object):
         self.status = 'detached'
 
     def __eq__(self, other):
-        return (self.item == other.item and
-                self.status == other.status and
-                self.relation_type == other.relation_type)
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter('item', 'status', 'relation_type')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
 
 
 class Tag(object):
@@ -101,6 +106,8 @@ class Tag(object):
             other = Tag(other)
         return self.name == other.name and self._deleted == other._deleted
 
+    def __ne__(self, other):
+        return not self == other
 
 class BaseACIObject(AciSearch):
     """
@@ -435,10 +442,7 @@ class BaseACIObject(AciSearch):
         :returns: True or False.  True if there are events pending.
         """
         urls = cls._get_subscription_urls()
-        for url in urls:
-            if session.has_events(url):
-                return True
-        return False
+        return any(session.has_events(url) for url in urls)
 
     def _instance_subscribe(self, session, extension=''):
         """
@@ -462,10 +466,7 @@ class BaseACIObject(AciSearch):
         :returns: True or False.  True if there are events pending.
         """
         urls = self._get_instance_subscription_urls()
-        for url in urls:
-            if session.has_events(url + extension):
-                return True
-        return False
+        return any(session.has_events(url + extension) for url in urls)
 
     def _instance_get_event(self, session, extension=''):
         """
@@ -670,10 +671,7 @@ class BaseACIObject(AciSearch):
         :returns:  True or False, True indicates that it does indeed\
                    have the `obj` object as a child.
         """
-        for child in self._children:
-            if child == obj:
-                return True
-        return False
+        return any(child == obj for child in self._children)
 
     def remove_child(self, obj):
         """
@@ -898,14 +896,14 @@ class BaseACIObject(AciSearch):
         return resp
 
     def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        if self.get_parent() != other.get_parent():
-            return False
-        return self.name == other.name
+        if isinstance(other, self.__class__):
+            self_key = (self.get_parent(), self.name)
+            other_key = (other.get_parent(), other.name)
+            return self_key == other_key
+        return NotImplemented
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def _populate_from_attributes(self, attributes):
         """Fills in an object with the desired attributes.
@@ -1167,10 +1165,7 @@ class BaseACIPhysObject(BaseACIObject):
 
         # TODO: this does not work.  There are more parameters in the .get method.
         apic_nodes = cls.get(session)
-        for apic_node in apic_nodes:
-            if phys_obj == apic_node:
-                return True
-        return False
+        return any(apic_node == phys_obj for apic_node in apic_nodes)
 
     def get_type(self):
         """Gets physical object type
@@ -1276,11 +1271,10 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """ Two modules are considered equal if their class type is the same
         and pod, node, slot, type all match.
         """
-        if type(self) is not type(other):
-            return False
-
-        return (self.pod == other.pod) and (self.node == other.node) and \
-               (self.slot == other.slot) and (self.get_type() == other.type)
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter('pod', 'node', 'slot', 'type')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
 
     @staticmethod
     def _parse_dn(dn):

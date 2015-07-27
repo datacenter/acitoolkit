@@ -1474,18 +1474,12 @@ class MultisiteCollector(object):
     def verify_unique_sitename(self, site_name):
         site_name = self._extract_value(site_name)
         sites = self.get_sites()
-        for site in sites:
-            if site.name == site_name:
-                return False
-        return True
+        return all(site.name != site_name for site in sites)
 
     def verify_unique_ipaddress(self, ipaddress):
         ipaddress = self._extract_value(ipaddress)
         sites = self.get_sites()
-        for site in sites:
-            if site.credentials.ip_address == ipaddress:
-                return False
-        return True
+        return all(site.credentials.ip_address != ipaddress for site in sites)
 
     def get_sites(self, local_only=False, remote_only=False):
         if local_only:

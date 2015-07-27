@@ -724,12 +724,10 @@ class Fan(BaseACIPhysModule):
     def __eq__(self, other):
         """compares two fans and returns True if they are the same.
         """
-        if type(self) == type(other):
-            if self.model == other.model:
-                if self.id == other.id:
-                    if self._parent == other._parent:
-                        return True
-        return False
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter('model', 'id', '_parent')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
 
     def __str__(self):
         """
@@ -974,9 +972,9 @@ class Pod(BaseACIPhysObject):
         return pods
 
     def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        return self.pod == other.pod
+        if isinstance(other, self.__class__):
+            return self.pod == other.pod
+        return NotImplemented
 
     def __str__(self):
         return self.name
@@ -1306,12 +1304,10 @@ class Node(BaseACIPhysObject):
         self.vpc_info = result
 
     def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        return (self.pod == other.pod) and \
-               (self.node == other.node) and \
-               (self.name == other.name) and \
-               (self.role == other.role)
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter('pod', 'node', 'name', 'role')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
 
     def _populate_from_attributes(self, attributes):
         """Fills in an object with the desired attributes.
@@ -1446,7 +1442,7 @@ class Node(BaseACIPhysObject):
         :returns: chassis type of node of type str
         """
         if self.model:
-            fields = re.split('-', self.model)
+            fields = self.model.split('-')
             chassis_type = fields[0].lower()
         else:
             chassis_type = None
@@ -1746,7 +1742,7 @@ class ExternalSwitch(BaseACIPhysObject):
                 pod = name[1].split('-')[1]
                 node = str(name[2].split('-')[1])
                 if 'phys' in name[4]:
-                    result = re.search('phys-\[(.+)\]', dn)
+                    result = re.search(r'phys-\[(.+)\]', dn)
                     lldp_dn = 'topology/pod-' + pod + '/node-' + \
                               node + '/sys/lldp/inst/if-[' + result.group(1) + ']/adj-1'
                 else:
@@ -1789,9 +1785,9 @@ class ExternalSwitch(BaseACIPhysObject):
         self.state = 'unknown'
 
     def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        return self.name == other.name
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return NotImplemented
 
 
 class Link(BaseACIPhysObject):
@@ -1927,11 +1923,10 @@ class Link(BaseACIPhysObject):
         same and the end points match.  The link ids are not
         checked.
         """
-
-        if type(self) is not type(other):
-            return False
-        return (self.pod == other.pod) and (self.node1 == other.node1) \
-               and (self.slot1 == other.slot1) and (self.port1 == other.port1)
+        if isinstance(other, self.__class__):
+            key_attrs = attrgetter('pod', 'node1', 'slot1', 'port1')
+            return key_attrs(self) == key_attrs(other)
+        return NotImplemented
 
     def get_node1(self):
         """Returns the Node object that corresponds to the first
@@ -2596,6 +2591,7 @@ class Interface(BaseInterface):
         return '\t'.join(attrgetter(*attr_names)(self))
 
     def __eq__(self, other):
+        # TODO: simplify and isinstance
         if type(self) != type(other):
             return False
         if (self.attributes['interface_type'] == other.attributes.get('interface_type') and
@@ -2743,7 +2739,7 @@ class WorkingData(object):
             for class_record in classes:
                 for class_id in class_record:
                     obj_dn = class_record[class_id]['attributes']['dn']
-                    if obj_dn[0:len(dname)] == dname:
+                    if obj_dn.startswith(dname):
                         result.append(class_record)
         return result
 
