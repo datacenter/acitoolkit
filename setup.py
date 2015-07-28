@@ -22,6 +22,7 @@ setup(
     install_requires=["requests",
                       "websocket-client",
                       "gitpython",
+                      "flask-httpauth",
                       "flask-sqlalchemy",
                       "flask-admin",
                       "flask-bootstrap",
