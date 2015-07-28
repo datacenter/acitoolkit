@@ -1,5 +1,6 @@
 from flask import Flask, request, abort, make_response, jsonify
-from intersite import *
+from intersite import execute_tool, parse_args
+import json
 from flask.ext.httpauth import HTTPBasicAuth
 auth = HTTPBasicAuth()
 
