@@ -1057,6 +1057,19 @@ class MultisiteCollector(object):
                                     self.get_local_site().name)
                 site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant)
 
+    def save_config(self, config):
+        logging.info('save_config')
+        try:
+            new_config = IntersiteConfiguration(config)
+        except ValueError as e:
+            error = 'Could not load improperly formatted configuration ' + str(e)
+            logging.warning(error)
+            return error
+
+        with open(self.config_filename, 'w') as config_file:
+            config_file.write(json.dumps(config, indent=4, separators=(',', ':')))
+        return 'OK'
+
 
 def initialize_tool(config):
     try:
