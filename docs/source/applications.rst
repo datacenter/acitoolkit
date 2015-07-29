@@ -11,3 +11,4 @@ Applications
    visualizations
    eventfeeds
    intersite
+   fakeapic
