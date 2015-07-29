@@ -2738,6 +2738,7 @@ class Endpoint(BaseACIObject):
         endpoints = []
         endpoints = Endpoint._get(session, endpoint_name, interfaces,
                                   endpoints, 'fvCEp', 'fvRsCEpToPathEp')
+        print "LOOOOOOOL"
         endpoints = Endpoint._get(session, endpoint_name, interfaces,
                                   endpoints, 'fvStCEp', 'fvRsStCEpToPathEp')
 

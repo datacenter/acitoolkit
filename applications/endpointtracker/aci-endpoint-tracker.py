@@ -47,6 +47,7 @@ import requests
 requests.packages.urllib3.disable_warnings()
 
 
+
 try:
     import mysql.connector as mysql
 except ImportError:
@@ -65,6 +66,7 @@ def convert_timestamp_to_mysql(timestamp):
     return resp_ts
 
 def tracker(args):
+    
     # Login to APIC
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
@@ -77,6 +79,7 @@ def tracker(args):
                         password=args.mysqlpassword,
                         host=args.mysqlip)
     c = cnx.cursor()
+
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
         c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
@@ -180,13 +183,17 @@ def main():
     # Otherwise, take them from your environment variables file ~/.profile
     description = ('Application that logs on to the APIC and tracks'
                    ' all of the Endpoints in a MySQL database.')
-    creds = aci.Credentials(qualifier=('apic', 'mysql', 'eptracker'),
+    creds = aci.Credentials(qualifier=('apic', 'mysql', 'daemon'),
                             description=description)
     args = creds.get()
 
+    pid = '/var/run/endpointracker.pid'
     if args.daemon:
-        daemon = Daemonize(args, args.pid + 'endpointracker.pid')
+        daemon = Daemonize(args, pid)
         daemon.start()
+    elif args.kill:
+        daemon = Daemonize(args, pid)
+        daemon.stop()
     else:
         tracker(args)
 
