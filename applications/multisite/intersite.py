@@ -344,6 +344,7 @@ class MultisiteMonitor(threading.Thread):
                             dirty = True
                             child['fvRsConsIf']['attributes']['status'] = 'deleted'
                     if dirty:
+                        logging.debug('cleaning dirty entry')
                         url = '/api/mo/uni/tn-%s/out-%s.json' % (l3out.tenant, l3out.name)
                         resp = site_obj.session.push_to_apic(url, entry)
                         if not resp.ok:
@@ -742,8 +743,7 @@ class ExportPolicy(ConfigObject):
         for contract in l3out.get_provided_contract_policies():
             if contract.contract_name == contract_name:
                 return True
-            else:
-                return False
+        return False
 
     def consumes(self, site_name, l3out_name, l3out_tenant, contract_name):
         l3out = self._get_l3out_policy(site_name, l3out_name, l3out_tenant)
@@ -752,8 +752,7 @@ class ExportPolicy(ConfigObject):
         for contract in l3out.get_consumed_contract_policies():
             if contract.contract_name == contract_name:
                 return True
-            else:
-                return False
+        return False
 
     def protected_by(self, site_name, l3out_name, l3out_tenant, taboo_name):
         l3out = self._get_l3out_policy(site_name, l3out_name, l3out_tenant)
@@ -762,8 +761,7 @@ class ExportPolicy(ConfigObject):
         for taboo in l3out.get_protected_by_policies():
             if taboo.taboo_name == taboo_name:
                 return True
-            else:
-                return False
+        return False
 
     def consumes_cif(self, site_name, l3out_name, l3out_tenant, consumes_interface):
         l3out = self._get_l3out_policy(site_name, l3out_name, l3out_tenant)
@@ -772,8 +770,7 @@ class ExportPolicy(ConfigObject):
         for contract_if in l3out.get_consumes_interface_policies():
             if contract_if.consumes_interface == consumes_interface:
                 return True
-            else:
-                return False
+        return False
 
 
 class LocalSite(Site):
