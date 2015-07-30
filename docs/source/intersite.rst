@@ -41,6 +41,8 @@ be called as shown below:
       -h, --help            show this help message and exit
       --config CONFIG       Configuration file
       --generateconfig      Generate an empty example configuration file
+      --maxlogfiles MAXLOGFILES
+                            Maximum number of log files (default is 10)
       --debug [{verbose,warnings,critical}]
                             Enable debug messages.
 
@@ -62,10 +64,8 @@ option will produce the following output and quit the application. The sample JS
         One site must have local set to 'True'
     Replicate the export JSON for each exported contract.
 
-The ``--debug`` option allows the level to be set for the displaying of debugging messages. The lowest level is
-``critical`` and will only show the most critical messages. The next level is ``warnings`` and will display all of
-the ``critical`` messages as well as those deemed suspect. The ``verbose`` level gives the previous levels plus
-additional information that provides deep insight into what has occurred in the tool.
+The ``--debug`` and ``--maxlogfiles`` options are described in the `Logging`_ section.
+
 
 Configuration File
 ------------------
@@ -193,6 +193,75 @@ with the tool. The following commands are available at the command prompt.
     debug verbose             Sets the debug message level to verbose.
     help [cmd]                Displays help for any command.
     quit                      Quit the Intersite tool.
+
+REST API
+--------
+
+The Intersite application can be accessed through a simple server application using a REST API. When run as a server,
+the application usage is run as follows:
+
+::
+
+    python intersite_rest_server.py -h
+    usage: intersite_rest_server.py [-h] [--config CONFIG]
+                                    [--maxlogfiles MAXLOGFILES] [--generateconfig]
+                                    [--debug [{verbose,warnings,critical}]]
+
+    ACI Multisite Tool
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --config CONFIG       Configuration file
+      --maxlogfiles MAXLOGFILES
+                            Maximum number of log files (default is 10)
+      --generateconfig      Generate an empty example configuration file
+      --debug [{verbose,warnings,critical}]
+                            Enable debug messages.
+      --ip IP               IP address to listen on.
+      --port PORT           Port number to listen on.
+
+An example of running the application would be:
+
+::
+
+    python intersite_rest_server.py --config my_config.json
+
+By default, the server runs on the loopback IP address 127.0.0.1 and the port 5000. This can be changed via the
+``--ip`` and ``--port`` command line options.
+
+The REST API allows retrieving and setting the configuration of the tool. This is done through a single URL, namely
+``/config``.
+
+By sending HTTP GET requests to ``/config``, the configuration can be retrieved.
+
+By sending JSON configuration in an HTTP POST or HTTP PUT to ``/config``, the configuration can be changed. This JSON
+configuration is the same format as decribed in the `Configuration File`_ section. If the configuration is not valid
+JSON, a 400 error response code will be returned.
+
+The REST API is protected by basic HTTP authentication with the default username set to ``admin`` and the default
+password set to ``acitoolkit``.
+
+Some examples using the REST API via curl:
+
+::
+
+    curl –i –u admin:acitoolkit –H “Content-Type: application/json” -X PUT –d@my_config.json http://localhost:5000/config
+    curl –i –u admin:acitoolkit –X GET http://localhost:5000/config
+
+
+Logging
+-------
+
+The Intersite application supports logging of various debug messages. The messages are categorized by levels and the
+application allows the level to be set by the user through the ``--debug`` option. The lowest level is ``critical``
+and will only log the most critical messages. The next level is ``warnings`` and will log all of the ``critical``
+messages as well as those deemed suspect. The ``verbose`` level gives the previous levels plus additional information
+that provides deep insight into what has occurred in the tool.
+
+The debug messages are stored in the file ``intersite.log``. When the file reaches 5 MB in size, the log file will
+rollover to a new file up to the configured maximum number of log files. By default, this maximum is 10 but the number
+can be changed by the user via the ``--maxlogfiles`` command line option. Once the maximum number of log files has been
+reached, the oldest log file will be deleted.
 
 APIC Object Model
 -----------------
