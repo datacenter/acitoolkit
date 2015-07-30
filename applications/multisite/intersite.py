@@ -115,6 +115,8 @@ class EndpointHandler(object):
     """
     def __init__(self):
         self.db = {}  # Indexed by remote site
+        self.endpoint_add_events = 0
+        self.endpoint_del_events = 0
 
     def _remove_queued_endpoint(self, remote_site, l3out_policy, endpoint):
         if remote_site not in self.db:
@@ -205,7 +207,7 @@ class EndpointHandler(object):
             l3out['l3extOut']['children'].append(new_l3instp)
 
     def add_endpoint(self, endpoint, local_site):
-        logging.info('EndpointHandler:add_endpoint endpoint: %s', endpoint.mac)
+        logging.info('endpoint: %s', endpoint.mac)
         epg = endpoint.get_parent()
         app = epg.get_parent()
         tenant = app.get_parent()
@@ -219,6 +221,12 @@ class EndpointHandler(object):
         if policy is None:
             logging.info('Ignoring endpoint as there is no policy defined for its EPG')
             return
+
+        # Track the number of endpoint events
+        if endpoint.is_deleted():
+            self.endpoint_del_events += 1
+        else:
+            self.endpoint_add_events += 1
 
         # Process the endpoint policy
         for remote_site_policy in policy.get_site_policies():
@@ -238,7 +246,7 @@ class EndpointHandler(object):
         """
         Push the endpoints to the remote sites
         """
-        logging.debug('EndpointHandler:push_to_remote_sites')
+        logging.debug('')
         for remote_site in self.db:
             remote_site_obj = collector.get_site(remote_site)
             assert remote_site_obj is not None
@@ -342,7 +350,7 @@ class MultisiteMonitor(threading.Thread):
                             logging.warning('Could not push modified entry to remote site %s %s', resp, resp.text)
 
     def handle_existing_endpoints(self, policy):
-        logging.info('handle_existing_endpoints for tenant: %s app_name: %s epg_name: %s',
+        logging.info('for tenant: %s app_name: %s epg_name: %s',
                      policy.tenant, policy.app, policy.epg)
         endpoints = Endpoint.get_all_by_epg(self._session,
                                             policy.tenant, policy.app, policy.epg,
@@ -356,7 +364,7 @@ class MultisiteMonitor(threading.Thread):
         num_eps = MAX_ENDPOINTS
         while Endpoint.has_events(self._session) and num_eps:
             ep = Endpoint.get_event(self._session, with_relations=False)
-            logging.info('handle_endpoint_event for Endpoint: %s', ep.mac)
+            logging.info('for Endpoint: %s', ep.mac)
             self._endpoints.add_endpoint(ep, self._local_site)
             num_eps -= 1
         self._endpoints.push_to_remote_sites(self._my_collector)
@@ -784,7 +792,7 @@ class LocalSite(Site):
         return resp
 
     def remove_stale_entries(self, policy):
-        logging.info('remove_stale_entries')
+        logging.info('')
         # Get all of the local APIC entries
         endpoints = Endpoint.get_all_by_epg(self.session,
                                             policy.tenant, policy.app, policy.epg,
@@ -826,7 +834,7 @@ class LocalSite(Site):
                                          l3out_mac, l3out.name, site.name)
 
     def add_policy(self, policy):
-        logging.info('add_policy')
+        logging.info('')
         old_policy = self.get_policy_for_epg(policy.tenant,
                                              policy.app,
                                              policy.epg)
@@ -837,12 +845,8 @@ class LocalSite(Site):
         self.remove_stale_entries(policy)
         self.monitor.handle_existing_endpoints(policy)
 
-    def validate_policy(self, policy):
-        logging.warning('validate_policy needs to be implemented')
-        pass
-
     def remove_policy(self, policy):
-        logging.info('remove_policy')
+        logging.info('')
         self.policy_db.remove(policy)
 
     def get_policy_for_epg(self, tenant_name, app_name, epg_name):
@@ -926,7 +930,7 @@ class MultisiteCollector(object):
         return len(self.sites)
 
     def add_site(self, name, credentials, local):
-        logging.info('add_site name:%s local:%s', name, local)
+        logging.info('name:%s local:%s', name, local)
         self.delete_site(name)
         if local:
             site = LocalSite(name, credentials, self)
@@ -951,7 +955,7 @@ class MultisiteCollector(object):
         self.add_site(site.name, creds, is_local)
 
     def delete_site(self, name):
-        logging.info('delete_site name:%s', name)
+        logging.info('name:%s', name)
         for site in self.sites:
             if name == site.name:
                 site.shutdown()
@@ -1001,7 +1005,7 @@ class MultisiteCollector(object):
         return added_local_site
 
     def reload_config(self):
-        logging.info('reload_config')
+        logging.info('')
         with open(self.config_filename) as config_file:
             new_config = json.load(config_file)
         if 'config' not in new_config:
@@ -1059,7 +1063,7 @@ class MultisiteCollector(object):
                 site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant)
 
     def save_config(self, config):
-        logging.info('save_config')
+        logging.info('')
         try:
             new_config = IntersiteConfiguration(config)
         except ValueError as e:
@@ -1093,7 +1097,7 @@ class CommandLine(cmd.Cmd):
     prompt = 'intersite> '
     intro = 'Cisco ACI Intersite tool (type help for commands)'
 
-    SHOW_CMDS = ['configfile', 'debug', 'config']
+    SHOW_CMDS = ['configfile', 'debug', 'config', 'stats']
     DEBUG_CMDS = ['verbose', 'warnings', 'critical']
 
     def __init__(self, collector):
@@ -1122,6 +1126,10 @@ class CommandLine(cmd.Cmd):
             print 'Configuration file is set to:', self.collector.config_filename
         elif keyword == 'config':
             print json.dumps(self.collector.config.get_config(), indent=4, separators=(',', ':'))
+        elif keyword == 'stats':
+            handler = self.collector.get_local_site().monitor._endpoints
+            print 'Endpoint addition events:', handler.endpoint_add_events
+            print 'Endpoint deletion events:', handler.endpoint_del_events
 
     def emptyline(self):
         pass
