@@ -1,10 +1,23 @@
 from flask import Flask, request, abort, make_response, jsonify
-from intersite import execute_tool, parse_args
+from intersite import execute_tool, get_arg_parser
 import json
 from flask.ext.httpauth import HTTPBasicAuth
+
+DEFAULT_PORT = '5000'
+DEFAULT_IPADDRESS = '127.0.0.1'
+
 auth = HTTPBasicAuth()
 
-collector = execute_tool(parse_args(), test_mode=True)
+parser = get_arg_parser()
+parser.add_argument('--ip',
+                    default=DEFAULT_IPADDRESS,
+                    help='IP address to listen on.')
+parser.add_argument('--port',
+                    default=DEFAULT_PORT,
+                    help='Port number to listen on.')
+
+args = parser.parse_args()
+collector = execute_tool(args, test_mode=True)
 app = Flask(__name__)
 
 
@@ -38,4 +51,4 @@ def set_config():
     return json.dumps({'Status': 'OK'}, indent=4, separators=(',', ':'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host=args.ip, port=int(args.port))

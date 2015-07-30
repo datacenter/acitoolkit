@@ -1186,7 +1186,7 @@ class CommandLine(cmd.Cmd):
                            ]
         return completions
 
-def parse_args():
+def get_arg_parser():
     parser = argparse.ArgumentParser(description='ACI Multisite Tool')
     parser.add_argument('--config', default=None, help='Configuration file')
     parser.add_argument('--maxlogfiles', type=int, default=10, help='Maximum number of log files (default is 10)')
@@ -1196,8 +1196,7 @@ def parse_args():
                         choices=['verbose', 'warnings', 'critical'],
                         const='critical',
                         help='Enable debug messages.')
-    args = parser.parse_args()
-    return args
+    return parser
 
 
 def main():
@@ -1206,7 +1205,7 @@ def main():
 
     :return: None
     """
-    execute_tool(parse_args())
+    execute_tool(get_arg_parser().parse_args())
 
 
 def execute_tool(args, test_mode=False):
