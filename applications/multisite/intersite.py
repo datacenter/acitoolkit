@@ -3,6 +3,7 @@ import json
 import re
 import threading
 import logging
+from logging.handlers import RotatingFileHandler
 import cmd
 import sys
 import socket
@@ -1188,6 +1189,7 @@ class CommandLine(cmd.Cmd):
 def parse_args():
     parser = argparse.ArgumentParser(description='ACI Multisite Tool')
     parser.add_argument('--config', default=None, help='Configuration file')
+    parser.add_argument('--maxlogfiles', type=int, default=10, help='Maximum number of log files (default is 10)')
     parser.add_argument('--generateconfig', action='store_true', default=False,
                         help='Generate an empty example configuration file')
     parser.add_argument('--debug', nargs='?',
@@ -1197,6 +1199,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
 def main():
     """
     Main execution routine
@@ -1205,7 +1208,9 @@ def main():
     """
     execute_tool(parse_args())
 
+
 def execute_tool(args, test_mode=False):
+    # Set up the logging infrastructure
     if args.debug is not None:
         if args.debug == 'verbose':
             level = logging.DEBUG
@@ -1215,9 +1220,16 @@ def execute_tool(args, test_mode=False):
             level = logging.CRITICAL
     else:
         level = logging.CRITICAL
-    logging.basicConfig(format='%(filename)s:%(message)s')
+    log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
+    log_file = 'intersite.log'
+    my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5*1024*1024,
+                                     backupCount=args.maxlogfiles, encoding=None, delay=0)
+    my_handler.setFormatter(log_formatter)
+    my_handler.setLevel(level)
+    logging.getLogger().addHandler(my_handler)
     logging.getLogger().setLevel(logging.DEBUG)
 
+    # Handle generating sample configuration
     if args.generateconfig:
         config = {'config': [
                                 {'site': {'name': '',
