@@ -1003,8 +1003,12 @@ class MultisiteCollector(object):
 
     def reload_config(self):
         logging.info('')
-        with open(self.config_filename) as config_file:
-            new_config = json.load(config_file)
+        try:
+            with open(self.config_filename) as config_file:
+                new_config = json.load(config_file)
+        except IOError:
+            print '%% Could not load configuration file'
+            return
         if 'config' not in new_config:
             print '%% Invalid configuration file'
             return
@@ -1154,8 +1158,11 @@ class CommandLine(cmd.Cmd):
         configfile <filename>
         Set the configuration file name.
         '''
-        self.collector.config_filename = filename
-        print 'Configuration file is set to:', self.collector.config_filename
+        if len(filename):
+            self.collector.config_filename = filename
+            print 'Configuration file is set to:', self.collector.config_filename
+        else:
+            print 'No config filename given.'
 
     def do_debug(self, keyword):
         '''
