@@ -29,9 +29,6 @@
 ################################################################################
 """ACI Toolkit module for counter and stats objects
 """
-
-# import json
-# import logging
 import re
 
 

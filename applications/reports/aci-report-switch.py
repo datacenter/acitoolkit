@@ -29,11 +29,12 @@
 Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
+import datetime
 from operator import attrgetter
 import sys
-import acitoolkit.acitoolkit as ACI
+
+import acitoolkit as ACI
 from acitoolkit.acitoolkitlib import Credentials
-import datetime
 
 
 # Take login credentials from the command line if provided

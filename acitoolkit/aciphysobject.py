@@ -29,16 +29,20 @@
 ################################################################################
 """ACI Toolkit module for physical objects
 """
-import datetime
-from operator import attrgetter, itemgetter
-from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseInterface
-from .aciConcreteLib import *
-from .acisession import Session
-from .acicounters import AtomicCountersOnGoing, InterfaceStats
-import logging
-import re
 import copy
+import logging
+from operator import attrgetter, itemgetter
+import re
+
+from .acibaseobject import (
+    BaseACIObject, BaseACIPhysModule, BaseACIPhysObject, BaseInterface
+)
+from .acicounters import AtomicCountersOnGoing, InterfaceStats
 from .aciSearch import Searchable
+from .acisession import Session
+from .aciTable import Table
+# TODO: resolve circular dependency and import only LogicalModel
+import acitoolkit as ACI
 
 
 class Systemcontroller(BaseACIPhysModule):
@@ -1071,6 +1075,12 @@ class Node(BaseACIPhysObject):
         If they don't have children, this will return an empty list.
         :return: list of classes
         """
+        # TODO: resolve circular dependency
+        from .aciConcreteLib import (
+            ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext,
+            ConcreteEp, ConcreteFilter, ConcreteLoopback, ConcreteOverlay,
+            ConcretePortChannel, ConcreteSVI, ConcreteVpc
+        )
         return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
                 ConcreteContext, ConcreteSVI, ConcreteVpc]

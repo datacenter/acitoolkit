@@ -32,9 +32,11 @@ This module implements the Base Class for creating all of the ACI Objects.
 """
 import logging
 from operator import attrgetter
+import sys
+
 from .aciSearch import AciSearch, Searchable
 from .acisession import Session
-import sys
+
 
 class BaseRelation(object):
     """

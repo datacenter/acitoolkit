@@ -26,14 +26,15 @@
     It runs as a standalone tool in addition, it can be imported as a library
     such as when used by the GUI frontend.
 """
+import datetime
+import os.path
+import pickle
+import sys
 
-import acitoolkit.acitoolkit as ACI
+import acitoolkit as ACI
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
-import sys
-import os.path
-import datetime
-import pickle
+
 
 class LoginError(Exception):
     """

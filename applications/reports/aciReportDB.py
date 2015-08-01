@@ -20,8 +20,10 @@
 This is the report generator for the aciReportGui application
 """
 __author__ = 'edsall'
+
 from operator import itemgetter
-import acitoolkit.acitoolkit as ACI
+
+import acitoolkit as ACI
 
 
 class DisplayRecord(object):

@@ -31,18 +31,18 @@
      This is the main module that comprises the ACI Toolkit.
 """
 from collections import Sequence
+import logging
 from operator import attrgetter, itemgetter
 import re
 import sys
+
 from requests.compat import urlencode
-from .aciTable import Table
-# from .aciphysobject import Interface
-from .aciphysobject import *
-from .acibaseobject import BaseACIObject, BaseRelation, BaseInterface
+
+from .acibaseobject import BaseACIObject, BaseInterface
+from .aciphysobject import Interface
 from .acisession import Session
+from .aciTable import Table
 from .acitoolkitlib import Credentials
-import logging
-import json
 
 
 def cmdline_login_to_apic(description=''):

@@ -34,7 +34,8 @@ of the physical nodes; both belonging to and connected to the
 fabric.
 """
 import sys
-from acitoolkit.acitoolkit import Session, Credentials, Node, ExternalSwitch
+
+from acitoolkit import Session, Credentials, Node, ExternalSwitch
 
 
 def main():

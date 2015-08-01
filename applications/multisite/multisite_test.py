@@ -1,6 +1,5 @@
 import argparse
 import unittest
-import random
 from multisite import *
 import time
 import logging

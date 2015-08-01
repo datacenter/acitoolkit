@@ -32,13 +32,18 @@ Physical object tests
 """
 
 try:
-    from credentials import *
+    from credentials import URL, LOGIN, PASSWORD
 except ImportError:
     URL = ''
     LOGIN = ''
     PASSWORD = ''
-from acitoolkit.acitoolkit import *
-#from acitoolkit.aciphysobject import *
+from acitoolkit.acisession import Session
+# TODO: resolve circular dependencies and order-dependent import
+from acitoolkit.acitoolkit import Search
+from acitoolkit.aciphysobject import (
+    ExternalSwitch, Fantray, Interface, Linecard, Link, Node, PhysicalModel,
+    Pod, Powersupply, Supervisorcard, Systemcontroller
+)
 import unittest
 
 

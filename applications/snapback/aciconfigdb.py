@@ -33,12 +33,13 @@
 """
 import os
 import git
-import acitoolkit.acitoolkit as ACI
 import time
 import json
 import threading
 import datetime
 import sys
+
+import acitoolkit as ACI
 from requests import Timeout, ConnectionError
 
 

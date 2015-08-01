@@ -19,7 +19,6 @@ __author__ = 'edsall'
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
-# all the import
 
 
 class Searchable(object):
