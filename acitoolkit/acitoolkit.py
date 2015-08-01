@@ -32,6 +32,7 @@
 """
 from collections import Sequence
 from operator import attrgetter, itemgetter
+import re
 import sys
 from requests.compat import urlencode
 from .aciTable import Table
@@ -2739,69 +2740,38 @@ class FexInterface(object):
         self.if_name += self.module + '/' + self.port
 
 
-class InterfaceFactory(object):
+def _interface_from_dn(dn):
     """
-    Factory class to generate interface objects
+    Creates the appropriate interface object based on the dn
+    The classes along with an example DN are shown below
+    Interface: topology/pod-1/paths-102/pathep-[eth1/12]
+    FexInterface: topology/pod-1/paths-103/extpaths-105/pathep-[eth1/12]
+    TunnelInterface:
+    BladeSwitchInterface:
     """
-
-    @classmethod
-    def create_from_dn(cls, dn):
-        """
-        Creates the appropriate interface object based on the dn
-        The classes along with an example DN are shown below
-        Interface: topology/pod-1/paths-102/pathep-[eth1/12]
-        FexInterface: topology/pod-1/paths-103/extpaths-105/pathep-[eth1/12]
-        TunnelInterface:
-        BladeSwitchInterface:
-        """
-        if '/extpaths-' in dn:
-            # Split the URL into 2 parts
-            dn_parts = dn.split('[')
-
-            # Split the first part
-            loc = dn_parts[0].split('/')
-            assert loc[0] == 'topology'
-            # Get the Pod number
-            pod = loc[1].split('-')
-            assert pod[0] == 'pod'
-            pod = pod[1]
-            # Get the Node number
-            node = loc[2].split('-')
-            assert node[0] == 'paths'
-            node = node[1]
-            # Get the Fex number
-            fex = loc[3].split('-')
-            assert fex[0] == 'extpaths'
-            fex = fex[1]
-            # Get the type, module, and port
-            mod_port = dn_parts[1].split(']')[0]
-            if_type = mod_port[:3]
-            (module, port) = mod_port[3:].split('/')
-            return FexInterface(if_type, pod, node, fex, module, port)
-        elif 'pathep-[tunnel' in dn:
-            # Split the URL into 2 parts
-            dn_parts = dn.split('[')
-
-            # Split the first part
-            loc = dn_parts[0].split('/')
-            assert loc[0] == 'topology'
-            # Get the Pod number
-            pod = loc[1].split('-')
-            assert pod[0] == 'pod'
-            pod = pod[1]
-            # Get the Node number
-            node = loc[2].split('-')
-            assert node[0] == 'paths'
-            node = node[1]
-            # Get the tunnel
-            assert loc[3] == 'pathep-'
-            tunnel = dn_parts[1].split(']')[0]
-            assert tunnel.startswith('tunnel')
-            tunnel = tunnel[6:]
-
-            return TunnelInterface('tunnel', pod, node, tunnel)
-        else:
-            return Interface(*Interface.parse_dn(dn))
+    interface_pattern = r'''(?x)
+        topology/pod-(?P<pod>\d+)/paths-(?P<node>\d+)/
+        (?:extpaths-(?P<fex>\d+)/)? # optional fex path fragment
+        pathep-
+        \[
+        (?: # physical interface or tunnel
+            (?P<if_type>[A-Za-z]{3})(?P<module>\d+)/(?P<port>\d+)
+        |
+            tunnel(?P<tunnel>\w+)
+        )
+        \]
+    '''
+    match = re.match(interface_pattern, dn)
+    if not match:
+        return Interface(*Interface.parse_dn(dn))
+    elif match.group('fex') is not None:
+        args = match.group('if_type', 'pod', 'node', 'fex', 'module', 'port')
+        return FexInterface(*args)
+    elif match.group('tunnel') is not None:
+        args = match.group('pod', 'node', 'tunnel')
+        return TunnelInterface('tunnel', *args)
+    else:
+        return Interface(*Interface.parse_dn(dn))
 
 
 class PortChannel(BaseInterface):
@@ -3107,7 +3077,7 @@ class Endpoint(BaseACIObject):
                         interface_dn = str(interface['dn'])
                         if endpoint.if_name == interface_dn:
                             if str(interface['lagT']) == 'not-aggregated':
-                                endpoint.if_name = InterfaceFactory.create_from_dn(interface_dn).if_name
+                                endpoint.if_name = _interface_from_dn(interface_dn).if_name
                             else:
                                 endpoint.if_name = interface['name']
                     # endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
