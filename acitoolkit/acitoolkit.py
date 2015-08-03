@@ -861,14 +861,18 @@ class EPG(CommonEPG):
             children.append(text)
 
             for ep in interface.get_all_attachments(Endpoint):
+                ep_children = []
+                for child in self.get_children():
+                    ep_children.append({'fvStIp': {'attributes': {'addr': child.ip}, 'children': []}})
                 path = interface._get_path()
+                ep_children.append({'fvRsStCEpToPathEp': {'attributes': {'tDn': path},
+                                                       'children': []}})
                 text = {'fvStCEp': {'attributes': {'ip': ep.ip,
                                                    'mac': ep.mac,
                                                    'name': ep.name,
                                                    'encap': encap_text,
                                                    'type': 'silent-host'},
-                                    'children': [{'fvRsStCEpToPathEp': {'attributes': {'tDn': path},
-                                                                        'children': []}}]}}
+                                    'children': ep_children}}
                 if ep.is_deleted():
                     text['fvStCEp']['attributes']['status'] = 'deleted'
                 children.append(text)
@@ -955,31 +959,76 @@ class EPG(CommonEPG):
 
 
 class OutsideNetwork(CommonEPG):
-    def __init__(self, network_name):
-        self.network = None
-        if '/' in network_name:
-            name = '.'.join([i for i in network_name.split('/')])
-        else:
-            name = network_name
-        super(OutsideNetwork, self).__init__(name)
+    def __init__(self, name, parent):
+        super(OutsideNetwork, self).__init__(name, parent)
+        self.ip = None
+
+    def _generate_attributes(self):
+        attributes = super(OutsideNetwork, self)._generate_attributes()
+        if self.ip is None:
+            raise ValueError('OutsideNetwork ip is not set')
+        attributes['ip'] = self.ip
+        return attributes
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['l3extSubnet']
+
+    def get_json(self):
+        """
+        Returns json representation of the OutsideNetwork object.
+
+        :returns: json dictionary of OutsideNetwork
+        """
+        attr = self._generate_attributes()
+        return super(OutsideNetwork, self).get_json(self._get_apic_classes()[0],
+                                                    attributes=attr)
 
 
 class OutsideEPG(CommonEPG):
-    """Represents the EPG for external connectivity
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['l3extInstP']
+
+    def get_json(self):
+        """
+        Returns json representation of the EPG
+
+        :returns: json dictionary of the EPG
+        """
+        children = super(OutsideEPG, self)._get_common_json()
+        attr = self._generate_attributes()
+        return super(CommonEPG, self).get_json(self._get_apic_classes()[0],
+                                               attributes=attr,
+                                               children=children)
+
+
+class OutsideL3(BaseACIObject):
+    """Represents the L3Out for external connectivity
     """
 
-    def __init__(self, epg_name, parent=None):
+    def __init__(self, l3out_name, parent=None):
         """
-        :param epg_name: String containing the name of this OutsideEPG
+        :param l3out_name: String containing the name of this OutsideL3
         :param parent: Instance of the Tenant class representing\
-                       the tenant owning this OutsideEPG.
+                       the tenant owning this OutsideL3.
         """
         self.context_name = None
         self.networks = []
 
         if not isinstance(parent, Tenant):
             raise TypeError('Parent is not set to Tenant')
-        super(OutsideEPG, self).__init__(epg_name, parent)
+        super(OutsideL3, self).__init__(l3out_name, parent)
 
     def has_context(self):
         """
@@ -995,7 +1044,7 @@ class OutsideEPG(CommonEPG):
         Add context to the EPG
 
         :param context: Instance of Context class to assign to this\
-                        L3Interface.
+                        OutsideL3.
         """
         assert isinstance(context, Context)
         if self.has_context():
@@ -1008,7 +1057,7 @@ class OutsideEPG(CommonEPG):
         Remove the context from the EPG
 
         :param context: Instance of Context class to remove from this
-                        OutsideEPG.
+                        OutsideL3.
         """
         self._remove_all_relation(Context)
 
@@ -1033,8 +1082,8 @@ class OutsideEPG(CommonEPG):
         tenant_children = data[0]['fvTenant']['children']
         for child in tenant_children:
             if 'l3extOut' in child:
-                outside_epg_name = child['l3extOut']['attributes']['name']
-                if outside_epg_name == self.name:
+                outside_l3_name = child['l3extOut']['attributes']['name']
+                if outside_l3_name == self.name:
                     outside_children = child['l3extOut']['children']
                     for outside_child in outside_children:
                         if 'l3extRsEctx' in outside_child:
@@ -1047,13 +1096,13 @@ class OutsideEPG(CommonEPG):
                                 if isinstance(context, Context):
                                     self.add_context(context)
                     break
-        super(OutsideEPG, self)._extract_relationships(data)
+        super(OutsideL3, self)._extract_relationships(data)
 
     # L3 External Domain
     def add_l3extdom(self, extdom):
         """
-        Set the L3Out for this BD
-        :param l3out: OutsideEPG to assign this BridgeDomain
+        Set the L3ExternalDomain for this BD
+        :param l3out: OutsideL3 to assign this BridgeDomain
 
         """
         if not isinstance(extdom, L3ExtDomain):
@@ -1068,9 +1117,9 @@ class OutsideEPG(CommonEPG):
 
     def get_json(self):
         """
-        Returns json representation of OutsideEPG
+        Returns json representation of OutsideL3
 
-        :returns: json dictionary of OutsideEPG
+        :returns: json dictionary of OutsideL3
         """
         children = []
         if self.context_name is not None:
@@ -1085,34 +1134,7 @@ class OutsideEPG(CommonEPG):
                        {"tDn": "uni/l3dom-{}".format(self._get_any_relation(L3ExtDomain))}}}
             children.append(domain)
 
-        for network in self.networks:  # TODO clean this up - duplicate of code below
-            if isinstance(network, str):
-                network_obj = OutsideNetwork(network)
-                network_obj.network = network
-                network = network_obj
-            tags_json = []
-            if network.has_tags():
-                for tag in network.get_tags():
-                    tag_json = {'tagInst': {'attributes': {'name': tag.name}}}
-                    if tag.is_deleted():
-                        tag_json['tagInst']['attributes']['status'] = 'deleted'
-                    tags_json.append(tag_json)
-            text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
-                                   'children': tags_json}}
-            subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
-                                      'children': []}}
-            if network.is_deleted():
-                text['l3extInstP']['attributes']['status'] = 'deleted'
-                subnet['l3extSubnet']['attributes']['status'] = 'deleted'
-            else:
-                text['l3extInstP']['children'].append(subnet)
-            contracts = network._get_common_json()
-            for contract in contracts:
-                text['l3extInstP']['children'].append(contract)
-            children.append(text)
-
         for interface in self.get_interfaces():
-
             if hasattr(interface, 'is_ospf'):
                 ospf_if = interface
 
@@ -1125,28 +1147,13 @@ class OutsideEPG(CommonEPG):
                 text = {"bgpExtP": {"attributes": {}}}
                 children.append(text)
 
-            for network in interface.networks:
-                if isinstance(network, str):
-                    network_obj = OutsideNetwork(network)
-                    network_obj.network = network
-                    network = network_obj
-                text = {'l3extInstP': {'attributes': {'name': self.name + '-' + network.name},
-                                       'children': []}}
-                subnet = {'l3extSubnet': {'attributes': {'ip': network.network},
-                                          'children': []}}
-                contracts = network._get_common_json()
-                text['l3extInstP']['children'].append(subnet)
-                for contract in contracts:
-                    text['l3extInstP']['children'].append(contract)
-                children.append(text)
-
         for interface in self.get_interfaces():
             text = interface.get_json()
             children.append(text)
         attr = self._generate_attributes()
-        return super(OutsideEPG, self).get_json('l3extOut',
-                                                attributes=attr,
-                                                children=children)
+        return super(OutsideL3, self).get_json('l3extOut',
+                                               attributes=attr,
+                                               children=children)
 
 
 class L3Interface(BaseACIObject):
@@ -3207,6 +3214,150 @@ class Endpoint(BaseACIObject):
         data = sorted(data, key=itemgetter(1, 2, 3, 4))
         result.append(Table(data, headers, title=title + 'Endpoints'))
         return result
+
+
+class IPEndpoint(BaseACIObject):
+    """
+    Endpoint class
+    """
+    def __init__(self, name, parent):
+        # if not isinstance(parent, EPG):
+        #     raise TypeError('Parent must be of EPG class')
+        super(IPEndpoint, self).__init__(name, parent=parent)
+        self.ip = None
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['fvIp', 'fvStIp']
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return EPG
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        return dn.split('/ip-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        return dn.split('/ip-[')[1].split(']')[0]
+
+    def get_json(self):
+        return None
+
+    def _populate_from_attributes(self, attributes):
+        if 'addr' not in attributes:
+            return
+        self.ip = str(attributes.get('addr'))
+
+    @classmethod
+    def get_event(cls, session):
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in cls._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0][class_name]['attributes']
+            status = str(attributes.get('status'))
+            dn = str(attributes.get('dn'))
+            parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
+            if status == 'created':
+                name = str(attributes.get('addr'))
+            else:
+                name = cls._get_name_from_dn(dn)
+            obj = cls(name, parent=parent)
+            obj._populate_from_attributes(attributes)
+            if status == 'deleted':
+                obj.mark_as_deleted()
+            return obj
+
+    @staticmethod
+    def _get(session, endpoints, apic_endpoint_class):
+        """
+        Internal function to get all of the IPEndpoints
+
+        :param session: Session object to connect to the APIC
+        :param endpoints: list of endpoints
+        :param apic_endpoint_class: class of endpoint
+        :return: list of Endpoints
+        """
+        # Get all of the Endpoints
+        endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
+                              '&rsp-subtree=full' % apic_endpoint_class)
+        ret = session.get(endpoint_query_url)
+        print endpoint_query_url
+        print ret, ret.text
+        ep_data = ret.json()['imdata']
+        for ep in ep_data:
+            ep = ep[apic_endpoint_class]['attributes']
+            ep_dn = str(ep['dn'])
+            ep_addr = str(ep['addr'])
+            if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
+                continue
+            tenant = Tenant(ep_dn.split('/')[1][3:])
+            app_profile = AppProfile(ep_dn.split('/')[2][3:],
+                                     tenant)
+            epg = EPG(ep_dn.split('/')[3][4:], app_profile)
+            endpoint = IPEndpoint(ep_addr, parent=epg)
+            endpoint.ip = ep_addr
+            endpoints.append(endpoint)
+        return endpoints
+
+    @staticmethod
+    def get(session):
+        """Gets all of the IP endpoints connected to the fabric from the APIC
+        """
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+
+        endpoints = []
+        endpoints = IPEndpoint._get(session, endpoints, 'fvIp')
+        endpoints = IPEndpoint._get(session, endpoints, 'fvStIp')
+
+        return endpoints
+
+    @classmethod
+    def get_all_by_epg(cls, session, tenant_name, app_name, epg_name):
+        query_url = ('/api/mo/uni/tn-%s/ap-%s/epg-%s.json?'
+                     'query-target=subtree&'
+                     'target-subtree-class=fvIp,fvStIp' % (tenant_name, app_name, epg_name))
+        ret = session.get(query_url)
+        ep_data = ret.json()['imdata']
+        endpoints = []
+        if len(ep_data) == 0:
+            return endpoints
+        for ep in ep_data:
+            if 'fvStIp' in ep:
+                attr = ep['fvStIp']['attributes']
+            elif 'fvIp' in ep:
+                attr = ep['fvIp']['attributes']
+            else:
+                raise ValueError(ep)
+            ep_dn = str(attr['dn'])
+            ep_addr = str(attr['addr'])
+            if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
+                continue
+            tenant = Tenant(ep_dn.split('/')[1][3:])
+            app_profile = AppProfile(ep_dn.split('/')[2][3:],
+                                     tenant)
+            epg = EPG(ep_dn.split('/')[3][4:], app_profile)
+            endpoint = IPEndpoint(ep_addr, parent=epg)
+            endpoint.ip = ep_addr
+            endpoints.append(endpoint)
+        return endpoints
 
 
 class PhysDomain(BaseACIObject):

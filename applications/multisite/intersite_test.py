@@ -214,6 +214,7 @@ class BaseTestCase(unittest.TestCase):
         ep.ip = ip
         if mark_as_deleted:
             ep.mark_as_deleted()
+        l3ep = IPEndpoint(ip, ep)
 
         # Create the physical interface object
         intf = Interface('eth', '1', '101', '1', '38')
@@ -261,7 +262,7 @@ class TestBasicEndpoints(BaseTestCase):
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
-        l3out = OutsideEPG('l3out', tenant)
+        l3out = OutsideL3('l3out', tenant)
 
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
@@ -294,6 +295,7 @@ class TestBasicEndpoints(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app",
                         "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
                         "remote_sites": [
                             {
                                 "site": {
@@ -320,26 +322,10 @@ class TestBasicEndpoints(BaseTestCase):
         resp = site2.login()
         self.assertTrue(resp.ok)
 
-        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out.json?query-target=subtree')
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=children')
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
-        # Look for l3extInstP
-        found = False
-        for item in resp.json()['imdata']:
-            if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
-                    found = True
-                    break
-        if not found:
-            return False
-
-        # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
-        resp = site2.get(query)
-        self.assertTrue(resp.ok)
-
-        # Look for l3extSubnet
         found = False
         for item in resp.json()['imdata']:
             if 'l3extSubnet' in item:
@@ -425,7 +411,7 @@ class TestMultipleEPG(BaseTestCase):
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
-        l3out = OutsideEPG('l3out', tenant)
+        l3out = OutsideL3('l3out', tenant)
 
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
@@ -458,6 +444,7 @@ class TestMultipleEPG(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app1",
                         "epg": "epg1",
+                        "remote_epg": "intersite-testsuite-app1-epg1",
                         "remote_sites": [
                             {
                                 "site": {
@@ -480,6 +467,7 @@ class TestMultipleEPG(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app2",
                         "epg": "epg2",
+                        "remote_epg": "intersite-testsuite-app2-epg2",
                         "remote_sites": [
                             {
                                 "site": {
@@ -501,27 +489,12 @@ class TestMultipleEPG(BaseTestCase):
         }
         return config
 
-    def verify_remote_site_has_entry(self, mac, ip):
+    def verify_remote_site_has_entry(self, mac, ip, remote_epg):
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
 
-        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out.json?query-target=subtree')
-        resp = site2.get(query)
-        self.assertTrue(resp.ok)
-
-        # Look for l3extInstP
-        found = False
-        for item in resp.json()['imdata']:
-            if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
-                    found = True
-                    break
-        if not found:
-            return False
-
-        # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-%s.json?query-target=subtree' % remote_epg)
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
@@ -544,13 +517,13 @@ class TestMultipleEPG(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-app1-epg1'))
 
         time.sleep(2)
         self.add_endpoint(mac, ip, 'app1', 'epg1')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-app1-epg1'))
 
     def test_basic_add_multiple_endpoint(self):
         args = self.get_args()
@@ -570,9 +543,9 @@ class TestMultipleEPG(BaseTestCase):
         self.add_endpoint(mac3, ip3, 'app2', 'epg2')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2))
-        self.assertTrue(self.verify_remote_site_has_entry(mac3, ip3))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-app2-epg2'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac3, ip3, 'intersite-testsuite-app2-epg2'))
 
     def test_basic_remove_endpoint(self):
         args = self.get_args()
@@ -586,9 +559,9 @@ class TestMultipleEPG(BaseTestCase):
         self.add_endpoint(mac, ip, 'app1', 'epg1')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-app1-epg1'))
         self.remove_endpoint(mac, ip, 'app1', 'epg1')
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-app1-epg1'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
         args = self.get_args()
@@ -605,12 +578,12 @@ class TestMultipleEPG(BaseTestCase):
         self.add_endpoint(mac2, ip2, 'app2', 'epg2')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-app2-epg2'))
 
         self.remove_endpoint(mac1, ip1, 'app1', 'epg1')
-        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2))
+        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-app2-epg2'))
 
 
 class TestBasicExistingEndpoints(BaseTestCase):
@@ -639,7 +612,7 @@ class TestBasicExistingEndpoints(BaseTestCase):
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
-        l3out = OutsideEPG('l3out', tenant)
+        l3out = OutsideL3('l3out', tenant)
 
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
@@ -672,6 +645,7 @@ class TestBasicExistingEndpoints(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app",
                         "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
                         "remote_sites": [
                             {
                                 "site": {
@@ -698,26 +672,10 @@ class TestBasicExistingEndpoints(BaseTestCase):
         resp = site2.login()
         self.assertTrue(resp.ok)
 
-        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out.json?query-target=subtree')
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=children')
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
-        # Look for l3extInstP
-        found = False
-        for item in resp.json()['imdata']:
-            if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
-                    found = True
-                    break
-        if not found:
-            return False
-
-        # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
-        resp = site2.get(query)
-        self.assertTrue(resp.ok)
-
-        # Look for l3extSubnet
         found = False
         for item in resp.json()['imdata']:
             if 'l3extSubnet' in item:
@@ -780,7 +738,7 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
-        l3out = OutsideEPG('l3out', tenant)
+        l3out = OutsideL3('l3out', tenant)
 
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
@@ -818,6 +776,7 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
                 "tenant": "intersite-testsuite",
                 "app": "app",
                 "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
                 "remote_sites": [
                     {
                         "site": {
@@ -842,26 +801,10 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         resp = site2.login()
         self.assertTrue(resp.ok)
 
-        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out.json?query-target=subtree')
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=children')
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
-        # Look for l3extInstP
-        found = False
-        for item in resp.json()['imdata']:
-            if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
-                    found = True
-                    break
-        if not found:
-            return False
-
-        # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
-        resp = site2.get(query)
-        self.assertTrue(resp.ok)
-
-        # Look for l3extSubnet
         found = False
         for item in resp.json()['imdata']:
             if 'l3extSubnet' in item:
@@ -934,7 +877,7 @@ class TestExportPolicyRemoval(BaseTestCase):
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
-        l3out = OutsideEPG('l3out', tenant)
+        l3out = OutsideL3('l3out', tenant)
 
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
@@ -994,6 +937,7 @@ class TestExportPolicyRemoval(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app",
                         "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
                         "remote_sites": [
                             {
                                 "site": {
@@ -1020,26 +964,10 @@ class TestExportPolicyRemoval(BaseTestCase):
         resp = site2.login()
         self.assertTrue(resp.ok)
 
-        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out.json?query-target=subtree')
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=children')
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
-        # Look for l3extInstP
-        found = False
-        for item in resp.json()['imdata']:
-            if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
-                    found = True
-                    break
-        if not found:
-            return False
-
-        # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
-        resp = site2.get(query)
-        self.assertTrue(resp.ok)
-
-        # Look for l3extSubnet
         found = False
         for item in resp.json()['imdata']:
             if 'l3extSubnet' in item:
@@ -1050,12 +978,31 @@ class TestExportPolicyRemoval(BaseTestCase):
             return False
         return True
 
+    def verify_remote_site_has_policy(self):
+        site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json')
+        resp = site2.get(query)
+        self.assertTrue(resp.ok)
+
+        found = False
+        for item in resp.json()['imdata']:
+            if 'l3extInstP' in item:
+                found = True
+                break
+        if not found:
+            return False
+        return True
+
     def test_basic_remove_policy(self):
         args = self.get_args()
         config = self.create_config_file()
         with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
             collector = execute_tool(args, test_mode=True)
         time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_policy())
 
         config = self.create_no_epg_config_file()
         with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
@@ -1064,7 +1011,7 @@ class TestExportPolicyRemoval(BaseTestCase):
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip))
-
+        self.assertFalse(self.verify_remote_site_has_policy())
 
 class TestBasicEndpointsWithContract(BaseTestCase):
     def setup_local_site(self):
@@ -1087,7 +1034,7 @@ class TestBasicEndpointsWithContract(BaseTestCase):
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
-        l3out = OutsideEPG('l3out', tenant)
+        l3out = OutsideL3('l3out', tenant)
 
         contract = Contract('contract-1', tenant)
 
@@ -1122,6 +1069,7 @@ class TestBasicEndpointsWithContract(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app",
                         "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
                         "remote_sites": [
                             {
                                 "site": {
@@ -1161,7 +1109,7 @@ class TestBasicEndpointsWithContract(BaseTestCase):
         found = False
         for item in resp.json()['imdata']:
             if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
+                if item['l3extInstP']['attributes']['name'] == ('intersite-testsuite-app-epg'):
                     found = True
                     break
         if not found:
@@ -1178,7 +1126,7 @@ class TestBasicEndpointsWithContract(BaseTestCase):
             return False
 
         # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
+        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=subtree'
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
@@ -1287,7 +1235,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
-        l3out = OutsideEPG('l3out', tenant)
+        l3out = OutsideL3('l3out', tenant)
 
         contract = Contract('contract-1', tenant)
         contract = Contract('contract-2', tenant)
@@ -1323,6 +1271,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app",
                         "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
                         "remote_sites": [
                             {
                                 "site": {

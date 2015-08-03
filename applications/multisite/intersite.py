@@ -135,34 +135,11 @@ class EndpointHandler(object):
                 for l3instp in l3out['l3extOut']['children']:
                     if 'l3extInstP' not in l3instp:
                         continue
-                    mac = l3instp['l3extInstP']['attributes']['name']
-                    mac = mac.rpartition('-')[-1]
-                    if mac == endpoint.mac:
-                        l3out['l3extOut']['children'].remove(l3instp)
-
-    def _create_tenant_with_l3instp(self, l3out_policy, endpoint, tag):
-        remote_tenant = Tenant(l3out_policy.tenant)
-        network = OutsideNetwork(endpoint.mac)
-        if endpoint.is_deleted():
-            network.mark_as_deleted()
-        else:
-            network.network = endpoint.ip + '/32'
-        for provided_contract in l3out_policy.get_provided_contract_policies():
-            contract = Contract(provided_contract.contract_name)
-            network.provide(contract)
-        for consumed_contract in l3out_policy.get_consumed_contract_policies():
-            contract = Contract(consumed_contract.contract_name)
-            network.consume(contract)
-        for protecting_taboo in l3out_policy.get_protected_by_policies():
-            taboo = Taboo(protecting_taboo.taboo_name)
-            network.protect(taboo)
-        for consumes_interface in l3out_policy.get_consumes_interface_policies():
-            cif = ContractInterface(consumes_interface.consumes_interface)
-            network.consume_cif(cif)
-        outside = OutsideEPG(l3out_policy.name, remote_tenant)
-        network.add_tag(str(tag))
-        outside.networks.append(network)
-        return remote_tenant.get_json()
+                    for ep in l3instp['l3extInstP']['children']:
+                        if 'l3extSubnet' not in ep:
+                            continue
+                        if ep['l3extSubnet']['attributes']['name'] == endpoint.ip:
+                            l3instp['l3extInstP']['children'].remove(ep)
 
     def _merge_tenant_json(self, remote_site, new_json):
         # Add the remote site if the first endpoint for that site
@@ -200,14 +177,26 @@ class EndpointHandler(object):
             tenant_json['fvTenant']['children'].append(new_l3out)
             return
 
-        # Add the l3instP configuration with the existing JSON
-        new_l3instp = new_l3out['l3extOut']['children'][0]
-        assert 'l3extInstP' in new_l3instp
-        if new_l3instp not in l3out['l3extOut']['children']:
-            l3out['l3extOut']['children'].append(new_l3instp)
+        new_outside_epg = new_l3out['l3extOut']['children'][0]
+        assert 'l3extInstP' in new_outside_epg
+
+        # Find the Outside EPG in the existing JSON
+        epg_found = False
+        for outside_epg in l3out['l3extOut']['children']:
+            if 'l3extInstP' not in outside_epg:
+                continue
+            if outside_epg['l3extInstP']['attributes']['name'] == new_outside_epg['l3extInstP']['attributes']['name']:
+                epg_found = True
+                break
+
+        # Add the endpoint configuration with the existing JSON
+        new_endpoint = new_outside_epg['l3extInstP']['children'][0]
+        assert 'l3extSubnet' in new_endpoint
+        if new_endpoint not in outside_epg['l3extInstP']['children']:
+            outside_epg['l3extInstP']['children'].append(new_endpoint)
 
     def add_endpoint(self, endpoint, local_site):
-        logging.info('endpoint: %s', endpoint.mac)
+        logging.info('endpoint: %s', endpoint.name)
         epg = endpoint.get_parent()
         app = epg.get_parent()
         tenant = app.get_parent()
@@ -222,6 +211,7 @@ class EndpointHandler(object):
             logging.info('Ignoring endpoint as there is no policy defined for its EPG')
             return
 
+        logging.info('Need to process endpoint %s', endpoint.ip)
         # Track the number of endpoint events
         if endpoint.is_deleted():
             self.endpoint_del_events += 1
@@ -237,7 +227,14 @@ class EndpointHandler(object):
 
                 # Create the JSON
                 tag = IntersiteTag(tenant.name, app.name, epg.name, local_site.name)
-                tenant_json = self._create_tenant_with_l3instp(l3out_policy, endpoint, tag)
+                remote_tenant = Tenant(l3out_policy.tenant)
+                remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
+                remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
+                remote_ep = OutsideNetwork(endpoint.name, remote_epg)
+                remote_ep.ip = endpoint.name + '/32'
+                if endpoint.is_deleted():
+                    remote_ep.mark_as_deleted()
+                tenant_json = remote_tenant.get_json()
 
                 # Add to the database
                 self._merge_tenant_json(remote_site_policy.name, tenant_json)
@@ -276,106 +273,82 @@ class MultisiteMonitor(threading.Thread):
         """
         self._exit = True
 
-    def verify_endpoints(self, export_policy):
+    def verify_policy(self, export_policy):
         for site in export_policy.get_site_policies():
             site_obj = self._my_collector.get_site(site.name)
             for l3out in site.get_interfaces():
                 itag = IntersiteTag(export_policy.tenant, export_policy.app, export_policy.epg,
                                     self._local_site.name)
 
-                # Get all of the Endpoints with the tags
-                query_url = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
-                             'target-subtree-class=l3extInstP&'
-                             'rsp-subtree=children&'
-                             'rsp-subtree-filter=eq(tagInst.name,"%s")&'
-                             'rsp-subtree-include=required' % (l3out.tenant, l3out.name, itag))
-
+                # Get the l3extInstP with the tag
+                query_url = ('/api/mo/uni/tn-%s/out-%s/instP-%s.json?query-target=children&'
+                             'rsp-subtree=children' % (l3out.tenant, l3out.name, export_policy.remote_epg))
                 resp = site_obj.session.get(query_url)
                 if not resp.ok:
                     logging.warning('Could not get remote site entries %s %s', resp, resp.text)
                     return
-
                 if resp.json()['totalCount'] == '0':
                     continue
 
-                # Get all of the children for the Endpoints with tags
-                valid_names = []
-                for l3instp in resp.json()['imdata']:
-                    valid_names.append(l3instp['l3extInstP']['attributes']['name'])
-                query = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
-                         'target-subtree-class=l3extInstP&'
-                         'rsp-subtree=children&'
-                         'rsp-prop-include=config-only') % (l3out.tenant, l3out.name)
-                resp = site_obj.session.get(query)
-                if not resp.ok:
-                    logging.warning('Could not get remote site entries %s %s', resp, resp.text)
-                    return
-
                 # Check that each entry matches the current policy
-                for entry in resp.json()['imdata']:
-                    if entry['l3extInstP']['attributes']['name'] not in valid_names:
-                        continue
-                    if 'children' not in entry['l3extInstP']:
-                        continue
+                for child in resp.json()['imdata']:
                     dirty = False
-                    for child in entry['l3extInstP']['children']:
-                        if 'fvRsProv' in child:
-                            if export_policy.provides(site.name, l3out.name, l3out.tenant,
-                                                      child['fvRsProv']['attributes']['tnVzBrCPName']):
-                                continue
-                            dirty = True
-                            child['fvRsProv']['attributes']['status'] = 'deleted'
-                        elif 'fvRsCons' in child:
-                            if export_policy.consumes(site.name, l3out.name, l3out.tenant,
-                                                      child['fvRsCons']['attributes']['tnVzBrCPName']):
-                                continue
-                            dirty = True
-                            child['fvRsCons']['attributes']['status'] = 'deleted'
-                        elif 'fvRsProtBy' in child:
-                            if export_policy.protected_by(site.name, l3out.name, l3out.tenant,
-                                                          child['fvRsProtBy']['attributes']['tnVzTabooName']):
-                                continue
-                            dirty = True
-                            child['fvRsProtBy']['attributes']['status'] = 'deleted'
-                        elif 'fvRsConsIf' in child:
-                            if export_policy.consumes_cif(site.name, l3out.name, l3out.tenant,
-                                                          child['fvRsConsIf']['attributes']['tnVzCPIfName']):
-                                continue
-                            dirty = True
-                            child['fvRsConsIf']['attributes']['status'] = 'deleted'
+                    if 'fvRsProv' in child:
+                        if export_policy.provides(site.name, l3out.name, l3out.tenant,
+                                                  child['fvRsProv']['attributes']['tnVzBrCPName']):
+                            continue
+                        dirty = True
+                        child['fvRsProv']['attributes']['status'] = 'deleted'
+                    elif 'fvRsCons' in child:
+                        if export_policy.consumes(site.name, l3out.name, l3out.tenant,
+                                                  child['fvRsCons']['attributes']['tnVzBrCPName']):
+                            continue
+                        dirty = True
+                        child['fvRsCons']['attributes']['status'] = 'deleted'
+                    elif 'fvRsProtBy' in child:
+                        if export_policy.protected_by(site.name, l3out.name, l3out.tenant,
+                                                      child['fvRsProtBy']['attributes']['tnVzTabooName']):
+                            continue
+                        dirty = True
+                        child['fvRsProtBy']['attributes']['status'] = 'deleted'
+                    elif 'fvRsConsIf' in child:
+                        if export_policy.consumes_cif(site.name, l3out.name, l3out.tenant,
+                                                      child['fvRsConsIf']['attributes']['tnVzCPIfName']):
+                            continue
+                        dirty = True
+                        child['fvRsConsIf']['attributes']['status'] = 'deleted'
                     if dirty:
                         logging.debug('cleaning dirty entry')
-                        url = '/api/mo/uni/tn-%s/out-%s.json' % (l3out.tenant, l3out.name)
-                        resp = site_obj.session.push_to_apic(url, entry)
+                        url = '/api/mo/uni/tn-%s/out-%s/instP-%s.json' % (l3out.tenant, l3out.name, export_policy.remote_epg)
+                        resp = site_obj.session.push_to_apic(url, child)
                         if not resp.ok:
                             logging.warning('Could not push modified entry to remote site %s %s', resp, resp.text)
 
     def handle_existing_endpoints(self, policy):
         logging.info('for tenant: %s app_name: %s epg_name: %s',
                      policy.tenant, policy.app, policy.epg)
-        endpoints = Endpoint.get_all_by_epg(self._session,
-                                            policy.tenant, policy.app, policy.epg,
-                                            with_interface_attachments=False)
+        self.verify_policy(policy)
+        endpoints = IPEndpoint.get_all_by_epg(self._session,
+                                              policy.tenant, policy.app, policy.epg)
         for endpoint in endpoints:
             self._endpoints.add_endpoint(endpoint, self._local_site)
         self._endpoints.push_to_remote_sites(self._my_collector)
-        self.verify_endpoints(policy)
 
     def handle_endpoint_event(self):
         num_eps = MAX_ENDPOINTS
-        while Endpoint.has_events(self._session) and num_eps:
-            ep = Endpoint.get_event(self._session, with_relations=False)
-            logging.info('for Endpoint: %s', ep.mac)
+        while IPEndpoint.has_events(self._session) and num_eps:
+            ep = IPEndpoint.get_event(self._session)
+            logging.info('for Endpoint: %s', ep.name)
             self._endpoints.add_endpoint(ep, self._local_site)
             num_eps -= 1
         self._endpoints.push_to_remote_sites(self._my_collector)
 
     def run(self):
         # Subscribe to endpoints
-        Endpoint.subscribe(self._session)
+        IPEndpoint.subscribe(self._session)
 
         while not self._exit:
-            if Endpoint.has_events(self._session):
+            if IPEndpoint.has_events(self._session):
                 self.handle_endpoint_event()
 
 
@@ -456,6 +429,7 @@ class IntersiteConfiguration(object):
         for policy in self.export_policies:
             policies.append(policy._policy)
         return {'config': policies}
+
 
 class ConfigObject(object):
     def __init__(self, policy):
@@ -703,6 +677,10 @@ class ExportPolicy(ConfigObject):
     def epg(self):
         return self._policy['export']['epg']
 
+    @property
+    def remote_epg(self):
+        return self._policy['export']['remote_epg']
+
     def validate(self):
         if 'export' not in self._policy:
             raise ValueError(self.__class__.__name__, 'Expecting "export" in configuration')
@@ -711,6 +689,7 @@ class ExportPolicy(ConfigObject):
             keyword_validators = {'tenant': '_validate_string',
                                   'app': '_validate_string',
                                   'epg': '_validate_string',
+                                  'remote_epg': '_validate_string',
                                   'remote_sites': '_validate_list'}
             if item not in keyword_validators:
                 raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
@@ -791,44 +770,66 @@ class LocalSite(Site):
     def remove_stale_entries(self, policy):
         logging.info('')
         # Get all of the local APIC entries
-        endpoints = Endpoint.get_all_by_epg(self.session,
-                                            policy.tenant, policy.app, policy.epg,
-                                            with_interface_attachments=False)
-        local_macs = []
+        endpoints = IPEndpoint.get_all_by_epg(self.session,
+                                              policy.tenant, policy.app, policy.epg)
+        local_endpoints = []
         for ep in endpoints:
-            local_macs.append(ep.mac)
+            local_endpoints.append(ep.name)
         # For each remote site, get all of the L3out entries using this policy
         for site_policy in policy.get_site_policies():
             site = self.my_collector.get_site(site_policy.name)
             for l3out in site_policy.get_interfaces():
-                query = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
-                         'target-subtree-class=l3extInstP&'
-                         'rsp-subtree=children&'
-                         'rsp-subtree-filter=eq(tagInst.name,"isite:%s:%s:%s:%s")&'
-                         'rsp-subtree-include=required' % (l3out.tenant, l3out.name,
-                                                           policy.tenant, policy.app, policy.epg,
-                                                           self.name))
+                query = ('/api/mo/uni/tn-%s/out-%s/instP-%s.json?query-target=children&'
+                         'target-subtree-class=l3extSubnet&'
+                         'rsp-subtree=children' % (l3out.tenant, l3out.name,
+                                                   policy.remote_epg))
                 resp = site.session.get(query)
                 if not resp.ok:
-                    logging.warning('Could not get remote site L3out entries to check for stale entries')
+                    logging.warning('Could not get remote site entries to check for stale entries')
                 else:
                     children = []
                     for item in resp.json()['imdata']:
-                        l3out_mac = item['l3extInstP']['attributes']['name'].rpartition('-')[-1]
-                        if l3out_mac not in local_macs:
+                        l3out_ip = item['l3extSubnet']['attributes']['name'].rpartition('-')[-1]
+                        if l3out_ip not in local_endpoints:
                             # Delete this L3out entry
-                            data = {'l3extInstP': {'attributes': {'name': item['l3extInstP']['attributes']['name'],
-                                                                  'status': 'deleted'}}}
+                            data = {'l3extSubnet': {'attributes': {'name': item['l3extSubnet']['attributes']['name'],
+                                                                   'status': 'deleted'}}}
                             children.append(data)
                     if len(children):
-                        url = '/api/mo/uni/tn-%s.json' % l3out.tenant
-                        l3out_data = {'l3extOut': {'attributes': {'name': l3out.name}, 'children': children}}
+                        url = '/api/mo/uni/tn-%s/out-%s.json' % (l3out.tenant, l3out.name)
+                        l3out_data = {'l3extInstP': {'attributes': {'name': policy.remote_epg}, 'children': children}}
                         resp = site.session.push_to_apic(url, l3out_data)
                         if not resp.ok:
-                            logging.warning('Could not delete stale entry %s', l3out_mac)
+                            logging.warning('Could not delete stale entry %s', l3out_ip)
                         else:
                             logging.info('Found stale entry for %s on l3out %s in remote site %s. Deleting...',
-                                         l3out_mac, l3out.name, site.name)
+                                         l3out_ip, l3out.name, site.name)
+
+    def push_policy(self, policy):
+        tag = IntersiteTag(policy.tenant, policy.app, policy.epg, self.name)
+        for site_policy in policy.get_site_policies():
+            site = self.my_collector.get_site(site_policy.name)
+            for l3out_policy in site_policy.get_interfaces():
+                remote_tenant = Tenant(l3out_policy.tenant)
+                remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
+                remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
+                for provided_contract in l3out_policy.get_provided_contract_policies():
+                    contract = Contract(provided_contract.contract_name)
+                    remote_epg.provide(contract)
+                for consumed_contract in l3out_policy.get_consumed_contract_policies():
+                    contract = Contract(consumed_contract.contract_name)
+                    remote_epg.consume(contract)
+                for protecting_taboo in l3out_policy.get_protected_by_policies():
+                    taboo = Taboo(protecting_taboo.taboo_name)
+                    remote_epg.protect(taboo)
+                for consumes_interface in l3out_policy.get_consumes_interface_policies():
+                    cif = ContractInterface(consumes_interface.consumes_interface)
+                    remote_epg.consume_cif(cif)
+                remote_epg.add_tag(str(tag))
+            resp = remote_tenant.push_to_apic(site.session)
+            if not resp.ok:
+                logging.warning('Could not push policy to remote site: %s', resp.text)
+            logging.warning('Response %s', resp.text)
 
     def add_policy(self, policy):
         logging.info('')
@@ -839,12 +840,23 @@ class LocalSite(Site):
             self.policy_db.remove(old_policy)
         if policy not in self.policy_db:
             self.policy_db.append(policy)
+            self.push_policy(policy)
         self.remove_stale_entries(policy)
         self.monitor.handle_existing_endpoints(policy)
 
     def remove_policy(self, policy):
         logging.info('')
         self.policy_db.remove(policy)
+        for site_policy in policy.get_site_policies():
+            site = self.my_collector.get_site(site_policy.name)
+            for l3out_policy in site_policy.get_interfaces():
+                remote_tenant = Tenant(l3out_policy.tenant)
+                remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
+                remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
+                remote_epg.mark_as_deleted()
+                resp = remote_tenant.push_to_apic(site.session)
+                if not resp.ok:
+                    logging.warning('Could not remove policy from remote site: %s', resp.text)
 
     def get_policy_for_epg(self, tenant_name, app_name, epg_name):
         for policy in self.policy_db:

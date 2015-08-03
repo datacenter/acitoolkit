@@ -1421,8 +1421,8 @@ class TestOutsideEPG(unittest.TestCase):
         Test OutsideEPG JSON creation
         """
         tenant = Tenant('cisco')
-        outside_epg = OutsideEPG('internet', tenant)
-        self.assertTrue('l3extOut' in str(outside_epg.get_json()))
+        outside_l3 = OutsideL3('internet', tenant)
+        self.assertTrue('l3extOut' in str(outside_l3.get_json()))
 
 
 class TestEndpoint(unittest.TestCase):
@@ -1794,7 +1794,8 @@ class TestBGP(unittest.TestCase):
         """
         tenant = Tenant('bgp-tenant')
         context = Context('bgp-test', tenant)
-        outside = OutsideEPG('out-1', tenant)
+        l3out = OutsideL3('out-1', tenant)
+        outside = OutsideEPG('out-epg-1', l3out)
         phyif = Interface('eth', '1', '101', '1', '46')
         phyif.speed = '1G'
         l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
@@ -1811,7 +1812,7 @@ class TestBGP(unittest.TestCase):
         bgpif.networks.append('0.0.0.0/0')
         contract1 = Contract('icmp')
         outside.provide(contract1)
-        outside.add_context(context)
+        l3out.add_context(context)
         outside.consume(contract1)
         outside.attach(bgpif)
         bgp_json = outside.get_json()
