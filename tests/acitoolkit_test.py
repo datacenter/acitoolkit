@@ -1470,10 +1470,11 @@ class TestEndpoint(unittest.TestCase):
                     self.assertTrue(status == 'deleted')
                 self.assertTrue(ep_name == mac)
                 children_checked += 1
-                self.assertTrue('fvRsStCEpToPathEp' in ep_child)
-                if_attr = ep_child['fvRsStCEpToPathEp']['attributes']
-                child_interface = if_attr['tDn']
-                self.assertTrue(child_interface == interface)
+                self.assertTrue('fvRsStCEpToPathEp' in ep_child or 'fvStIp' in ep_child)
+                if 'fvRsStCEpToPathEp' in ep_child:
+                    if_attr = ep_child['fvRsStCEpToPathEp']['attributes']
+                    child_interface = if_attr['tDn']
+                    self.assertTrue(child_interface == interface)
         self.assertTrue(children_checked >= 2)
 
     def test_create(self):
