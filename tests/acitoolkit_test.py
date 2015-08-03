@@ -2529,17 +2529,18 @@ class TestApic(TestLiveAPIC):
 
         # Create the Outside EPG
         self.assertRaises(TypeError, OutsideEPG, 'out-1', 'tenant')
-        outside = OutsideEPG('out-1', tenant)
-        outside.add_context(context)
-        outside.attach(ospfif)
+        outside_l3 = OutsideL3('out-1', tenant)
+        outside_l3.add_context(context)
+        outside_l3.attach(ospfif)
 
         # Create a contract and provide from the Outside EPG
         contract1 = Contract('contract-1', tenant)
-        outside.provide(contract1)
+        outside_epg = OutsideEPG('epg-1', outside_l3)
+        outside_epg.provide(contract1)
 
         # Create another contract and consume from the Outside EPG
         contract2 = Contract('contract-2', tenant)
-        outside.consume(contract2)
+        outside_epg.consume(contract2)
 
         # Push to APIC and verify a successful request
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
@@ -2778,8 +2779,8 @@ class TestLiveOSPF(TestLiveAPIC):
     def test_no_auth(self):
         tenant = Tenant('cisco')
         context = Context('cisco-ctx1', tenant)
-        outside = OutsideEPG('out-1', tenant)
-        outside.add_context(context)
+        outside_l3 = OutsideL3('out-1', tenant)
+        outside_l3.add_context(context)
         phyif = Interface('eth', '1', '101', '1', '46')
         phyif.speed = '1G'
         l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
@@ -2801,10 +2802,11 @@ class TestLiveOSPF(TestLiveAPIC):
         ospfif.networks.append('55.5.5.0/24')
         ospfif.attach(l3if)
         contract1 = Contract('contract-1')
-        outside.provide(contract1)
+        outside_epg = OutsideEPG('epg-1', outside_l3)
+        outside_epg.provide(contract1)
         contract2 = Contract('contract-2')
-        outside.consume(contract2)
-        outside.attach(ospfif)
+        outside_epg.consume(contract2)
+        outside_l3.attach(ospfif)
         session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(),
                                     data=tenant.get_json())
@@ -2819,8 +2821,8 @@ class TestLiveOSPF(TestLiveAPIC):
     def test_authenticated(self):
         tenant = Tenant('cisco')
         context = Context('cisco-ctx1', tenant)
-        outside = OutsideEPG('out-1', tenant)
-        outside.add_context(context)
+        outside_l3 = OutsideL3('out-1', tenant)
+        outside_l3.add_context(context)
         phyif = Interface('eth', '1', '101', '1', '46')
         phyif.speed = '1G'
         l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
@@ -2845,10 +2847,11 @@ class TestLiveOSPF(TestLiveAPIC):
         ospfif.networks.append('55.5.5.0/24')
         ospfif.attach(l3if)
         contract1 = Contract('contract-1')
-        outside.provide(contract1)
+        outside_epg = OutsideEPG('epg-1', outside_l3)
+        outside_epg.provide(contract1)
         contract2 = Contract('contract-2')
-        outside.consume(contract2)
-        outside.attach(ospfif)
+        outside_epg.consume(contract2)
+        outside_l3.attach(ospfif)
 
         session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(),
