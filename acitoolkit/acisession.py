@@ -303,9 +303,14 @@ class Subscriber(threading.Thread):
         logging.info('Unsubscribing from url: %s', url)
         if url not in self._subscriptions:
             return
-        unsubscribe_url = url.split('&subscription=yes')[0] + '&subscription=no'
+        if '&subscription=yes' in url:
+            unsubscribe_url = url.split('&subscription=yes')[0] + '&subscription=no'
+        elif '?subscription=yes' in url:
+            unsubscribe_url = url.split('?subscription=yes')[0] + '?subscription=no'
+        else:
+            raise ValueError('No subscription string in URL being unsubscribed')
         resp = self._apic.get(unsubscribe_url)
-        if resp.ok:
+        if not resp.ok:
             logging.warning('Could not unsubscribe from url: %s', unsubscribe_url)
         # Chew up any outstanding events
         while self.has_events(url):
