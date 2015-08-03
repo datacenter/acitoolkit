@@ -93,6 +93,7 @@ described in the `Usage`_ section is shown below.
                     "epg": "",
                     "app": "",
                     "tenant": "",
+                    "remote_epg": "",
                     "remote_sites": [
                         {
                             "site": {
@@ -157,6 +158,7 @@ EPG export policy for any EPG. The EPG policy contains the following items:
 - epg: The name of the EPG to export endpoints
 - app: The name of the Application Profile that contains the EPG.
 - tenant: The name of the tenant that contains the EPG.
+- remote_epg: The name to be used as the EPG (l3extInstP) on the remote site outside L3 interface (l3extOut).
 - remote_sites: The remote site policy for this exported EPG.
 
 The ``remote_sites`` policy contains one or more remote site policies where the EPG will be exported.  Each remote site
