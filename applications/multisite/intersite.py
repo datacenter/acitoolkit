@@ -276,6 +276,9 @@ class MultisiteMonitor(threading.Thread):
     def verify_policy(self, export_policy):
         for site in export_policy.get_site_policies():
             site_obj = self._my_collector.get_site(site.name)
+            if site_obj is None:
+                logging.error('Could not find remote site %s', site.name)
+                continue
             for l3out in site.get_interfaces():
                 itag = IntersiteTag(export_policy.tenant, export_policy.app, export_policy.epg,
                                     self._local_site.name)
@@ -769,6 +772,7 @@ class LocalSite(Site):
 
     def remove_stale_entries(self, policy):
         logging.info('')
+        assert self.logged_in
         # Get all of the local APIC entries
         endpoints = IPEndpoint.get_all_by_epg(self.session,
                                               policy.tenant, policy.app, policy.epg)
@@ -778,6 +782,9 @@ class LocalSite(Site):
         # For each remote site, get all of the L3out entries using this policy
         for site_policy in policy.get_site_policies():
             site = self.my_collector.get_site(site_policy.name)
+            if site is None:
+                logging.error('Could not find remote site %s', site_policy.name)
+                continue
             for l3out in site_policy.get_interfaces():
                 query = ('/api/mo/uni/tn-%s/out-%s/instP-%s.json?query-target=children&'
                          'target-subtree-class=l3extSubnet&'
@@ -809,6 +816,9 @@ class LocalSite(Site):
         tag = IntersiteTag(policy.tenant, policy.app, policy.epg, self.name)
         for site_policy in policy.get_site_policies():
             site = self.my_collector.get_site(site_policy.name)
+            if site is None:
+                logging.error('Could not find remote site %s', site_policy.name)
+                continue
             for l3out_policy in site_policy.get_interfaces():
                 remote_tenant = Tenant(l3out_policy.tenant)
                 remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
