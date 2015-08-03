@@ -362,6 +362,7 @@ class BaseACIObject(AciSearch):
         :param working_data:
         :param parent:
         """
+        obj = None
         for item in working_data:
             for key in item:
                 if key in cls._get_apic_classes():
