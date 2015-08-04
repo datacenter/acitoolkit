@@ -37,7 +37,7 @@ from acitoolkit.acitoolkit import (
     AppProfile, BaseContract, BGPSession, BridgeDomain, Context, Contract,
     Endpoint, EPG, EPGDomain, FilterEntry, L2ExtDomain, L2Interface,
     L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface, OSPFInterfacePolicy,
-    OSPFRouter, OutsideEPG, PhysDomain, PortChannel, Subnet, Taboo, Tenant,
+    OSPFRouter, OutsideEPG, OutsideL3, PhysDomain, PortChannel, Subnet, Taboo, Tenant,
     VmmDomain
 )
 # TODO: resolve circular dependencies and order-dependent import
