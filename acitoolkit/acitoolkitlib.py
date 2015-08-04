@@ -187,8 +187,11 @@ class Credentials(object):
         Verify that the arguments have been passed in some way.  If not,
         ask the user through interactive prompt.
         """
-        if self._args.kill:
-            return ''
+        try:
+            if self._args.kill:
+                return ''
+        except AttributeError:
+            pass
         if 'apic' in self._qualifier and self._args.snapshotfiles is None:
             if self._args.login is None:
                 self._args.login = self._get_from_user('APIC login username: ')
