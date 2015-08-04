@@ -275,9 +275,9 @@ class Checker(object):
                                    "app '%s' is assigned secure and nonsecure security "
                                    "clearance" % (epg.name, tenant.name, app.name))
                             # Squirrel away the Secure EPGs
-                            secure_epgs.append(epg)
-                        else:
-                            nonsecure_epgs.append(epg)
+                        secure_epgs.append(epg)
+                    else:
+                        nonsecure_epgs.append(epg)
 
                 # Verify that the secure EPGs are only providing/consuming from
                 # secure EPGs
@@ -292,7 +292,6 @@ class Checker(object):
                                                                                        secure_epg.name))
                     for contract in secure_epg.get_all_consumed():
                         for nonsecure_epg in nonsecure_epgs:
-                            print 'consumed ', contract.name
                             if nonsecure_epg.does_provide(contract):
                                 print ("Critical 001: Nonsecure EPG '%s' in tenant '%s' "
                                        "is providing contract to secure EPG '%s'" % (nonsecure_epg.name,
