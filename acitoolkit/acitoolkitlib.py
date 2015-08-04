@@ -115,6 +115,9 @@ class Credentials(object):
             self._parser.add_argument('--kill',
                                       help='if run as a process, kill it',
                                       action='store_true')
+            self._parser.add_argument('--restart',
+                                      help='if run as a process, restart it',
+                                      action='store_true')
         if 'server' in qualifier:
             DEFAULT_PORT = '5000'
             DEFAULT_IPADDRESS = '127.0.0.1'
@@ -188,7 +191,7 @@ class Credentials(object):
         ask the user through interactive prompt.
         """
         try:
-            if self._args.kill:
+            if self._args.kill or self._args.restart:
                 return ''
         except AttributeError:
             pass
