@@ -41,6 +41,7 @@ import warnings
 import argparse
 import os
 import logging
+import time
 from daemon import Daemon
 
 import requests
@@ -66,6 +67,7 @@ def convert_timestamp_to_mysql(timestamp):
     return resp_ts
 
 def tracker(args):
+    sys.stdout.write("Starting subscribe to apic events")
     
     # Login to APIC
     session = aci.Session(args.url, args.login, args.password)
@@ -78,13 +80,15 @@ def tracker(args):
     cnx = mysql.connect(user=args.mysqllogin,
                         password=args.mysqlpassword,
                         host=args.mysqlip)
+    if args.daemon:
+        logging.info("Connecting to mysql database")
     c = cnx.cursor()
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
-        c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
+        c.execute('CREATE DATABASE IF NOT EXISTS endpointtracker;')
         cnx.commit()
-    c.execute('USE acitoolkit;')
+    c.execute('USE endpointtracker;')
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
         c.execute('''CREATE TABLE IF NOT EXISTS endpoints (
@@ -116,6 +120,7 @@ def tracker(args):
         cnx.commit()
 
     # Subscribe to live updates and update the database
+    sys.stdout.write("Starting subscribe to apic events")
     aci.Endpoint.subscribe(session)
     while True:
         if aci.Endpoint.has_events(session):
@@ -162,7 +167,7 @@ class Daemonize(Daemon):
     def __init__(self,
                 args,
                 pidfile,
-                stdin='/dev/null',
+                stdin='/var/log/endpointracker.log',
                 stdout='/var/log/endpointracker.log',
                 stderr='/var/log/endpointracker.log'
                 ):
@@ -172,7 +177,17 @@ class Daemonize(Daemon):
     def run(self):
         """If --daemon is set we run the tracker function
         """
-        tracker(self.args)
+        logging.basicConfig(filename='/var/log/endpointracker.log',
+                            level=logging.INFO,
+                            format=('%(asctime)s %(message)s'))
+        logging.info('Starting endpointtracker')
+        while True:
+            try:
+                tracker(self.args)
+            except mysql.err.OperationalError:
+                logging.info("Lost connection to database, reconnecting in 10")
+                time.sleep(10)
+                pass
 
 def main():
     """
@@ -194,6 +209,9 @@ def main():
     elif args.kill:
         daemon = Daemonize(args, pid)
         daemon.stop()
+    elif args.restart:
+        daemon = Daemonize(args, pid)
+        daemon.restart()
     else:
         tracker(args)
 
