@@ -34,7 +34,7 @@ from .acitoolkit import ( # noqa
     Contract, ContractInterface, Endpoint, EPG, EPGDomain, FexInterface,
     FilterEntry, L2ExtDomain, L2Interface, L3ExtDomain, L3Interface,
     LogicalModel, MonitorPolicy, MonitorStats, MonitorTarget, NetworkPool,
-    OSPFInterface, OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideNetwork,
+    OSPFInterface, OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, OutsideNetwork,
     PhysDomain, PortChannel, Search, Subnet, Taboo, Tenant, TunnelInterface,
     VMM, VMMCredentials, VmmDomain, VMMvSwitchInfo,
 )
