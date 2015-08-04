@@ -22,13 +22,14 @@
 """
 This is a library of all the Concrete classes that are on a switch.
 """
-# all the import
 import copy
 from operator import itemgetter
+
 from .acibaseobject import BaseACIPhysObject
-import acitoolkit as ACI
-from .aciTable import Table
+from .aciphysobject import Node
 from .aciSearch import Searchable
+from .aciTable import Table
+from .acitoolkit import Context, EPG
 
 
 class CommonConcreteObject(BaseACIPhysObject):
@@ -82,7 +83,7 @@ class ConcreteArp(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -289,7 +290,7 @@ class ConcreteVpc(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -675,7 +676,7 @@ class ConcreteContext(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -836,7 +837,7 @@ class ConcreteSVI(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -970,7 +971,7 @@ class ConcreteLoopback(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1074,7 +1075,7 @@ class ConcreteBD(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1300,7 +1301,7 @@ class ConcreteAccCtrlRule(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1330,8 +1331,8 @@ class ConcreteAccCtrlRule(CommonConcreteObject):
         result = []
 
         rule_data = top.get_class('actrlRule')
-        epgs = ACI.EPG.get(top.session)
-        contexts = ACI.Context.get(top.session)
+        epgs = EPG.get(top.session)
+        contexts = Context.get(top.session)
 
         for actrl_rule in rule_data:
             rule = cls()
@@ -1540,7 +1541,7 @@ class ConcreteFilter(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1842,7 +1843,7 @@ class ConcreteEp(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2220,7 +2221,7 @@ class ConcretePortChannel(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2460,7 +2461,7 @@ class ConcreteOverlay(BaseACIPhysObject):
 
         :returns: class of parent object
         """
-        return ACI.Node
+        return Node
 
     @classmethod
     def _get_apic_classes(cls):

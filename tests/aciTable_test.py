@@ -29,7 +29,7 @@
 ################################################################################
 """acitoolkitlib.py Test module
 """
-from acitoolkit.aciTable import *
+from acitoolkit.aciTable import Table
 import unittest
 
 
@@ -338,12 +338,11 @@ class TestTable(unittest.TestCase):
         """
 
         headers = ['header 1', 'header 2', 'header 3']
-        row1 = ['cell11', '1.2', 'cell13']
-        row2 = ['cell21', '21.0', 'cell23']
-        row3 = ['cell31', '3.20', 'cell33']
-        data = [row1, row2, row3]
-
-        table = Table(data, headers, title='Test Title')
+        data = [
+            ['cell11', '1.2', 'cell13'],
+            ['cell21', '21.0', 'cell23'],
+            ['cell31', '3.20', 'cell33'],
+        ]
         return headers, data
 
 if __name__ == '__main__':

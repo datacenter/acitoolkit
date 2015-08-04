@@ -16,11 +16,12 @@
 """  This module contains code that emulates the Session class except that
      there is no actual APIC and the configuration comes from JSON files.
 """
-import json
-import urlparse
-import re
 from copy import deepcopy
-from acisession import Session
+import json
+import re
+import urlparse
+
+from .acisession import Session
 
 
 class FakeResponse(object):

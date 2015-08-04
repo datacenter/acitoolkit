@@ -29,19 +29,27 @@
 ################################################################################
 """ACI Toolkit Test module
 """
-from acitoolkit.acitoolkit import *
+from acitoolkit.acibaseobject import BaseACIObject, BaseRelation
 from acitoolkit.aciHealthScore import HealthScore
-# from acitoolkit.aciphysobject import *
-# from acitoolkit.acibaseobject import *
+from acitoolkit.acisession import Session
+from acitoolkit.aciTable import Table
+from acitoolkit.acitoolkit import (
+    AppProfile, BaseContract, BGPSession, BridgeDomain, Context, Contract,
+    Endpoint, EPG, EPGDomain, FilterEntry, L2ExtDomain, L2Interface,
+    L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface, OSPFInterfacePolicy,
+    OSPFRouter, OutsideEPG, PhysDomain, PortChannel, Subnet, Taboo, Tenant,
+    VmmDomain
+)
+# TODO: resolve circular dependencies and order-dependent import
+from acitoolkit.aciphysobject import Interface, Linecard, Node
 import unittest
 import string
 import random
-import sys
 import time
 import json
 
 try:
-    from credentials import *
+    from credentials import URL, LOGIN, PASSWORD
 except ImportError:
     print
     print 'To run live tests, please create a credentials.py file with the following variables filled in:'

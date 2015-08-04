@@ -46,9 +46,8 @@ override the URL specified in credentials.py to temporarily connect to a
 different APIC.
 """
 import argparse
-import os
-import sys
 import getpass
+import os
 
 
 class Credentials(object):

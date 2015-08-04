@@ -30,11 +30,12 @@
 """
 Cableplan test
 """
-from credentials import *
-from acitoolkit.acitoolkit import *
-import unittest
-import cableplan
 import os
+import unittest
+
+from acitoolkit.acisession import Session
+import cableplan
+from credentials import URL, LOGIN, PASSWORD
 
 LIVE_TEST = True
 

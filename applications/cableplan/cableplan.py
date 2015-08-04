@@ -30,8 +30,7 @@
 import sys
 import re
 
-import acitoolkit.acitoolkit as ACI
-#import acitoolkit.aciphysobject as ACI
+import acitoolkit as ACI
 
 eTree = None
 Verbose_import_ = False

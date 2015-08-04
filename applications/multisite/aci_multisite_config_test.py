@@ -30,9 +30,15 @@
 """
 Configure the fabric to run the multisite test suite
 """
-from acitoolkit.acitoolkit import *
 import argparse
 import json
+
+from acitoolkit.acisession import Session
+from acitoolkit.acitoolkit import (
+    AppProfile, BridgeDomain, Context, Contract, EPG, FilterEntry, L2Interface,
+    L3Interface, OSPFInterface, OSPFRouter, OutsideEPG, Tenant
+)
+from acitoolkit.aciphysobject import Interface
 from multisite_credentials import *
 
 

@@ -30,28 +30,20 @@
 """  This module contains the Session class that controls communication
      with the APIC.
 """
-import logging
+import copy
 import json
+import logging
+import ssl
+import threading
+import time
+
 import requests
-from requests import Timeout, ConnectionError
 try:
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
 except ImportError:
     pass
-import threading
-import time
-from websocket import create_connection, WebSocketException
-# import websocket
-import ssl
-import copy
-
-# Queue library is named "queue" in Python3
-try:
-    # Python2 naming
-    from Queue import Queue
-except ImportError:
-    # Python3 naming
-    from queue import Queue
+from six.moves.queue import Queue
+from websocket import create_connection
 
 try:
     import urllib3

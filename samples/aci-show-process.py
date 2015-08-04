@@ -32,8 +32,7 @@
 Simple application that shows all of the processes running on a switch
 """
 import sys
-import acitoolkit.acitoolkit as ACI
-#import acitoolkit.aciphysobject as ACI_PHYS
+import acitoolkit as ACI
 from acitoolkit.acitoolkitlib import Credentials
 
 

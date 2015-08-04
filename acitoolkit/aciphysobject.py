@@ -29,16 +29,20 @@
 ################################################################################
 """ACI Toolkit module for physical objects
 """
-import datetime
-from operator import attrgetter, itemgetter
-from .acibaseobject import BaseACIObject, BaseACIPhysModule, BaseInterface
-from .aciConcreteLib import *
-from .acisession import Session
-from .acicounters import AtomicCountersOnGoing, InterfaceStats
-import logging
-import re
 import copy
+import logging
+from operator import attrgetter, itemgetter
+import re
+
+from .acibaseobject import (
+    BaseACIObject, BaseACIPhysModule, BaseACIPhysObject, BaseInterface
+)
+from .acicounters import AtomicCountersOnGoing, InterfaceStats
 from .aciSearch import Searchable
+from .acisession import Session
+from .aciTable import Table
+# TODO: resolve circular dependency and import only LogicalModel
+import acitoolkit as ACI
 
 
 class Systemcontroller(BaseACIPhysModule):
@@ -1071,6 +1075,12 @@ class Node(BaseACIPhysObject):
         If they don't have children, this will return an empty list.
         :return: list of classes
         """
+        # TODO: resolve circular dependency
+        from .aciConcreteLib import (
+            ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext,
+            ConcreteEp, ConcreteFilter, ConcreteLoopback, ConcreteOverlay,
+            ConcretePortChannel, ConcreteSVI, ConcreteVpc
+        )
         return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
                 ConcreteContext, ConcreteSVI, ConcreteVpc]
@@ -1938,14 +1948,7 @@ class Link(BaseACIPhysObject):
 
         :returns: Node object at first end of link
         """
-
-        if not self._parent:
-            raise TypeError("Parent pod must be specified in order to get node")
-
-        nodes = self._parent.get_children(Node)
-        for node in nodes:
-            if node.node == self.node1:
-                return node
+        return self._get_node(1)
 
     def get_node2(self):
         """Returns the Node object that corresponds to the
@@ -1957,15 +1960,19 @@ class Link(BaseACIPhysObject):
 
         :returns: Node object at second end of link
         """
+        return self._get_node(2)
 
+    def _get_node(self, node_number):
+        """Common implementation of get_node1() and get_node2()"""
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
+        target_node = {1: self.node1, 2: self.node2}[node_number]
+        matching_nodes = (
+            node for node in self._parent.get_children(Node)
+            if node.node == target_node
+        )
+        return next(matching_nodes, None)
 
-        nodes = self._parent.get_children(Node)
-        for node in nodes:
-            if node.node == self.node2:
-                return node
-        return None
 
     def get_slot1(self):
         """Returns the Linecard object that corresponds to the
@@ -1977,16 +1984,7 @@ class Link(BaseACIPhysObject):
 
         :returns: Linecard object at first end of link
         """
-
-        if not self._parent:
-            raise TypeError("Parent pod must be specified in order to get node")
-        node = self.get_node1()
-        if node:
-            linecards = node.get_children(Linecard)
-            for linecard in linecards:
-                if linecard.slot == self.slot1:
-                    return linecard
-        return None
+        return self._get_slot(1)
 
     def get_slot2(self):
         """Returns the Linecard object that corresponds to the
@@ -1998,19 +1996,23 @@ class Link(BaseACIPhysObject):
 
         :returns: Linecard object at second end of link
         """
+        return self._get_slot(2)
 
+    def _get_slot(self, slot_number):
+        """Common implementation of get_slot1() and get_slot2()"""
         if not self._parent:
             raise TypeError("Parent pod must be specified in order to get node")
-        node = self.get_node2()
-        if node:
-            linecards = node.get_children(Linecard)
-            for linecard in linecards:
-                if linecard.slot == self.slot2:
-                    return linecard
-        return None
+        target_slot = {1: self.slot1, 2: self.slot2}[slot_number]
+        node = self._get_node(slot_number)
+        linecards = node.get_children(Linecard) if node else ()
+        matching_linecards = (
+            linecard for linecard in linecards if linecard.slot == target_slot
+        )
+        return next(matching_linecards, None)
+
 
     def get_port1(self):
-        """Returns the Linecard object that corresponds to the
+        """Returns the Interface object that corresponds to the
         first port of the link.  The port must be a child of
         the Linecard in the Node in the Pod that this link is a
         member of, i.e. it must already have been read from the APIC.  This can
@@ -2019,20 +2021,11 @@ class Link(BaseACIPhysObject):
 
         :returns: Interface object at first end of link
         """
-
-        if not self._parent:
-            raise TypeError("Parent pod must be specified in order to get node")
-        linecard = self.get_slot1()
-        if linecard:
-            interfaces = linecard.get_children(Interface)
-            for interface in interfaces:
-                if interface.port == self.port1:
-                    return interface
-        return None
+        return self._get_port(1)
 
     def get_port2(self):
         """
-        Returns the Linecard object that corresponds to the second port of
+        Returns the Interface object that corresponds to the second port of
         the link. The port must be a child of the Linecard in the Node in
         the Pod that this link is a member of, i.e. it must already have been
         read from the APIC.  This can most easily be done by populating the
@@ -2040,16 +2033,21 @@ class Link(BaseACIPhysObject):
 
         :returns: Interface object at second end of link
         """
+        return self._get_port(2)
+
+    def _get_port(self, port_number):
+        """Common implementation of get_port1() and get_port2()"""
         if not self._parent:
-            raise TypeError(("Parent pod must be specified in "
-                             "order to get node"))
-        linecard = self.get_slot2()
-        if linecard:
-            interfaces = linecard.get_children(Interface)
-            for interface in interfaces:
-                if interface.port == self.port2:
-                    return interface
-        return None
+            raise TypeError("Parent pod must be specified in order to get node")
+        target_port = {1: self.port1, 2: self.port2}[port_number]
+        linecard = self._get_slot(port_number)
+        interfaces = linecard.get_children(Interface) if linecard else ()
+        matching_interfaces = (
+            interface for interface in interfaces
+            if interface.port == target_port
+        )
+        return next(matching_interfaces, None)
+
 
     def get_port_id1(self):
         """

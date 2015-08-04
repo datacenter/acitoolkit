@@ -1,7 +1,11 @@
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
-from acitoolkit.acitoolkit import *
+from acitoolkit.acisession import Session
+from acitoolkit.acitoolkit import (
+    AppProfile, Contract, Endpoint, EPG, L2Interface, Tenant
+)
+from acitoolkit.aciphysobject import Interface
 from multisite import MultisiteTag
 import time
 import subprocess
