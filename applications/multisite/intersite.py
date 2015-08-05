@@ -212,7 +212,8 @@ class EndpointHandler(object):
         # Get the policy for the EPG
         policy = local_site.get_policy_for_epg(tenant.name, app.name, epg.name)
         if policy is None:
-            logging.info('Ignoring endpoint as there is no policy defined for its EPG')
+            logging.info('Ignoring endpoint as there is no policy defined for its EPG (epg: %s app: %s tenant: %s)',
+                         epg.name, app.name, tenant.name)
             return
 
         logging.info('Need to process endpoint %s', endpoint.name)
@@ -451,15 +452,15 @@ class ConfigObject(object):
         self.validate()
 
     def _validate_string(self, item):
-        if sys.version_info < (3,0,0):
-            if (isinstance(item, unicode)):
+        if sys.version_info < (3, 0, 0):
+            if isinstance(item, unicode):
                 return
         if not isinstance(item, str):
             raise ValueError(self.__class__.__name__, 'Expected string')
 
     def _validate_non_empty_string(self, item):
-        if sys.version_info < (3,0,0):
-            if (isinstance(item, unicode)):
+        if sys.version_info < (3, 0, 0):
+            if isinstance(item, unicode):
                 if len(item) < 1 or len(item) > 64:
                     raise ValueError(self.__class__.__name__, 'Expected string of correct size', item)
                 return
@@ -470,8 +471,8 @@ class ConfigObject(object):
 
     def _validate_ip_address(self, item):
         try:
-            if sys.version_info < (3,0,0):
-                if (isinstance(item, unicode)):
+            if sys.version_info < (3, 0, 0):
+                if isinstance(item, unicode):
                     item = str(item)
             socket.inet_aton(item)
         except socket.error:
@@ -867,7 +868,8 @@ class LocalSite(Site):
 
     def remove_policy(self, policy):
         logging.info('')
-        self.policy_db.remove(policy)
+        if policy in self.policy_db:
+            self.policy_db.remove(policy)
         for site_policy in policy.get_site_policies():
             site = self.my_collector.get_site(site_policy.name)
             for l3out_policy in site_policy.get_interfaces():
@@ -1251,6 +1253,7 @@ class CommandLine(cmd.Cmd):
                            if f.startswith(text)
                            ]
         return completions
+
 
 def get_arg_parser():
     parser = argparse.ArgumentParser(description='ACI Multisite Tool')
