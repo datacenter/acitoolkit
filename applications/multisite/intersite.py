@@ -189,6 +189,10 @@ class EndpointHandler(object):
                 epg_found = True
                 break
 
+        if not epg_found:
+            l3out['l3extOut']['children'].append(new_outside_epg)
+            return
+
         # Add the endpoint configuration with the existing JSON
         new_endpoint = new_outside_epg['l3extInstP']['children'][0]
         assert 'l3extSubnet' in new_endpoint
@@ -196,13 +200,13 @@ class EndpointHandler(object):
             outside_epg['l3extInstP']['children'].append(new_endpoint)
 
     def add_endpoint(self, endpoint, local_site):
-        logging.info('endpoint: %s', endpoint.name)
         epg = endpoint.get_parent()
         app = epg.get_parent()
         tenant = app.get_parent()
+        logging.info('endpoint: %s epg: %s app: %s tenant: %s', endpoint.name, epg.name, app.name, tenant.name)
 
         # Ignore events without IP addresses
-        if endpoint.ip == '0.0.0.0' or (endpoint.ip is None and not endpoint.is_deleted()):
+        if endpoint.ip == '0.0.0.0':
             return
 
         # Get the policy for the EPG
@@ -211,7 +215,7 @@ class EndpointHandler(object):
             logging.info('Ignoring endpoint as there is no policy defined for its EPG')
             return
 
-        logging.info('Need to process endpoint %s', endpoint.ip)
+        logging.info('Need to process endpoint %s', endpoint.name)
         # Track the number of endpoint events
         if endpoint.is_deleted():
             self.endpoint_del_events += 1
@@ -296,34 +300,41 @@ class MultisiteMonitor(threading.Thread):
                 # Check that each entry matches the current policy
                 for child in resp.json()['imdata']:
                     dirty = False
+                    dirty_children = []
                     if 'fvRsProv' in child:
                         if export_policy.provides(site.name, l3out.name, l3out.tenant,
                                                   child['fvRsProv']['attributes']['tnVzBrCPName']):
                             continue
                         dirty = True
-                        child['fvRsProv']['attributes']['status'] = 'deleted'
+                        dirty_children.append({'fvRsProv': {'attributes': {'tnVzBrCPName': child['fvRsProv']['attributes']['tnVzBrCPName'],
+                                                                           'status': 'deleted'}}})
                     elif 'fvRsCons' in child:
                         if export_policy.consumes(site.name, l3out.name, l3out.tenant,
                                                   child['fvRsCons']['attributes']['tnVzBrCPName']):
                             continue
                         dirty = True
-                        child['fvRsCons']['attributes']['status'] = 'deleted'
+                        dirty_children.append({'fvRsCons': {'attributes': {'tnVzBrCPName': child['fvRsCons']['attributes']['tnVzBrCPName'],
+                                                                           'status': 'deleted'}}})
                     elif 'fvRsProtBy' in child:
                         if export_policy.protected_by(site.name, l3out.name, l3out.tenant,
                                                       child['fvRsProtBy']['attributes']['tnVzTabooName']):
                             continue
                         dirty = True
-                        child['fvRsProtBy']['attributes']['status'] = 'deleted'
+                        dirty_children.append({'fvRsProtBy': {'attributes': {'tnVzTabooName': child['fvRsProtBy']['attributes']['tnVzTabooName'],
+                                                                             'status': 'deleted'}}})
                     elif 'fvRsConsIf' in child:
                         if export_policy.consumes_cif(site.name, l3out.name, l3out.tenant,
                                                       child['fvRsConsIf']['attributes']['tnVzCPIfName']):
                             continue
                         dirty = True
-                        child['fvRsConsIf']['attributes']['status'] = 'deleted'
+                        dirty_children.append({'fvRsConsIf': {'attributes': {'tnVzCPIfName': child['fvRsConsIf']['attributes']['tnVzCPIfName'],
+                                                                             'status': 'deleted'}}})
                     if dirty:
                         logging.debug('cleaning dirty entry')
-                        url = '/api/mo/uni/tn-%s/out-%s/instP-%s.json' % (l3out.tenant, l3out.name, export_policy.remote_epg)
-                        resp = site_obj.session.push_to_apic(url, child)
+                        url = '/api/mo/uni/tn-%s/out-%s.json' % (l3out.tenant, l3out.name)
+                        data = {'l3extInstP': {'attributes': {'name': export_policy.remote_epg},
+                                               'children': dirty_children}}
+                        resp = site_obj.session.push_to_apic(url, data)
                         if not resp.ok:
                             logging.warning('Could not push modified entry to remote site %s %s', resp, resp.text)
 

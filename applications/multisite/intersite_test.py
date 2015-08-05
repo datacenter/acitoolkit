@@ -561,6 +561,7 @@ class TestMultipleEPG(BaseTestCase):
 
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-app1-epg1'))
         self.remove_endpoint(mac, ip, 'app1', 'epg1')
+        time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-app1-epg1'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
@@ -709,6 +710,7 @@ class TestBasicExistingEndpoints(BaseTestCase):
 
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip))
         self.remove_endpoint(mac, ip, 'app', 'epg')
+        time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip))
 
 
@@ -1329,6 +1331,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
                         "tenant": "intersite-testsuite",
                         "app": "app",
                         "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
                         "remote_sites": [
                             {
                                 "site": {
@@ -1368,7 +1371,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         found = False
         for item in resp.json()['imdata']:
             if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
+                if item['l3extInstP']['attributes']['name'] == 'intersite-testsuite-app-epg':
                     found = True
                     break
         if not found:
@@ -1387,7 +1390,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
             return False
 
         # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
+        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=subtree'
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
@@ -1395,7 +1398,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         found = False
         for item in resp.json()['imdata']:
             if 'l3extSubnet' in item:
-                if item['l3extSubnet']['attributes']['ip'] == ip + '/32':
+                if item['l3extSubnet']['attributes']['name'] == ip:
                     found = True
                     break
         if not found:
@@ -1415,7 +1418,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         found = False
         for item in resp.json()['imdata']:
             if 'l3extInstP' in item:
-                if item['l3extInstP']['attributes']['name'] == ('l3out-' + mac):
+                if item['l3extInstP']['attributes']['name'] == 'intersite-testsuite-app-epg':
                     found = True
                     break
         if not found:
@@ -1434,7 +1437,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
             return False
 
         # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-l3out-%s.json?query-target=subtree' % mac
+        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=subtree'
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
@@ -1457,6 +1460,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
+        time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry_before(mac, ip))
 
         time.sleep(2)
@@ -1467,7 +1471,7 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         config = self.create_config_file_after()
         with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
             collector.reload_config()
-        time.sleep(2)
+        time.sleep(4)
         self.assertTrue(self.verify_remote_site_has_entry_after(mac, ip))
 
     def test_basic_add_multiple_endpoint(self):
