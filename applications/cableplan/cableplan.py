@@ -85,6 +85,12 @@ except ImportError:
 
 
 def parsexml_(*args, **kwargs):
+    """
+    parsexml_
+    :param args:
+    :param kwargs:
+    :return: doc
+    """
     if XMLParser_import_library == XMLParser_import_lxml and 'parser' not in kwargs:
         # Use the lxml ElementTree compatible parser so that, e.g.,
         #   we ignore comments.
@@ -92,17 +98,22 @@ def parsexml_(*args, **kwargs):
     doc = eTree.parse(*args, **kwargs)
     return doc
 
-# 
+#
 # Globals
-# 
+#
 
 Tag_pattern_ = re.compile(r'({.*})?(.*)')
-# 
+#
 # Support/utility functions.
-# 
+#
 
 
 def indent(level):
+    """
+    Indent the text to a specified level
+    :param level: The number of 4 space increments
+    :return: String containing the desired number of spaces for indentation
+    """
     return level * '    '
 
 
@@ -269,7 +280,7 @@ class CABLEPLAN:
     def difference_switch(self, cp):
         """Will return a list of switches that are in self, but not in cp.
 
-        :param cp: cable plan 
+        :param cp: cable plan
 
         :returns: list of CpSwitch
         """
@@ -554,7 +565,7 @@ class CpSwitch(object):
     def get_type(self):
         """Gets the chassis type. Examples of chassis types are 'n7k' or 'n9k'
 
-        :returns: str 
+        :returns: str
         """
         return self.chassis_type
 
@@ -923,7 +934,7 @@ class CpLink:
         all ports included expanded lists of port sets.
 
         :param link: link to check to see if matches, or overlaps, with self
-        
+
         :returns: Boolean
         """
 
@@ -970,7 +981,7 @@ class CpLink:
 
         :param chassis: Chassis that is the parent of the LINK_INFO xml
         :param level:  Indentation level
-        
+
         :returns: str
         """
 
