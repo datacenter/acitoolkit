@@ -557,26 +557,26 @@ class TestMultisite(unittest.TestCase):
         tenant_json = {
             "fvTenant": {
                 "attributes": {
-                    "name":"multisite-testsuite"
+                    "name": "multisite-testsuite"
                 },
-                "children":[
+                "children": [
                     {
                         "vzBrCP": {
                             "attributes": {
-                                "scope":"context",
-                                "name":"new-contract"
+                                "scope": "context",
+                                "name": "new-contract"
                             },
-                            "children":[
+                            "children": [
                                 {
                                     "vzSubj": {
                                         "attributes": {
-                                            "name":"new-contractnew-entry"
+                                            "name": "new-contractnew-entry"
                                         },
-                                        "children":[
+                                        "children": [
                                             {
                                                 "vzRsSubjFiltAtt": {
                                                     "attributes": {
-                                                        "tnVzFilterName":"new-contractnew-entry"
+                                                        "tnVzFilterName": "new-contractnew-entry"
                                                     }
                                                 }
                                             }
@@ -589,24 +589,24 @@ class TestMultisite(unittest.TestCase):
                     {
                         "vzFilter": {
                             "attributes": {
-                                "name":"new-contractnew-entry"
+                                "name": "new-contractnew-entry"
                             },
-                            "children":[
+                            "children": [
                                 {
                                     "vzEntry": {
                                         "attributes": {
-                                            "tcpRules":"unspecified",
-                                            "arpOpc":"unspecified",
-                                            "applyToFrag":"no",
-                                            "name":"new-entry",
-                                            "prot":"tcp",
-                                            "sFromPort":"1",
-                                            "sToPort":"65535",
-                                            "etherT":"ip",
-                                            "dFromPort":"500",
-                                            "dToPort":"5000"
+                                            "tcpRules": "unspecified",
+                                            "arpOpc": "unspecified",
+                                            "applyToFrag": "no",
+                                            "name": "new-entry",
+                                            "prot": "tcp",
+                                            "sFromPort": "1",
+                                            "sToPort": "65535",
+                                            "etherT": "ip",
+                                            "dFromPort": "500",
+                                            "dToPort": "5000"
                                         },
-                                        "children":[]
+                                        "children": []
                                     }
                                 }
                             ]
@@ -630,26 +630,26 @@ class TestMultisite(unittest.TestCase):
         tenant_json = {
             "fvTenant": {
                 "attributes": {
-                    "name":"multisite-testsuite"
+                    "name": "multisite-testsuite"
                 },
-                "children":[
+                "children": [
                     {
                         "vzBrCP": {
                             "attributes": {
-                                "scope":"context",
-                                "name":"another-contract"
+                                "scope": "context",
+                                "name": "another-contract"
                             },
-                            "children":[
+                            "children": [
                                 {
                                     "vzSubj": {
                                         "attributes": {
-                                            "name":"new-contractnew-entry"
+                                            "name": "new-contractnew-entry"
                                         },
-                                        "children":[
+                                        "children": [
                                             {
                                                 "vzRsSubjFiltAtt": {
                                                     "attributes": {
-                                                        "tnVzFilterName":"new-contractnew-entry"
+                                                        "tnVzFilterName": "new-contractnew-entry"
                                                     }
                                                 }
                                             }
@@ -976,26 +976,26 @@ class TestMultisite(unittest.TestCase):
         tenant_json = {
             "fvTenant": {
                 "attributes": {
-                    "name":"multisite-testsuite"
+                    "name": "multisite-testsuite"
                 },
-                "children":[
+                "children": [
                     {
                         "vzBrCP": {
                             "attributes": {
-                                "scope":"context",
-                                "name":"another-contract"
+                                "scope": "context",
+                                "name": "another-contract"
                             },
-                            "children":[
+                            "children": [
                                 {
                                     "vzSubj": {
                                         "attributes": {
-                                            "name":"new-subject"
+                                            "name": "new-subject"
                                         },
-                                        "children":[
+                                        "children": [
                                             {
                                                 "vzRsSubjFiltAtt": {
                                                     "attributes": {
-                                                        "tnVzFilterName":"multisite-testsuite-entry"
+                                                        "tnVzFilterName": "multisite-testsuite-entry"
                                                     }
                                                 }
                                             }
@@ -1393,7 +1393,7 @@ class TestMultisite(unittest.TestCase):
         # Verify that the l3extSubnet shows up on the local
         # site (Site1) as consuming the contract
         site2_session = site1_tool.get_site('Site2').session
-        #site1_session = site1_tool.get_local_site().session
+        # site1_session = site1_tool.get_local_site().session
         self.assertTrue(has_l3extsubnet(site2_session, tenant_name, mac, ip))
 
         # Verify that the l3InstP is providing the contract
@@ -1441,7 +1441,7 @@ class TestMultisite(unittest.TestCase):
         # Verify that the l3extSubnet shows up on the local
         # site (Site1) as consuming the contract
         site2_session = site1_tool.get_site('Site2').session
-        #site1_session = site1_tool.get_local_site().session
+        # site1_session = site1_tool.get_local_site().session
         self.assertTrue(has_l3extsubnet(site2_session, tenant_name, mac, ip))
 
         # Verify that the l3InstP is providing the contract
@@ -1489,7 +1489,7 @@ class TestMultisite(unittest.TestCase):
         # Verify that the l3extSubnet shows up on the local
         # site (Site1) as consuming the contract
         site2_session = site1_tool.get_site('Site2').session
-        #site1_session = site1_tool.get_local_site().session
+        # site1_session = site1_tool.get_local_site().session
         self.assertTrue(has_l3extsubnet(site2_session, tenant_name, mac, ip))
 
         # Verify that the l3InstP is providing the contract
@@ -1552,7 +1552,7 @@ class TestMultisite(unittest.TestCase):
         # Verify that the l3extSubnet shows up on the local
         # site (Site1) as consuming the contract
         site2_session = site1_tool.get_site('Site2').session
-        #site1_session = site1_tool.get_local_site().session
+        # site1_session = site1_tool.get_local_site().session
         self.assertTrue(has_l3extsubnet(site2_session, tenant_name, mac, ip))
 
         # Verify that the l3InstP is providing the contract
@@ -1975,7 +1975,6 @@ class TestTenantCommonL3Out(unittest.TestCase):
         self.assertFalse(has_l3extInstP_consuming_contract(site1_session, 'common', mac1, ip1, 'http-contract', tag))
         self.assertTrue(has_l3extInstP_consuming_contract(site1_session, 'common', mac2, ip2, 'http-contract', tag))
 
-
     def test_unconsume_imported_contract(self):
         tenant_name = 'multisite-testsuite'
         mac = '00:33:33:33:33:33'
@@ -2044,7 +2043,7 @@ class TestTenantCommonL3Out(unittest.TestCase):
         self.assertTrue(verify_tag(session, 'common', mtag))
 
         # Provide the contract on the Exported Site
-        #session = site1_tool.get_site('Site2').session
+        # session = site1_tool.get_site('Site2').session
         tenant = Tenant(tenant_name)
         app = AppProfile('app', tenant)
         epg = EPG('epg', app)
@@ -2076,13 +2075,12 @@ class TestTenantCommonL3Out(unittest.TestCase):
         # Verify that the l3extSubnet shows up on the local
         # site (Site1) as consuming the contract
         site2_session = site1_tool.get_site('Site2').session
-        #site1_session = site1_tool.get_local_site().session
+        # site1_session = site1_tool.get_local_site().session
         self.assertTrue(has_l3extsubnet(site2_session, 'common', mac, ip))
 
         # Verify that the l3InstP is providing the contract
         tag = MultisiteTag(epg.name, app.name, 'Site1')
         self.assertTrue(has_l3extInstP_providing_contract(site2_session, 'common', mac, ip, 'Site1:http-contract', tag))
-
 
     def tearDown(self):
         time.sleep(2)

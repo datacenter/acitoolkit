@@ -9,7 +9,7 @@ from multisite import MultisiteCollector, SiteLoginCredentials, Site, ContractDB
 from flask import flash, send_from_directory, request
 from flask.ext.sqlalchemy import SQLAlchemy
 from requests import Timeout
-#from flask.ext import admin
+# from flask.ext import admin
 from flask.ext.admin import BaseView, AdminIndexView, expose
 from flask.ext.admin.actions import action
 from flask.ext.admin.contrib.sqla import ModelView
@@ -24,7 +24,7 @@ from wtforms.validators import ValidationError, Optional
 from wtforms.widgets import TextInput
 from wtforms import widgets
 from acitoolkit.acitoolkit import Credentials
-#from flask_wtf.csrf import CsrfProtect
+# from flask_wtf.csrf import CsrfProtect
 import sys
 import logging
 from requests import ConnectionError, Timeout
@@ -69,6 +69,7 @@ def shutdown_server():
     if func is None:
         raise RuntimeError('Not running with the Werkzeug Server')
     func()
+
 
 def lab_mode_only(original_function):
     """
