@@ -149,8 +149,7 @@ class Tenant(BaseACIObject):
     @classmethod
     def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False):
         resp = []
-        if (isinstance(names, str) or not isinstance(names, Sequence) or
-            not all(isinstance(name, str) for name in names)):
+        if (isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names)):
             raise TypeError('names should be a Sequence of strings')
         names = names or [tenant.name for tenant in Tenant.get(session)]
         params = {'query-target': 'self', 'rsp-subtree': subtree}
@@ -867,7 +866,7 @@ class EPG(CommonEPG):
                     ep_children.append({'fvStIp': {'attributes': {'addr': child.ip}, 'children': []}})
                 path = interface._get_path()
                 ep_children.append({'fvRsStCEpToPathEp': {'attributes': {'tDn': path},
-                                                       'children': []}})
+                                                          'children': []}})
                 text = {'fvStCEp': {'attributes': {'ip': ep.ip,
                                                    'mac': ep.mac,
                                                    'name': ep.name,
@@ -1636,7 +1635,6 @@ class BridgeDomain(BaseACIObject):
 
         self.mac = mac
 
-
     def set_unknown_multicast(self, multicast):
         """
         Set the unknown multicast for this BD
@@ -1702,7 +1700,7 @@ class BridgeDomain(BaseACIObject):
             children.append(text)
         if self.has_l3out():
             for l3out in self.get_l3out():
-                fvRsBDToOut = {"fvRsBDToOut":{"attributes":{"tnL3extOutName": l3out.name}}}
+                fvRsBDToOut = {"fvRsBDToOut": {"attributes": {"tnL3extOutName": l3out.name}}}
                 children.append(fvRsBDToOut)
         attr = self._generate_attributes()
         attr['unkMacUcastAct'] = self.unknown_mac_unicast

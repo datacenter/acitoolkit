@@ -183,16 +183,15 @@ class Cluster(BaseACIObject):
         if self.config_size is None:
             infra_cluster_url = '/api/node/class/infraClusterPol.json'
             ret = session.get(infra_cluster_url)
-            ret_cluster= ret.json()['imdata']
-            self.config_size=ret_cluster[0]['infraClusterPol']['attributes']['size']
-            
+            ret_cluster = ret.json()['imdata']
+            self.config_size = ret_cluster[0]['infraClusterPol']['attributes']['size']
         return self.config_size
 
     def get_cluster_size(self, session):
         if self.cluster_size is None:
             infra_query_url = '/api/node/class/infraCont.json'
             ret = session.get(infra_query_url)
-            self.cluster_info=ret.json()['imdata']
+            self.cluster_info = ret.json()['imdata']
             self.cluster_size = self.cluster_info[0]['infraCont']['attributes']['size']
         return self.cluster_size
 
@@ -200,11 +199,9 @@ class Cluster(BaseACIObject):
         if self.cluster_info is None:
             infra_query_url = '/api/node/class/infraCont.json'
             ret = session.get(infra_query_url)
-            self.cluster_info=ret.json()['imdata']
+            self.cluster_info = ret.json()['imdata']
             self.cluster_size = self.cluster_info[0]['infraCont']['attributes']['size']
         return self.cluster_info
-
-
 
 
 class Linecard(BaseACIPhysModule):
@@ -1089,10 +1086,10 @@ class Node(BaseACIPhysObject):
     def _get_apic_classes(cls):
         """gets list of all apic classes used to build this acitoolkit class
         """
-        resp = ['fabricNode','firmwareCardRunning', 'topSystem', 'vpcInst','vpcDom',
-                'eqptCh','l1PhysIf','eqptFtSlot','eqptLCSlot','eqptPsuSlot',
-                'eqptSupCSlot','topoctrlLbP',
-                #'topoctrlVxlanP'
+        resp = ['fabricNode', 'firmwareCardRunning', 'topSystem', 'vpcInst', 'vpcDom',
+                'eqptCh', 'l1PhysIf', 'eqptFtSlot', 'eqptLCSlot', 'eqptPsuSlot',
+                'eqptSupCSlot', 'topoctrlLbP',
+                # 'topoctrlVxlanP'
                 ]
         return resp
 
@@ -1266,7 +1263,7 @@ class Node(BaseACIPhysObject):
         then get vpcDom under vpcInst
 
         peer_present is true if vpcDom exists
-        
+
         From vpcDom get :
             domain_id
             system_mac
@@ -1279,7 +1276,6 @@ class Node(BaseACIPhysObject):
             vtep_ip
             vtep_mac
             oper_role
-            
         """
         partial_dn = 'topology/pod-{0}/node-{1}/sys/vpc/inst'.format(self.pod, self.node)
 
@@ -1354,7 +1350,7 @@ class Node(BaseACIPhysObject):
                         self.descr = str(node_data['eqptCh']['attributes']['descr'])
 
                 # get the total number of ports = number of l1PhysIf
-                node_data = working_data.get_subtree('l1PhysIf', self.dn+ '/sys')
+                node_data = working_data.get_subtree('l1PhysIf', self.dn + '/sys')
                 if node_data:
                     self.num_ports = len(node_data)
 
@@ -1407,10 +1403,10 @@ class Node(BaseACIPhysObject):
                 # get vxlan info
                 self.ivxlan_udp_port = 'unknown'
 
-                #node_data = working_data.get_subtree('topoctrlVxlanP', self.dn + '/sys')
-                #for info in node_data:
-                #    if 'topoctrlVxlanP' in info:
-                #        self.ivxlan_udp_port = info['topoctrlVxlanP']['attributes']['udpPort']
+                # node_data = working_data.get_subtree('topoctrlVxlanP', self.dn + '/sys')
+                # for info in node_data:
+                #     if 'topoctrlVxlanP' in info:
+                #         self.ivxlan_udp_port = info['topoctrlVxlanP']['attributes']['udpPort']
 
     def populate_children(self, deep=False, include_concrete=False):
         """Will populate all of the children modules such as
@@ -1430,11 +1426,11 @@ class Node(BaseACIPhysObject):
 
         if include_concrete and self.role != 'controller':
             # todo: currently only have concrete model for switches - need to add controller
-            query_url = '/api/mo/topology/pod-' +self.pod + '/node-' + self.node + \
+            query_url = '/api/mo/topology/pod-' + self.pod + '/node-' + self.node + \
                         '/sys.json?'
 
             working_data = WorkingData(session, Node, query_url, deep=True, include_concrete=True)
-            for concrete_class in self._get_children_concrete_classes() :
+            for concrete_class in self._get_children_concrete_classes():
                 concrete_class.get(working_data, self)
 
         if deep:
@@ -1973,7 +1969,6 @@ class Link(BaseACIPhysObject):
         )
         return next(matching_nodes, None)
 
-
     def get_slot1(self):
         """Returns the Linecard object that corresponds to the
         first slot of the link.  The Linecard must be a child of
@@ -2009,7 +2004,6 @@ class Link(BaseACIPhysObject):
             linecard for linecard in linecards if linecard.slot == target_slot
         )
         return next(matching_linecards, None)
-
 
     def get_port1(self):
         """Returns the Interface object that corresponds to the
@@ -2047,7 +2041,6 @@ class Link(BaseACIPhysObject):
             if interface.port == target_port
         )
         return next(matching_interfaces, None)
-
 
     def get_port_id1(self):
         """
@@ -2633,7 +2626,7 @@ class WorkingData(object):
     as a single object.
     """
 
-    def __init__(self, session = None, toolkit_class=None, url=None, deep=False, include_concrete=False):
+    def __init__(self, session=None, toolkit_class=None, url=None, deep=False, include_concrete=False):
 
         self.by_class = {}
         self.by_dn = {}
@@ -2644,7 +2637,7 @@ class WorkingData(object):
         self.session = session
         self.add(session, toolkit_class, url, deep, include_concrete)
 
-    def add(self, session = None, toolkit_class=None, url=None, deep=False, include_concrete=False):
+    def add(self, session=None, toolkit_class=None, url=None, deep=False, include_concrete=False):
 
         """
 
@@ -2701,7 +2694,7 @@ class WorkingData(object):
                                 # look through all the objects in 'fabricNode' class and only insert if
                                 # this controller not already there.
                                 found = False
-                                for item_in_class in self.by_class[apic_class] :
+                                for item_in_class in self.by_class[apic_class]:
                                     if item[apic_class]['attributes']['dn'] == item_in_class[apic_class]['attributes']['dn']:
                                         found = True
                                         break

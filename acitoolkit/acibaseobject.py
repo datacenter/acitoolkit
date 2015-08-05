@@ -111,6 +111,7 @@ class Tag(object):
     def __ne__(self, other):
         return not self == other
 
+
 class BaseACIObject(AciSearch):
     """
     This class defines functionality common to all ACI objects.
@@ -125,8 +126,8 @@ class BaseACIObject(AciSearch):
                      instance
         :param parent: Parent object within the acitoolkit object model.
         """
-        if sys.version_info < (3,0,0):
-            if (isinstance(name, unicode)):
+        if sys.version_info < (3, 0, 0):
+            if isinstance(name, unicode):
                 name = str(name)
         if name is None or not isinstance(name, str):
             raise TypeError
@@ -1322,8 +1323,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
             interface_query_url = '/api/mo/' + parent_dn + \
                                   '.json?query-target=subtree&target-subtree-class=' + ','.join(apic_classes)
         else:
-            interface_query_url = ('/api/node/class/' + apic_classes[0] + '.json?'
-                                                                     'query-target=self')
+            interface_query_url = '/api/node/class/' + apic_classes[0] + '.json?query-target=self'
         cards = []
         ret = session.get(interface_query_url)
         card_data = ret.json()['imdata']
@@ -1390,7 +1390,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
         """
         search_terms = [('node', self.node, 'indirect'), ('slot', self.slot)]
 
-        #result = [Searchable('node', self.node, 'indirect'), Searchable('slot', self.slot)]
+        # result = [Searchable('node', self.node, 'indirect'), Searchable('slot', self.slot)]
 
         if self.firmware is not None:
             search_terms.append(('firmware', self.firmware))
@@ -1414,7 +1414,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
             search_terms.append(('oper_st', self.oper_st))
 
         return [Searchable(search_terms)]
-
 
 
 class BaseInterface(BaseACIObject):
