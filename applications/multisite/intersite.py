@@ -1295,7 +1295,7 @@ def execute_tool(args, test_mode=False):
     my_handler.setFormatter(log_formatter)
     my_handler.setLevel(level)
     logging.getLogger().addHandler(my_handler)
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(level)
 
     # Handle generating sample configuration
     if args.generateconfig:
