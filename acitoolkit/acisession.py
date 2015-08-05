@@ -217,7 +217,12 @@ class Subscriber(threading.Thread):
 
         while not self._event_q.empty():
             event = self._event_q.get()
-            event = json.loads(event)
+            orig_event = event
+            try:
+                event = json.loads(event)
+            except ValueError:
+                logging.error('Non-JSON event: %s', orig_event)
+                raise
             # Find the URL for this event
             num_subscriptions = len(event['subscriptionId'])
             for i in range(0, num_subscriptions):
