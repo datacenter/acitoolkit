@@ -1133,6 +1133,7 @@ class CommandLine(cmd.Cmd):
 
     SHOW_CMDS = ['configfile', 'debug', 'config', 'stats']
     DEBUG_CMDS = ['verbose', 'warnings', 'critical']
+    CLEAR_CMDS = ['stats']
 
     def __init__(self, collector):
         self.collector = collector
@@ -1196,6 +1197,26 @@ class CommandLine(cmd.Cmd):
             print 'Configuration file is set to:', self.collector.config_filename
         else:
             print 'No config filename given.'
+
+    def do_clear(self, keyword):
+        '''
+        clear stats
+        Set the statistics back to 0.
+        '''
+        if keyword == 'stats':
+            handler = self.collector.get_local_site().monitor._endpoints
+            handler.endpoint_add_events = 0
+            handler.endpoint_del_events = 0
+
+    def complete_clear(self, text, line, begidx, endidx):
+        if not text:
+            completions = self.CLEAR_CMDS[:]
+        else:
+            completions = [f
+                           for f in self.CLEAR_CMDS
+                           if f.startswith(text)
+                           ]
+        return completions
 
     def do_debug(self, keyword):
         '''
