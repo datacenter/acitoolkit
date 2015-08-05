@@ -7,6 +7,7 @@ from logging.handlers import RotatingFileHandler
 import cmd
 import sys
 import socket
+import subprocess
 
 # Imports from standalone mode
 import argparse
@@ -1133,7 +1134,7 @@ class CommandLine(cmd.Cmd):
     prompt = 'intersite> '
     intro = 'Cisco ACI Intersite tool (type help for commands)'
 
-    SHOW_CMDS = ['configfile', 'debug', 'config', 'stats']
+    SHOW_CMDS = ['configfile', 'debug', 'config', 'log', 'stats']
     DEBUG_CMDS = ['verbose', 'warnings', 'critical']
     CLEAR_CMDS = ['stats']
 
@@ -1152,10 +1153,13 @@ class CommandLine(cmd.Cmd):
         '''
         show
         Various commands that show the intersite tool details.
+
         Available subcommands:
         show debug - show the current debug level setting
         show configfile - show the config file name setting
         show config - show the current JSON configuration
+        show log - show the contents of the intersite.log file
+        show stats - show some basic event statistics
         '''
         if keyword == 'debug':
             print 'Debug level currently set to:', logging.getLevelName(logging.getLogger().getEffectiveLevel())
@@ -1163,6 +1167,9 @@ class CommandLine(cmd.Cmd):
             print 'Configuration file is set to:', self.collector.config_filename
         elif keyword == 'config':
             print json.dumps(self.collector.config.get_config(), indent=4, separators=(',', ':'))
+        elif keyword == 'log':
+            p = subprocess.Popen(['less', 'intersite.log'], stdin=subprocess.PIPE)
+            p.communicate()
         elif keyword == 'stats':
             handler = self.collector.get_local_site().monitor._endpoints
             print 'Endpoint addition events:', handler.endpoint_add_events
