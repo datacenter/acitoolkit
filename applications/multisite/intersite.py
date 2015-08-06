@@ -419,6 +419,9 @@ class Site(object):
             self.logged_in = True
         return resp
 
+    def remove_old_policies(self, local_site):
+        pass
+
 
 class IntersiteConfiguration(object):
     def __init__(self, config):
@@ -718,6 +721,24 @@ class ExportPolicy(ConfigObject):
             return False
         return True
 
+    def has_remote_epg(self, remote_site_name, l3out_name, l3instp_name):
+        # Check that the Remote EPG is that being used by the policy
+        if l3instp_name != self.remote_epg:
+            return False
+        # Check that the Remote Site is being used by the policy
+        site_found = False
+        for site_policy in self.get_site_policies():
+            if site_policy.name == remote_site_name:
+                site_found = True
+                break
+        if not site_found:
+            return False
+        # Check that the L3Out is being used by the policy
+        for interface in site_policy.get_interfaces():
+            if interface.name == l3out_name:
+                return True
+        return False
+
     def get_site_policies(self):
         sites = []
         for site in self._policy['export']['remote_sites']:
@@ -886,6 +907,7 @@ class LocalSite(Site):
         for policy in self.policy_db:
             if policy.tenant == tenant_name and policy.app == app_name and policy.epg == epg_name:
                 return policy
+        return None
 
 
 class RemoteSite(Site):
@@ -908,6 +930,32 @@ class RemoteSite(Site):
             resp = self.session.push_to_apic(url, data)
             if not resp.ok:
                 logging.warning('Could not remove remote site entry %s %s', resp, resp.text)
+
+    def remove_old_policies(self, local_site):
+        logging.info('remote_site: %s', self.name)
+        query_url = '/api/node/class/tagInst.json?query-target-filter=wcard(tagInst.name,"%s")' % local_site.name
+        resp = self.session.get(query_url)
+        if not resp.ok:
+            logging.error('Could not communicate with remote site to check for old policies')
+            return
+        tags = resp.json()['imdata']
+        for tag in tags:
+            if not IntersiteTag.is_intersite_tag(tag['tagInst']['attributes']['name']):
+                continue
+            itag = IntersiteTag.fromstring(tag['tagInst']['attributes']['name'])
+            export_policy = local_site.get_policy_for_epg(itag.get_tenant_name(), itag.get_app_name(), itag.get_epg_name())
+            l3out_name = tag['tagInst']['attributes']['dn'].split('/out-')[1].split('/')[0]
+            l3instp_name = tag['tagInst']['attributes']['dn'].split('/instP-')[1].split('/')[0]
+            if export_policy is None or not export_policy.has_remote_epg(self.name, l3out_name, l3instp_name):
+                dn = tag['tagInst']['attributes']['dn'].split('/instP-')[0]
+                url = '/api/mo/' + dn + '.json'
+                data = {'l3extInstP': {'attributes': {'name': l3instp_name,
+                                                      'status': 'deleted'}}}
+                resp = self.session.push_to_apic(url, data)
+                if not resp.ok:
+                    logging.error('Could not communicate with remote site to remove old policy')
+                    return
+                logging.info('Deleted old policy for %s', str(itag))
 
 
 class MultisiteCollector(object):
@@ -1127,6 +1175,12 @@ def initialize_tool(config):
         collector.add_site_from_config(site_policy)
 
     collector.initialize_local_site()
+
+    # For deleted export policies, try and clean up old dangling OutsideEPGs
+    # It may not be possible if the Remote Site Policy was also deleted
+    for remote_site_policy in collector.config.site_policies:
+        remote_site = collector.get_site(remote_site_policy.name)
+        remote_site.remove_old_policies(collector.get_local_site())
     return collector
 
 
@@ -1308,11 +1362,11 @@ def execute_tool(args, test_mode=False):
     if args.generateconfig:
         config = {'config': [
                                 {'site': {'name': '',
-                                       'ip_address': '',
-                                       'username': '',
-                                       'password': '',
-                                       'use_https': '',
-                                       'local': ''}},
+                                          'ip_address': '',
+                                          'username': '',
+                                          'password': '',
+                                          'use_https': '',
+                                          'local': ''}},
                                 {
                                     "export": {
                                         "tenant": "",
@@ -1339,8 +1393,8 @@ def execute_tool(args, test_mode=False):
                                         ]
                                     }
                                 }
-                        ]
-                  }
+                    ]
+                }
 
         json_data = json.dumps(config, indent=4, separators=(',', ': '))
         config_file = open('sample_config.json', 'w')
