@@ -370,37 +370,37 @@ class SnapshotsAdmin(CustomView):
     column_filters = ('version', 'filename', 'latest')
     column_formatters = dict(changes=macro('render_changes'))
 
-    @action('rollback', 'Rollback',
-            'Are you sure you want to rollback the configuration ?')
-    def rollback(*args, **kwargs):
-        if session.get('ipaddr') is None:
-            flash('APIC Credentials have not been entered', 'error')
-            return redirect(url_for('snapshotsadmin.index_view'))
-        login_args = APICArgs(session.get('ipaddr'),
-                              session.get('username'),
-                              session.get('secure'),
-                              session.get('password'))
-        try:
-            resp = cdb.login(login_args)
-            if resp.ok is not True:
-                flash('Unable to login to the APIC', 'error')
-                return redirect(url_for('snapshotsadmin.index_view'))
-        except Timeout:
-            flash('Connection timeout when trying to reach the APIC', 'error')
-            return redirect(url_for('snapshotsadmin.index_view'))
-
-        rollback_files = {}
-        for file_id in args[1]:
-            file_obj = Snapshots.query.get(file_id)
-            version = file_obj.version
-            if version not in rollback_files:
-                rollback_files[version] = []
-            rollback_files[version].append(file_obj.filename)
-        for version in rollback_files:
-            cdb.rollback(version, rollback_files[version])
-        flash(('APIC has been successfully rolled back to the specified'
-               ' version'), 'success')
-        return redirect(url_for('snapshotsadmin.index_view'))
+    # @action('rollback', 'Rollback',
+    #         'Are you sure you want to rollback the configuration ?')
+    # def rollback(*args, **kwargs):
+    #     if session.get('ipaddr') is None:
+    #         flash('APIC Credentials have not been entered', 'error')
+    #         return redirect(url_for('snapshotsadmin.index_view'))
+    #     login_args = APICArgs(session.get('ipaddr'),
+    #                           session.get('username'),
+    #                           session.get('secure'),
+    #                           session.get('password'))
+    #     try:
+    #         resp = cdb.login(login_args)
+    #         if resp.ok is not True:
+    #             flash('Unable to login to the APIC', 'error')
+    #             return redirect(url_for('snapshotsadmin.index_view'))
+    #     except Timeout:
+    #         flash('Connection timeout when trying to reach the APIC', 'error')
+    #         return redirect(url_for('snapshotsadmin.index_view'))
+    #
+    #     rollback_files = {}
+    #     for file_id in args[1]:
+    #         file_obj = Snapshots.query.get(file_id)
+    #         version = file_obj.version
+    #         if version not in rollback_files:
+    #             rollback_files[version] = []
+    #         rollback_files[version].append(file_obj.filename)
+    #     for version in rollback_files:
+    #         cdb.rollback(version, rollback_files[version])
+    #     flash(('APIC has been successfully rolled back to the specified'
+    #            ' version'), 'success')
+    #     return redirect(url_for('snapshotsadmin.index_view'))
 
     @action('view_diffs', 'View Diffs')
     def view_diffs(*args, **kwargs):
@@ -421,6 +421,48 @@ class SnapshotsAdmin(CustomView):
         return redirect(url_for('fileview.index'))
 
 
+class RollbackForm(Form):
+    version = SelectField('Version', coerce=int)
+    rollback = SubmitField('Rollback')
+
+class RollbackView(BaseView):
+    @expose('/', methods=['GET', 'POST'])
+    def index(self):
+        if session.get('ipaddr') is None:
+            flash('APIC Credentials have not been entered', 'error')
+            return redirect(url_for('rollbackview.index'))
+        args = APICArgs(session.get('ipaddr'),
+                        session.get('username'),
+                        session.get('secure'),
+                        session.get('password'))
+        # Login (Always do this since multiple login doesn't hurt and
+        # this will automatically cover when credentials change)
+        try:
+            resp = cdb.login(args)
+            if resp.ok is not True:
+                flash('Unable to login to the APIC', 'error')
+                return redirect(url_for('rollbackview.index'))
+        except Timeout:
+            flash('Connection timeout when trying to reach the APIC',
+                  'error')
+            return redirect(url_for('rollbackview.index'))
+        form = RollbackForm()
+        versions = cdb.get_versions(with_changes=True)
+        rollback_versions = []
+        if versions is not None:
+            count = 0
+            for version in versions:
+                count += 1
+                rollback_versions.append((count, version[0]))
+        form.version.choices = rollback_versions
+        if form.validate_on_submit() and form.rollback.data:
+            version = rollback_versions[form.version.data - 1][1]
+            cdb.rollback_using_import_policy(version)
+            flash('Rollback successfully processed', 'success')
+            return redirect(url_for('rollbackview.index'))
+        return self.render('rollback.html', form=form, versions=[])
+
+
 # Create admin with custom base template
 homepage_view = AdminIndexView(name='Home', template='admin/index.html',
                                url='/')
@@ -435,6 +477,7 @@ admin.add_view(ScheduleSnapshot(name='Schedule Snapshot',
                                 endpoint='schedulesnapshot'))
 admin.add_view(SnapshotsAdmin(Snapshots, db.session,
                               endpoint="snapshotsadmin"))
+admin.add_view(RollbackView(name='Version Rollback'))
 admin.add_view(StackedDiffs(name='Version Diffs'))
 admin.add_view(About(name='About'))
 admin.add_view(FileView(name='View'))
