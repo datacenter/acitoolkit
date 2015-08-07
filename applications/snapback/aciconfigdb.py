@@ -916,7 +916,7 @@ def main():
     help_txt = ('Rollback the configuration to the specified version.'
                 ' Optionally only for certain configuration files.')
     commands.add_argument('--rollback', nargs='+',
-                          metavar=('VERSION', 'CONFIGFILE'),
+                          metavar=('VERSION'),
                           help=help_txt)
     help_txt = ('Show the contents of a particular configfile'
                 ' from a particular snapshot version.')
@@ -953,11 +953,7 @@ def main():
             cdb.take_snapshot_using_export_policy()
     elif args.rollback is not None:
         version = args.rollback[0]
-        print 'version:', version    rrroroeieujligj
-        filenames = args.rollback[1:]
-        if len(filenames) == 0:
-            filenames = cdb.get_filenames(version)
-        cdb.rollback(version, filenames)
+        cdb.rollback_using_import_policy(version)
     elif args.show is not None:
         version = args.show[0]
         filename = args.show[1]
