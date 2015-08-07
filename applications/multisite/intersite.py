@@ -834,6 +834,7 @@ class LocalSite(Site):
                         if l3out_ip not in local_endpoints:
                             # Delete this L3out entry
                             data = {'l3extSubnet': {'attributes': {'name': item['l3extSubnet']['attributes']['name'],
+                                                                   'ip': item['l3extSubnet']['attributes']['name'],
                                                                    'status': 'deleted'}}}
                             children.append(data)
                     if len(children):
