@@ -143,7 +143,8 @@ class SnapshotScheduler(threading.Thread):
             cur_time = datetime.datetime.now()
             if start < cur_time:
                 print 'Taking snapshot'
-                self._cdb.take_snapshot(self._callback)
+                # self._cdb.take_snapshot(self._callback)
+                self._cdb.take_snapshot_using_export_policy(self._callback)
                 if self._schedule['frequency'] == 'onetime':
                     self.exit()
                 else:
