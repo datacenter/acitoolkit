@@ -191,7 +191,7 @@ class Credentials(object):
         ask the user through interactive prompt.
         """
         try:
-            if self._args.kill or self._args.restart:
+            if self._args.kill:
                 return ''
         except AttributeError:
             pass
