@@ -4093,6 +4093,8 @@ class NetworkPool(BaseACIObject):
         fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': {'name': self.name,
                                                                  'allocMode': self.mode},
                                                   'children': [fvnsEncapBlk]}}
+        if self.is_deleted():
+            fvnsEncapInstP[fvnsEncapInstP_string]['attributes']['status'] = 'deleted'                                          
         infra = {'infraInfra': {'attributes': {},
                                 'children': [fvnsEncapInstP]}}
         return infra
