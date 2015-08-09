@@ -3266,8 +3266,8 @@ class IPEndpoint(BaseACIObject):
         endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
                               '&rsp-subtree=full' % apic_endpoint_class)
         ret = session.get(endpoint_query_url)
-        print endpoint_query_url
-        print ret, ret.text
+        print (endpoint_query_url)
+        print (ret, ret.text)
         ep_data = ret.json()['imdata']
         for ep in ep_data:
             ep = ep[apic_endpoint_class]['attributes']
