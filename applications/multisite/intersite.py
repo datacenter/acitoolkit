@@ -561,8 +561,8 @@ class SitePolicy(ConfigObject):
             raise ValueError(self.__class__.__name__, 'Expecting "site" in configuration')
         policy = self._policy['site']
         for item in policy:
-            keyword_validators = {'username': '_validate_string',
-                                  'name': '_validate_string',
+            keyword_validators = {'username': '_validate_non_empty_string',
+                                  'name': '_validate_non_empty_string',
                                   'ip_address': '_validate_ip_address',
                                   'password': '_validate_string',
                                   'local': '_validate_boolean_string',
@@ -623,8 +623,8 @@ class L3OutPolicy(ConfigObject):
             raise ValueError('Expecting "l3out" in interface policy')
         policy = self._policy['l3out']
         for item in policy:
-            keyword_validators = {'name': '_validate_string',
-                                  'tenant': '_validate_string',
+            keyword_validators = {'name': '_validate_non_empty_string',
+                                  'tenant': '_validate_non_empty_string',
                                   'provides': '_validate_list',
                                   'consumes': '_validate_list',
                                   'protected_by': '_validate_list',
