@@ -1373,6 +1373,7 @@ def execute_tool(args, test_mode=False):
                                         "tenant": "",
                                         "app": "",
                                         "epg": "",
+                                        "remote_epg": "",
                                         "remote_sites": [
                                             {
                                                 "site": {
