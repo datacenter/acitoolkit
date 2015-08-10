@@ -3242,10 +3242,7 @@ class IPEndpoint(BaseACIObject):
             status = str(attributes.get('status'))
             dn = str(attributes.get('dn'))
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
-            if status == 'created':
-                name = str(attributes.get('addr'))
-            else:
-                name = cls._get_name_from_dn(dn)
+            name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)
             obj._populate_from_attributes(attributes)
             if status == 'deleted':
