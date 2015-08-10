@@ -55,9 +55,6 @@ else:
     except AttributeError:
         pass
 
-# Time before login timer expiration to send refresh
-TIMEOUT_GRACE_SECONDS = 10
-
 
 class Login(threading.Thread):
     """
@@ -392,9 +389,7 @@ class Session(object):
         if self._subscription_enabled:
             self.subscription_thread._open_web_socket('https://' in self.api)
         timeout = int(timeout)
-        if (timeout - TIMEOUT_GRACE_SECONDS) > 0:
-            timeout = timeout - TIMEOUT_GRACE_SECONDS
-        self.login_thread._login_timeout = timeout
+        self.login_thread._login_timeout = timeout / 2
         return ret
 
     def login(self, timeout=None):
