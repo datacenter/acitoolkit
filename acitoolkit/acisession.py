@@ -75,8 +75,10 @@ class Login(threading.Thread):
     def run(self):
         while not self._exit:
             time.sleep(self._login_timeout)
-            self._apic._send_login()
-            self._apic.resubscribe()
+            resp = self._apic.refresh_login()
+            if not resp.ok:
+                self._apic._send_login()
+                self._apic.resubscribe()
 
 
 class EventHandler(threading.Thread):
@@ -404,6 +406,11 @@ class Session(object):
         resp = self._send_login(timeout)
         self.login_thread.daemon = True
         self.login_thread.start()
+        return resp
+
+    def refresh_login(self, timeout=None):
+        refresh_url = self.api + '/api/aaaRefresh.json'
+        resp = self.session.get(refresh_url)
         return resp
 
     def close(self):
