@@ -43,6 +43,7 @@ from .aciphysobject import Interface
 from .acisession import Session
 from .aciTable import Table
 from .acitoolkitlib import Credentials
+from .aciSearch import Searchable
 
 
 def cmdline_login_to_apic(description=''):
@@ -147,7 +148,7 @@ class Tenant(BaseACIObject):
                 'l3extOut': OutsideEPG}
 
     @classmethod
-    def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False):
+    def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False, parent=None):
         resp = []
         if (isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names)):
             raise TypeError('names should be a Sequence of strings')
@@ -169,7 +170,7 @@ class Tenant(BaseACIObject):
             if len(data):
                 obj = super(Tenant, cls).get_deep(full_data=data,
                                                   working_data=data,
-                                                  parent=None,
+                                                  parent=parent,
                                                   limit_to=limit_to,
                                                   subtree=subtree,
                                                   config_only=config_only)
@@ -237,6 +238,18 @@ class Tenant(BaseACIObject):
         data = sorted(data)
         table = Table(data, headers, title=title + 'Tenant')
         return [table, ]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'tenant')
+        result.add_term('name', self.name)
+        result.add_term('tenant', self.name)
+
+        return [result]
 
 
 class AppProfile(BaseACIObject):
@@ -343,6 +356,17 @@ class AppProfile(BaseACIObject):
                 ])
             result.append(Table(data, headers, title=title + 'Application Profile: {0}'.format(app_profile.name)))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'app_profile')
+        result.add_term('name', self.name)
+        result.add_term('app_profile', self.name)
+        return [result]
 
 
 class L2Interface(BaseACIObject):
@@ -956,6 +980,23 @@ class EPG(CommonEPG):
         data = sorted(data)
         table = Table(data, headers, title=title + 'EPGs')
         return [table, ]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type','epg')
+        result.add_term('name',self.name)
+        if self.has_bd():
+            result.add_term('bd', self.get_bd().name, 'secondary')
+            if self.get_bd().has_context():
+                result.add_term('context',self.get_bd().get_context().name, 'secondary')
+        result.add_term('epg',self.name)
+        result.add_term('class', self.class_id)
+
+        return [result]
 
 
 class OutsideNetwork(CommonEPG):
@@ -1922,6 +1963,20 @@ class BridgeDomain(BaseACIObject):
         table = Table(data, headers, title=title + 'Bridge Domains')
         return [table, ]
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type','bd')
+        result.add_term('name',self.name)
+        result.add_term('vnid',self.vnid)
+        result.add_term('scope', self.scope)
+        result.add_term('class', self.class_id)
+        result.add_term('mac', self.mac)
+        return [result]
+
 
 class Subnet(BaseACIObject):
     """ Subnet :  roughly equivalent to fvSubnet """
@@ -2473,6 +2528,18 @@ class Contract(BaseContract):
             result.append(Table(data, headers, title=title + 'Contract:{0}'.format(contract.name)))
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'contract')
+        result.add_term('name',self.name)
+        result.add_term('contract', self.name)
+        result.add_term('scope', self.get_scope())
+        return [result]
+
 
 class Taboo(BaseContract):
     """ Taboo :  Class for Taboos """
@@ -2526,6 +2593,17 @@ class Taboo(BaseContract):
 
             result.append(Table(data, headers, title=title + 'Taboo:{0}'.format(taboo.name)))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type','taboo')
+        result.add_term('name',self.name)
+        result.add_term('scope', self.get_scope())
+        return [result]
 
 
 class FilterEntry(BaseACIObject):
@@ -2698,6 +2776,18 @@ class FilterEntry(BaseACIObject):
         data = sorted(data)
         table = Table(data, headers, title=title + 'Filters')
         return [table, ]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'filter')
+        result.add_term('name', self.name)
+        result.add_term('filter', self.name)
+        return [result]
+
 
     @staticmethod
     def _get_port(from_port, to_port):
@@ -3182,6 +3272,19 @@ class Endpoint(BaseACIObject):
         data = sorted(data, key=itemgetter(1, 2, 3, 4))
         result.append(Table(data, headers, title=title + 'Endpoints'))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type','endpoint')
+        result.add_term('name',self.name)
+        result.add_term('mac',self.mac)
+        result.add_term('ip',self.ip)
+        result.add_term('interface', self.if_name)
+        return [result]
 
 
 class IPEndpoint(BaseACIObject):
@@ -4923,20 +5026,27 @@ class LogicalModel(BaseACIObject):
 
     def populate_children(self, deep=False, include_concrete=False):
         """
-        This method will populate the children of the fabric.  If deep is set
-        to True, it will populate the entire object tree, both physical and logical.
+        This method will populate the children of the logical model starting with Tenant.  If deep is set
+        to True, it will populate the logical tree.
 
-        If include_concrete is set to True, it will also include the concrete models
-        on the network switches.
 
         :param deep:
         :param include_concrete:
         :return: list of immediate children objects
         """
-        Tenant.get(self.session, self)
-
+        tenants = Tenant.get_deep(self.session, parent=self)
         if deep:
             for child in self._children:
                 child.populate_children(deep, include_concrete)
 
         return self._children
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('model', 'logical')
+
+        return [result]
