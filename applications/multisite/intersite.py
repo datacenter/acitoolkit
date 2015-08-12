@@ -1,4 +1,11 @@
-from acitoolkit.acitoolkit import *
+#!/usr/bin/env python
+"""
+Intersite application enables policies to be applied across multiple ACI fabrics
+For documentation, refer to http://acitoolkit.readthedocs.org/en/latest/intersite.html
+"""
+from acitoolkit.acitoolkit import (Tenant, OutsideL3, OutsideEPG, OutsideNetwork,
+                                   IPEndpoint, Session, Contract, ContractInterface,
+                                   Taboo)
 import json
 import re
 import threading
@@ -8,6 +15,7 @@ import cmd
 import sys
 import socket
 import subprocess
+from requests.exceptions import ConnectionError
 
 # Imports from standalone mode
 import argparse
@@ -143,6 +151,13 @@ class EndpointHandler(object):
                             l3instp['l3extInstP']['children'].remove(ep)
 
     def _merge_tenant_json(self, remote_site, new_json):
+        """
+        Merge the JSON for the endpoint with the rest of the endpoints
+        already processed
+
+        :param remote_site: String containing the remote site to push the endpoint
+        :param new_json: JSON dictionary containing the JSON for the endpoint
+        """
         # Add the remote site if the first endpoint for that site
         if remote_site not in self.db:
             self.db[remote_site] = [new_json]
@@ -201,6 +216,12 @@ class EndpointHandler(object):
             outside_epg['l3extInstP']['children'].append(new_endpoint)
 
     def add_endpoint(self, endpoint, local_site):
+        """
+        Add an endpoint to the temporary database to be pushed to the remote sites
+
+        :param endpoint: Instance of IPEndpoint
+        :param local_site: Instance of LocalSite
+        """
         epg = endpoint.get_parent()
         app = epg.get_parent()
         tenant = app.get_parent()
@@ -382,7 +403,6 @@ class Site(object):
         self.local = local
         self.credentials = credentials
         self.session = None
-        self.logged_in = False
 
     def get_credentials(self):
         return self.credentials
@@ -412,11 +432,10 @@ class Site(object):
     def start(self):
         resp = self.login()
         if not resp.ok:
-            logging.warning('Could not login to site: %s due to: %s %s', self.name, resp, resp.text)
+            logging.warning('Could not login to site: %s due to: %s', self.name, resp.text)
             print('%% Could not login to APIC on Site', self.name)
         else:
             logging.info('%% Logged into Site %s', self.name)
-            self.logged_in = True
         return resp
 
     def remove_old_policies(self, local_site):
@@ -561,8 +580,8 @@ class SitePolicy(ConfigObject):
             raise ValueError(self.__class__.__name__, 'Expecting "site" in configuration')
         policy = self._policy['site']
         for item in policy:
-            keyword_validators = {'username': '_validate_string',
-                                  'name': '_validate_string',
+            keyword_validators = {'username': '_validate_non_empty_string',
+                                  'name': '_validate_non_empty_string',
                                   'ip_address': '_validate_ip_address',
                                   'password': '_validate_string',
                                   'local': '_validate_boolean_string',
@@ -623,8 +642,8 @@ class L3OutPolicy(ConfigObject):
             raise ValueError('Expecting "l3out" in interface policy')
         policy = self._policy['l3out']
         for item in policy:
-            keyword_validators = {'name': '_validate_string',
-                                  'tenant': '_validate_string',
+            keyword_validators = {'name': '_validate_non_empty_string',
+                                  'tenant': '_validate_non_empty_string',
                                   'provides': '_validate_list',
                                   'consumes': '_validate_list',
                                   'protected_by': '_validate_list',
@@ -798,18 +817,19 @@ class LocalSite(Site):
 
     def start(self):
         resp = super(LocalSite, self).start()
-        if resp.ok:
-            self.monitor = MultisiteMonitor(self.session, self, self.my_collector)
-            self.monitor.daemon = True
-            self.monitor.start()
-        return resp
+        self.monitor = MultisiteMonitor(self.session, self, self.my_collector)
+        self.monitor.daemon = True
+        self.monitor.start()
 
     def remove_stale_entries(self, policy):
         logging.info('')
-        assert self.logged_in
         # Get all of the local APIC entries
-        endpoints = IPEndpoint.get_all_by_epg(self.session,
-                                              policy.tenant, policy.app, policy.epg)
+        try:
+            endpoints = IPEndpoint.get_all_by_epg(self.session,
+                                                  policy.tenant, policy.app, policy.epg)
+        except ConnectionError:
+            logging.error('Could not remove stale entries in site %s', self.name)
+            return
         local_endpoints = []
         for ep in endpoints:
             local_endpoints.append(ep.name)
@@ -834,6 +854,7 @@ class LocalSite(Site):
                         if l3out_ip not in local_endpoints:
                             # Delete this L3out entry
                             data = {'l3extSubnet': {'attributes': {'name': item['l3extSubnet']['attributes']['name'],
+                                                                   'ip': item['l3extSubnet']['attributes']['name'] + '/32',
                                                                    'status': 'deleted'}}}
                             children.append(data)
                     if len(children):
@@ -884,7 +905,11 @@ class LocalSite(Site):
             self.policy_db.remove(old_policy)
         if policy not in self.policy_db:
             self.policy_db.append(policy)
-            self.push_policy(policy)
+            try:
+                self.push_policy(policy)
+            except ConnectionError:
+                logging.error('Could not push policy for %s %s %s', policy.tenant, policy.app, policy.epg)
+                return
         self.remove_stale_entries(policy)
         self.monitor.handle_existing_endpoints(policy)
 
@@ -960,7 +985,9 @@ class RemoteSite(Site):
 
 class MultisiteCollector(object):
     """
-
+    Collector: Holds all of the LocalSite and RemoteSite objects.
+    Normally, one collector exists per tool. Multiple collectors can be used in test
+    scripts to emulate multiple datacenters.
     """
     def __init__(self):
         self.sites = []
@@ -968,7 +995,9 @@ class MultisiteCollector(object):
         self.config_filename = None
 
     def initialize_local_site(self):
-        # Initialize the local site
+        """
+        Initialize the local site
+        """
         local_site = self.get_local_site()
         if local_site is None:
             print '%% No local site configured'
@@ -979,6 +1008,14 @@ class MultisiteCollector(object):
             local_site.add_policy(export_policy)
 
     def get_sites(self, local_only=False, remote_only=False):
+        """
+        Get the LocalSite and/or RemoteSite instances
+
+        :param local_only: True or False. True if only the local sites are desired.
+        :param remote_only: True or False. True if only the remote sites are desired.
+        :return: List of LocalSite and/or RemoteSite instances
+        """
+        assert not (local_only and remote_only)
         if local_only:
             locals = []
             for site in self.sites:
@@ -991,11 +1028,15 @@ class MultisiteCollector(object):
                 if not site.local:
                     remotes.append(site)
             return remotes
-
         else:
             return self.sites
 
     def get_local_site(self):
+        """
+        Get the LocalSite
+
+        :return: LocalSite instance or None
+        """
         local_sites = self.get_sites(local_only=True)
         if len(local_sites):
             return local_sites[0]
@@ -1003,11 +1044,21 @@ class MultisiteCollector(object):
             return None
 
     def get_site(self, name):
+        """
+        Get the LocalSite or RemoteSite instance specified by name
+
+        :param name: String containing the desired site name
+        """
         for site in self.sites:
             if site.name == name:
                 return site
 
     def get_num_sites(self):
+        """
+        Get the number of sites configured in this Collector
+
+        :returns: Integer containing the number of sites
+        """
         return len(self.sites)
 
     def add_site(self, name, credentials, local):
@@ -1018,7 +1069,8 @@ class MultisiteCollector(object):
         else:
             site = RemoteSite(name, credentials)
         self.sites.append(site)
-        return site.start()
+        site.start()
+        site.session.register_login_callback(self.login_callback)
 
     def add_site_from_config(self, site):
         if site.use_https == 'True':
@@ -1036,6 +1088,11 @@ class MultisiteCollector(object):
         self.add_site(site.name, creds, is_local)
 
     def delete_site(self, name):
+        """
+        Delete the site from the Collector
+
+        :param name: String containing the name of the site to be deleted
+        """
         logging.info('name:%s', name)
         for site in self.sites:
             if name == site.name:
@@ -1043,6 +1100,9 @@ class MultisiteCollector(object):
                 self.sites.remove(site)
 
     def print_sites(self):
+        """
+        Print the site information
+        """
         print 'Number of sites:', len(self.sites)
         for site in self.sites:
             print site.name, site.credentials.ip_address
@@ -1160,6 +1220,18 @@ class MultisiteCollector(object):
             config_file.write(json.dumps(config, indent=4, separators=(',', ':')))
         return 'OK'
 
+    def login_callback(self, session):
+        logging.info('')
+        my_policies = []
+        local_site = self.get_local_site()
+        for policy in local_site.policy_db:
+            my_policies.append(policy)
+        for policy in my_policies:
+            local_site.add_policy(policy)
+        remote_sites = self.get_sites(remote_only=True)
+        for remote_site in remote_sites:
+            remote_site.remove_old_policies(local_site)
+
 
 def initialize_tool(config):
     try:
@@ -1180,7 +1252,10 @@ def initialize_tool(config):
     # It may not be possible if the Remote Site Policy was also deleted
     for remote_site_policy in collector.config.site_policies:
         remote_site = collector.get_site(remote_site_policy.name)
-        remote_site.remove_old_policies(collector.get_local_site())
+        try:
+            remote_site.remove_old_policies(collector.get_local_site())
+        except ConnectionError:
+            logging.error('Could not remove old policies from local site')
     return collector
 
 
@@ -1188,7 +1263,7 @@ class CommandLine(cmd.Cmd):
     prompt = 'intersite> '
     intro = 'Cisco ACI Intersite tool (type help for commands)'
 
-    SHOW_CMDS = ['configfile', 'debug', 'config', 'log', 'stats']
+    SHOW_CMDS = ['configfile', 'debug', 'config', 'log', 'sites', 'stats']
     DEBUG_CMDS = ['verbose', 'warnings', 'critical']
     CLEAR_CMDS = ['stats']
 
@@ -1213,6 +1288,7 @@ class CommandLine(cmd.Cmd):
         show configfile - show the config file name setting
         show config - show the current JSON configuration
         show log - show the contents of the intersite.log file
+        show sites - show the status of the communication with the various APICs
         show stats - show some basic event statistics
         '''
         if keyword == 'debug':
@@ -1224,12 +1300,23 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'log':
             p = subprocess.Popen(['less', 'intersite.log'], stdin=subprocess.PIPE)
             p.communicate()
+        elif keyword == 'sites':
+            sites = self.collector.get_sites()
+            for site in sites:
+                if site.session.logged_in():
+                    state = 'Connected'
+                else:
+                    state = 'Not connected'
+                print site.name, ':', state
         elif keyword == 'stats':
             handler = self.collector.get_local_site().monitor._endpoints
             print 'Endpoint addition events:', handler.endpoint_add_events
             print 'Endpoint deletion events:', handler.endpoint_del_events
 
     def emptyline(self):
+        """
+        Action for empty line input
+        """
         pass
 
     def complete_show(self, text, line, begidx, endidx):
@@ -1317,6 +1404,11 @@ class CommandLine(cmd.Cmd):
 
 
 def get_arg_parser():
+    """
+    Get the parser with the necessary arguments
+
+    :return: Instance of argparse.ArgumentParser
+    """
     parser = argparse.ArgumentParser(description='ACI Multisite Tool')
     parser.add_argument('--config', default=None, help='Configuration file')
     parser.add_argument('--maxlogfiles', type=int, default=10, help='Maximum number of log files (default is 10)')
@@ -1339,6 +1431,14 @@ def main():
 
 
 def execute_tool(args, test_mode=False):
+    """
+    Main Intersite application execution
+
+    :param args: command line arguments
+    :param test_mode: True or False. True indicates that the command line parser should not be run.
+                      This is used by test routines and when invoked by the REST API
+    :return: None
+    """
     # Set up the logging infrastructure
     if args.debug is not None:
         if args.debug == 'verbose':
@@ -1372,6 +1472,7 @@ def execute_tool(args, test_mode=False):
                                         "tenant": "",
                                         "app": "",
                                         "epg": "",
+                                        "remote_epg": "",
                                         "remote_sites": [
                                             {
                                                 "site": {

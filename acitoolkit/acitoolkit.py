@@ -3345,10 +3345,7 @@ class IPEndpoint(BaseACIObject):
             status = str(attributes.get('status'))
             dn = str(attributes.get('dn'))
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
-            if status == 'created':
-                name = str(attributes.get('addr'))
-            else:
-                name = cls._get_name_from_dn(dn)
+            name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)
             obj._populate_from_attributes(attributes)
             if status == 'deleted':
@@ -3369,8 +3366,6 @@ class IPEndpoint(BaseACIObject):
         endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
                               '&rsp-subtree=full' % apic_endpoint_class)
         ret = session.get(endpoint_query_url)
-        print endpoint_query_url
-        print ret, ret.text
         ep_data = ret.json()['imdata']
         for ep in ep_data:
             ep = ep[apic_endpoint_class]['attributes']
@@ -3416,7 +3411,8 @@ class IPEndpoint(BaseACIObject):
             elif 'fvIp' in ep:
                 attr = ep['fvIp']['attributes']
             else:
-                raise ValueError(ep)
+                logging.error('Could not get EPG endpoints from the APIC %s', ep)
+                break
             ep_dn = str(attr['dn'])
             ep_addr = str(attr['addr'])
             if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
@@ -4196,6 +4192,8 @@ class NetworkPool(BaseACIObject):
         fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': {'name': self.name,
                                                                  'allocMode': self.mode},
                                                   'children': [fvnsEncapBlk]}}
+        if self.is_deleted():
+            fvnsEncapInstP[fvnsEncapInstP_string]['attributes']['status'] = 'deleted'
         infra = {'infraInfra': {'attributes': {},
                                 'children': [fvnsEncapInstP]}}
         return infra
