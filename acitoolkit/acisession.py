@@ -44,6 +44,7 @@ except ImportError:
     pass
 from six.moves.queue import Queue
 from websocket import create_connection
+from requests.exceptions import ConnectionError
 
 try:
     import urllib3
@@ -72,13 +73,38 @@ class Login(threading.Thread):
         """
         self._exit = True
 
+    def _check_callbacks(self, resp):
+        """
+        Invoke the callback functions on a successful relogin
+        if there was an error response
+
+        :param resp: Instance of requests.Response
+        """
+        if resp.ok:
+            if self._apic.login_error:
+                logging.info('Logged back into the APIC')
+                self._apic.login_error = False
+                self._apic.invoke_login_callbacks()
+
     def run(self):
         while not self._exit:
             time.sleep(self._login_timeout)
-            resp = self._apic.refresh_login()
+            try:
+                resp = self._apic.refresh_login()
+            except ConnectionError:
+                logging.error('Could not refresh APIC login due to ConnectionError')
+                self._login_timeout = 30
+                self._apic.login_error = True
+                continue
+            self._check_callbacks(resp)
             if not resp.ok:
-                self._apic._send_login()
-                self._apic.resubscribe()
+                try:
+                    resp = self._apic._send_login()
+                    self._apic.resubscribe()
+                    self._check_callbacks(resp)
+                except ConnectionError:
+                    logging.error('Could not relogin to APIC due to ConnectionError')
+                    self._apic.login_error = True
 
 
 class EventHandler(threading.Thread):
@@ -139,7 +165,22 @@ class Subscriber(threading.Thread):
 
         :param url: URL string to issue the subscription
         """
-        resp = self._apic.get(url)
+        try:
+            resp = self._apic.get(url)
+        except ConnectionError:
+            self._subscriptions[url] = None
+            logging.error('Could not send subscription to APIC for url %s', url)
+            resp = requests.Response()
+            resp.status_code = 404
+            resp._content = '{"error": "Could not send subscription to APIC"}'
+            return resp
+        if not resp.ok:
+            self._subscriptions[url] = None
+            logging.error('Could not send subscription to APIC for url %s', url)
+            resp = requests.Response()
+            resp.status_code = 404
+            resp._content = '{"error": "Could not send subscription to APIC"}'
+            return resp
         resp_data = json.loads(resp.text)
         subscription_id = resp_data['subscriptionId']
         self._subscriptions[url] = subscription_id
@@ -158,6 +199,9 @@ class Subscriber(threading.Thread):
         """
         for subscription in self._subscriptions:
             subscription_id = self._subscriptions[subscription]
+            if subscription_id is None:
+                self._send_subscription(subscription)
+                continue
             refresh_url = '/api/subscriptionRefresh.json?id=' + str(subscription_id)
             resp = self._apic.get(refresh_url)
             if not resp.ok:
@@ -351,6 +395,9 @@ class Session(object):
         self.verify_ssl = verify_ssl
         self.token = None
         self.login_thread = Login(self)
+        self._relogin_callbacks = []
+        self.login_error = False
+        self._logged_in = False
         self._subscription_enabled = subscription_enabled
         if subscription_enabled:
             self.subscription_thread = Subscriber(self)
@@ -385,6 +432,7 @@ class Session(object):
             self.login_thread.exit()
             self.subscription_thread.exit()
             return ret
+        self._logged_in = True
         ret_data = json.loads(ret.text)['imdata'][0]
         timeout = ret_data['aaaLogin']['attributes']['refreshTimeoutSeconds']
         self.token = str(ret_data['aaaLogin']['attributes']['token'])
@@ -403,14 +451,34 @@ class Session(object):
         response.ok is True if login is successful.
         """
         logging.info('Initializing connection to the APIC')
-        resp = self._send_login(timeout)
+        try:
+            resp = self._send_login(timeout)
+        except ConnectionError:
+            logging.error('Could not relogin to APIC due to ConnectionError')
+            resp = requests.Response()
+            resp.status_code = 404
+            resp._content = '{"error": "Could not relogin to APIC due to ConnectionError"}'
         self.login_thread.daemon = True
         self.login_thread.start()
         return resp
 
+    def logged_in(self):
+        """
+        Returns whether the session is logged in to the APIC
+
+        :return: True or False. True if the session is logged in to the APIC.
+        """
+        return self._logged_in and not self.login_error
+
     def refresh_login(self, timeout=None):
+        """
+        Refresh the login to the APIC
+
+        :param timeout: Integer containing the number of seconds for connection timeout
+        :return: Instance of requests.Response
+        """
         refresh_url = self.api + '/api/aaaRefresh.json'
-        resp = self.session.get(refresh_url)
+        resp = self.session.get(refresh_url, timeout=timeout)
         return resp
 
     def close(self):
@@ -513,3 +581,31 @@ class Session(object):
         logging.debug(resp)
         logging.debug(resp.text)
         return resp
+
+    def register_login_callback(self, callback_fn):
+        """
+        Register a callback function that will be called when the session performs a
+        successful relogin attempt after disconnecting from the APIC.
+
+        :param callback_fn: function to be called
+        """
+        if callback_fn not in self._relogin_callbacks:
+            self._relogin_callbacks.append(callback_fn)
+
+    def deregister_login_callback(self, callback_fn):
+        """
+        Delete the registration of a callback function that was registered via the
+        register_login_callback function.
+
+        :param callback_fn: function to be deregistered
+        """
+        if callback_fn in self._relogin_callbacks:
+            self._relogin_callbacks.remove(callback_fn)
+
+    def invoke_login_callbacks(self):
+        """
+        Invoke registered callback functions when the session performs a
+        successful relogin attempt after disconnecting from the APIC.
+        """
+        for callback_fn in self._relogin_callbacks:
+            callback_fn(self)
