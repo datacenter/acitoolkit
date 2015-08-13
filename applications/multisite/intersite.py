@@ -372,8 +372,12 @@ class MultisiteMonitor(threading.Thread):
         logging.info('for tenant: %s app_name: %s epg_name: %s',
                      policy.tenant, policy.app, policy.epg)
         self.verify_policy(policy)
-        endpoints = IPEndpoint.get_all_by_epg(self._session,
-                                              policy.tenant, policy.app, policy.epg)
+        try:
+            endpoints = IPEndpoint.get_all_by_epg(self._session,
+                                                  policy.tenant, policy.app, policy.epg)
+        except ConnectionError:
+            logging.error('Could not connect to APIC to get all endpoints for the EPG')
+            return
         for endpoint in endpoints:
             self._endpoints.add_endpoint(endpoint, self._local_site)
         self._endpoints.push_to_remote_sites(self._my_collector)
