@@ -16,6 +16,7 @@ import sys
 import socket
 import subprocess
 from requests.exceptions import ConnectionError
+import signal
 
 # Imports from standalone mode
 import argparse
@@ -26,6 +27,12 @@ import argparse
 # Maximum number of endpoints to handle in a single burst
 MAX_ENDPOINTS = 1000
 
+
+def sigint_handler(signum, frame):
+    pass
+
+# Disable Ctrl-C to exit
+signal.signal(signal.SIGINT, sigint_handler)
 
 class IntersiteTag(object):
     """
@@ -1429,7 +1436,6 @@ def main():
     """
     execute_tool(get_arg_parser().parse_args())
 
-
 def execute_tool(args, test_mode=False):
     """
     Main Intersite application execution
@@ -1453,8 +1459,8 @@ def execute_tool(args, test_mode=False):
     log_file = 'intersite.log'
     my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5*1024*1024,
                                      backupCount=args.maxlogfiles, encoding=None, delay=0)
-    my_handler.setFormatter(log_formatter)
     my_handler.setLevel(level)
+    my_handler.setFormatter(log_formatter)
     logging.getLogger().addHandler(my_handler)
     logging.getLogger().setLevel(level)
 
