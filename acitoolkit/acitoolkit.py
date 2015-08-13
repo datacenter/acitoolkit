@@ -3313,7 +3313,8 @@ class IPEndpoint(BaseACIObject):
             elif 'fvIp' in ep:
                 attr = ep['fvIp']['attributes']
             else:
-                raise ValueError(ep)
+                logging.error('Could not get EPG endpoints from the APIC %s', ep)
+                break
             ep_dn = str(attr['dn'])
             ep_addr = str(attr['addr'])
             if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
