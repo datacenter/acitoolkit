@@ -148,7 +148,7 @@ class Subscriber(threading.Thread):
         self._subscriptions = {}
         self._ws = None
         self._ws_url = None
-        self._refresh_time = 45
+        self._refresh_time = 30
         self._event_q = Queue()
         self._events = {}
         self._exit = False
@@ -371,7 +371,10 @@ class Subscriber(threading.Thread):
         while not self._exit:
             # Sleep for some interval and send subscription list
             time.sleep(self._refresh_time)
-            self.refresh_subscriptions()
+            try:
+                self.refresh_subscriptions()
+            except ConnectionError:
+                logging.error('Could not refresh subscriptions due to ConnectionError')
 
 
 class Session(object):
