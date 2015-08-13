@@ -197,7 +197,14 @@ class Subscriber(threading.Thread):
         """
         Refresh all of the subscriptions.
         """
+        # Make a copy of the current subscriptions in case of changes
+        # while we are refreshing
+        current_subscriptions = {}
         for subscription in self._subscriptions:
+            current_subscriptions[subscription] = self._subscriptions[subscription]
+
+        # Refresh the subscriptions
+        for subscription in current_subscriptions:
             subscription_id = self._subscriptions[subscription]
             if subscription_id is None:
                 self._send_subscription(subscription)
