@@ -365,8 +365,8 @@ class MultisiteMonitor(threading.Thread):
     def handle_existing_endpoints(self, policy):
         logging.info('for tenant: %s app_name: %s epg_name: %s',
                      policy.tenant, policy.app, policy.epg)
-        self.verify_policy(policy)
         try:
+            self.verify_policy(policy)
             endpoints = IPEndpoint.get_all_by_epg(self._session,
                                                   policy.tenant, policy.app, policy.epg)
         except ConnectionError:
