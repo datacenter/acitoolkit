@@ -28,12 +28,6 @@ import argparse
 MAX_ENDPOINTS = 1000
 
 
-def sigint_handler(signum, frame):
-    pass
-
-# Disable Ctrl-C to exit
-signal.signal(signal.SIGINT, sigint_handler)
-
 class IntersiteTag(object):
     """
     This class deals with the tagInst instances stored in the APIC
@@ -397,7 +391,10 @@ class MultisiteMonitor(threading.Thread):
 
         while not self._exit:
             if IPEndpoint.has_events(self._session):
-                self.handle_endpoint_event()
+                try:
+                    self.handle_endpoint_event()
+                except ConnectionError:
+                    logging.error('Could not handle endpoint event due to ConnectionError')
 
 
 class SiteLoginCredentials(object):
@@ -879,6 +876,7 @@ class LocalSite(Site):
                                          l3out_ip, l3out.name, site.name)
 
     def push_policy(self, policy):
+        logging.info('')
         tag = IntersiteTag(policy.tenant, policy.app, policy.epg, self.name)
         for site_policy in policy.get_site_policies():
             site = self.my_collector.get_site(site_policy.name)
@@ -902,10 +900,9 @@ class LocalSite(Site):
                     cif = ContractInterface(consumes_interface.consumes_interface)
                     remote_epg.consume_cif(cif)
                 remote_epg.add_tag(str(tag))
-            resp = remote_tenant.push_to_apic(site.session)
-            if not resp.ok:
-                logging.warning('Could not push policy to remote site: %s', resp.text)
-            logging.warning('Response %s', resp.text)
+                resp = remote_tenant.push_to_apic(site.session)
+                if not resp.ok:
+                    logging.warning('Could not push policy to remote site: %s', resp.text)
 
     def add_policy(self, policy):
         logging.info('')
