@@ -1174,11 +1174,10 @@ class MultisiteCollector(object):
             return
         # Handle any changes in site configuration
         added_local_site = self._reload_sites(old_config, new_config)
+        self.config = new_config
         if added_local_site:
             logging.info('New local site added')
-            self.config = new_config
             self.initialize_local_site()
-            return
 
         # Handle any export policies for new EPGs
         for new_policy in new_config.export_policies:
