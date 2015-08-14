@@ -467,6 +467,16 @@ class IntersiteConfiguration(object):
                 export_policy = ExportPolicy(item)
                 if export_policy is not None:
                     self.export_policies.append(export_policy)
+        self._validate_unique_epgs()
+
+    def _validate_unique_epgs(self):
+        for policy in self.export_policies:
+            count = 0
+            for other_policy in self.export_policies:
+                if other_policy.has_same_epg(policy):
+                    count += 1
+            if count > 1:
+                raise ValueError('Duplicate EPG export policy found for tenant:%s app:%s epg:%s'% (policy.tenant, policy.app, policy.epg))
 
     def get_config(self):
         policies = []
@@ -487,18 +497,18 @@ class ConfigObject(object):
             if isinstance(item, unicode):
                 return
         if not isinstance(item, str):
-            raise ValueError(self.__class__.__name__, 'Expected string')
+            raise ValueError(self.__class__.__name__ + ': Expected string')
 
     def _validate_non_empty_string(self, item):
         if sys.version_info < (3, 0, 0):
             if isinstance(item, unicode):
                 if len(item) < 1 or len(item) > 64:
-                    raise ValueError(self.__class__.__name__, 'Expected string of correct size', item)
+                    raise ValueError(self.__class__.__name__ + ': Expected string of correct size %s' % item)
                 return
         if not isinstance(item, str):
-            raise ValueError(self.__class__.__name__, 'Expected string')
+            raise ValueError(self.__class__.__name__ + ': Expected string')
         elif len(item) < 1 or len(item) > 64:
-            raise ValueError(self.__class__.__name__, 'Expected string of correct size', item)
+            raise ValueError(self.__class__.__name__+ ': Expected string of correct size %s' % item)
 
     def _validate_ip_address(self, item):
         try:
@@ -507,15 +517,15 @@ class ConfigObject(object):
                     item = str(item)
             socket.inet_aton(item)
         except socket.error:
-            raise ValueError(self.__class__.__name__, 'Expected IP address')
+            raise ValueError(self.__class__.__name__ + ': Expected IP address')
 
     def _validate_boolean_string(self, item):
         if item not in ['True', 'False']:
-            raise ValueError(self.__class__.__name__, 'Expected "True" or "False"')
+            raise ValueError(self.__class__.__name__ + ': Expected "True" or "False"')
 
     def _validate_list(self, item):
         if not isinstance(item, list):
-            raise ValueError(self.__class__.__name__, 'Expected list')
+            raise ValueError(self.__class__.__name__ + ': Expected list')
 
     def validate(self):
         raise NotImplementedError
@@ -595,7 +605,7 @@ class SitePolicy(ConfigObject):
                                   'local': '_validate_boolean_string',
                                   'use_https': '_validate_boolean_string'}
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
 
 
@@ -606,7 +616,7 @@ class ProvidedContractPolicy(ConfigObject):
 
     def validate(self):
         if 'contract_name' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "contract_name" in contract policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "contract_name" in contract policy')
         self._validate_non_empty_string(self._policy['contract_name'])
 
 
@@ -621,7 +631,7 @@ class ProtectedByPolicy(ConfigObject):
 
     def validate(self):
         if 'taboo_name' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "taboo_name" in protected by policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "taboo_name" in protected by policy')
         self._validate_non_empty_string(self._policy['taboo_name'])
 
 
@@ -632,7 +642,7 @@ class ConsumedInterfacePolicy(ConfigObject):
 
     def validate(self):
         if 'cif_name' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "cif_name" in consumed interface policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "cif_name" in consumed interface policy')
         self._validate_non_empty_string(self._policy['cif_name'])
 
 
@@ -658,7 +668,7 @@ class L3OutPolicy(ConfigObject):
                                   'consumes_interface': '_validate_list',
                                   }
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_provided_contract_policies()
             self.get_consumed_contract_policies()
@@ -693,13 +703,13 @@ class RemoteSitePolicy(ConfigObject):
 
     def validate(self):
         if 'site' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "site" in remote site policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "site" in remote site policy')
         policy = self._policy['site']
         for item in policy:
             keyword_validators = {'name': '_validate_string',
                                   'interfaces': '_validate_list'}
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_interfaces()
 
@@ -729,7 +739,7 @@ class ExportPolicy(ConfigObject):
 
     def validate(self):
         if 'export' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "export" in configuration')
+            raise ValueError(self.__class__.__name__ + 'Expecting "export" in configuration')
         policy = self._policy['export']
         for item in policy:
             keyword_validators = {'tenant': '_validate_string',
@@ -738,11 +748,17 @@ class ExportPolicy(ConfigObject):
                                   'remote_epg': '_validate_string',
                                   'remote_sites': '_validate_list'}
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_site_policies()
 
     def has_same_epg(self, policy):
+        assert isinstance(policy, ExportPolicy)
+        if self.tenant != policy.tenant or self.app != policy.app or self.epg != policy.epg:
+            return False
+        return True
+
+    def has_same_epg_and_remote_epg(self, policy):
         assert isinstance(policy, ExportPolicy)
         if self.tenant != policy.tenant or self.app != policy.app or self.epg != policy.epg or self.remote_epg != policy.remote_epg:
             return False
@@ -1196,7 +1212,7 @@ class MultisiteCollector(object):
         for old_policy in old_config.export_policies:
             policy_found = False
             for new_policy in new_config.export_policies:
-                if old_policy.has_same_epg(new_policy):
+                if old_policy.has_same_epg_and_remote_epg(new_policy):
                     policy_found = True
                     break
             if not policy_found:
