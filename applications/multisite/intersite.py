@@ -744,7 +744,7 @@ class ExportPolicy(ConfigObject):
 
     def has_same_epg(self, policy):
         assert isinstance(policy, ExportPolicy)
-        if self.tenant != policy.tenant or self.app != policy.app or self.epg != policy.epg:
+        if self.tenant != policy.tenant or self.app != policy.app or self.epg != policy.epg or self.remote_epg != policy.remote_epg:
             return False
         return True
 
@@ -947,7 +947,7 @@ class RemoteSite(Site):
     def __init__(self, name, credentials):
         super(RemoteSite, self).__init__(name, credentials, local=False)
 
-    def remove_all_entries(self, itag, l3out_name, l3out_tenant_name):
+    def remove_all_entries(self, itag, l3out_name, l3out_tenant_name, remote_epg):
         query_url = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
                      'target-subtree-class=l3extInstP&'
                      'rsp-subtree=children&'
@@ -958,6 +958,10 @@ class RemoteSite(Site):
             logging.warning('Could not get remote site entries %s %s', resp, resp.text)
             return
         for entry in resp.json()['imdata']:
+            dn = entry['l3extInstP']['attributes']['dn']
+            apic_remote_epg = dn.split('/instP-')[1].split('/')[0]
+            if apic_remote_epg != remote_epg:
+                continue
             url = '/api/mo/' + entry['l3extInstP']['attributes']['dn'] + '.json'
             data = {'l3extInstP': {'attributes': {'status': 'deleted'}}}
             resp = self.session.push_to_apic(url, data)
@@ -1212,7 +1216,7 @@ class MultisiteCollector(object):
                                     export_policy.app,
                                     export_policy.epg,
                                     self.get_local_site().name)
-                site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant)
+                site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant, export_policy.remote_epg)
 
     def save_config(self, config):
         logging.info('')
