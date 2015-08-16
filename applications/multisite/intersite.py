@@ -259,7 +259,10 @@ class EndpointHandler(object):
                 remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
                 remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
                 remote_ep = OutsideNetwork(endpoint.name, remote_epg)
-                remote_ep.ip = endpoint.name + '/32'
+                if ':' in endpoint.name:
+                    remote_ep.ip = endpoint.name + '/128'
+                else:
+                    remote_ep.ip = endpoint.name + '/32'
                 if endpoint.is_deleted():
                     remote_ep.mark_as_deleted()
                 tenant_json = remote_tenant.get_json()
@@ -877,8 +880,14 @@ class LocalSite(Site):
                         l3out_ip = item['l3extSubnet']['attributes']['name'].rpartition('-')[-1]
                         if l3out_ip not in local_endpoints:
                             # Delete this L3out entry
+                            # TODO update this for /128 IPv6
+                            ip_addr = item['l3extSubnet']['attributes']['name']
+                            if ':' in ip_addr:
+                                ip_addr = ip_addr + '/128'
+                            else:
+                                ip_addr = ip_addr + '/32'
                             data = {'l3extSubnet': {'attributes': {'name': item['l3extSubnet']['attributes']['name'],
-                                                                   'ip': item['l3extSubnet']['attributes']['name'] + '/32',
+                                                                   'ip': ip_addr,
                                                                    'status': 'deleted'}}}
                             children.append(data)
                     if len(children):
