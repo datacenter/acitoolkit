@@ -28,12 +28,6 @@ import argparse
 MAX_ENDPOINTS = 1000
 
 
-def sigint_handler(signum, frame):
-    pass
-
-# Disable Ctrl-C to exit
-signal.signal(signal.SIGINT, sigint_handler)
-
 class IntersiteTag(object):
     """
     This class deals with the tagInst instances stored in the APIC
@@ -265,7 +259,10 @@ class EndpointHandler(object):
                 remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
                 remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
                 remote_ep = OutsideNetwork(endpoint.name, remote_epg)
-                remote_ep.ip = endpoint.name + '/32'
+                if ':' in endpoint.name:
+                    remote_ep.ip = endpoint.name + '/128'
+                else:
+                    remote_ep.ip = endpoint.name + '/32'
                 if endpoint.is_deleted():
                     remote_ep.mark_as_deleted()
                 tenant_json = remote_tenant.get_json()
@@ -371,9 +368,13 @@ class MultisiteMonitor(threading.Thread):
     def handle_existing_endpoints(self, policy):
         logging.info('for tenant: %s app_name: %s epg_name: %s',
                      policy.tenant, policy.app, policy.epg)
-        self.verify_policy(policy)
-        endpoints = IPEndpoint.get_all_by_epg(self._session,
-                                              policy.tenant, policy.app, policy.epg)
+        try:
+            self.verify_policy(policy)
+            endpoints = IPEndpoint.get_all_by_epg(self._session,
+                                                  policy.tenant, policy.app, policy.epg)
+        except ConnectionError:
+            logging.error('Could not connect to APIC to get all endpoints for the EPG')
+            return
         for endpoint in endpoints:
             self._endpoints.add_endpoint(endpoint, self._local_site)
         self._endpoints.push_to_remote_sites(self._my_collector)
@@ -393,7 +394,10 @@ class MultisiteMonitor(threading.Thread):
 
         while not self._exit:
             if IPEndpoint.has_events(self._session):
-                self.handle_endpoint_event()
+                try:
+                    self.handle_endpoint_event()
+                except ConnectionError:
+                    logging.error('Could not handle endpoint event due to ConnectionError')
 
 
 class SiteLoginCredentials(object):
@@ -466,6 +470,16 @@ class IntersiteConfiguration(object):
                 export_policy = ExportPolicy(item)
                 if export_policy is not None:
                     self.export_policies.append(export_policy)
+        self._validate_unique_epgs()
+
+    def _validate_unique_epgs(self):
+        for policy in self.export_policies:
+            count = 0
+            for other_policy in self.export_policies:
+                if other_policy.has_same_epg(policy):
+                    count += 1
+            if count > 1:
+                raise ValueError('Duplicate EPG export policy found for tenant:%s app:%s epg:%s'% (policy.tenant, policy.app, policy.epg))
 
     def get_config(self):
         policies = []
@@ -486,18 +500,18 @@ class ConfigObject(object):
             if isinstance(item, unicode):
                 return
         if not isinstance(item, str):
-            raise ValueError(self.__class__.__name__, 'Expected string')
+            raise ValueError(self.__class__.__name__ + ': Expected string')
 
     def _validate_non_empty_string(self, item):
         if sys.version_info < (3, 0, 0):
             if isinstance(item, unicode):
                 if len(item) < 1 or len(item) > 64:
-                    raise ValueError(self.__class__.__name__, 'Expected string of correct size', item)
+                    raise ValueError(self.__class__.__name__ + ': Expected string of correct size %s' % item)
                 return
         if not isinstance(item, str):
-            raise ValueError(self.__class__.__name__, 'Expected string')
+            raise ValueError(self.__class__.__name__ + ': Expected string')
         elif len(item) < 1 or len(item) > 64:
-            raise ValueError(self.__class__.__name__, 'Expected string of correct size', item)
+            raise ValueError(self.__class__.__name__+ ': Expected string of correct size %s' % item)
 
     def _validate_ip_address(self, item):
         try:
@@ -506,15 +520,15 @@ class ConfigObject(object):
                     item = str(item)
             socket.inet_aton(item)
         except socket.error:
-            raise ValueError(self.__class__.__name__, 'Expected IP address')
+            raise ValueError(self.__class__.__name__ + ': Expected IP address')
 
     def _validate_boolean_string(self, item):
         if item not in ['True', 'False']:
-            raise ValueError(self.__class__.__name__, 'Expected "True" or "False"')
+            raise ValueError(self.__class__.__name__ + ': Expected "True" or "False"')
 
     def _validate_list(self, item):
         if not isinstance(item, list):
-            raise ValueError(self.__class__.__name__, 'Expected list')
+            raise ValueError(self.__class__.__name__ + ': Expected list')
 
     def validate(self):
         raise NotImplementedError
@@ -594,7 +608,7 @@ class SitePolicy(ConfigObject):
                                   'local': '_validate_boolean_string',
                                   'use_https': '_validate_boolean_string'}
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
 
 
@@ -605,7 +619,7 @@ class ProvidedContractPolicy(ConfigObject):
 
     def validate(self):
         if 'contract_name' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "contract_name" in contract policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "contract_name" in contract policy')
         self._validate_non_empty_string(self._policy['contract_name'])
 
 
@@ -620,7 +634,7 @@ class ProtectedByPolicy(ConfigObject):
 
     def validate(self):
         if 'taboo_name' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "taboo_name" in protected by policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "taboo_name" in protected by policy')
         self._validate_non_empty_string(self._policy['taboo_name'])
 
 
@@ -631,7 +645,7 @@ class ConsumedInterfacePolicy(ConfigObject):
 
     def validate(self):
         if 'cif_name' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "cif_name" in consumed interface policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "cif_name" in consumed interface policy')
         self._validate_non_empty_string(self._policy['cif_name'])
 
 
@@ -657,7 +671,7 @@ class L3OutPolicy(ConfigObject):
                                   'consumes_interface': '_validate_list',
                                   }
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_provided_contract_policies()
             self.get_consumed_contract_policies()
@@ -692,13 +706,13 @@ class RemoteSitePolicy(ConfigObject):
 
     def validate(self):
         if 'site' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "site" in remote site policy')
+            raise ValueError(self.__class__.__name__ + 'Expecting "site" in remote site policy')
         policy = self._policy['site']
         for item in policy:
             keyword_validators = {'name': '_validate_string',
                                   'interfaces': '_validate_list'}
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_interfaces()
 
@@ -728,7 +742,7 @@ class ExportPolicy(ConfigObject):
 
     def validate(self):
         if 'export' not in self._policy:
-            raise ValueError(self.__class__.__name__, 'Expecting "export" in configuration')
+            raise ValueError(self.__class__.__name__ + 'Expecting "export" in configuration')
         policy = self._policy['export']
         for item in policy:
             keyword_validators = {'tenant': '_validate_string',
@@ -737,13 +751,19 @@ class ExportPolicy(ConfigObject):
                                   'remote_epg': '_validate_string',
                                   'remote_sites': '_validate_list'}
             if item not in keyword_validators:
-                raise ValueError(self.__class__.__name__, 'Unknown keyword: %s' % item)
+                raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
             self.__getattribute__(keyword_validators[item])(policy[item])
             self.get_site_policies()
 
     def has_same_epg(self, policy):
         assert isinstance(policy, ExportPolicy)
         if self.tenant != policy.tenant or self.app != policy.app or self.epg != policy.epg:
+            return False
+        return True
+
+    def has_same_epg_and_remote_epg(self, policy):
+        assert isinstance(policy, ExportPolicy)
+        if self.tenant != policy.tenant or self.app != policy.app or self.epg != policy.epg or self.remote_epg != policy.remote_epg:
             return False
         return True
 
@@ -860,8 +880,14 @@ class LocalSite(Site):
                         l3out_ip = item['l3extSubnet']['attributes']['name'].rpartition('-')[-1]
                         if l3out_ip not in local_endpoints:
                             # Delete this L3out entry
+                            # TODO update this for /128 IPv6
+                            ip_addr = item['l3extSubnet']['attributes']['name']
+                            if ':' in ip_addr:
+                                ip_addr = ip_addr + '/128'
+                            else:
+                                ip_addr = ip_addr + '/32'
                             data = {'l3extSubnet': {'attributes': {'name': item['l3extSubnet']['attributes']['name'],
-                                                                   'ip': item['l3extSubnet']['attributes']['name'] + '/32',
+                                                                   'ip': ip_addr,
                                                                    'status': 'deleted'}}}
                             children.append(data)
                     if len(children):
@@ -875,6 +901,7 @@ class LocalSite(Site):
                                          l3out_ip, l3out.name, site.name)
 
     def push_policy(self, policy):
+        logging.info('')
         tag = IntersiteTag(policy.tenant, policy.app, policy.epg, self.name)
         for site_policy in policy.get_site_policies():
             site = self.my_collector.get_site(site_policy.name)
@@ -898,10 +925,9 @@ class LocalSite(Site):
                     cif = ContractInterface(consumes_interface.consumes_interface)
                     remote_epg.consume_cif(cif)
                 remote_epg.add_tag(str(tag))
-            resp = remote_tenant.push_to_apic(site.session)
-            if not resp.ok:
-                logging.warning('Could not push policy to remote site: %s', resp.text)
-            logging.warning('Response %s', resp.text)
+                resp = remote_tenant.push_to_apic(site.session)
+                if not resp.ok:
+                    logging.warning('Could not push policy to remote site: %s', resp.text)
 
     def add_policy(self, policy):
         logging.info('')
@@ -946,7 +972,7 @@ class RemoteSite(Site):
     def __init__(self, name, credentials):
         super(RemoteSite, self).__init__(name, credentials, local=False)
 
-    def remove_all_entries(self, itag, l3out_name, l3out_tenant_name):
+    def remove_all_entries(self, itag, l3out_name, l3out_tenant_name, remote_epg):
         query_url = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
                      'target-subtree-class=l3extInstP&'
                      'rsp-subtree=children&'
@@ -957,6 +983,10 @@ class RemoteSite(Site):
             logging.warning('Could not get remote site entries %s %s', resp, resp.text)
             return
         for entry in resp.json()['imdata']:
+            dn = entry['l3extInstP']['attributes']['dn']
+            apic_remote_epg = dn.split('/instP-')[1].split('/')[0]
+            if apic_remote_epg != remote_epg:
+                continue
             url = '/api/mo/' + entry['l3extInstP']['attributes']['dn'] + '.json'
             data = {'l3extInstP': {'attributes': {'status': 'deleted'}}}
             resp = self.session.push_to_apic(url, data)
@@ -1173,11 +1203,10 @@ class MultisiteCollector(object):
             return
         # Handle any changes in site configuration
         added_local_site = self._reload_sites(old_config, new_config)
+        self.config = new_config
         if added_local_site:
             logging.info('New local site added')
-            self.config = new_config
             self.initialize_local_site()
-            return
 
         # Handle any export policies for new EPGs
         for new_policy in new_config.export_policies:
@@ -1192,7 +1221,7 @@ class MultisiteCollector(object):
         for old_policy in old_config.export_policies:
             policy_found = False
             for new_policy in new_config.export_policies:
-                if old_policy.has_same_epg(new_policy):
+                if old_policy.has_same_epg_and_remote_epg(new_policy):
                     policy_found = True
                     break
             if not policy_found:
@@ -1212,7 +1241,7 @@ class MultisiteCollector(object):
                                     export_policy.app,
                                     export_policy.epg,
                                     self.get_local_site().name)
-                site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant)
+                site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant, export_policy.remote_epg)
 
     def save_config(self, config):
         logging.info('')
