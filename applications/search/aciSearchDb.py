@@ -31,7 +31,8 @@ import os.path
 import pickle
 import sys
 
-import acitoolkit as ACI
+#import acitoolkit as ACI
+from acitoolkit.aciphysobject import Pod, Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 
@@ -104,7 +105,7 @@ class SearchDb(object):
     def get_values(self):
         return sorted(self.by_value.keys())
 
-    def load_db(self, force_reload = False):
+    def load_db(self, force_reload=False):
 
         """
         Will load the search data from a saved search.p file if it exists, otherwise it will
@@ -113,20 +114,29 @@ class SearchDb(object):
         If the force_reload option is true, it will reload the data from the APIC and save it irrespective of whether
         the search.p file already exists
 
+        :param force_reload:
         """
         # TODO: provide a way to save multiple different APIC dBs.
         if not self.file_exists(self.save_file) or force_reload:
-            print 'load from APIC'
-            pods = ACI.Pod.get(self.session)
-            pod = pods[0]
-            pod.populate_children(deep=True, include_concrete=True)
-            searchables = pod.get_searchable()
+            print 'load from APIC',
+            fabric = Fabric.get(self.session)[0]
+            print '.',
+            #pod = pods[0]
+            fabric.populate_children(deep=True, include_concrete=True)
+            print '...done'
+
+            searchables = fabric.get_searchable()
+            print 'Indexing',
             self.index_searchables(searchables)
+            print '.',
             self.save_db()
+            print '...done'
         else:
-            print 'load from file'
+            print 'loading from file',
             p_file = open(self.save_file, "rb")
+            print '.',
             (self.by_key_value, self.by_key, self.by_value) = pickle.load(p_file)
+            print '..done'
 
         self.keywords = self.get_keywords()
         self.values = self.get_values()
@@ -149,6 +159,9 @@ class SearchDb(object):
         """
         t1 = datetime.datetime.now()
         count = 0
+        self.by_key = {}
+        self.by_value = {}
+        self.by_key_value = {}
 
         # index searchables by keyword, value and keyword/value
         for searchable in searchables:
@@ -164,6 +177,8 @@ class SearchDb(object):
                     self.by_key[keyword] = set([])
                 self.by_key[keyword].add(searchable)
 
+                #if value == 'entry1':
+                #    pass
                 if value is not None:
                     if value not in self.by_value:
                         self.by_value[value] = set([])
@@ -195,7 +210,7 @@ class SearchDb(object):
         if self._session is None:
             if self.args is not None:
                 if self.args.login is not None:
-                    self._session = ACI.Session(self.args.url, self.args.login, self.args.password)
+                    self._session = Session(self.args.url, self.args.login, self.args.password)
                     resp = self.session.login(self.timeout)
                 else:
                     raise LoginError
@@ -238,8 +253,15 @@ class SearchDb(object):
             t_result = None
             if '::' in term:
                 (k, v) = term.split('::')
-                print 'kv match', term
-                t_result = (term, self.lookup_keyword_value(k, v))
+                if k and v:
+                    print 'kv match', term
+                    t_result = (term, self.lookup_keyword_value(k, v))
+                elif k:
+                    print 'v match', term
+                    t_result = (term, self.lookup_value(term))
+                elif v:
+                    print 'k match', term
+                    t_result = (term, self.lookup_keyword(term))
             elif term in self.keywords:
                 print 'k match', term
                 t_result = (term, self.lookup_keyword(term))
@@ -261,13 +283,11 @@ class SearchDb(object):
         items that have that term.
         :param unranked_results:
         """
-        result2 = {}
-        records = []
-        matching_terms = []
         master_items = set()
         self.ranked_items = {}
         for results in unranked_results:
-            master_items = master_items | results[1]
+            if results[1] is not None:
+                master_items = master_items | results[1]
 
         for item in master_items:
             self.ranked_items[item] = [0,0,set()] #score, sub-score
@@ -289,25 +309,34 @@ class SearchDb(object):
 
         # Check all permutations of term results and calculate score
         for p_results in unranked_results:
-            for s_results in unranked_results:
-                for item in p_results[1]:
-                    if self.is_primary(item.primary, s_results[1]):
-                        self.ranked_items[item][0] += 1
-                        self.ranked_items[item][2].add(s_results[0])
-                    else:
-                        if self.is_secondary(item, s_results[1]):
-                            self.ranked_items[item][1] += 1
+            if p_results[1] is not None:
+                for s_results in unranked_results:
+                    for item in p_results[1]:
+                        if self.is_primary(item.primary, s_results[1]):
+                            self.ranked_items[item][0] += 1
                             self.ranked_items[item][2].add(s_results[0])
+                        else:
+                            if self.is_secondary(item, s_results[1]):
+                                self.ranked_items[item][1] += 1
+                                self.ranked_items[item][2].add(s_results[0])
 
         resp = []
         for result in sorted(self.ranked_items, key=lambda x:(self.ranked_items[x][0], self.ranked_items[x][1]), reverse=True):
             record = {}
             record['pscore'] = self.ranked_items[result][0]
             record['sscore'] = self.ranked_items[result][1]
-            record['title'] = str(result.primary)
+            record['name'] = str(result.primary.name)
             record['path'] = result.path()
-            record['terms'] = '[' + ', '.join(self.ranked_items[result][2]) + ']'
-            record['primary'] = result.primary
+            record['terms'] = str('[' + ', '.join(self.ranked_items[result][2]) + ']')
+            # record['primary'] = result.primary
+            record['object_type'] = result.primary.__class__.__name__
+            tables = result.primary.get_table([result.primary])
+            record['report_table'] = []
+            for table in tables:
+                if table is not None:
+                    record['report_table'].append({'data': table.data,
+                                                   'headers': table.headers,
+                                                   'title_flask': table.title_flask})
             resp.append(record)
 
         return resp
@@ -320,6 +349,8 @@ class SearchDb(object):
         :param p_set:
         :return:
         """
+        if p_set is None:
+            return False
         return any(elem.primary == item for elem in p_set)
 
     @classmethod
@@ -365,7 +396,11 @@ def get_terms(strng):
     :param strng:
     :return:
     """
-    return strng.split()
+    terms = strng.split()
+    clean_terms = []
+    for term in terms:
+        clean_terms.append(term.strip())
+    return clean_terms
 
 def main():
     """
