@@ -73,18 +73,17 @@ class Login(threading.Thread):
         """
         self._exit = True
 
-    def _check_callbacks(self, resp):
+    def _check_callbacks(self):
         """
         Invoke the callback functions on a successful relogin
         if there was an error response
 
         :param resp: Instance of requests.Response
         """
-        if resp.ok:
-            if self._apic.login_error:
-                logging.info('Logged back into the APIC')
-                self._apic.login_error = False
-                self._apic.invoke_login_callbacks()
+        if self._apic.login_error:
+            logging.info('Logged back into the APIC')
+            self._apic.login_error = False
+            self._apic.invoke_login_callbacks()
 
     def run(self):
         while not self._exit:
@@ -95,16 +94,18 @@ class Login(threading.Thread):
                 logging.error('Could not refresh APIC login due to ConnectionError')
                 self._login_timeout = 30
                 self._apic.login_error = True
-                continue
-            self._check_callbacks(resp)
-            if not resp.ok:
-                try:
-                    resp = self._apic._send_login()
-                    self._apic.resubscribe()
-                    self._check_callbacks(resp)
-                except ConnectionError:
-                    logging.error('Could not relogin to APIC due to ConnectionError')
-                    self._apic.login_error = True
+            else:
+                if resp.ok:
+                    self._check_callbacks()
+                    continue
+            try:
+                resp = self._apic._send_login()
+                self._apic.resubscribe()
+                if resp.ok:
+                    self._check_callbacks()
+            except ConnectionError:
+                logging.error('Could not relogin to APIC due to ConnectionError')
+                self._apic.login_error = True
 
 
 class EventHandler(threading.Thread):
@@ -147,7 +148,7 @@ class Subscriber(threading.Thread):
         self._subscriptions = {}
         self._ws = None
         self._ws_url = None
-        self._refresh_time = 45
+        self._refresh_time = 30
         self._event_q = Queue()
         self._events = {}
         self._exit = False
@@ -197,7 +198,14 @@ class Subscriber(threading.Thread):
         """
         Refresh all of the subscriptions.
         """
+        # Make a copy of the current subscriptions in case of changes
+        # while we are refreshing
+        current_subscriptions = {}
         for subscription in self._subscriptions:
+            current_subscriptions[subscription] = self._subscriptions[subscription]
+
+        # Refresh the subscriptions
+        for subscription in current_subscriptions:
             subscription_id = self._subscriptions[subscription]
             if subscription_id is None:
                 self._send_subscription(subscription)
@@ -363,7 +371,10 @@ class Subscriber(threading.Thread):
         while not self._exit:
             # Sleep for some interval and send subscription list
             time.sleep(self._refresh_time)
-            self.refresh_subscriptions()
+            try:
+                self.refresh_subscriptions()
+            except ConnectionError:
+                logging.error('Could not refresh subscriptions due to ConnectionError')
 
 
 class Session(object):
