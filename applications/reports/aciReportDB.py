@@ -19,6 +19,8 @@
 """
 This is the report generator for the aciReportGui application
 """
+from acitoolkit.aciConcreteLib import ConcreteTunnel
+
 __author__ = 'edsall'
 
 from operator import itemgetter
@@ -230,7 +232,11 @@ class ReportDB(object):
         result['accessrule'].extend(self.load_table(switch, ACI.ConcreteFilter))
         result['portchannel'] = self.load_table(switch, ACI.ConcretePortChannel)
         result['portchannel'].extend(self.load_table(switch, ACI.ConcreteVpc))
-        result['overlay'] = self.load_table(switch, ACI.ConcreteOverlay)
+        overlays = switch.get_children(ACI.ConcreteOverlay)
+        if overlays:
+            result['overlay'] = ACI.ConcreteOverlay.get_table(overlays)
+            tunnels = overlays[0].get_children(ConcreteTunnel)
+            result['overlay'].extend(ConcreteTunnel.get_table(tunnels))
 
         return result
 
@@ -240,7 +246,7 @@ class ReportDB(object):
         :param tenant_name:
         """
         result = {}
-        tenant = ACI.Tenant.get_deep(self.session, names=[tenant_name])[0]
+        tenant = ACI.Tenant.get_deep(self.session, names=[str(tenant_name)])[0]
         child_name_object_map = {ACI.Context: 'context',
                                  ACI.BridgeDomain: 'bridgedomain',
                                  ACI.Contract: 'contract',
