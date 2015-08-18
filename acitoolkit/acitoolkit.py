@@ -2374,20 +2374,25 @@ class BaseContract(BaseACIObject):
                                                       attributes=attributes,
                                                       get_children=False)
         # Create a subject for every entry with a relation to the filter
+        #subjects = []
+        #for entry in self.get_children():
+        #    subject_name = self.name + entry.name
+        #    subject = {subj_code: {'attributes': {'name': subject_name}}}
+        #    filt_name = subject_name
+        #    filt = {subj_relation_code: {'attributes': {'tnVzFilterName': filt_name}}}
+        #    subject[subj_code]['children'] = [filt]
+        #    subjects.append(subject)
         subjects = []
         for entry in self.get_children():
-            subject_name = self.name + entry.name
-            subject = {subj_code: {'attributes': {'name': subject_name}}}
-            filt_name = subject_name
-            filt = {subj_relation_code: {'attributes': {'tnVzFilterName': filt_name}}}
-            subject[subj_code]['children'] = [filt]
+            subject = entry.get_json()
+            #subject = {entry._get_subject_code(): {'attributes': {'name': entry.name}}}
             subjects.append(subject)
         contract[self._get_contract_code()]['children'] = subjects
         resp_json.append(contract)
-        for entry in self.get_children():
-            entry_json = entry.get_json()
-            if entry_json is not None:
-                resp_json.append(entry_json)
+        #for entry in self.get_children():
+        #    entry_json = entry.get_json()
+        #    if entry_json is not None:
+        #        resp_json.append(entry_json)
         return resp_json
 
 
@@ -2477,6 +2482,51 @@ class Contract(BaseContract):
 
             result.append(Table(data, headers, title=title + 'Contract:{0}'.format(contract.name)))
         return result
+
+
+class ContractSubject(BaseACIObject):
+    """ ContractSubject : roughly equivalent to vzSubj """
+
+    def __init__(self, subject_name, parent=None):
+        super(ContractSubject, self).__init__(subject_name, parent)
+
+    def get_json(self):
+        """
+        Returns json representation of the ContractSubject
+
+        :returns: json dictionary of the ContractSubject
+        """
+        attr = self._generate_attributes()
+        text = super(ContractSubject, self).get_json('vzSubj',
+                                                 attributes=attr)
+        return text
+
+    @staticmethod
+    def _get_subject_code():
+        return 'vzSubj'
+
+
+class Filter(BaseACIObject):
+    """ Filter : roughly equivalent to vzFilter """
+
+    def __init__(self, filter_name, parent=None):
+        super(Filter, self).__init__(filter_name, parent)
+        self.tnVzFilterName = filter_name
+
+    def get_json(self):
+        """
+        Returns json representation of the Filter
+
+        :returns: json dictionary of the Filter
+        """
+        attr = {'name': self.name}
+        text = super(Filter, self).get_json('vzFilter',
+                                                 attributes=attr)
+        return text
+
+    @staticmethod
+    def _get_subject_code():
+        return 'vzFilter'
 
 
 class Taboo(BaseContract):
@@ -2605,8 +2655,9 @@ class FilterEntry(BaseACIObject):
         text = super(FilterEntry, self).get_json('vzEntry',
                                                  attributes=attr)
         filter_name = self.get_parent().name + self.name
-        text = {'vzFilter': {'attributes': {'name': filter_name},
-                             'children': [text]}}
+        print(text)
+        #text = {'vzFilter': {'attributes': {'name': filter_name},
+        #                     'children': [text]}}
         return text
 
     @classmethod
