@@ -841,6 +841,8 @@ class LocalSite(Site):
         self.my_collector = parent
         self.monitor = None
         self.policy_db = []
+        self.policy_queue = []
+        self.policy_tenant_queue = {}
 
     def start(self):
         resp = super(LocalSite, self).start()
@@ -880,7 +882,6 @@ class LocalSite(Site):
                         l3out_ip = item['l3extSubnet']['attributes']['name'].rpartition('-')[-1]
                         if l3out_ip not in local_endpoints:
                             # Delete this L3out entry
-                            # TODO update this for /128 IPv6
                             ip_addr = item['l3extSubnet']['attributes']['name']
                             if ':' in ip_addr:
                                 ip_addr = ip_addr + '/128'
@@ -900,17 +901,30 @@ class LocalSite(Site):
                             logging.info('Found stale entry for %s on l3out %s in remote site %s. Deleting...',
                                          l3out_ip, l3out.name, site.name)
 
-    def push_policy(self, policy):
+    def push_policy_to_queue(self, policy):
         logging.info('')
         tag = IntersiteTag(policy.tenant, policy.app, policy.epg, self.name)
         for site_policy in policy.get_site_policies():
-            site = self.my_collector.get_site(site_policy.name)
-            if site is None:
-                logging.error('Could not find remote site %s', site_policy.name)
-                continue
+            if site_policy.name not in self.policy_tenant_queue:
+                self.policy_tenant_queue[site_policy.name] = []
             for l3out_policy in site_policy.get_interfaces():
-                remote_tenant = Tenant(l3out_policy.tenant)
-                remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
+                queued_tenant_exists = False
+                for queued_tenant in self.policy_tenant_queue[site_policy.name]:
+                    if queued_tenant.name == l3out_policy.tenant:
+                        remote_tenant = queued_tenant
+                        queued_tenant_exists = True
+                        break
+                if not queued_tenant_exists:
+                    remote_tenant = Tenant(l3out_policy.tenant)
+                    self.policy_tenant_queue[site_policy.name].append(remote_tenant)
+                l3out_already_exists = False
+                for existing_l3out in remote_tenant.get_children(only_class=OutsideL3):
+                    if existing_l3out.name == l3out_policy.name:
+                        remote_l3out = existing_l3out
+                        l3out_already_exists = True
+                        break
+                if not l3out_already_exists:
+                    remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
                 remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
                 for provided_contract in l3out_policy.get_provided_contract_policies():
                     contract = Contract(provided_contract.contract_name)
@@ -925,9 +939,7 @@ class LocalSite(Site):
                     cif = ContractInterface(consumes_interface.consumes_interface)
                     remote_epg.consume_cif(cif)
                 remote_epg.add_tag(str(tag))
-                resp = remote_tenant.push_to_apic(site.session)
-                if not resp.ok:
-                    logging.warning('Could not push policy to remote site: %s', resp.text)
+                self.policy_queue.append(policy)
 
     def add_policy(self, policy):
         logging.info('')
@@ -939,12 +951,30 @@ class LocalSite(Site):
         if policy not in self.policy_db:
             self.policy_db.append(policy)
             try:
-                self.push_policy(policy)
+                self.push_policy_to_queue(policy)
             except ConnectionError:
                 logging.error('Could not push policy for %s %s %s', policy.tenant, policy.app, policy.epg)
                 return
-        self.remove_stale_entries(policy)
-        self.monitor.handle_existing_endpoints(policy)
+
+    def process_policy_queue(self):
+        # Send the processed tenant JSONs
+        for site_name in self.policy_tenant_queue:
+            site = self.my_collector.get_site(site_name)
+            if site is None:
+                logging.error('Could not find remote site %s', site_name)
+                continue
+            for remote_tenant in self.policy_tenant_queue[site_name]:
+                resp = remote_tenant.push_to_apic(site.session)
+                if not resp.ok:
+                    logging.warning('Could not push policy to remote site: %s', resp.text)
+        # Clear the queue
+        self.policy_tenant_queue = {}
+        # Handle the cleanup for each policy
+        for policy in self.policy_queue:
+            self.remove_stale_entries(policy)
+            self.monitor.handle_existing_endpoints(policy)
+        # Clear the queue
+        self.policy_queue = []
 
     def remove_policy(self, policy):
         logging.info('')
@@ -1043,6 +1073,7 @@ class MultisiteCollector(object):
         # Export all of the configured exported contracts
         for export_policy in self.config.export_policies:
             local_site.add_policy(export_policy)
+        local_site.process_policy_queue()
 
     def get_sites(self, local_only=False, remote_only=False):
         """
@@ -1209,13 +1240,13 @@ class MultisiteCollector(object):
             self.initialize_local_site()
 
         # Handle any export policies for new EPGs
+        local_site = self.get_local_site()
+        if local_site is None:
+            print '%% No local site configured'
+            return
         for new_policy in new_config.export_policies:
-            local_site = self.get_local_site()
-            if local_site is None:
-                print '%% No local site configured'
-                return
             local_site.add_policy(new_policy)
-            local_site.monitor.handle_existing_endpoints(new_policy)
+        local_site.process_policy_queue()
 
         # Handle any policies that have been deleted
         for old_policy in old_config.export_policies:
@@ -1225,10 +1256,6 @@ class MultisiteCollector(object):
                     policy_found = True
                     break
             if not policy_found:
-                local_site = self.get_local_site()
-                if local_site is None:
-                    print '%% No local site configured'
-                    return
                 local_site.remove_policy(old_policy)
                 self.remove_all_entries_for_policy(old_policy)
 
@@ -1264,6 +1291,7 @@ class MultisiteCollector(object):
             my_policies.append(policy)
         for policy in my_policies:
             local_site.add_policy(policy)
+        local_site.process_policy_queue()
         remote_sites = self.get_sites(remote_only=True)
         for remote_site in remote_sites:
             remote_site.remove_old_policies(local_site)
