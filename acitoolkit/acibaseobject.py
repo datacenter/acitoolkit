@@ -949,8 +949,12 @@ class BaseACIObject(AciSearch):
         query_url = ('/api/mo/uni%s.json?query-target=subtree&'
                      'target-subtree-class=%s' % (tenant_url, apic_class))
         ret = session.get(query_url)
-        data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        if ret.ok:
+            data = ret.json()['imdata']
+            logging.debug('response returned %s', data)
+        else:
+            logging.error('Could not get %s. Received response: %s', query_url, ret.text)
+            return resp
         resp = []
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
