@@ -2457,6 +2457,7 @@ class ConcreteTunnel(BaseACIPhysObject):
         """
         super(ConcreteTunnel, self).__init__(parent=parent)
         self.attr = {}
+        self.node = None
 
     @staticmethod
     def _get_parent_class():
@@ -2499,9 +2500,12 @@ class ConcreteTunnel(BaseACIPhysObject):
             if apic_class in obj:
                 tunnel._populate_from_attributes(obj[apic_class]['attributes'])
 
+
             if parent:
                 tunnel._parent = parent
                 tunnel._parent.add_child(tunnel)
+                tunnel.pod = tunnel._parent.pod
+                tunnel.node = tunnel._parent.node
 
             tunnel.update_proxy_in_parent()
 
@@ -2614,6 +2618,7 @@ class ConcreteOverlay(BaseACIPhysObject):
                      'proxy_ip_mac': None,
                      'proxy_ip_v4': None,
                      'proxy_ip_v6': None}
+        self.node = None
 
     @staticmethod
     def _get_parent_class():
@@ -2670,6 +2675,9 @@ class ConcreteOverlay(BaseACIPhysObject):
         if parent:
             ovly._parent = parent
             ovly._parent.add_child(ovly)
+            ovly.node = ovly._parent.node
+            ovly.pod = ovly._parent.pod
+
         return [ovly]
 
     @staticmethod
