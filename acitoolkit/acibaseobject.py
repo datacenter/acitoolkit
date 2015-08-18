@@ -706,10 +706,6 @@ class BaseACIObject(AciSearch):
 
         return self._children
 
-        # assert(deep is True or deep is False)
-        # assert(include_concrete is True or include_concrete is False)
-        # return None
-
     def get_parent(self):
         """
         :returns: Parent of this object.
@@ -1043,6 +1039,18 @@ class BaseACIObject(AciSearch):
         """
         return [None]
 
+    @staticmethod
+    def check_session(session):
+        """
+        This will check that the session is of type Session and raise exception if it not
+        :param session: the session to check
+        :return:
+        """
+
+        if not isinstance(session, Session):
+            raise TypeError('An instance of Session class is required')
+
+
 
 class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
@@ -1208,17 +1216,6 @@ class BaseACIPhysObject(BaseACIObject):
         :returns: serial number string
         """
         return None
-
-    @staticmethod
-    def check_session(session):
-        """
-        This will check that the session is of type Session and raise exception if it not
-        :param session: the session to check
-        :return:
-        """
-
-        if not isinstance(session, Session):
-            raise TypeError('An instance of Session class is required')
 
     @classmethod
     def check_parent(cls, parent):
@@ -1392,7 +1389,7 @@ class BaseACIPhysModule(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        search_terms = [('node', self.node, 'indirect'), ('slot', self.slot)]
+        search_terms = [('node', self.node, 'secondary'), ('slot', self.slot)]
 
         # result = [Searchable('node', self.node, 'indirect'), Searchable('slot', self.slot)]
 

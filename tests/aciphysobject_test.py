@@ -30,6 +30,7 @@
 """
 Physical object tests
 """
+from acitoolkit import ConcreteOverlay, ConcreteTunnel
 
 try:
     from credentials import URL, LOGIN, PASSWORD
@@ -693,9 +694,9 @@ class TestLivePod(TestLiveAPIC):
         self.assertIn('fantray', children_types)
 
     def test_switch_children_concrete(self):
-        spine, session = self.get_leaf()
-        spine.populate_children(deep=True, include_concrete=True)
-        children = spine.get_children()
+        leaf, session = self.get_leaf()
+        leaf.populate_children(deep=True, include_concrete=True)
+        children = leaf.get_children()
         children_types = set()
         for child in children:
             children_types.add(child.__class__.__name__)
@@ -712,6 +713,46 @@ class TestLivePod(TestLiveAPIC):
         self.assertIn('ConcreteSVI', children_types)
         self.assertIn('ConcreteVpc', children_types)
         self.assertGreater(len(children_types), 14)
+
+        overlays = leaf.get_children(ConcreteOverlay)
+        tunnels = overlays[0].get_children(ConcreteTunnel)
+        self.assertGreater(len(tunnels), 1)
+
+    def test_concrete_tunnel(self):
+        leaf, session = self.get_leaf()
+        node = leaf.node
+        pod = leaf.pod
+        leaf.populate_children(deep=True, include_concrete=True)
+        overlays = leaf.get_children(ConcreteOverlay)
+        tunnels = overlays[0].get_children(ConcreteTunnel)
+        for tunnel in tunnels:
+            self.assertEqual(tunnel.node, node, 'Tunnel node number does not match')
+            self.assertEqual(tunnel.pod, pod, 'Tunnel pod number is incorrect')
+            self.assertIsInstance(tunnel.attr['context'], str)
+            self.assertIsInstance(tunnel.attr['dest_tep_ip'], str)
+            self.assertIsInstance(tunnel.attr['dn'], str)
+            self.assertIsInstance(tunnel.attr['id'], str)
+            self.assertIsInstance(tunnel.attr['oper_st'], str)
+            self.assertIsInstance(tunnel.attr['oper_st_qual'], str)
+            self.assertIsInstance(tunnel.attr['src_tep_ip'], str)
+            self.assertIsInstance(tunnel.attr['type'], str)
+
+    def test_concrete_overlay(self):
+        leaf, session = self.get_leaf()
+        node = leaf.node
+        pod = leaf.pod
+        leaf.populate_children(deep=True, include_concrete=True)
+        overlays = leaf.get_children(ConcreteOverlay)
+        for overlay in overlays:
+            self.assertEqual(overlay.node, node, 'Overlay node number does not match')
+            self.assertEqual(overlay.pod, pod, 'Overlay pod number is incorrect')
+            self.assertIsInstance(overlay.attr['proxy_ip_mac'], str)
+            self.assertIsInstance(overlay.attr['proxy_ip_v4'], str)
+            self.assertIsInstance(overlay.attr['proxy_ip_v6'], str)
+            if overlay.attr['src_tep_ip'] is not None:
+                self.assertIsInstance(overlay.attr['src_tep_ip'], str)
+            if overlay.attr['vpc_tep_ip'] is not None:
+                self.assertIsInstance(overlay.attr['vpc_tep_ip'], str)
 
     def test_link_get_for_node(self):
         session = self.login_to_apic()
@@ -904,13 +945,6 @@ class TestLivePod(TestLiveAPIC):
         pod.populate_children(deep=True)
         nodes = pod.get_children(Node)
         self.assertTrue(len(nodes) == original_num_nodes)
-
-    def test_populate_deep_concrete(self):
-        """
-        Will check that populate deep with the concrete option will
-        get the concrete objects
-        :return:
-        """
 
     def test_get_linecard_parent_exception(self):
         """

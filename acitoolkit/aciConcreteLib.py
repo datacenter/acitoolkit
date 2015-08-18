@@ -247,17 +247,17 @@ class ConcreteArp(CommonConcreteObject):
         for domain in self.domain:
             if 'entry' in domain:
                 for entry in domain['entry']:
-                    if entry['ip'] is not None:
-                        result.add_term('ipv4', entry['ip'], 'indirect')
-                    if entry['mac'] is not None:
-                        result.add_term('mac', entry['mac'], 'indirect')
-                    if entry['physical_interface'] is not None:
+                    if entry.get('ip') is not None:
+                        result.add_term('ipv4', entry['ip'], 'secondary')
+                    if entry.get('mac') is not None:
+                        result.add_term('mac', entry['mac'], 'secondary')
+                    if entry.get('physical_interface') is not None:
                         result.add_term('interface', entry['physical_interface'])
             if domain['name']:
-                result.add_term('context', domain['context'], 'indirect')
+                result.add_term('context', domain['context'], 'secondary')
                 result.add_term('name', domain['name'], 'primary')
             if domain['tenant']:
-                result.add_term('tenant', domain['tenant'], 'indirect')
+                result.add_term('tenant', domain['tenant'], 'secondary')
 
         return [result]
 
@@ -464,10 +464,10 @@ class ConcreteVpc(CommonConcreteObject):
             result.add_term('role', self.attr['role'])
 
         if 'mac' in self.peer_info:
-            result.add_term('mac', self.peer_info['mac'], 'indirect')
+            result.add_term('mac', self.peer_info['mac'], 'secondary')
 
         if 'ip' in self.peer_info:
-            result.add_term('ipv4', self.peer_info['ip'].split('/')[0], 'indirect')
+            result.add_term('ipv4', self.peer_info['ip'].split('/')[0], 'secondary')
 
         if 'virtual_ip' in self.attr:
             result.add_term('ipv4', self.attr['virtual_ip'].split('/')[0])
@@ -616,7 +616,7 @@ class ConcreteVpcIf(CommonConcreteObject):
         if 'remote_up_vlans' in self.attr:
             vlan_list = self.expand_vlans(self.attr['remote_up_vlans'].replace(' ', ''))
             for vlan in vlan_list:
-                result.add_term('vlan', str(vlan), 'indirect')
+                result.add_term('vlan', str(vlan), 'secondary')
 
         if 'access_vlan' in self.attr:
             result.add_term('vlan', self.attr['access_vlan'])
@@ -739,6 +739,7 @@ class ConcreteContext(CommonConcreteObject):
         else:
             self.attr['tenant'] = ''
             self.attr['context'] = self.attr['name']
+        self.name = self.attr['context']
 
         if 'pcTag' in attr:
             self.attr['mcst_class_id'] = str(attr['pcTag'])
@@ -892,6 +893,10 @@ class ConcreteSVI(CommonConcreteObject):
         self.attr['vlan_id'] = str(attr['vlanId'])
         self.attr['vlan_type'] = str(attr['vlanT'])
         self.attr['dn'] = str(attr['dn'])
+        if self.attr['name'] is '':
+            self.name = self.attr['id']
+        else:
+            self.name = self.attr['name']
 
     @staticmethod
     def get_table(aci_objects, title=''):
@@ -1952,6 +1957,10 @@ class ConcreteEp(CommonConcreteObject):
             if parent:
                 ep._parent = parent
                 ep._parent.add_child(ep)
+            if ep.attr['mac'] is not None:
+                ep.name = ep.attr['mac']
+            elif ep.attr['ip'] is not None:
+                ep.name = ep.attr['ip']
 
         return final_result
 
@@ -2438,19 +2447,17 @@ class ConcretePortChannel(CommonConcreteObject):
         return 'Concrete_Portchannel' + self.attr.get('id')
 
 
-class ConcreteOverlay(BaseACIPhysObject):
+class ConcreteTunnel(BaseACIPhysObject):
     """
-    Will retrieve the overlay information for the switch
+    Concrete representation of an overlay tunnel
     """
-
     def __init__(self, parent=None):
         """
-        overlay information
+        Tunnel init
         """
-        super(ConcreteOverlay, self).__init__(parent=parent)
-        self.attr = {'vpc_tep_ip': None}
-        # adding VPC VTEP info to the Overlay Class
-        self.tunnels = []
+        super(ConcreteTunnel, self).__init__(parent=parent)
+        self.attr = {}
+        self.node = None
 
     @staticmethod
     def _get_parent_class():
@@ -2461,7 +2468,7 @@ class ConcreteOverlay(BaseACIPhysObject):
 
         :returns: class of parent object
         """
-        return Node
+        return ConcreteOverlay
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2481,32 +2488,30 @@ class ConcreteOverlay(BaseACIPhysObject):
 
         :param parent:
         :param top: the topSystem level json object
-        :returns: Single overlay object
+        :returns: list of tunnel objects
         """
         cls.check_parent(parent)
 
         apic_class = cls._get_apic_classes()[0]
         data = top.get_class(apic_class)
-        ovly = cls()
-        tunnels = []
-
-        # Adding the VPC VTEP to the list to help figure Tunnel endpoints
-        if parent.vpc_info:
-            if parent.vpc_info['oper_state'] == 'active':
-                ovly.attr['vpc_tep_ip'] = parent.vpc_info['vtep_ip'].split('/')[0]
-
+        result = []
         for obj in data:
+            tunnel = cls()
             if apic_class in obj:
-                tunnels.append(ovly._populate_from_attributes(obj['tunnelIf']['attributes']))
-        if tunnels:
-            ovly.tunnels = sorted(tunnels, key=itemgetter('id'))
-        else:
-            ovly.tunnels = tunnels
-        if parent:
-            ovly._parent = parent
-            ovly._parent.add_child(ovly)
+                tunnel._populate_from_attributes(obj[apic_class]['attributes'])
 
-        return ovly
+
+            if parent:
+                tunnel._parent = parent
+                tunnel._parent.add_child(tunnel)
+                tunnel.pod = tunnel._parent.pod
+                tunnel.node = tunnel._parent.node
+
+            tunnel.update_proxy_in_parent()
+
+            result.append(tunnel)
+
+        return result
 
     def _populate_from_attributes(self, attr):
         """
@@ -2515,21 +2520,165 @@ class ConcreteOverlay(BaseACIPhysObject):
         :param attr: Attributes of the APIC object
         """
         self.attr['src_tep_ip'] = str(attr['src']).split('/')[0]
-        tunnel = {'dest_tep_ip': str(attr['dest']),
-                  'id': str(attr['id']),
-                  'oper_st': str(attr['operSt']),
-                  'oper_st_qual': str(attr['operStQual']),
-                  'context': str(attr['vrfName']),
-                  'type': str(attr['type']),
-                  'dn': str(attr['dn'])}
+        self.attr['dest_tep_ip']= str(attr['dest'])
+        self.attr['id']= str(attr['id'])
+        self.attr['oper_st'] = str(attr['operSt'])
+        self.attr['oper_st_qual'] = str(attr['operStQual'])
+        self.attr['context'] = str(attr['vrfName'])
+        self.attr['type'] = str(attr['type'])
+        self.attr['dn'] = str(attr['dn'])
+        self.name = self.attr['id']
 
-        if 'proxy-acast-mac' in tunnel['type']:
-            self.attr['proxy_ip_mac'] = tunnel['dest_tep_ip']
-        if 'proxy-acast-v4' in tunnel['type']:
-            self.attr['proxy_ip_v4'] = tunnel['dest_tep_ip']
-        if 'proxy-acast-v6' in tunnel['type']:
-            self.attr['proxy_ip_v6'] = tunnel['dest_tep_ip']
-        return tunnel
+    def update_proxy_in_parent(self):
+        """
+        Will update the proxy addresses in the parent object
+        """
+        if self._parent:
+            if 'proxy-acast-mac' in self.attr['type']:
+                self._parent.attr['proxy_ip_mac'] = self.attr['dest_tep_ip']
+
+            if 'proxy-acast-v4' in self.attr['type']:
+                self._parent.attr['proxy_ip_v4'] = self.attr['dest_tep_ip']
+            if 'proxy-acast-v6' in self.attr['type']:
+                self._parent.attr['proxy_ip_v6'] = self.attr['dest_tep_ip']
+
+    @staticmethod
+    def get_table(tunnels, title=''):
+        """
+        Create print string for tunnel information
+        :param tunnels:
+        :param title:
+        """
+        result = []
+
+        headers = ['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
+                   'Oper State Qualifier']
+        table = []
+        for tunnel in tunnels:
+            table.append([tunnel.attr.get('id', ''),
+                          tunnel.attr.get('context', ''),
+                          tunnel.attr.get('dest_tep_ip', ''),
+                          tunnel.attr.get('type', ''),
+                          tunnel.attr.get('oper_st', ''),
+                          tunnel.attr.get('oper_st_qual', '')])
+        result.append(Table(table, headers, title=title + 'Overlay Tunnels'))
+        return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = Searchable()
+        result.add_term('id', self.attr['id'])
+
+        result.add_term('context', self.attr['context'])
+
+        result.add_term('ipv4', self.attr['dest_tep_ip'], 'secondary')
+        result.add_term('type', 'tunnel')
+
+
+        return [result]
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'ConcreteTunnel'
+
+    def __eq__(self, other):
+
+        """
+        Checks that the tunnels are equal
+        :param other:
+        :return: True if equal
+        """
+        if isinstance(other, self.__class__):
+            self_key = (self.get_parent(), self.attr.get('dn'))
+            other_key = (other.get_parent(), other.attr.get('dn'))
+            return self_key == other_key
+        return NotImplemented
+
+
+class ConcreteOverlay(BaseACIPhysObject):
+    """
+    Will retrieve the overlay information for the switch
+    """
+
+    def __init__(self, parent=None):
+        """
+        overlay information
+        """
+        super(ConcreteOverlay, self).__init__(parent=parent)
+        self.attr = {'vpc_tep_ip': None,
+                     'src_tep_ip': None,
+                     'proxy_ip_mac': None,
+                     'proxy_ip_v4': None,
+                     'proxy_ip_v6': None}
+        self.node = None
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteTunnel]
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+
+        return resp
+
+    @classmethod
+    def get(cls, top, parent=None):
+        """
+        Gather all the Overlay information for a switch
+        The overlay object does not have a corresponding object in the APIC
+        so does not cause a direct read of the APIC itself.  The children,
+        tunnels, of the ConcreteOverlay are what trigger the read of the APIC.
+
+        :param parent:
+        :param top: the topSystem level json object
+        :returns: Single overlay object in a list
+        """
+        cls.check_parent(parent)
+        ovly = cls()
+        ovly._top = top
+        # Adding the VPC VTEP to the list to help figure Tunnel endpoints
+        if parent.vpc_info:
+            if parent.vpc_info['oper_state'] == 'active':
+                ovly.attr['vpc_tep_ip'] = parent.vpc_info['vtep_ip'].split('/')[0]
+
+        if parent:
+            ovly._parent = parent
+            ovly._parent.add_child(ovly)
+            ovly.node = ovly._parent.node
+            ovly.pod = ovly._parent.pod
+
+        return [ovly]
 
     @staticmethod
     def get_table(overlay, title=''):
@@ -2554,17 +2703,6 @@ class ConcreteOverlay(BaseACIPhysObject):
             result.append(
                 Table(table, headers, title=title + 'Overlay Config', table_orientation='vertical', columns=1))
 
-            headers = ['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
-                       'Oper State Qualifier']
-            table = []
-            for tunnel in ovly.tunnels:
-                table.append([tunnel.get('id', ''),
-                              tunnel.get('context', ''),
-                              tunnel.get('dest_tep_ip', ''),
-                              tunnel.get('type', ''),
-                              tunnel.get('oper_st', ''),
-                              tunnel.get('oper_st_qual', '')])
-            result.append(Table(table, headers, title=title + 'Overlay Tunnels'))
         return result
 
     def _define_searchables(self):
@@ -2574,31 +2712,37 @@ class ConcreteOverlay(BaseACIPhysObject):
         :rtype : list of Searchable
         """
         result = Searchable()
-        result.add_term('overlay')
-        if 'src_tep_ip' in self.attr:
-            result.add_term('ipv4', self.attr['src_tep_ip'])
+        result.add_term('type', 'overlay')
+        result.add_term('ipv4', self.attr['vpc_tep_ip'])
+        result.add_term('ipv4', self.attr['src_tep_ip'])
+        result.add_term('ipv4', self.attr['proxy_ip_v4'], 'secondary')
 
-        if 'proxy_ip_v4' in self.attr:
-            result.add_term('ipv4', self.attr['proxy_ip_v4'], 'indirect')
+        result.add_term('ipv4', self.attr['proxy_ip_v6'], 'secondary')
 
-        if 'proxy_ip_v6' in self.attr:
-            result.add_term('ipv4', self.attr['proxy_ip_v6'], 'indirect')
-
-        if 'proxy_ip_mac' in self.attr:
-            result.add_term('ipv4', self.attr['proxy_ip_mac'], 'indirect')
-
-        for tunnel in self.tunnels:
-            result.add_term('tunnel')
-            if 'id' in tunnel:
-                result.add_term('id', tunnel['id'])
-
-            if 'context' in tunnel:
-                result.add_term('context', tunnel['context'])
-
-            if 'dest_tep_ip' in tunnel:
-                result.add_term('ipv4', tunnel['dest_tep_ip'], 'indirect')
+        result.add_term('ipv4', self.attr['proxy_ip_mac'], 'secondary')
 
         return [result]
+
+    def populate_children(self, deep=False, include_concrete=False):
+        """
+        Populates all of the children and then calls populate_children\
+        of those children if deep is True.  This method should be\
+        overridden by any object that does have children.
+
+        If include_concrete is True, then if the object has concrete objects
+        below it, i.e. is a switch, then also populate those conrete object.
+
+        :param include_concrete: True or False. Default is False
+        :param deep: True or False.  Default is False.
+        """
+        for child_class in self._get_children_classes():
+            child_class.get(self._top, self)
+
+        if deep:
+            for child in self._children:
+                child.populate_children(deep, include_concrete)
+
+        return self._children
 
     def __str__(self):
         """
@@ -2616,7 +2760,7 @@ class ConcreteOverlay(BaseACIPhysObject):
         :return: True if equal
         """
         if isinstance(other, self.__class__):
-            self_key = (self.get_parent(), self.attr.get('dn'))
-            other_key = (other.get_parent(), other.attr.get('dn'))
+            self_key = self.get_parent()
+            other_key = other.get_parent()
             return self_key == other_key
         return NotImplemented

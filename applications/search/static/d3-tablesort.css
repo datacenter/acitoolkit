@@ -1,0 +1,63 @@
+.sort_indicator.sort_asc {
+    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAAEIAAABCAWq6kEQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41LjExR/NCNwAAAXZJREFUOE+lkbtOAlEQhjHGYGKCCZ1PYHwHa9/CKBdXUIwiVsKy7J29r4AI4gvY2GxhaeMLAFJo4QsYtbKhYJyjy4aF06CbfMmcf2f+/HNOBAD+BVWcB6o4D1RxHiKe51HZSWxHC2f5x9zRQZn2fwxVJODgre2aI1VTPveY1Bath0AVmUw6oxvalyhXoKrLwJaLr5goTuudEZKp3XXD1N/cmg2SIoAgcWBaOuQLJw/TvYTQgezNcqXn9nULiIFlG6BqEhrxpB5mD/fFyX5C6JA/Pb7r3LRHtYYLjmuBYWm4ggIyJpFVAZSq/J5mkpuTM0GRyTK5Vqs5bDTrcFFzwHIM0M0qKJiA3AVBN1QosecvmDQWMkilExu2Y310Om24vKrDOAHZXTOUnzXGEHNMeh8ywFsXBbEykGRhIEj8Ey9wfY5n+2Wu1MMX6IZgiz006GKKtcBgGvwWkCVk2SeKLFJ7g+J3aNFvXkFWkbhPzNdmjILib3iRb0IVPz0P1pYQAAAAAElFTkSuQmCC');
+}
+
+.sort_indicator.sort_desc {
+    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAAEIAAABCAWq6kEQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41LjExR/NCNwAAAZ5JREFUOE+lkstOwlAQhusF1MSNCTsTVy7c4Eu4cWXcmVQSY1sOUMEEL9REE0xtC+VQKKAiYngJnsEYfQpDfAGjO0nGmaqEajeNi6/t/J35Z+a0Qr/f/xeBYhgCxTAEimEIFMPgXXaTu6ssLWeT7AvGlL1kSla/kFSFyRmCpeQ0Y1JaUSRFFMXoyCCVYa266wyrtQqMU3Or4Dbr0LpswFX7Etqda+j17uD07GSABtMjA03Tpo4KB49VpwIX5rmHYelQrpjAHRvQHJotF9o3V3hvvDEmr1HdyIBIyIlFXS8+l2zTM7DKF2BzCxycxG3WcIom3HY7QzWXcX5qfAaEwpQtm5dfqbtlG8CrNq7Bve7dbge0k+MHzJsYr/EZENmc2nXqfKgbRW8KMqDRTct4kSQx9jvfFxB0OIXC4RPtTiZmSQfO7Vfce/13LvFHIHbYzhKex4DWcGr8Q1XTblAeESgS+C9sY+f3fH7/HqeaDMoh/gqCEEHmkYXNzY2NeHxlGZ9jFH/rEV++LxCECWQSmUZmkDlkFol+a/Ru7Cv0hU+pMPz/XT0+1gAAAABJRU5ErkJggg==');
+}
+
+.sort_indicator {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    vertical-align: -3px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.header-table {
+    overflow-x: auto;
+    table-layout: fixed;
+    border-width:5px;
+    width:150px;
+    border-collapse: separate;
+}
+.report_table {
+    overflow-x: auto;
+    table-layout: fixed;
+    border-width:4px;
+}
+.table_title{
+    font-weight:normal;
+}
+.header-table th {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    font-weight: normal;
+    overflow-x: visible;
+}
+
+.body-table td {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #000000;
+}
+
+.scroll-table {
+    overflow-y: auto;
+    align-content: center;
+    overflow-x: hidden;
+    text-align: center;
+}
+
+.body-table tr:nth-child(odd) {
+    background: #f3f6f9;
+}
+
+.body-table tr:nth-child(even) {
+    background: #fff;
+}
