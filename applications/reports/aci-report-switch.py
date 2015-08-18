@@ -32,7 +32,7 @@ of the Interfaces.
 import datetime
 from operator import attrgetter
 import sys
-from acitoolkit.aciConcreteLib import ConcreteTunnel
+#from acitoolkit.aciConcreteLib import ConcreteTunnel
 
 import acitoolkit as ACI
 from acitoolkit.acitoolkitlib import Credentials
@@ -127,8 +127,8 @@ def render_text_switch(switch, table_format):
         for table in tables:
             text_string += table.get_text(tablefmt=table_format) + '\n'
 
-        tunnels = overlays[0].get_children(ConcreteTunnel)
-        tables = ConcreteTunnel.get_table(tunnels, title)
+        tunnels = overlays[0].get_children(ACI.ConcreteTunnel)
+        tables = ACI.ConcreteTunnel.get_table(tunnels, title)
         for table in tables:
             text_string += table.get_text(tablefmt=table_format) + '\n'
 
