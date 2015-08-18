@@ -70,7 +70,7 @@ class Searchable(object):
         if isinstance(keyword, unicode):
             keyword = str(keyword)
 
-        assert relation in ['primary', 'indirect']
+        assert relation in ['primary', 'secondary']
         assert isinstance(value, str) or (value is None)
         assert isinstance(keyword, str)
 
