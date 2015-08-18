@@ -377,7 +377,6 @@ class MultisiteMonitor(threading.Thread):
             return
         for endpoint in endpoints:
             self._endpoints.add_endpoint(endpoint, self._local_site)
-        self._endpoints.push_to_remote_sites(self._my_collector)
 
     def handle_endpoint_event(self):
         num_eps = MAX_ENDPOINTS
@@ -973,6 +972,7 @@ class LocalSite(Site):
         for policy in self.policy_queue:
             self.remove_stale_entries(policy)
             self.monitor.handle_existing_endpoints(policy)
+        self.monitor._endpoints.push_to_remote_sites(self.monitor._my_collector)
         # Clear the queue
         self.policy_queue = []
 
@@ -981,15 +981,28 @@ class LocalSite(Site):
         if policy in self.policy_db:
             self.policy_db.remove(policy)
         for site_policy in policy.get_site_policies():
-            site = self.my_collector.get_site(site_policy.name)
+            if site_policy.name not in self.policy_tenant_queue:
+                self.policy_tenant_queue[site_policy.name] = []
             for l3out_policy in site_policy.get_interfaces():
-                remote_tenant = Tenant(l3out_policy.tenant)
-                remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
+                queued_tenant_exists = False
+                for queued_tenant in self.policy_tenant_queue[site_policy.name]:
+                    if queued_tenant.name == l3out_policy.tenant:
+                        remote_tenant = queued_tenant
+                        queued_tenant_exists = True
+                        break
+                if not queued_tenant_exists:
+                    remote_tenant = Tenant(l3out_policy.tenant)
+                    self.policy_tenant_queue[site_policy.name].append(remote_tenant)
+                l3out_already_exists = False
+                for existing_l3out in remote_tenant.get_children(only_class=OutsideL3):
+                    if existing_l3out.name == l3out_policy.name:
+                        remote_l3out = existing_l3out
+                        l3out_already_exists = True
+                        break
+                if not l3out_already_exists:
+                    remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
                 remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
                 remote_epg.mark_as_deleted()
-                resp = remote_tenant.push_to_apic(site.session)
-                if not resp.ok:
-                    logging.warning('Could not remove policy from remote site: %s', resp.text)
 
     def get_policy_for_epg(self, tenant_name, app_name, epg_name):
         for policy in self.policy_db:
@@ -1258,6 +1271,7 @@ class MultisiteCollector(object):
             if not policy_found:
                 local_site.remove_policy(old_policy)
                 self.remove_all_entries_for_policy(old_policy)
+            local_site.process_policy_queue()
 
     def remove_all_entries_for_policy(self, export_policy):
         assert isinstance(export_policy, ExportPolicy)
