@@ -1076,7 +1076,7 @@ class Node(BaseACIPhysObject):
         from .aciConcreteLib import (
             ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext,
             ConcreteEp, ConcreteFilter, ConcreteLoopback, ConcreteOverlay,
-            ConcretePortChannel, ConcreteSVI, ConcreteVpc
+            ConcretePortChannel, ConcreteSVI, ConcreteVpc, ConcreteTunnel
         )
         return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
@@ -1523,11 +1523,20 @@ class Node(BaseACIPhysObject):
         :rtype : list of Searchable
         """
         search_terms = []
+        if self.role != 'controller':
+            search_terms.append(('type', 'switch'))
+            search_terms.append(('switch', self.name))
+            search_terms.append(('switch', self.node))
+        else:
+            search_terms.append(('type', 'controller'))
+            search_terms.append(('controller', self.name))
+            search_terms.append(('controller', self.node))
+            search_terms.append(('apic', self.name))
+            search_terms.append(('apic', self.node))
+        search_terms.append(('node', self.node))
         if self.name:
             search_terms.append(('name', self.name))
-            search_terms.append(('switch', self.name))
-        if self.node:
-            search_terms.append(('switch', self.node))
+
         if self.serial:
             search_terms.append(('serial', self.serial))
         if self.model:
@@ -2957,7 +2966,7 @@ class PhysicalModel(BaseACIObject):
 
         super(PhysicalModel, self).__init__(name='', parent=parent)
 
-        self.session = session
+        self._session = session
 
     @staticmethod
     def _get_children_classes():
@@ -2999,7 +3008,17 @@ class Fabric(BaseACIObject):
 
         super(Fabric, self).__init__(name='', parent=None)
 
-        self.session = session
+        self._session = session
+
+    @classmethod
+    def get(cls, session):
+        """
+
+        :param session:
+        """
+        cls.check_session(session)
+        fabric = Fabric(session)
+        return [fabric]
 
     @staticmethod
     def _get_children_classes():
@@ -3010,3 +3029,14 @@ class Fabric(BaseACIObject):
         :return: list of classes
         """
         return [PhysicalModel, ACI.LogicalModel]
+        #return [ACI.LogicalModel]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('model', 'physical')
+
+        return [result]
