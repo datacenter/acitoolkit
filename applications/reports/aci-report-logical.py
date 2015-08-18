@@ -186,7 +186,7 @@ def show_tenant_long():
         tenants = [ten for ten in tenants if ten.name == args.tenant]
 
     for tenant in sorted(tenants, key=attrgetter('name')):
-        tenant = ACI.Tenant.get_deep(session, names=[tenant])
+        tenant = ACI.Tenant.get_deep(session, names=[tenant.name])
 
         if tenant:
             print render_text_tenant(tenant[0])
