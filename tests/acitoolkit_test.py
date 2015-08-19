@@ -35,10 +35,10 @@ from acitoolkit.acisession import Session
 from acitoolkit.aciTable import Table
 from acitoolkit.acitoolkit import (
     AppProfile, BaseContract, BGPSession, BridgeDomain, Context, Contract,
-    Endpoint, EPG, EPGDomain, FilterEntry, L2ExtDomain, L2Interface,
-    L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface, OSPFInterfacePolicy,
-    OSPFRouter, OutsideEPG, OutsideL3, PhysDomain, PortChannel, Subnet, Taboo, Tenant,
-    VmmDomain
+    ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
+    L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
+    OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
+    PortChannel, Subnet, Taboo, Tenant, VmmDomain
 )
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node
@@ -1038,19 +1038,6 @@ class TestContract(unittest.TestCase):
         """
         self.assertEqual(Contract._get_contract_code(), 'vzBrCP')
 
-    def test_internal_get_subject_code(self):
-        """
-        Test _get_subject_code method
-        """
-        self.assertEqual(Contract._get_subject_code(), 'vzSubj')
-
-    def test_internal_get_subject_relation_code(self):
-        """
-        Test _get_subject_relation_code method
-        """
-        self.assertEqual(Contract._get_subject_relation_code(),
-                         'vzRsSubjFiltAtt')
-
     def test_get_parent_class(self):
         """
         Test _get_parent_class method
@@ -1081,6 +1068,109 @@ class TestContract(unittest.TestCase):
         self.assertTrue('scope' in attributes)
         self.assertEqual(attributes['scope'], 'tenant')
 
+
+class TestContractSubject(unittest.TestCase):
+    """
+    Test ContractSubject Class
+    """
+    def test_create(self):
+        """
+        Test basic ContractSubject class creation
+        """
+        contract_subject = ContractSubject('ContractSubject')
+        self.assertTrue(isinstance(contract_subject, ContractSubject))
+
+    def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
+        self.assertEquals(ContractSubject._get_parent_class(), Contract)
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        cs_name = 'ContractSubject'
+        cs = ContractSubject(cs_name)
+        cs_json = cs.get_json()
+        self.assertTrue('vzSubj' in cs_json)
+        self.assertEqual(cs_json['vzSubj']['attributes']['name'], cs_name)
+
+    def test_get_json_with_children(self):
+        """
+        Test get_json method with Filter children
+        """
+        cs_name = 'ContractSubject'
+        cs = ContractSubject(cs_name)
+        filt_name = 'Filter'
+        filt = Filter(filt_name, cs)
+        cs_json = cs.get_json()
+        self.assertTrue('vzRsSubjFiltAtt' in cs_json['vzSubj']['children'][0])
+        self.assertEqual(cs_json['vzSubj']['children'][0]['vzRsSubjFiltAtt']\
+            ['attributes']['tnVzFilterName'], filt_name)
+
+
+class TestFilter(unittest.TestCase):
+    """
+    Test TestFilter class
+    """
+    def test_create(self):
+        """
+        Test basic TestFilter class creation
+        """
+        filt = Filter('Filter')
+        self.assertTrue(isinstance(filt, Filter))
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_json = filt.get_json()
+        self.assertTrue('vzFilter' in filt_json)
+        self.assertEqual(filt_json['vzFilter']['attributes']['name'], filt_name)
+
+    def test_get_json_with_children(self):
+        """
+        Test get_json method with FilterEntry children
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+        filt_json = filt.get_json()
+        self.assertTrue('vzEntry' in filt_json['vzFilter']['children'][0])
+        self.assertEqual(filt_json['vzFilter']['children'][0]['vzEntry']\
+            ['attributes']['name'], filt_entry_name)
+
+
+class TestFilterEntry(unittest.TestCase):
+    """
+    Test TestFilterEntry class
+    """
+    def test_create(self):
+        """
+        Test basic TestFilterEntry class creation
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+        self.assertTrue(isinstance(filt_entry, FilterEntry))
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'], 
+                         filt_entry_name)
 
 class TestTaboo(unittest.TestCase):
     """
@@ -2642,6 +2732,68 @@ class TestLiveVmmDomain(TestLiveAPIC):
             self.assertEqual(VmmDomain.get_by_name(session, vmm_domain.name), vmm_domain)
 
 
+class TestLiveFilter(TestLiveAPIC):
+    def test_filter_no_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        filt = Filter('Filter')
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_no_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        filt = Filter('Filter')
+        filt_entry = FilterEntry('FilterEntry', filt)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+        filt = Filter('Filter', contract_subject)
+        filt_entry = FilterEntry('FilterEntry', filt)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+
 class TestLiveFilterEntry(TestLiveAPIC):
     def test_get(self):
         session = self.login_to_apic()
@@ -2781,6 +2933,68 @@ class TestLiveContracts(TestLiveAPIC):
                 total_contracts.append(contract)
 
         self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
+
+
+class TestLiveContractSubject(TestLiveAPIC):
+    def test_filter_no_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_no_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
 
 class TestLiveOSPF(TestLiveAPIC):
