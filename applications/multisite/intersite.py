@@ -1252,14 +1252,10 @@ class MultisiteCollector(object):
             logging.info('New local site added')
             self.initialize_local_site()
 
-        # Handle any export policies for new EPGs
         local_site = self.get_local_site()
         if local_site is None:
             print '%% No local site configured'
             return
-        for new_policy in new_config.export_policies:
-            local_site.add_policy(new_policy)
-        local_site.process_policy_queue()
 
         # Handle any policies that have been deleted
         for old_policy in old_config.export_policies:
@@ -1272,6 +1268,11 @@ class MultisiteCollector(object):
                 local_site.remove_policy(old_policy)
                 self.remove_all_entries_for_policy(old_policy)
             local_site.process_policy_queue()
+
+        # Handle any export policies for new EPGs
+        for new_policy in new_config.export_policies:
+            local_site.add_policy(new_policy)
+        local_site.process_policy_queue()
 
     def remove_all_entries_for_policy(self, export_policy):
         assert isinstance(export_policy, ExportPolicy)
