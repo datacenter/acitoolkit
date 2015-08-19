@@ -2183,12 +2183,15 @@ class ConcreteEp(CommonConcreteObject):
         :rtype : list of Searchable
         """
         result = Searchable()
+        result.add_term('type', 'endpoint')
 
+        if 'tenant' in self.attr:
+            result.add_term('tenant', self.attr['tenant'], 'secondary')
         if 'context' in self.attr:
-            result.add_term('context', self.attr['context'])
+            result.add_term('context', self.attr['context'], 'secondary')
 
         if 'bridge_domain' in self.attr:
-            result.add_term('bridgedomain', self.attr['bridge_domain'])
+            result.add_term('bridgedomain', self.attr['bridge_domain'], 'secondary')
 
         if 'mac' in self.attr:
             result.add_term('mac', self.attr['mac'])
