@@ -2732,6 +2732,68 @@ class TestLiveVmmDomain(TestLiveAPIC):
             self.assertEqual(VmmDomain.get_by_name(session, vmm_domain.name), vmm_domain)
 
 
+class TestLiveFilter(TestLiveAPIC):
+    def test_filter_no_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        filt = Filter('Filter')
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_no_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        filt = Filter('Filter')
+        filt_entry = FilterEntry('FilterEntry', filt)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+        filt = Filter('Filter', contract_subject)
+        filt_entry = FilterEntry('FilterEntry', filt)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+
 class TestLiveFilterEntry(TestLiveAPIC):
     def test_get(self):
         session = self.login_to_apic()
@@ -2871,6 +2933,68 @@ class TestLiveContracts(TestLiveAPIC):
                 total_contracts.append(contract)
 
         self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
+
+
+class TestLiveContractSubject(TestLiveAPIC):
+    def test_filter_no_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_no_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
 
 
 class TestLiveOSPF(TestLiveAPIC):
@@ -3135,8 +3259,5 @@ if __name__ == '__main__':
     # Add tests to this suite while developing the tests
     # This allows only these tests to be run
     develop = unittest.TestSuite()
-    develop.addTest(unittest.makeSuite(TestContractSubject))
-    develop.addTest(unittest.makeSuite(TestFilter))
-    develop.addTest(unittest.makeSuite(TestFilterEntry))
 
-    unittest.main(defaultTest='develop')
+    unittest.main(defaultTest='offline')
