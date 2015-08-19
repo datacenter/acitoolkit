@@ -31,8 +31,7 @@ import os.path
 import pickle
 import sys
 
-#import acitoolkit as ACI
-from acitoolkit.aciphysobject import Pod, Session, Fabric
+from acitoolkit.aciphysobject import Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 
@@ -45,14 +44,14 @@ class LoginError(Exception):
 
 
 class SearchDb(object):
+    """
+    The primary search object that holds all the methods for building the search index as well as querying it.
+    """
 
     def __init__(self):
         """
         Will load in all of the search objects and create
         an index by keyword, value, and keyword value pair.
-
-        This is the indexing
-        :param search_items: list of search objects
         """
         self.by_key = {}
         self.by_value = {}
@@ -63,6 +62,7 @@ class SearchDb(object):
         self.timeout = None
         self.keywords = []
         self.values = []
+        self.ranked_items = {}
 
     def lookup_keyword(self, keyword):
         """
@@ -100,9 +100,19 @@ class SearchDb(object):
 
     def get_keywords(self):
 
+        """
+        gets a sorted list of the key words
+
+        :return:
+        """
         return sorted(self.by_key.keys())
 
     def get_values(self):
+        """
+        gets a sorted list of the values used in the index
+
+        :return:
+        """
         return sorted(self.by_value.keys())
 
     def load_db(self, force_reload=False):
@@ -121,7 +131,6 @@ class SearchDb(object):
             print 'load from APIC',
             fabric = Fabric.get(self.session)[0]
             print '.',
-            #pod = pods[0]
             fabric.populate_children(deep=True, include_concrete=True)
             print '...done'
 
@@ -147,7 +156,7 @@ class SearchDb(object):
         simply checks for the existence of the indicated file
         :param file_name: file name string
         """
-        if os.path.isfile('./'+file_name):
+        if os.path.isfile('./' + file_name):
             return True
         return False
 
@@ -177,8 +186,6 @@ class SearchDb(object):
                     self.by_key[keyword] = set([])
                 self.by_key[keyword].add(searchable)
 
-                #if value == 'entry1':
-                #    pass
                 if value is not None:
                     if value not in self.by_value:
                         self.by_value[value] = set([])
@@ -191,7 +198,7 @@ class SearchDb(object):
                     self.by_key_value[(keyword, value)].add(searchable)
 
         t2 = datetime.datetime.now()
-        print 'elapsed time', t2-t1
+        print 'elapsed time', t2 - t1
 
     def save_db(self):
         """
@@ -247,6 +254,7 @@ class SearchDb(object):
         This will do the actual search.  The data must already be loaded and indexed before this is invoked.
         :param term_string: string that contains all the terms.
         """
+        t1 = datetime.datetime.now()
         terms = get_terms(term_string)
         results = []
         for term in terms:
@@ -271,9 +279,12 @@ class SearchDb(object):
             else:
                 print 'no match', term
             if t_result is not None:
-                results.append(t_result)
+                if t_result[1] is not None:
+                    results.append({'result':t_result, 'primaries':set(elem.primary for elem in t_result[1])})
 
         results2 = self.rank_results(results)
+        t2 = datetime.datetime.now()
+        print 'elapsed time', t2 - t1
         return results2
 
     def rank_results(self, unranked_results):
@@ -284,21 +295,14 @@ class SearchDb(object):
         :param unranked_results:
         """
         master_items = set()
-        self.ranked_items = {}
         for results in unranked_results:
-            if results[1] is not None:
-                master_items = master_items | results[1]
+            if results['result'][1] is not None:
+                master_items = master_items | results['result'][1]
 
+        self.ranked_items = {}
         for item in master_items:
-            self.ranked_items[item] = [0,0,set()] #score, sub-score
-
-
-        # # first rank items against all terms.
-        # for item in master_items:
-        #     for results in unranked_results:
-        #         if item in results[1]:
-        #             self.ranked_items[item][0] += 1
-
+            #self.ranked_items[item] = [0, 0, set()]  # score, sub-score, matching terms
+            self.ranked_items[item] = {'pscore':0, 'sscore':0, 'terms':set()}  # score, sub-score, matching terms
 
         # now calculate sub-score
         # sub-score is one point for any term that is not a primiary hit, but is a secondary hit
@@ -308,28 +312,29 @@ class SearchDb(object):
         # The max sub-score is cumulative, i.e. a sub-score can be greater than the number of terms
 
         # Check all permutations of term results and calculate score
+        print 'start ranking'
         for p_results in unranked_results:
-            if p_results[1] is not None:
-                for s_results in unranked_results:
-                    for item in p_results[1]:
-                        if self.is_primary(item.primary, s_results[1]):
-                            self.ranked_items[item][0] += 1
-                            self.ranked_items[item][2].add(s_results[0])
-                        else:
-                            if self.is_secondary(item, s_results[1]):
-                                self.ranked_items[item][1] += 1
-                                self.ranked_items[item][2].add(s_results[0])
-
+            items = p_results['result'][1]
+            for s_results in unranked_results:
+                s_primaries = s_results['primaries']
+                for item in items:
+                    if self.is_primary(item.primary, s_primaries):
+                        self.ranked_items[item]['pscore'] += 1
+                        self.ranked_items[item]['terms'].add(s_results['result'][0])
+                    elif self.is_secondary(item, s_primaries):
+                            self.ranked_items[item]['sscore'] += 1
+                            self.ranked_items[item]['terms'].add(s_results['result'][0])
+        print 'end ranking'
         resp = []
-        for result in sorted(self.ranked_items, key=lambda x:(self.ranked_items[x][0], self.ranked_items[x][1]), reverse=True):
-            record = {}
-            record['pscore'] = self.ranked_items[result][0]
-            record['sscore'] = self.ranked_items[result][1]
-            record['name'] = str(result.primary.name)
-            record['path'] = result.path()
-            record['terms'] = str('[' + ', '.join(self.ranked_items[result][2]) + ']')
+        for result in sorted(self.ranked_items,
+                             key=lambda x: (self.ranked_items[x]['pscore'], self.ranked_items[x]['sscore']), reverse=True):
+            record = {'pscore': self.ranked_items[result]['pscore'],
+                      'sscore': self.ranked_items[result]['sscore'],
+                      'name': str(result.primary.name),
+                      'path': result.path(),
+                      'terms': str('[' + ', '.join(self.ranked_items[result]['terms']) + ']'),
+                      'object_type': result.primary.__class__.__name__}
             # record['primary'] = result.primary
-            record['object_type'] = result.primary.__class__.__name__
             tables = result.primary.get_table([result.primary])
             record['report_table'] = []
             for table in tables:
@@ -349,9 +354,10 @@ class SearchDb(object):
         :param p_set:
         :return:
         """
-        if p_set is None:
-            return False
-        return any(elem.primary == item for elem in p_set)
+        #if p_set is None:
+        #    return False
+        #return any(elem.primary == item for elem in p_set)
+        return item in p_set
 
     @classmethod
     def is_secondary(cls, item, s_set):
@@ -365,7 +371,6 @@ class SearchDb(object):
         return any(
             cls.is_primary(item_context, s_set)
             for item_context in item.context[1:])
-
 
     @staticmethod
     def find_primary_in_path(searchable, primary):
@@ -385,10 +390,10 @@ class SearchDb(object):
         will do search and return records that allow the results to be displayed in GUI
         :param terms_string:
         """
-        resp = []
         results = self.search(terms_string)
 
         return results
+
 
 def get_terms(strng):
     """
@@ -401,6 +406,7 @@ def get_terms(strng):
     for term in terms:
         clean_terms.append(term.strip())
     return clean_terms
+
 
 def main():
     """
@@ -438,11 +444,13 @@ def main():
         print 'score', res['pscore'], res['sscore'], res['terms'], res['title'], res['path']
         tables = res['primary'].get_table([res['primary'], ])
         for table in tables:
-            if table.data != []:
+            if table.data:
                 print table.get_text()
         if count > 10:
             print 'Showing 10 of', len(results), 'results'
             break
+
+
 if __name__ == '__main__':
     try:
         main()
