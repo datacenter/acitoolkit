@@ -2420,8 +2420,6 @@ class BaseContract(BaseACIObject):
         :returns: json dictionary of the contract
         """
         resp_json = []
-        subj_code = self._get_subject_code()
-        subj_relation_code = self._get_subject_relation_code()
         attributes = self._generate_attributes()
 
         contract_code = self._get_contract_code()
@@ -2431,18 +2429,13 @@ class BaseContract(BaseACIObject):
         # Create a subject for every entry with a relation to the filter
         subjects = []
         for entry in self.get_children():
-            subject_name = self.name + entry.name
-            subject = {subj_code: {'attributes': {'name': subject_name}}}
-            filt_name = subject_name
-            filt = {subj_relation_code: {'attributes': {'tnVzFilterName': filt_name}}}
-            subject[subj_code]['children'] = [filt]
-            subjects.append(subject)
+            if isinstance(entry, ContractSubject):
+                subject = entry.get_json()
+                subjects.append(subject)
+                for child in entry.get_children():
+                    resp_json.append(child.get_json())
         contract[self._get_contract_code()]['children'] = subjects
         resp_json.append(contract)
-        for entry in self.get_children():
-            entry_json = entry.get_json()
-            if entry_json is not None:
-                resp_json.append(entry_json)
         return resp_json
 
 
@@ -2460,14 +2453,6 @@ class Contract(BaseContract):
         :returns: String containing APIC class name for this type of contract.
         """
         return 'vzBrCP'
-
-    @staticmethod
-    def _get_subject_code():
-        return 'vzSubj'
-
-    @staticmethod
-    def _get_subject_relation_code():
-        return 'vzRsSubjFiltAtt'
 
     @staticmethod
     def _get_parent_dn(dn):
@@ -2492,17 +2477,19 @@ class Contract(BaseContract):
         for child in contract_data.get('children', ()):
             if 'vzSubj' in child:
                 subject = child['vzSubj']
+                subj = ContractSubject(child['vzSubj']['attributes']['name'], contract)
                 for subj_child in subject.get('children', ()):
                     if 'vzRsSubjFiltAtt' in subj_child:
                         filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
                         filter_name = filter_attributes['tnVzFilterName']
+                        filt = Filter(filter_name, subj)
                         for filter in full_data[0]['fvTenant']['children']:
                             if 'vzFilter' in filter:
                                 match_name = filter['vzFilter']['attributes']['name']
                                 if match_name == filter_name:
                                     for entry in filter['vzFilter']['children']:
                                         if 'vzEntry' in entry:
-                                            entry_obj = FilterEntry.create_from_apic_json(entry, contract)
+                                            FilterEntry.create_from_apic_json(entry, filt)
 
     @classmethod
     def get(cls, session, tenant):
@@ -2544,6 +2531,62 @@ class Contract(BaseContract):
         result.add_term('contract', self.name)
         result.add_term('scope', self.get_scope())
         return [result]
+
+
+class ContractSubject(BaseACIObject):
+    """ ContractSubject : roughly equivalent to vzSubj """
+
+    def __init__(self, subject_name, parent=None):
+        super(ContractSubject, self).__init__(subject_name, parent)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Contract
+
+    def get_json(self):
+        """
+        Returns json representation of the ContractSubject
+
+        :returns: json dictionary of the ContractSubject
+        """
+        attr = self._generate_attributes()
+        resp_json = super(ContractSubject, self).get_json('vzSubj',
+                                                 attributes=attr,
+                                                 get_children=False)
+        filters = []
+        for entry in self.get_children():
+            filt = {'vzRsSubjFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
+            filters.append(filt)
+        resp_json['vzSubj']['children'] = filters
+        return resp_json
+
+
+class Filter(BaseACIObject):
+    """ Filter : roughly equivalent to vzFilter """
+
+    def __init__(self, filter_name, parent=None):
+        super(Filter, self).__init__(filter_name, parent)
+
+    def get_json(self):
+        """
+        Returns json representation of the Filter
+
+        :returns: json dictionary of the Filter
+        """
+        attr = {'name': self.name}
+        resp_json = super(Filter, self).get_json('vzFilter',
+                                                 attributes=attr)
+        filter_entries = []
+        for entry in self.get_children():
+            filter_entries.append(entry.get_json())
+        resp_json['vzFilter']['children'] = filter_entries
+        resp_json
+        return resp_json
 
 
 class Taboo(BaseContract):
@@ -2647,6 +2690,12 @@ class FilterEntry(BaseACIObject):
         self.sFromPort = sFromPort
         self.sToPort = sToPort
         self.tcpRules = tcpRules
+        # Backward compatibility for old calls that reference a Contract instead
+        # of a Filter Object
+        if isinstance(parent, Contract):
+            contract_subject = ContractSubject(parent.name + "_subject", parent)
+            filt = Filter(name + "_Filter", contract_subject)
+            parent = filt
         super(FilterEntry, self).__init__(name, parent)
 
     def _generate_attributes(self):
@@ -2683,8 +2732,8 @@ class FilterEntry(BaseACIObject):
         text = super(FilterEntry, self).get_json('vzEntry',
                                                  attributes=attr)
         filter_name = self.get_parent().name + self.name
-        text = {'vzFilter': {'attributes': {'name': filter_name},
-                             'children': [text]}}
+        #text = {'vzFilter': {'attributes': {'name': filter_name},
+        #                     'children': [text]}}
         return text
 
     @classmethod
