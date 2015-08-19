@@ -164,7 +164,12 @@ class Tenant(BaseACIObject):
             ret = session.get(query_url)
 
             # the following works around a bug encountered in the json returned from the APIC
-            ret._content = ret._content.replace("\\\'", "'")
+            # Python3 throws an error 'TypeError: 'str' does not support the buffer interface'
+            # This error gets catched and the replace is done with byte code in a Python3 compatible way
+            try:
+                ret._content = ret._content.replace("\\\'", "'")
+            except TypeError:
+                ret._content = ret._content.replace(b"\\\'", b"'")
 
             data = ret.json()['imdata']
             if len(data):
