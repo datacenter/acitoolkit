@@ -2365,8 +2365,6 @@ class BaseContract(BaseACIObject):
         :returns: json dictionary of the contract
         """
         resp_json = []
-        subj_code = self._get_subject_code()
-        subj_relation_code = self._get_subject_relation_code()
         attributes = self._generate_attributes()
 
         contract_code = self._get_contract_code()
@@ -2400,14 +2398,6 @@ class Contract(BaseContract):
         :returns: String containing APIC class name for this type of contract.
         """
         return 'vzBrCP'
-
-    @staticmethod
-    def _get_subject_code():
-        return 'vzSubj'
-
-    @staticmethod
-    def _get_subject_relation_code():
-        return 'vzRsSubjFiltAtt'
 
     @staticmethod
     def _get_parent_dn(dn):
@@ -2482,6 +2472,15 @@ class ContractSubject(BaseACIObject):
     def __init__(self, subject_name, parent=None):
         super(ContractSubject, self).__init__(subject_name, parent)
 
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Contract
+
     def get_json(self):
         """
         Returns json representation of the ContractSubject
@@ -2498,10 +2497,6 @@ class ContractSubject(BaseACIObject):
             filters.append(filt)
         resp_json['vzSubj']['children'] = filters
         return resp_json
-
-    @staticmethod
-    def _get_subject_code():
-        return 'vzSubj'
 
 
 class Filter(BaseACIObject):
@@ -2525,10 +2520,6 @@ class Filter(BaseACIObject):
         resp_json['vzFilter']['children'] = filter_entries
         resp_json
         return resp_json
-
-    @staticmethod
-    def _get_subject_code():
-        return 'vzFilter'
 
 
 class Taboo(BaseContract):
@@ -2621,6 +2612,12 @@ class FilterEntry(BaseACIObject):
         self.sFromPort = sFromPort
         self.sToPort = sToPort
         self.tcpRules = tcpRules
+        # Backward compatibility for old calls that reference a Contract instead
+        # of a Filter Object
+        if isinstance(parent, Contract):
+            contract_subject = ContractSubject(parent.name + "_subject", parent)
+            filt = Filter(name + "_Filter", contract_subject)
+            parent = filt
         super(FilterEntry, self).__init__(name, parent)
 
     def _generate_attributes(self):
