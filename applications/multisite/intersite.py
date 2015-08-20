@@ -16,7 +16,6 @@ import sys
 import socket
 import subprocess
 from requests.exceptions import ConnectionError
-import signal
 
 # Imports from standalone mode
 import argparse
@@ -721,6 +720,17 @@ class RemoteSitePolicy(ConfigObject):
             interfaces.append(L3OutPolicy(interface))
         return interfaces
 
+    def has_interface_policy(self, interface_policy_name):
+        for interface_policy in self.get_interfaces():
+            if interface_policy.name == interface_policy_name:
+                return True
+        return False
+
+    def remove_interface_policy(self, interface_policy_name):
+        for interface_policy in self._policy['site']['interfaces']:
+            if interface_policy['l3out']['name'] == interface_policy_name:
+                self._policy['site']['interfaces'].remove(interface_policy)
+
 
 class ExportPolicy(ConfigObject):
     @property
@@ -832,6 +842,27 @@ class ExportPolicy(ConfigObject):
             if contract_if.consumes_interface == consumes_interface:
                 return True
         return False
+
+    def has_site_policy(self, site_policy_name):
+        for site_policy in self.get_site_policies():
+            if site_policy.name == site_policy_name:
+                return True
+        return False
+
+    def get_site_policy(self, site_policy_name):
+        for site_policy in self.get_site_policies():
+            if site_policy.name == site_policy_name:
+                return site_policy
+        return None
+
+    def remove_l3outs(self, new_policy):
+        for new_site_policy in new_policy.get_site_policies():
+            if not self.has_site_policy(new_site_policy.name):
+                continue
+            my_site_policy = self.get_site_policy(new_site_policy.name)
+            for new_interface_policy in new_site_policy.get_interfaces():
+                if my_site_policy.has_interface_policy(new_interface_policy.name):
+                    my_site_policy.remove_interface_policy(new_interface_policy.name)
 
 
 class LocalSite(Site):
@@ -1014,27 +1045,6 @@ class LocalSite(Site):
 class RemoteSite(Site):
     def __init__(self, name, credentials):
         super(RemoteSite, self).__init__(name, credentials, local=False)
-
-    def remove_all_entries(self, itag, l3out_name, l3out_tenant_name, remote_epg):
-        query_url = ('/api/mo/uni/tn-%s/out-%s.json?query-target=children&'
-                     'target-subtree-class=l3extInstP&'
-                     'rsp-subtree=children&'
-                     'rsp-subtree-filter=eq(tagInst.name,"%s")&'
-                     'rsp-subtree-include=required' % (l3out_tenant_name, l3out_name, itag))
-        resp = self.session.get(query_url)
-        if not resp.ok:
-            logging.warning('Could not get remote site entries %s %s', resp, resp.text)
-            return
-        for entry in resp.json()['imdata']:
-            dn = entry['l3extInstP']['attributes']['dn']
-            apic_remote_epg = dn.split('/instP-')[1].split('/')[0]
-            if apic_remote_epg != remote_epg:
-                continue
-            url = '/api/mo/' + entry['l3extInstP']['attributes']['dn'] + '.json'
-            data = {'l3extInstP': {'attributes': {'status': 'deleted'}}}
-            resp = self.session.push_to_apic(url, data)
-            if not resp.ok:
-                logging.warning('Could not remove remote site entry %s %s', resp, resp.text)
 
     def remove_old_policies(self, local_site):
         logging.info('remote_site: %s', self.name)
@@ -1264,26 +1274,16 @@ class MultisiteCollector(object):
                 if old_policy.has_same_epg_and_remote_epg(new_policy):
                     policy_found = True
                     break
-            if not policy_found:
-                local_site.remove_policy(old_policy)
-                self.remove_all_entries_for_policy(old_policy)
-            local_site.process_policy_queue()
+            if policy_found:
+                # Handle any old L3Outs that may have been removed
+                old_policy.remove_l3outs(new_policy)
+            local_site.remove_policy(old_policy)
+        local_site.process_policy_queue()
 
         # Handle any export policies for new EPGs
         for new_policy in new_config.export_policies:
             local_site.add_policy(new_policy)
         local_site.process_policy_queue()
-
-    def remove_all_entries_for_policy(self, export_policy):
-        assert isinstance(export_policy, ExportPolicy)
-        for site in export_policy.get_site_policies():
-            site_obj = self.get_site(site.name)
-            for l3out in site.get_interfaces():
-                itag = IntersiteTag(export_policy.tenant,
-                                    export_policy.app,
-                                    export_policy.epg,
-                                    self.get_local_site().name)
-                site_obj.remove_all_entries(str(itag), l3out.name, l3out.tenant, export_policy.remote_epg)
 
     def save_config(self, config):
         logging.info('')
