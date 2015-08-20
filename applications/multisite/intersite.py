@@ -17,6 +17,7 @@ import socket
 import subprocess
 from requests.exceptions import ConnectionError
 import time
+import os
 
 # Imports from standalone mode
 import argparse
@@ -478,7 +479,7 @@ class IntersiteConfiguration(object):
                 if other_policy.has_same_epg(policy):
                     count += 1
             if count > 1:
-                raise ValueError('Duplicate EPG export policy found for tenant:%s app:%s epg:%s'% (policy.tenant, policy.app, policy.epg))
+                raise ValueError('Duplicate EPG export policy found for tenant:%s app:%s epg:%s' % (policy.tenant, policy.app, policy.epg))
 
     def get_config(self):
         policies = []
@@ -510,7 +511,7 @@ class ConfigObject(object):
         if not isinstance(item, str):
             raise ValueError(self.__class__.__name__ + ': Expected string')
         elif len(item) < 1 or len(item) > 64:
-            raise ValueError(self.__class__.__name__+ ': Expected string of correct size %s' % item)
+            raise ValueError(self.__class__.__name__ + ': Expected string of correct size %s' % item)
 
     def _validate_ip_address(self, item):
         try:
@@ -1386,7 +1387,7 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'config':
             print json.dumps(self.collector.config.get_config(), indent=4, separators=(',', ':'))
         elif keyword == 'log':
-            p = subprocess.Popen(['less', 'intersite.log'], stdin=subprocess.PIPE)
+            p = subprocess.Popen(['less', 'intersite.%s.log' % str(os.getpid())], stdin=subprocess.PIPE)
             p.communicate()
         elif keyword == 'sites':
             sites = self.collector.get_sites()
@@ -1517,6 +1518,7 @@ def main():
     """
     execute_tool(get_arg_parser().parse_args())
 
+
 def execute_tool(args, test_mode=False):
     """
     Main Intersite application execution
@@ -1537,7 +1539,7 @@ def execute_tool(args, test_mode=False):
     else:
         level = logging.CRITICAL
     log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
-    log_file = 'intersite.log'
+    log_file = 'intersite.%s.log' % str(os.getpid())
     my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5*1024*1024,
                                      backupCount=args.maxlogfiles, encoding=None, delay=0)
     my_handler.setLevel(level)
