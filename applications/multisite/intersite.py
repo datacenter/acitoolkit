@@ -16,6 +16,7 @@ import sys
 import socket
 import subprocess
 from requests.exceptions import ConnectionError
+import time
 
 # Imports from standalone mode
 import argparse
@@ -707,7 +708,7 @@ class RemoteSitePolicy(ConfigObject):
             raise ValueError(self.__class__.__name__ + 'Expecting "site" in remote site policy')
         policy = self._policy['site']
         for item in policy:
-            keyword_validators = {'name': '_validate_string',
+            keyword_validators = {'name': '_validate_non_empty_string',
                                   'interfaces': '_validate_list'}
             if item not in keyword_validators:
                 raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
@@ -1096,7 +1097,15 @@ class MultisiteCollector(object):
         # Export all of the configured exported contracts
         for export_policy in self.config.export_policies:
             local_site.add_policy(export_policy)
-        local_site.process_policy_queue()
+        for attempt in range(0, 10):
+            try:
+                local_site.process_policy_queue()
+            except ConnectionError:
+                logging.error('Could not process policy queue. Preparing to retry in 10 seconds.')
+                time.sleep(10)
+                continue
+            else:
+                break
 
     def get_sites(self, local_only=False, remote_only=False):
         """
