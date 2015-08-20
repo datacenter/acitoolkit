@@ -992,13 +992,13 @@ class EPG(CommonEPG):
 
         """
         result = Searchable()
-        result.add_term('type','epg')
-        result.add_term('name',self.name)
+        result.add_term('type', 'epg')
+        result.add_term('name', self.name)
         if self.has_bd():
             result.add_term('bd', self.get_bd().name, 'secondary')
             if self.get_bd().has_context():
-                result.add_term('context',self.get_bd().get_context().name, 'secondary')
-        result.add_term('epg',self.name)
+                result.add_term('context', self.get_bd().get_context().name, 'secondary')
+        result.add_term('epg', self.name)
         result.add_term('class', self.class_id)
 
         return [result]
@@ -1974,9 +1974,9 @@ class BridgeDomain(BaseACIObject):
 
         """
         result = Searchable()
-        result.add_term('type','bd')
-        result.add_term('name',self.name)
-        result.add_term('vnid',self.vnid)
+        result.add_term('type', 'bd')
+        result.add_term('name', self.name)
+        result.add_term('vnid', self.vnid)
         result.add_term('scope', self.scope)
         result.add_term('class', self.class_id)
         result.add_term('mac', self.mac)
@@ -2527,7 +2527,7 @@ class Contract(BaseContract):
         """
         result = Searchable()
         result.add_term('type', 'contract')
-        result.add_term('name',self.name)
+        result.add_term('name', self.name)
         result.add_term('contract', self.name)
         result.add_term('scope', self.get_scope())
         return [result]
@@ -2648,8 +2648,8 @@ class Taboo(BaseContract):
 
         """
         result = Searchable()
-        result.add_term('type','taboo')
-        result.add_term('name',self.name)
+        result.add_term('type', 'taboo')
+        result.add_term('name', self.name)
         result.add_term('scope', self.get_scope())
         return [result]
 
@@ -2732,8 +2732,8 @@ class FilterEntry(BaseACIObject):
         text = super(FilterEntry, self).get_json('vzEntry',
                                                  attributes=attr)
         filter_name = self.get_parent().name + self.name
-        #text = {'vzFilter': {'attributes': {'name': filter_name},
-        #                     'children': [text]}}
+        # text = {'vzFilter': {'attributes': {'name': filter_name},
+        #                      'children': [text]}}
         return text
 
     @classmethod
@@ -2841,7 +2841,6 @@ class FilterEntry(BaseACIObject):
         result.add_term('name', self.name)
         result.add_term('filter', self.name)
         return [result]
-
 
     @staticmethod
     def _get_port(from_port, to_port):
@@ -3333,10 +3332,10 @@ class Endpoint(BaseACIObject):
 
         """
         result = Searchable()
-        result.add_term('type','endpoint')
-        result.add_term('name',self.name)
-        result.add_term('mac',self.mac)
-        result.add_term('ip',self.ip)
+        result.add_term('type', 'endpoint')
+        result.add_term('name', self.name)
+        result.add_term('mac', self.mac)
+        result.add_term('ip', self.ip)
         result.add_term('interface', self.if_name)
         return [result]
 

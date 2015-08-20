@@ -692,14 +692,13 @@ class TestBridgeDomain(unittest.TestCase):
         bd.set_mac('00:11:22:33:44:55')
         self.assertTrue(bd.mac, '00:11:22:33:44:55')
 
-        
     def test_unknown_mac_unicast_invalid(self):
         """
-        Test an invalid unknown mac unicast 
+        Test an invalid unknown mac unicast
         """
         tenant, bd = self.create_bd()
         self.assertRaises(ValueError,
-                          bd.set_unknown_mac_unicast,"invalid")
+                          bd.set_unknown_mac_unicast, "invalid")
 
     def test_unknown_mac_unicast_change(self):
         """
@@ -724,15 +723,15 @@ class TestBridgeDomain(unittest.TestCase):
         tenant, bd = self.create_bd()
         bd.set_unknown_multicast('opt-flood')
         self.assertTrue(bd.get_unknown_multicast(), 'opt-flood')
-        
+
     def test_unknown_multicast_invalid(self):
         """
-        Test an invalid unknown multicast 
+        Test an invalid unknown multicast
         """
         tenant, bd = self.create_bd()
         self.assertRaises(ValueError,
-                          bd.set_unknown_multicast,"invalid")
-        
+                          bd.set_unknown_multicast, "invalid")
+
     def test_unknown_multicast_change(self):
         """
         Test changing unknown multicast multiple times
@@ -763,8 +762,8 @@ class TestBridgeDomain(unittest.TestCase):
         """
         tenant, bd = self.create_bd()
         self.assertRaises(ValueError,
-                          bd.set_arp_flood,'invalid')
-        
+                          bd.set_arp_flood, 'invalid')
+
     def test_arp_flood_change(self):
         """
         Test changing arp flood multiple times
@@ -795,8 +794,8 @@ class TestBridgeDomain(unittest.TestCase):
         """
         tenant, bd = self.create_bd()
         self.assertRaises(ValueError,
-                          bd.set_unicast_route,'invalid')
-        
+                          bd.set_unicast_route, 'invalid')
+
     def test_unicast_route_change(self):
         """
         Test changing unicast route multiple times
@@ -805,8 +804,7 @@ class TestBridgeDomain(unittest.TestCase):
         bd.set_unicast_route('no')
         bd.set_unicast_route('yes')
         self.assertTrue(bd.is_unicast_route())
-        
-    
+
 
 class TestL2Interface(unittest.TestCase):
     """
@@ -1106,8 +1104,8 @@ class TestContractSubject(unittest.TestCase):
         filt = Filter(filt_name, cs)
         cs_json = cs.get_json()
         self.assertTrue('vzRsSubjFiltAtt' in cs_json['vzSubj']['children'][0])
-        self.assertEqual(cs_json['vzSubj']['children'][0]['vzRsSubjFiltAtt']\
-            ['attributes']['tnVzFilterName'], filt_name)
+        self.assertEqual(cs_json['vzSubj']['children'][0]['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'],
+                         filt_name)
 
 
 class TestFilter(unittest.TestCase):
@@ -1141,8 +1139,8 @@ class TestFilter(unittest.TestCase):
         filt_entry = FilterEntry(filt_entry_name, filt)
         filt_json = filt.get_json()
         self.assertTrue('vzEntry' in filt_json['vzFilter']['children'][0])
-        self.assertEqual(filt_json['vzFilter']['children'][0]['vzEntry']\
-            ['attributes']['name'], filt_entry_name)
+        self.assertEqual(filt_json['vzFilter']['children'][0]['vzEntry']['attributes']['name'],
+                         filt_entry_name)
 
 
 class TestFilterEntry(unittest.TestCase):
@@ -1169,8 +1167,9 @@ class TestFilterEntry(unittest.TestCase):
         filt_entry = FilterEntry(filt_entry_name, filt)
         filt_entry_json = filt_entry.get_json()
         self.assertTrue('vzEntry' in filt_entry_json)
-        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'], 
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
                          filt_entry_name)
+
 
 class TestTaboo(unittest.TestCase):
     """
@@ -2282,6 +2281,7 @@ class TestLiveEPG(TestLiveAPIC):
                 epgs = EPG.get(session, app, tenant)
                 self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
 
+
 class TestLiveL2ExtDomain(TestLiveAPIC):
     """
     Test L2ExtDomain class
@@ -3149,6 +3149,7 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
                     self.assertIsInstance(monitor_stat.name, str)
                     self.check_collection_policy(monitor_stat)
 
+
 class TestLiveHealthScores(TestLiveAPIC):
 
     def base_test_setup(self):
@@ -3176,6 +3177,7 @@ class TestLiveHealthScores(TestLiveAPIC):
         tenant.mark_as_deleted()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
+
     def test_get_all_healthscores(self):
         (session, tenant, app, epg) = self.base_test_setup()
         session = self.login_to_apic()
