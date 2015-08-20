@@ -802,8 +802,8 @@ class TestExportPolicyRemoval(BaseTestCase):
 
         tenant = Tenant('intersite-testsuite')
         app = AppProfile('app', tenant)
-        epg = EPG('epg', app)
-
+        epg1 = EPG('epg', app)
+        epg2 = EPG('epg2', app)
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
@@ -821,6 +821,7 @@ class TestExportPolicyRemoval(BaseTestCase):
 
         tenant = Tenant('intersite-testsuite')
         l3out = OutsideL3('l3out', tenant)
+        l3out2 = OutsideL3('l3out2', tenant)
 
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
@@ -879,6 +880,30 @@ class TestExportPolicyRemoval(BaseTestCase):
                     }
                 }
         config['config'].append(export_policy)
+        export_policy = {
+                    "export": {
+                        "tenant": "intersite-testsuite",
+                        "app": "app",
+                        "epg": "epg2",
+                        "remote_epg": "intersite-testsuite-app-epg2",
+                        "remote_sites": [
+                            {
+                                "site": {
+                                    "name": "Site2",
+                                    "interfaces": [
+                                        {
+                                            "l3out": {
+                                                "name": "l3out2",
+                                                "tenant": "intersite-testsuite"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+        config['config'].append(export_policy)
         return config
 
     def test_basic_remove_policy(self):
@@ -891,6 +916,7 @@ class TestExportPolicyRemoval(BaseTestCase):
         ip = '3.4.3.4'
         self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg2'))
 
         config = self.create_site_config()
         with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
@@ -899,6 +925,7 @@ class TestExportPolicyRemoval(BaseTestCase):
         time.sleep(4)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
         self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg2'))
 
     def test_basic_change_policy_name(self):
         args = self.get_args()
@@ -918,7 +945,6 @@ class TestExportPolicyRemoval(BaseTestCase):
         time.sleep(4)
 
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        #self.assertFalse(self.verify_remote_site_has_entry(mac, ip))
         self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg2'))
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg2'))
@@ -1163,7 +1189,7 @@ class TestBasicEndpointMove(BaseTestCase):
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
 
         time.sleep(2)
-        self.add_endpoint(mac, ip, 'intersite-testsuite','app', 'epg1')
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg1')
         return mac, ip
 
     def test_basic_add_endpoint(self):
@@ -1175,7 +1201,7 @@ class TestBasicEndpointMove(BaseTestCase):
         mac1, ip1 = self.setup_with_endpoint()
         mac2 = '00:11:22:33:33:35'
         ip2 = '3.4.3.6'
-        self.add_endpoint(mac2, ip2, 'intersite-testsuite','app', 'epg2')
+        self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg2')
         time.sleep(2)
 
         self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
@@ -1186,14 +1212,14 @@ class TestBasicEndpointMove(BaseTestCase):
         time.sleep(2)
 
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
-        self.remove_endpoint(mac, ip, 'intersite-testsuite','app', 'epg1')
+        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg1')
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
         mac1, ip1 = self.setup_with_endpoint()
         mac2 = '00:11:22:33:33:35'
         ip2 = '3.4.3.6'
-        self.add_endpoint(mac2, ip2, 'intersite-testsuite','app', 'epg1')
+        self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg1')
         time.sleep(2)
 
         self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
@@ -1444,8 +1470,157 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry_after(mac2, ip2))
 
 
+class TestChangeL3Out(BaseTestCase):
+    def setup_local_site(self):
+        # create Tenant, App, EPG on site 1
+        site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        resp = site1.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+
+        resp = tenant.push_to_apic(site1)
+        self.assertTrue(resp.ok)
+
+    def setup_remote_site(self):
+        # Create tenant, L3out with contract on site 2
+        site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite')
+        l3out1 = OutsideL3('l3out1', tenant)
+        l3out2 = OutsideL3('l3out2', tenant)
+
+        resp = tenant.push_to_apic(site2)
+        self.assertTrue(resp.ok)
+
+    def create_export_policy(self, l3out_name):
+        export_policy = {
+                    "export": {
+                        "tenant": "intersite-testsuite",
+                        "app": "app",
+                        "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
+                        "remote_sites": [
+                            {
+                                "site": {
+                                    "name": "Site2",
+                                    "interfaces": [
+                                        {
+                                            "l3out": {
+                                                "name": l3out_name,
+                                                "tenant": "intersite-testsuite"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+        return export_policy
+
+    def create_config_file(self, l3out_name):
+        config = self.create_site_config()
+        export_policy = self.create_export_policy(l3out_name)
+        config['config'].append(export_policy)
+        return config
+
+    def test_basic_add_endpoint(self):
+        args = self.get_args()
+        config = self.create_config_file('l3out1')
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            collector = execute_tool(args, test_mode=True)
+
+        mac = '00:11:22:33:33:33'
+        ip = '3.4.3.4'
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+
+        time.sleep(2)
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        config = self.create_config_file('l3out2')
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            collector.reload_config()
+        time.sleep(4)
+
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+
+    def test_basic_add_endpoint_multiple_l3out(self):
+        args = self.get_args()
+        config = self.create_config_file('l3out1')
+        for policy in config['config']:
+            if 'export' in policy:
+                for site_policy in policy['export']['remote_sites']:
+                    interface_policy = {"l3out": {"name": "l3out2",
+                                                  "tenant": "intersite-testsuite"}}
+                    site_policy['site']['interfaces'].append(interface_policy)
+                policy['export']['remote_sites'].append(site_policy)
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            collector = execute_tool(args, test_mode=True)
+
+        mac = '00:11:22:33:33:33'
+        ip = '3.4.3.4'
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+
+        time.sleep(2)
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        config = self.create_config_file('l3out2')
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            collector.reload_config()
+        time.sleep(4)
+
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+
+    def test_basic_add_multiple_endpoint(self):
+        args = self.get_args()
+        config = self.create_config_file('l3out1')
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            collector = execute_tool(args, test_mode=True)
+
+        time.sleep(2)
+        mac1 = '00:11:22:33:33:34'
+        ip1 = '3.4.3.5'
+        self.add_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
+        mac2 = '00:11:22:33:33:35'
+        ip2 = '3.4.3.6'
+        self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+
+        config = self.create_config_file('l3out2')
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            collector.reload_config()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+
 # test basic install of a single EPG and 1 endpoint being pushed to other site
 # test remove EPG from policy and that
+
 
 def main_test():
     full = unittest.TestSuite()
