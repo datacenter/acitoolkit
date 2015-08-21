@@ -2693,7 +2693,7 @@ class FilterEntry(BaseACIObject):
         # Backward compatibility for old calls that reference a Contract instead
         # of a Filter Object
         if isinstance(parent, Contract):
-            contract_subject = ContractSubject(parent.name + "_subject", parent)
+            contract_subject = ContractSubject(parent.name + "_Subject", parent)
             filt = Filter(name + "_Filter", contract_subject)
             parent = filt
         super(FilterEntry, self).__init__(name, parent)
