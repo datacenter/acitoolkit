@@ -124,10 +124,12 @@ class EndpointHandler(object):
     Class responsible for tracking the Endpoints during processing.
     Used to queue bursts of Endpoint events before sending to the APIC
     """
-    def __init__(self):
+    def __init__(self, my_monitor):
         self.db = {}  # Indexed by remote site
+        self.addresses = {}
         self.endpoint_add_events = 0
         self.endpoint_del_events = 0
+        self._monitor = my_monitor
 
     def _remove_queued_endpoint(self, remote_site, l3out_policy, endpoint):
         if remote_site not in self.db:
@@ -233,6 +235,16 @@ class EndpointHandler(object):
         if endpoint.ip == '0.0.0.0':
             return
 
+        # Track the IP to (Tenant, App, EPG)
+        # This is in case the IPs are moving from 1 EPG to another EPG then we want to
+        # send the currently queued endpoints before handling this endpoint to avoid
+        # a subnet already present error
+        if endpoint.name in self.addresses:
+            if self.addresses[endpoint.name] != (tenant.name, app.name, epg.name):
+                self.push_to_remote_sites(self._monitor._my_collector)
+        else:
+            self.addresses[endpoint.name] = (tenant.name, app.name, epg.name)
+
         # Get the policy for the EPG
         policy = local_site.get_policy_for_epg(tenant.name, app.name, epg.name)
         if policy is None:
@@ -285,6 +297,7 @@ class EndpointHandler(object):
                 if not resp.ok:
                     logging.warning('Could not push to remote site: %s %s', resp, resp.text)
         self.db = {}
+        self.addresses = {}
 
 
 class MultisiteMonitor(threading.Thread):
@@ -297,7 +310,7 @@ class MultisiteMonitor(threading.Thread):
         self._local_site = local_site
         self._exit = False
         self._my_collector = my_collector
-        self._endpoints = EndpointHandler()
+        self._endpoints = EndpointHandler(self)
 
     def exit(self):
         """
