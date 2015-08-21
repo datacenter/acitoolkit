@@ -214,6 +214,8 @@ class Subscriber(threading.Thread):
             resp = self._apic.get(refresh_url)
             if not resp.ok:
                 logging.warning('Could not refresh subscription: %s', refresh_url)
+                # Try to resubscribe
+                self._resubscribe()
 
     def _open_web_socket(self, use_secure=True):
         """
