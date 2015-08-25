@@ -144,6 +144,7 @@ class Tenant(BaseACIObject):
                 'fvBD': BridgeDomain,
                 'fvCtx': Context,
                 'vzBrCP': Contract,
+                'vzFilter': Filter,
                 'vzTaboo': Taboo,
                 'l3extOut': OutsideEPG}
 
@@ -2432,8 +2433,6 @@ class BaseContract(BaseACIObject):
             if isinstance(entry, ContractSubject):
                 subject = entry.get_json()
                 subjects.append(subject)
-                for child in entry.get_children():
-                    resp_json.append(child.get_json())
         contract[self._get_contract_code()]['children'] = subjects
         resp_json.append(contract)
         return resp_json
@@ -2478,18 +2477,6 @@ class Contract(BaseContract):
             if 'vzSubj' in child:
                 subject = child['vzSubj']
                 subj = ContractSubject(child['vzSubj']['attributes']['name'], contract)
-                for subj_child in subject.get('children', ()):
-                    if 'vzRsSubjFiltAtt' in subj_child:
-                        filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
-                        filter_name = filter_attributes['tnVzFilterName']
-                        filt = Filter(filter_name, subj)
-                        for filter in full_data[0]['fvTenant']['children']:
-                            if 'vzFilter' in filter:
-                                match_name = filter['vzFilter']['attributes']['name']
-                                if match_name == filter_name:
-                                    for entry in filter['vzFilter']['children']:
-                                        if 'vzEntry' in entry:
-                                            FilterEntry.create_from_apic_json(entry, filt)
 
     @classmethod
     def get(cls, session, tenant):
@@ -2539,6 +2526,29 @@ class ContractSubject(BaseACIObject):
     def __init__(self, subject_name, parent=None):
         super(ContractSubject, self).__init__(subject_name, parent)
 
+    def _extract_relationships(self, data):
+        """
+        Extracts and rebuild the relationships between the ContractSubject
+        and Filter objects.
+        """
+        contract = self.get_parent()
+        tenant = contract.get_parent()
+        contract_data = data[0]['fvTenant']['children']
+        for child in contract_data:
+            if 'vzBrCP' in child and 'children' in child['vzBrCP']:
+                for subj in child['vzBrCP']['children']:
+                    if 'vzSubj' in subj:
+                        if subj['vzSubj']['attributes']['name'] == self.name:
+                            for filt in subj['vzSubj']['children']:
+                                if 'vzRsSubjFiltAtt' in filt:
+                                    filt_name = filt['vzRsSubjFiltAtt']['attributes']['tnVzFilterName']
+                                    filt_search = Search()
+                                    filt_search.name = filt_name
+                                    objs = tenant.find(filt_search)
+                                    for filt in objs:
+                                        if isinstance(filt, Filter):
+                                            self.add_filter(filt)
+
     @staticmethod
     def _get_parent_class():
         """
@@ -2559,18 +2569,94 @@ class ContractSubject(BaseACIObject):
                                                  attributes=attr,
                                                  get_children=False)
         filters = []
-        for entry in self.get_children():
+        for entry in self.get_filters():
             filt = {'vzRsSubjFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
             filters.append(filt)
         resp_json['vzSubj']['children'] = filters
         return resp_json
+
+    def add_filter(self, filter_obj):
+        """
+        Add Filter to the ContractSubject, roughly equivalent to vzRsSubjFiltAtt
+
+        :param filter_obj:   Instance of Filter class. Represents\
+                             a Filter that is added to the ContractSubject.\
+                             Multiple Filter can be assigned to a single\
+                             ContractSubject.
+        """
+        if not isinstance(filter_obj, Filter):
+            raise TypeError('add_filter not called with Filter')
+        self._add_relation(filter_obj)
+
+    def get_filters(self):
+        """
+        Get all of the filters that are attached to this ContractSubject.
+
+        :returns: List of Filter objects
+        """
+
+        resp = []
+        for relation in self._relations:
+            if isinstance(relation.item, Filter):
+                resp.append(relation.item)
+        return resp
 
 
 class Filter(BaseACIObject):
     """ Filter : roughly equivalent to vzFilter """
 
     def __init__(self, filter_name, parent=None):
+        # Backward compatibility, allows the use of Filters that are attached to
+        # ContractSubject instead of Tenants
+        if isinstance(parent, ContractSubject):
+            print('The parent of a Filter should be a Tenant Object!')
+            parent.add_filter(self)
+            parent = parent.get_parent().get_parent()
         super(Filter, self).__init__(filter_name, parent)
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['vzFilter']
+
+    @classmethod
+    def get(cls, session, tenant):
+        """Gets all of the Filters for the current tenant from the APIC.
+
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the Filters\
+                       retreived from the APIC
+        :returns: List of Filter objects
+        """
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
+                                 parent=tenant, tenant=tenant)
+
+    @classmethod
+    def get_by_name_and_tenant(cls, session, tenant, filter_name):
+
+        """
+        Returns the Filter Object with name == filter_name and tenant == tenant
+
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the search scope
+        :param filter_name: the searched Filter Object
+        :returns: a single Filter Object
+
+        """
+        return [filt for filt in cls.get(session, tenant) if filt.name == filter_name][0]
+
+    @classmethod
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
+        filter_data = working_data[0]['vzFilter']
+        filt = Filter(str(filter_data['attributes']['name']), parent)
+
+        for child in filter_data.get('children', ()):
+            if 'vzEntry' in child:
+                FilterEntry.create_from_apic_json(child, filt)
 
     def get_json(self):
         """
@@ -2693,8 +2779,9 @@ class FilterEntry(BaseACIObject):
         # Backward compatibility for old calls that reference a Contract instead
         # of a Filter Object
         if isinstance(parent, Contract):
-            contract_subject = ContractSubject(parent.name + "_subject", parent)
-            filt = Filter(name + "_Filter", contract_subject)
+            contract_subject = ContractSubject(parent.name + "_Subject", parent)
+            filt = Filter(name + "_Filter", parent.get_parent())
+            contract_subject.add_filter(filt)
             parent = filt
         super(FilterEntry, self).__init__(name, parent)
 

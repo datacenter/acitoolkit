@@ -1101,7 +1101,8 @@ class TestContractSubject(unittest.TestCase):
         cs_name = 'ContractSubject'
         cs = ContractSubject(cs_name)
         filt_name = 'Filter'
-        filt = Filter(filt_name, cs)
+        filt = Filter(filt_name)
+        cs.add_filter(filt)
         cs_json = cs.get_json()
         self.assertTrue('vzRsSubjFiltAtt' in cs_json['vzSubj']['children'][0])
         self.assertEqual(cs_json['vzSubj']['children'][0]['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'],
@@ -2749,7 +2750,8 @@ class TestLiveFilter(TestLiveAPIC):
 
     def test_filter_no_children_parent(self):
         tenant = Tenant('aci-toolkit-test')
-        contract_subject = ContractSubject('contract_subject')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
         filt = Filter('Filter', contract_subject)
 
         # Push to APIC
@@ -2779,7 +2781,8 @@ class TestLiveFilter(TestLiveAPIC):
 
     def test_filter_children_parent(self):
         tenant = Tenant('aci-toolkit-test')
-        contract_subject = ContractSubject('contract_subject')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
         filt = Filter('Filter', contract_subject)
         filt_entry = FilterEntry('FilterEntry', filt)
 
@@ -2954,21 +2957,6 @@ class TestLiveContractSubject(TestLiveAPIC):
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
-
-        # Push to APIC
-        session = self.login_to_apic()
-        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
-        self.assertTrue(resp.ok)
-
-        # Cleanup
-        tenant.mark_as_deleted()
-        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
-        self.assertTrue(resp.ok)
-
-    def test_contract_subject_children_no_parent(self):
-        tenant = Tenant('aci-toolkit-test')
-        contract_subject = ContractSubject('contract_subject')
-        filt = Filter('Filter', contract_subject)
 
         # Push to APIC
         session = self.login_to_apic()
@@ -3223,8 +3211,10 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveL2ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveEPGDomain))
+    live.addTest(unittest.makeSuite(TestLiveFilter))
     live.addTest(unittest.makeSuite(TestLiveFilterEntry))
     live.addTest(unittest.makeSuite(TestLiveContracts))
+    live.addTest(unittest.makeSuite(TestLiveContractSubject))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
     live.addTest(unittest.makeSuite(TestLivePhysDomain))
@@ -3243,6 +3233,9 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestL3Interface))
     offline.addTest(unittest.makeSuite(TestBaseContract))
     offline.addTest(unittest.makeSuite(TestContract))
+    offline.addTest(unittest.makeSuite(TestContractSubject))
+    offline.addTest(unittest.makeSuite(TestFilter))
+    offline.addTest(unittest.makeSuite(TestFilterEntry))
     offline.addTest(unittest.makeSuite(TestTaboo))
     offline.addTest(unittest.makeSuite(TestEPG))
     offline.addTest(unittest.makeSuite(TestOutsideEPG))
