@@ -3541,29 +3541,30 @@ class IPEndpoint(BaseACIObject):
                      'query-target=subtree&'
                      'target-subtree-class=fvIp,fvStIp' % (tenant_name, app_name, epg_name))
         ret = session.get(query_url)
-        ep_data = ret.json()['imdata']
         endpoints = []
-        if len(ep_data) == 0:
-            return endpoints
-        for ep in ep_data:
-            if 'fvStIp' in ep:
-                attr = ep['fvStIp']['attributes']
-            elif 'fvIp' in ep:
-                attr = ep['fvIp']['attributes']
-            else:
-                logging.error('Could not get EPG endpoints from the APIC %s', ep)
-                break
-            ep_dn = str(attr['dn'])
-            ep_addr = str(attr['addr'])
-            if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
-                continue
-            tenant = Tenant(ep_dn.split('/')[1][3:])
-            app_profile = AppProfile(ep_dn.split('/')[2][3:],
-                                     tenant)
-            epg = EPG(ep_dn.split('/')[3][4:], app_profile)
-            endpoint = IPEndpoint(ep_addr, parent=epg)
-            endpoint.ip = ep_addr
-            endpoints.append(endpoint)
+        if ret.ok:
+            ep_data = ret.json()['imdata']
+            if len(ep_data) == 0:
+                return endpoints
+            for ep in ep_data:
+                if 'fvStIp' in ep:
+                    attr = ep['fvStIp']['attributes']
+                elif 'fvIp' in ep:
+                    attr = ep['fvIp']['attributes']
+                else:
+                    logging.error('Could not get EPG endpoints from the APIC %s', ep)
+                    break
+                ep_dn = str(attr['dn'])
+                ep_addr = str(attr['addr'])
+                if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
+                    continue
+                tenant = Tenant(ep_dn.split('/')[1][3:])
+                app_profile = AppProfile(ep_dn.split('/')[2][3:],
+                                         tenant)
+                epg = EPG(ep_dn.split('/')[3][4:], app_profile)
+                endpoint = IPEndpoint(ep_addr, parent=epg)
+                endpoint.ip = ep_addr
+                endpoints.append(endpoint)
         return endpoints
 
 

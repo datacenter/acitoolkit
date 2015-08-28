@@ -43,7 +43,7 @@ try:
 except ImportError:
     pass
 from six.moves.queue import Queue
-from websocket import create_connection
+from websocket import create_connection, WebSocketException
 from requests.exceptions import ConnectionError
 
 try:
@@ -89,11 +89,13 @@ class Login(threading.Thread):
         while not self._exit:
             time.sleep(self._login_timeout)
             try:
-                resp = self._apic.refresh_login()
+                resp = self._apic.refresh_login(timeout=30)
             except ConnectionError:
                 logging.error('Could not refresh APIC login due to ConnectionError')
                 self._login_timeout = 30
                 self._apic.login_error = True
+            except requests.exceptions.Timeout:
+                logging.error('Could not refresh APIC login due to Timeout')
             else:
                 if resp.ok:
                     self._check_callbacks()
@@ -208,6 +210,9 @@ class Subscriber(threading.Thread):
         for subscription in current_subscriptions:
             subscription_id = self._subscriptions[subscription]
             if subscription_id is None:
+                if self._ws is not None:
+                    if not self._ws.connected:
+                        self._open_web_socket('https://' in subscription)
                 self._send_subscription(subscription)
                 continue
             refresh_url = '/api/subscriptionRefresh.json?id=' + str(subscription_id)
@@ -238,12 +243,15 @@ class Subscriber(threading.Thread):
             if self._ws.connected:
                 self._ws.close()
                 self.event_handler_thread.exit()
-        self._ws = create_connection(self._ws_url, sslopt=sslopt, **kwargs)
-        if not self._ws.connected:
-            logging.error('Unable to open websocket connection')
-        self.event_handler_thread = EventHandler(self)
-        self.event_handler_thread.daemon = True
-        self.event_handler_thread.start()
+        try:
+            self._ws = create_connection(self._ws_url, sslopt=sslopt, **kwargs)
+            if not self._ws.connected:
+                logging.error('Unable to open websocket connection')
+            self.event_handler_thread = EventHandler(self)
+            self.event_handler_thread.daemon = True
+            self.event_handler_thread.start()
+        except WebSocketException:
+            logging.error('Unable to open websocket connection due to WebSocketException')
 
     def _resubscribe(self):
         """
@@ -430,18 +438,18 @@ class Session(object):
         Send the actual login request to the APIC and open the web
         socket interface.
         """
-        login_url = self.api + '/api/aaaLogin.json'
+        login_url = '/api/aaaLogin.json'
         name_pwd = {'aaaUser': {'attributes': {'name': self.uid,
                                                'pwd': self.pwd}}}
-        jcred = json.dumps(name_pwd)
         if not self.verify_ssl:
             try:
                 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
             except AttributeError:
                 pass
         self.session = requests.Session()
-        ret = self.session.post(login_url, data=jcred, verify=self.verify_ssl, timeout=timeout)
+        ret = self.push_to_apic(login_url, data=name_pwd, timeout=timeout)
         if not ret.ok:
+            logging.error('Could not relogin to APIC. Aborting login thread.')
             self.login_thread.exit()
             self.subscription_thread.exit()
             return ret
@@ -490,8 +498,8 @@ class Session(object):
         :param timeout: Integer containing the number of seconds for connection timeout
         :return: Instance of requests.Response
         """
-        refresh_url = self.api + '/api/aaaRefresh.json'
-        resp = self.session.get(refresh_url, timeout=timeout)
+        refresh_url = '/api/aaaRefresh.json'
+        resp = self.get(refresh_url, timeout=timeout)
         return resp
 
     def close(self):
@@ -561,7 +569,7 @@ class Session(object):
         if self._subscription_enabled:
             self.subscription_thread.unsubscribe(url)
 
-    def push_to_apic(self, url, data):
+    def push_to_apic(self, url, data, timeout=None):
         """
         Push the object data to the APIC
 
@@ -574,11 +582,20 @@ class Session(object):
         """
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)
-        resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl)
+
+        resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl, timeout=timeout)
+        if resp.status_code == 403:
+            logging.error(resp.text)
+            logging.error('Trying to login again....')
+            resp = self._send_login()
+            self.resubscribe()
+            logging.error('Trying post again...')
+            logging.debug(post_url)
+            resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl, timeout=timeout)
         logging.debug('Response: %s %s', resp, resp.text)
         return resp
 
-    def get(self, url):
+    def get(self, url, timeout=None):
         """
         Perform a REST GET call to the APIC.
 
@@ -590,7 +607,16 @@ class Session(object):
         """
         get_url = self.api + url
         logging.debug(get_url)
-        resp = self.session.get(get_url, verify=self.verify_ssl)
+
+        resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl)
+        if resp.status_code == 403:
+            logging.error(resp.text)
+            logging.error('Trying to login again....')
+            resp = self._send_login()
+            self.resubscribe()
+            logging.error('Trying get again...')
+            logging.debug(get_url)
+            resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl)
         logging.debug(resp)
         logging.debug(resp.text)
         return resp
