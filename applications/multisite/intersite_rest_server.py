@@ -51,4 +51,4 @@ def set_config():
     return json.dumps({'Status': 'OK'}, indent=4, separators=(',', ':'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host=args.ip, port=int(args.port))
+    app.run(debug=False, host=args.ip, port=int(args.port))
