@@ -26,7 +26,7 @@ import argparse
 # TODO docstrings
 
 # Maximum number of endpoints to handle in a single burst
-MAX_ENDPOINTS = 1000
+MAX_ENDPOINTS = 500
 
 
 class IntersiteTag(object):
@@ -389,8 +389,13 @@ class MultisiteMonitor(threading.Thread):
         except ConnectionError:
             logging.error('Could not connect to APIC to get all endpoints for the EPG')
             return
+        num_eps = MAX_ENDPOINTS
         for endpoint in endpoints:
             self._endpoints.add_endpoint(endpoint, self._local_site)
+            num_eps -= 1
+            if num_eps == 0:
+                self._endpoints.push_to_remote_sites(self._my_collector)
+                num_eps = MAX_ENDPOINTS
 
     def handle_endpoint_event(self):
         num_eps = MAX_ENDPOINTS
@@ -1357,7 +1362,7 @@ def initialize_tool(config):
         try:
             remote_site.remove_old_policies(collector.get_local_site())
         except ConnectionError:
-            logging.error('Could not remove old policies from local site')
+            logging.error('Could not remove old policies from remote site')
     return collector
 
 
