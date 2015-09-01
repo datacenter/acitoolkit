@@ -1509,6 +1509,80 @@ class CommandLine(cmd.Cmd):
                            ]
         return completions
 
+    def do_reapply(self, keyword):
+        '''
+        reapply <tenant_name>/<app_profile_name>/<epg_name>
+        Reapply the policy for EPG belonging to the specified tenant, app profile, epg
+        '''
+        logging.info('')
+        if len(keyword.split('/')) != 3:
+            print 'Usage: reapply <tenant_name>/<app_profile_name>/<epg_name>'
+            return
+        (tenant_name, app_name, epg_name) = keyword.split('/')
+        local_site = self.collector.get_local_site()
+        if local_site is None:
+            print 'No local site configured.'
+            return
+        policy = local_site.get_policy_for_epg(tenant_name, app_name, epg_name)
+        if policy is None:
+            print 'Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>'
+            return
+        local_site.monitor.handle_existing_endpoints(policy)
+
+    def do_verify(self, keyword):
+        '''
+        verify <tenant_name>/<app_profile_name>/<epg_name>
+
+        Verify that the policy for EPG belonging to the specified tenant, app profile, epg has been applied.
+        Report on the number of local endpoints and endpoints pushed to the remote site as well as which specific
+        endpoints are missing.
+        '''
+        logging.info('')
+        if len(keyword.split('/')) != 3:
+            print 'Usage: verify <tenant_name>/<app_profile_name>/<epg_name>'
+            return
+        (tenant_name, app_name, epg_name) = keyword.split('/')
+        local_site = self.collector.get_local_site()
+        if local_site is None:
+            print 'No local site configured.'
+            return
+        policy = local_site.get_policy_for_epg(tenant_name, app_name, epg_name)
+        if policy is None:
+            print 'Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>'
+            return
+        local_endpoints = IPEndpoint.get_all_by_epg(local_site.session, tenant_name, app_name, epg_name)
+        print 'Local Endpoints:', len(local_endpoints)
+        local_ips = []
+        for ep in local_endpoints:
+            local_ips.append(ep.name)
+        for remote_site_policy in policy.get_site_policies():
+            for interface_policy in remote_site_policy.get_interfaces():
+                remote_site = self.collector.get_site(remote_site_policy.name)
+                logging.info('getting remote endpoints')
+                query_url = ('/api/mo/uni/tn-%s/out-%s/instP-%s.json?'
+                             'query-target=subtree&'
+                             'target-subtree-class=l3extSubnet' % (interface_policy.tenant,
+                                                                   interface_policy.name,
+                                                                   policy.remote_epg))
+                resp = remote_site.session.get(query_url)
+                if resp.ok:
+                    print('Remote Endpoints for Site %s Interface %s : %s',
+                          remote_site.name, interface_policy.name, str(len(resp.json())))
+                else:
+                    print('Could not get remote endpoints for Site',
+                          remote_site.name, 'Interface', interface_policy.name)
+                    continue
+                remote_ips = []
+                if 'imdata' not in resp.json():
+                    continue
+                for ep in resp.json()['imdata']:
+                    remote_ips.append(ep['l3extSubnet']['attributes']['name'])
+                for ep in local_ips:
+                    if ep not in remote_ips:
+                        print ep, 'is missing from site', remote_site.name
+                        logging.warning('%s is missing from site %s for tenant: %s app: %s epg: %s',
+                                        ep, remote_site.name, tenant_name, app_name, epg_name)
+        logging.info('complete')
 
 def get_arg_parser():
     """
