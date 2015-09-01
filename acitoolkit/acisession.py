@@ -208,11 +208,12 @@ class Subscriber(threading.Thread):
 
         # Refresh the subscriptions
         for subscription in current_subscriptions:
+            if self._ws is not None:
+                if not self._ws.connected:
+                    logging.warning('Websocket not established on subscription refresh. Re-establishing websocket')
+                    self._open_web_socket('https://' in subscription)
             subscription_id = self._subscriptions[subscription]
             if subscription_id is None:
-                if self._ws is not None:
-                    if not self._ws.connected:
-                        self._open_web_socket('https://' in subscription)
                 self._send_subscription(subscription)
                 continue
             refresh_url = '/api/subscriptionRefresh.json?id=' + str(subscription_id)
