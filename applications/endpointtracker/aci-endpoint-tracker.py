@@ -45,14 +45,16 @@ import time
 from daemon import Daemon
 
 import requests
-requests.packages.urllib3.disable_warnings()
-
-
 
 try:
     import mysql.connector as mysql
 except ImportError:
     import pymysql as mysql
+
+def touch(fname, times = None):
+    """ Touch file """
+    with open(fname, 'a'):
+        os.utime(fname, times)
 
 def convert_timestamp_to_mysql(timestamp):
     """
@@ -66,16 +68,7 @@ def convert_timestamp_to_mysql(timestamp):
     resp_ts = resp_ts + remaining.split('+')[0].split('.')[0]
     return resp_ts
 
-def tracker(args):
-    sys.stdout.write("Starting subscribe to apic events")
-    
-    # Login to APIC
-    session = aci.Session(args.url, args.login, args.password)
-    resp = session.login()
-    if not resp.ok:
-        print '%% Could not login to APIC'
-        sys.exit(0)
-
+def connect_mysql(args):
     # Create the MySQL database
     cnx = mysql.connect(user=args.mysqllogin,
                         password=args.mysqlpassword,
@@ -102,6 +95,18 @@ def tracker(args):
                          timestop  TIMESTAMP);''')
         cnx.commit()
 
+    return c, cnx
+
+def tracker(args):
+    # Login to APIC
+    session = aci.Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print '%% Could not login to APIC'
+        sys.exit(0)
+
+    c, cnx = connect_mysql(args)
+
     # Download all of the Endpoints and store in the database
     endpoints = aci.Endpoint.get(session)
     for ep in endpoints:
@@ -113,11 +118,17 @@ def tracker(args):
         tenant = app_profile.get_parent()
         data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
                 ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
-        c.execute("""INSERT INTO endpoints (mac, ip, tenant,
-                     app, epg, interface, timestart)
-                     VALUES ('%s', '%s', '%s', '%s',
-                     '%s', '%s', '%s')""" % data)
-        cnx.commit()
+
+        ep_exists = c.execute("""SELECT * FROM endpoints
+                                 WHERE mac="%s"
+                                 AND
+                                 timestop="0000-00-00 00:00:00";""" % ep.mac)
+        if not ep_exists:
+            c.execute("""INSERT INTO endpoints (mac, ip, tenant,
+                         app, epg, interface, timestart)
+                         VALUES ('%s', '%s', '%s', '%s',
+                         '%s', '%s', '%s')""" % data)
+            cnx.commit()
 
     # Subscribe to live updates and update the database
     sys.stdout.write("Starting subscribe to apic events")
@@ -172,6 +183,9 @@ class Daemonize(Daemon):
                 stderr='/var/log/endpointracker.log'
                 ):
         self.args = args
+        if not os.path.isfile(stdout):
+            touch(stdout)
+
         super(Daemonize, self).__init__(pidfile, stdin, stdout, stderr)
 
     def run(self):
