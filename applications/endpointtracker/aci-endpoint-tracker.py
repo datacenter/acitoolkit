@@ -44,8 +44,6 @@ import logging
 import time
 from daemon import Daemon
 
-import requests
-
 try:
     import mysql.connector as mysql
 except ImportError:
