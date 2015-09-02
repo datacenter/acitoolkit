@@ -33,14 +33,13 @@ import datetime
 from operator import attrgetter
 import sys
 
+# noinspection PyPep8Naming
 import acitoolkit as ACI
-from acitoolkit.acitoolkitlib import Credentials
-
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'Simple application that logs on to the APIC and displays reports for the switches.'
-creds = Credentials('apic', description)
+creds = ACI.Credentials('apic', description)
 creds.add_argument('-s', '--switch',
                    type=str,
                    default=None,
@@ -77,6 +76,7 @@ def show_switch_short(switch_id, table_format):
     """
     Setup template and display header information for summary version of switch info
 
+    :param table_format: The format to be used when rendering the table
     :param switch_id: Optional switch Id to select a specific switch.  If ommitted, will be all switches.
     """
 
@@ -121,7 +121,15 @@ def render_text_switch(switch, table_format):
         text_string += tables[0].get_text(tablefmt=table_format) + '\n'
 
     if args.all or args.overlay:
-        text_string += render_tables(switch, ACI.ConcreteOverlay, title, table_format)
+        overlays = switch.get_children(ACI.ConcreteOverlay)
+        tables = ACI.ConcreteOverlay.get_table(overlays, title)
+        for table in tables:
+            text_string += table.get_text(tablefmt=table_format) + '\n'
+
+        tunnels = overlays[0].get_children(ACI.ConcreteTunnel)
+        tables = ACI.ConcreteTunnel.get_table(tunnels, title)
+        for table in tables:
+            text_string += table.get_text(tablefmt=table_format) + '\n'
 
     if args.all or args.context:
         text_string += render_tables(switch, ACI.ConcreteContext, title, table_format)

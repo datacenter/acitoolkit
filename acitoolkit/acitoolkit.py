@@ -43,6 +43,7 @@ from .aciphysobject import Interface
 from .acisession import Session
 from .aciTable import Table
 from .acitoolkitlib import Credentials
+from .aciSearch import Searchable
 
 
 def cmdline_login_to_apic(description=''):
@@ -143,11 +144,12 @@ class Tenant(BaseACIObject):
                 'fvBD': BridgeDomain,
                 'fvCtx': Context,
                 'vzBrCP': Contract,
+                'vzFilter': Filter,
                 'vzTaboo': Taboo,
                 'l3extOut': OutsideEPG}
 
     @classmethod
-    def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False):
+    def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False, parent=None):
         resp = []
         if (isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names)):
             raise TypeError('names should be a Sequence of strings')
@@ -163,13 +165,18 @@ class Tenant(BaseACIObject):
             ret = session.get(query_url)
 
             # the following works around a bug encountered in the json returned from the APIC
-            ret._content = ret._content.replace("\\\'", "'")
+            # Python3 throws an error 'TypeError: 'str' does not support the buffer interface'
+            # This error gets catched and the replace is done with byte code in a Python3 compatible way
+            try:
+                ret._content = ret._content.replace("\\\'", "'")
+            except TypeError:
+                ret._content = ret._content.replace(b"\\\'", b"'")
 
             data = ret.json()['imdata']
             if len(data):
                 obj = super(Tenant, cls).get_deep(full_data=data,
                                                   working_data=data,
-                                                  parent=None,
+                                                  parent=parent,
                                                   limit_to=limit_to,
                                                   subtree=subtree,
                                                   config_only=config_only)
@@ -237,6 +244,18 @@ class Tenant(BaseACIObject):
         data = sorted(data)
         table = Table(data, headers, title=title + 'Tenant')
         return [table, ]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'tenant')
+        result.add_term('name', self.name)
+        result.add_term('tenant', self.name)
+
+        return [result]
 
 
 class AppProfile(BaseACIObject):
@@ -343,6 +362,17 @@ class AppProfile(BaseACIObject):
                 ])
             result.append(Table(data, headers, title=title + 'Application Profile: {0}'.format(app_profile.name)))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'app_profile')
+        result.add_term('name', self.name)
+        result.add_term('app_profile', self.name)
+        return [result]
 
 
 class L2Interface(BaseACIObject):
@@ -956,6 +986,23 @@ class EPG(CommonEPG):
         data = sorted(data)
         table = Table(data, headers, title=title + 'EPGs')
         return [table, ]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'epg')
+        result.add_term('name', self.name)
+        if self.has_bd():
+            result.add_term('bd', self.get_bd().name, 'secondary')
+            if self.get_bd().has_context():
+                result.add_term('context', self.get_bd().get_context().name, 'secondary')
+        result.add_term('epg', self.name)
+        result.add_term('class', self.class_id)
+
+        return [result]
 
 
 class OutsideNetwork(CommonEPG):
@@ -1922,6 +1969,20 @@ class BridgeDomain(BaseACIObject):
         table = Table(data, headers, title=title + 'Bridge Domains')
         return [table, ]
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'bd')
+        result.add_term('name', self.name)
+        result.add_term('vnid', self.vnid)
+        result.add_term('scope', self.scope)
+        result.add_term('class', self.class_id)
+        result.add_term('mac', self.mac)
+        return [result]
+
 
 class Subnet(BaseACIObject):
     """ Subnet :  roughly equivalent to fvSubnet """
@@ -2360,8 +2421,6 @@ class BaseContract(BaseACIObject):
         :returns: json dictionary of the contract
         """
         resp_json = []
-        subj_code = self._get_subject_code()
-        subj_relation_code = self._get_subject_relation_code()
         attributes = self._generate_attributes()
 
         contract_code = self._get_contract_code()
@@ -2371,18 +2430,11 @@ class BaseContract(BaseACIObject):
         # Create a subject for every entry with a relation to the filter
         subjects = []
         for entry in self.get_children():
-            subject_name = self.name + entry.name
-            subject = {subj_code: {'attributes': {'name': subject_name}}}
-            filt_name = subject_name
-            filt = {subj_relation_code: {'attributes': {'tnVzFilterName': filt_name}}}
-            subject[subj_code]['children'] = [filt]
-            subjects.append(subject)
+            if isinstance(entry, ContractSubject):
+                subject = entry.get_json()
+                subjects.append(subject)
         contract[self._get_contract_code()]['children'] = subjects
         resp_json.append(contract)
-        for entry in self.get_children():
-            entry_json = entry.get_json()
-            if entry_json is not None:
-                resp_json.append(entry_json)
         return resp_json
 
 
@@ -2400,14 +2452,6 @@ class Contract(BaseContract):
         :returns: String containing APIC class name for this type of contract.
         """
         return 'vzBrCP'
-
-    @staticmethod
-    def _get_subject_code():
-        return 'vzSubj'
-
-    @staticmethod
-    def _get_subject_relation_code():
-        return 'vzRsSubjFiltAtt'
 
     @staticmethod
     def _get_parent_dn(dn):
@@ -2432,17 +2476,7 @@ class Contract(BaseContract):
         for child in contract_data.get('children', ()):
             if 'vzSubj' in child:
                 subject = child['vzSubj']
-                for subj_child in subject.get('children', ()):
-                    if 'vzRsSubjFiltAtt' in subj_child:
-                        filter_attributes = subj_child['vzRsSubjFiltAtt']['attributes']
-                        filter_name = filter_attributes['tnVzFilterName']
-                        for filter in full_data[0]['fvTenant']['children']:
-                            if 'vzFilter' in filter:
-                                match_name = filter['vzFilter']['attributes']['name']
-                                if match_name == filter_name:
-                                    for entry in filter['vzFilter']['children']:
-                                        if 'vzEntry' in entry:
-                                            entry_obj = FilterEntry.create_from_apic_json(entry, contract)
+                subj = ContractSubject(child['vzSubj']['attributes']['name'], contract)
 
     @classmethod
     def get(cls, session, tenant):
@@ -2472,6 +2506,173 @@ class Contract(BaseContract):
 
             result.append(Table(data, headers, title=title + 'Contract:{0}'.format(contract.name)))
         return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'contract')
+        result.add_term('name', self.name)
+        result.add_term('contract', self.name)
+        result.add_term('scope', self.get_scope())
+        return [result]
+
+
+class ContractSubject(BaseACIObject):
+    """ ContractSubject : roughly equivalent to vzSubj """
+
+    def __init__(self, subject_name, parent=None):
+        super(ContractSubject, self).__init__(subject_name, parent)
+
+    def _extract_relationships(self, data):
+        """
+        Extracts and rebuild the relationships between the ContractSubject
+        and Filter objects.
+        """
+        contract = self.get_parent()
+        tenant = contract.get_parent()
+        contract_data = data[0]['fvTenant']['children']
+        for child in contract_data:
+            if 'vzBrCP' in child and 'children' in child['vzBrCP']:
+                for subj in child['vzBrCP']['children']:
+                    if 'vzSubj' in subj:
+                        if subj['vzSubj']['attributes']['name'] == self.name:
+                            for filt in subj['vzSubj']['children']:
+                                if 'vzRsSubjFiltAtt' in filt:
+                                    filt_name = filt['vzRsSubjFiltAtt']['attributes']['tnVzFilterName']
+                                    filt_search = Search()
+                                    filt_search.name = filt_name
+                                    objs = tenant.find(filt_search)
+                                    for filt in objs:
+                                        if isinstance(filt, Filter):
+                                            self.add_filter(filt)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Contract
+
+    def get_json(self):
+        """
+        Returns json representation of the ContractSubject
+
+        :returns: json dictionary of the ContractSubject
+        """
+        attr = self._generate_attributes()
+        resp_json = super(ContractSubject, self).get_json('vzSubj',
+                                                 attributes=attr,
+                                                 get_children=False)
+        filters = []
+        for entry in self.get_filters():
+            filt = {'vzRsSubjFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
+            filters.append(filt)
+        resp_json['vzSubj']['children'] = filters
+        return resp_json
+
+    def add_filter(self, filter_obj):
+        """
+        Add Filter to the ContractSubject, roughly equivalent to vzRsSubjFiltAtt
+
+        :param filter_obj:   Instance of Filter class. Represents\
+                             a Filter that is added to the ContractSubject.\
+                             Multiple Filter can be assigned to a single\
+                             ContractSubject.
+        """
+        if not isinstance(filter_obj, Filter):
+            raise TypeError('add_filter not called with Filter')
+        self._add_relation(filter_obj)
+
+    def get_filters(self):
+        """
+        Get all of the filters that are attached to this ContractSubject.
+
+        :returns: List of Filter objects
+        """
+
+        resp = []
+        for relation in self._relations:
+            if isinstance(relation.item, Filter):
+                resp.append(relation.item)
+        return resp
+
+
+class Filter(BaseACIObject):
+    """ Filter : roughly equivalent to vzFilter """
+
+    def __init__(self, filter_name, parent=None):
+        # Backward compatibility, allows the use of Filters that are attached to
+        # ContractSubject instead of Tenants
+        if isinstance(parent, ContractSubject):
+            print('The parent of a Filter should be a Tenant Object!')
+            parent.add_filter(self)
+            parent = parent.get_parent().get_parent()
+        super(Filter, self).__init__(filter_name, parent)
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['vzFilter']
+
+    @classmethod
+    def get(cls, session, tenant):
+        """Gets all of the Filters for the current tenant from the APIC.
+
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the Filters\
+                       retreived from the APIC
+        :returns: List of Filter objects
+        """
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
+                                 parent=tenant, tenant=tenant)
+
+    @classmethod
+    def get_by_name_and_tenant(cls, session, tenant, filter_name):
+
+        """
+        Returns the Filter Object with name == filter_name and tenant == tenant
+
+        :param session: the instance of Session used for APIC communication
+        :param tenant: the instance of Tenant used to limit the search scope
+        :param filter_name: the searched Filter Object
+        :returns: a single Filter Object
+
+        """
+        return [filt for filt in cls.get(session, tenant) if filt.name == filter_name][0]
+
+    @classmethod
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
+        filter_data = working_data[0]['vzFilter']
+        filt = Filter(str(filter_data['attributes']['name']), parent)
+
+        for child in filter_data.get('children', ()):
+            if 'vzEntry' in child:
+                FilterEntry.create_from_apic_json(child, filt)
+
+    def get_json(self):
+        """
+        Returns json representation of the Filter
+
+        :returns: json dictionary of the Filter
+        """
+        attr = {'name': self.name}
+        resp_json = super(Filter, self).get_json('vzFilter',
+                                                 attributes=attr)
+        filter_entries = []
+        for entry in self.get_children():
+            filter_entries.append(entry.get_json())
+        resp_json['vzFilter']['children'] = filter_entries
+        resp_json
+        return resp_json
 
 
 class Taboo(BaseContract):
@@ -2527,6 +2728,17 @@ class Taboo(BaseContract):
             result.append(Table(data, headers, title=title + 'Taboo:{0}'.format(taboo.name)))
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'taboo')
+        result.add_term('name', self.name)
+        result.add_term('scope', self.get_scope())
+        return [result]
+
 
 class FilterEntry(BaseACIObject):
     """ FilterEntry :  roughly equivalent to vzEntry """
@@ -2564,6 +2776,13 @@ class FilterEntry(BaseACIObject):
         self.sFromPort = sFromPort
         self.sToPort = sToPort
         self.tcpRules = tcpRules
+        # Backward compatibility for old calls that reference a Contract instead
+        # of a Filter Object
+        if isinstance(parent, Contract):
+            contract_subject = ContractSubject(parent.name + "_Subject", parent)
+            filt = Filter(name + "_Filter", parent.get_parent())
+            contract_subject.add_filter(filt)
+            parent = filt
         super(FilterEntry, self).__init__(name, parent)
 
     def _generate_attributes(self):
@@ -2600,8 +2819,8 @@ class FilterEntry(BaseACIObject):
         text = super(FilterEntry, self).get_json('vzEntry',
                                                  attributes=attr)
         filter_name = self.get_parent().name + self.name
-        text = {'vzFilter': {'attributes': {'name': filter_name},
-                             'children': [text]}}
+        # text = {'vzFilter': {'attributes': {'name': filter_name},
+        #                      'children': [text]}}
         return text
 
     @classmethod
@@ -2698,6 +2917,17 @@ class FilterEntry(BaseACIObject):
         data = sorted(data)
         table = Table(data, headers, title=title + 'Filters')
         return [table, ]
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'filter')
+        result.add_term('name', self.name)
+        result.add_term('filter', self.name)
+        return [result]
 
     @staticmethod
     def _get_port(from_port, to_port):
@@ -3192,6 +3422,19 @@ class Endpoint(BaseACIObject):
         result.append(Table(data, headers, title=title + 'Endpoints'))
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('type', 'endpoint')
+        result.add_term('name', self.name)
+        result.add_term('mac', self.mac)
+        result.add_term('ip', self.ip)
+        result.add_term('interface', self.if_name)
+        return [result]
+
 
 class IPEndpoint(BaseACIObject):
     """
@@ -3251,10 +3494,7 @@ class IPEndpoint(BaseACIObject):
             status = str(attributes.get('status'))
             dn = str(attributes.get('dn'))
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
-            if status == 'created':
-                name = str(attributes.get('addr'))
-            else:
-                name = cls._get_name_from_dn(dn)
+            name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)
             obj._populate_from_attributes(attributes)
             if status == 'deleted':
@@ -3275,8 +3515,6 @@ class IPEndpoint(BaseACIObject):
         endpoint_query_url = ('/api/node/class/%s.json?query-target=self'
                               '&rsp-subtree=full' % apic_endpoint_class)
         ret = session.get(endpoint_query_url)
-        print endpoint_query_url
-        print ret, ret.text
         ep_data = ret.json()['imdata']
         for ep in ep_data:
             ep = ep[apic_endpoint_class]['attributes']
@@ -3312,28 +3550,30 @@ class IPEndpoint(BaseACIObject):
                      'query-target=subtree&'
                      'target-subtree-class=fvIp,fvStIp' % (tenant_name, app_name, epg_name))
         ret = session.get(query_url)
-        ep_data = ret.json()['imdata']
         endpoints = []
-        if len(ep_data) == 0:
-            return endpoints
-        for ep in ep_data:
-            if 'fvStIp' in ep:
-                attr = ep['fvStIp']['attributes']
-            elif 'fvIp' in ep:
-                attr = ep['fvIp']['attributes']
-            else:
-                raise ValueError(ep)
-            ep_dn = str(attr['dn'])
-            ep_addr = str(attr['addr'])
-            if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
-                continue
-            tenant = Tenant(ep_dn.split('/')[1][3:])
-            app_profile = AppProfile(ep_dn.split('/')[2][3:],
-                                     tenant)
-            epg = EPG(ep_dn.split('/')[3][4:], app_profile)
-            endpoint = IPEndpoint(ep_addr, parent=epg)
-            endpoint.ip = ep_addr
-            endpoints.append(endpoint)
+        if ret.ok:
+            ep_data = ret.json()['imdata']
+            if len(ep_data) == 0:
+                return endpoints
+            for ep in ep_data:
+                if 'fvStIp' in ep:
+                    attr = ep['fvStIp']['attributes']
+                elif 'fvIp' in ep:
+                    attr = ep['fvIp']['attributes']
+                else:
+                    logging.error('Could not get EPG endpoints from the APIC %s', ep)
+                    break
+                ep_dn = str(attr['dn'])
+                ep_addr = str(attr['addr'])
+                if not all(x in ep_dn for x in ['/tn-', 'ap-', 'epg-']):
+                    continue
+                tenant = Tenant(ep_dn.split('/')[1][3:])
+                app_profile = AppProfile(ep_dn.split('/')[2][3:],
+                                         tenant)
+                epg = EPG(ep_dn.split('/')[3][4:], app_profile)
+                endpoint = IPEndpoint(ep_addr, parent=epg)
+                endpoint.ip = ep_addr
+                endpoints.append(endpoint)
         return endpoints
 
 
@@ -4102,6 +4342,8 @@ class NetworkPool(BaseACIObject):
         fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': {'name': self.name,
                                                                  'allocMode': self.mode},
                                                   'children': [fvnsEncapBlk]}}
+        if self.is_deleted():
+            fvnsEncapInstP[fvnsEncapInstP_string]['attributes']['status'] = 'deleted'
         infra = {'infraInfra': {'attributes': {},
                                 'children': [fvnsEncapInstP]}}
         return infra
@@ -4932,20 +5174,27 @@ class LogicalModel(BaseACIObject):
 
     def populate_children(self, deep=False, include_concrete=False):
         """
-        This method will populate the children of the fabric.  If deep is set
-        to True, it will populate the entire object tree, both physical and logical.
+        This method will populate the children of the logical model starting with Tenant.  If deep is set
+        to True, it will populate the logical tree.
 
-        If include_concrete is set to True, it will also include the concrete models
-        on the network switches.
 
         :param deep:
         :param include_concrete:
         :return: list of immediate children objects
         """
-        Tenant.get(self.session, self)
-
+        tenants = Tenant.get_deep(self.session, parent=self)
         if deep:
             for child in self._children:
                 child.populate_children(deep, include_concrete)
 
         return self._children
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        """
+        result = Searchable()
+        result.add_term('model', 'logical')
+
+        return [result]

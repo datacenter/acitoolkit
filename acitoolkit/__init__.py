@@ -43,7 +43,7 @@ from .acitoolkitlib import Credentials # noqa
 from .aciConcreteLib import ( # noqa
     ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext, ConcreteEp,
     ConcreteFilter, ConcreteFilterEntry, ConcreteLoopback, ConcreteOverlay,
-    ConcretePortChannel, ConcreteSVI, ConcreteVpc, ConcreteVpcIf,
+    ConcretePortChannel, ConcreteSVI, ConcreteVpc, ConcreteVpcIf, ConcreteTunnel,
 )
 # Dependent on aciconcretelib
 from .aciphysobject import ( # noqa
