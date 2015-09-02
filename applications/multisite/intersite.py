@@ -1276,7 +1276,7 @@ class MultisiteCollector(object):
             print '%% Invalid configuration file'
             return
         old_config = self.config
-
+        logging.debug('Old configuration: %s', self.config.get_config())
         try:
             new_config = IntersiteConfiguration(new_config)
         except ValueError as e:
@@ -1286,6 +1286,7 @@ class MultisiteCollector(object):
         # Handle any changes in site configuration
         added_local_site = self._reload_sites(old_config, new_config)
         self.config = new_config
+        logging.debug('New configuration: %s', self.config.get_config())
         if added_local_site:
             logging.info('New local site added')
             self.initialize_local_site()
@@ -1349,6 +1350,7 @@ def initialize_tool(config):
         sys.exit(0)
     collector = MultisiteCollector()
     collector.config = IntersiteConfiguration(config)
+    logging.debug('New configuration: %s', collector.config.get_config())
 
     for site_policy in collector.config.site_policies:
         collector.add_site_from_config(site_policy)
@@ -1583,6 +1585,7 @@ class CommandLine(cmd.Cmd):
                         logging.warning('%s is missing from site %s for tenant: %s app: %s epg: %s',
                                         ep, remote_site.name, tenant_name, app_name, epg_name)
         logging.info('complete')
+
 
 def get_arg_parser():
     """
