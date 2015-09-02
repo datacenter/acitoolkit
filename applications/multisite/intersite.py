@@ -151,6 +151,10 @@ class EndpointHandler(object):
                     for ep in l3instp['l3extInstP']['children']:
                         if 'l3extSubnet' not in ep:
                             continue
+                        if ep['l3extSubnet']['attributes']['name'] == '':
+                            logging.warning('Endpoint JSON has no name %s', ep)
+                        if endpoint.ip == '':
+                            logging.warning('Endpoint has no IP %s %s', endpoint.name, endpoint.ip)
                         if ep['l3extSubnet']['attributes']['name'] == endpoint.ip:
                             l3instp['l3extInstP']['children'].remove(ep)
 
@@ -283,6 +287,48 @@ class EndpointHandler(object):
                 # Add to the database
                 self._merge_tenant_json(remote_site_policy.name, tenant_json)
 
+    def check_and_remove_duplicate(self, session, tenant_name, response):
+        """
+        Check for duplicate entry error response message
+        If present, delete the offending subnet from the APIC
+        """
+        if 'imdata' not in response or len(response['imdata']) == 0:
+            return False
+        response = response['imdata'][0]
+        if 'error' not in response or 'attributes' not in response['error']:
+            return False
+        response = response['error']['attributes']
+        if 'text' not in response or 'Invalid Configuration - External Subnet:' not in response['text']:
+            return False
+        response = response['text']
+        if ' already defined in L3 Outside: ' not in response:
+            return False
+        l3out_name = response.rpartition('already defined in L3 Outside: ')[2]
+        ip_addr = response.split('Invalid Configuration - External Subnet: ')[1].split(' already defined in L3 Outside')[0]
+
+        # Find the InstP that has the duplicate entry
+        query_url = ('/api/mo/uni/tn-%s/out-%s.json?rsp-subtree=full&rsp-subtree-class=l3extSubnet'
+                     '&rsp-subtree-filter=eq(l3extSubnet.ip,"%s")&rsp-subtree-include=no-scoped' % (tenant_name, l3out_name, ip_addr))
+        resp = session.get(query_url)
+        if resp.ok and 'totalCount' in resp.text:
+            dn = resp.json()['imdata'][0]['l3extSubnet']['attributes']['dn']
+            outside_epg_name = dn.partition('/instP-')[2].partition('/')[0]
+            logging.warning('Duplicate entry found for IP: %s on tenant: %s l3out: %s remote_epg: %s', ip_addr, tenant_name, l3out_name, outside_epg_name)
+
+            # Delete the old duplicate from the APIC
+            query_url = '/api/mo/' + dn + '.json'
+            data = {'l3extSubnet': {'attributes': {'ip': ip_addr, 'status': 'deleted'}}}
+            resp = session.push_to_apic(query_url, data)
+            if resp.ok:
+                logging.warning('Deleted duplicate entry for ip %s', ip_addr)
+                return True
+            else:
+                logging.error('Could not delete duplicate entry %s %s', resp, resp.text)
+                return False
+        else:
+            logging.error('Could not get duplicate entry %s %s', resp, resp.text)
+            return False
+
     def push_to_remote_sites(self, collector):
         """
         Push the endpoints to the remote sites
@@ -293,9 +339,16 @@ class EndpointHandler(object):
             assert remote_site_obj is not None
             remote_session = remote_site_obj.session
             for tenant_json in self.db[remote_site]:
-                resp = remote_session.push_to_apic(Tenant.get_url(), tenant_json)
-                if not resp.ok:
-                    logging.warning('Could not push to remote site: %s %s', resp, resp.text)
+                keep_trying = True
+                while keep_trying:
+                    resp = remote_session.push_to_apic(Tenant.get_url(), tenant_json)
+                    keep_trying = False
+                    if not resp.ok:
+                        if resp.status_code == 400:
+                            keep_trying = self.check_and_remove_duplicate(remote_session,
+                                                                          tenant_json['fvTenant']['attributes']['name'],
+                                                                          resp.json())
+                        logging.warning('Could not push to remote site: %s %s', resp, resp.text)
         self.db = {}
         self.addresses = {}
 
@@ -929,16 +982,10 @@ class LocalSite(Site):
                 else:
                     children = []
                     for item in resp.json()['imdata']:
-                        l3out_ip = item['l3extSubnet']['attributes']['name'].rpartition('-')[-1]
-                        if l3out_ip not in local_endpoints:
+                        ip_addr = item['l3extSubnet']['attributes']['ip'].rpartition('-')[-1]
+                        if ip_addr not in local_endpoints:
                             # Delete this L3out entry
-                            ip_addr = item['l3extSubnet']['attributes']['name']
-                            if ':' in ip_addr:
-                                ip_addr = ip_addr + '/128'
-                            else:
-                                ip_addr = ip_addr + '/32'
-                            data = {'l3extSubnet': {'attributes': {'name': item['l3extSubnet']['attributes']['name'],
-                                                                   'ip': ip_addr,
+                            data = {'l3extSubnet': {'attributes': {'ip': ip_addr,
                                                                    'status': 'deleted'}}}
                             children.append(data)
                     if len(children):
@@ -946,10 +993,10 @@ class LocalSite(Site):
                         l3out_data = {'l3extInstP': {'attributes': {'name': policy.remote_epg}, 'children': children}}
                         resp = site.session.push_to_apic(url, l3out_data)
                         if not resp.ok:
-                            logging.warning('Could not delete stale entry %s', l3out_ip)
+                            logging.warning('Could not delete stale entry %s', ip_addr)
                         else:
                             logging.info('Found stale entry for %s on l3out %s in remote site %s. Deleting...',
-                                         l3out_ip, l3out.name, site.name)
+                                         ip_addr, l3out.name, site.name)
 
     def push_policy_to_queue(self, policy):
         logging.info('')
@@ -1568,8 +1615,8 @@ class CommandLine(cmd.Cmd):
                                                                    policy.remote_epg))
                 resp = remote_site.session.get(query_url)
                 if resp.ok:
-                    print('Remote Endpoints for Site %s Interface %s : %s',
-                          remote_site.name, interface_policy.name, str(len(resp.json())))
+                    print('Remote Endpoints for Site %s Interface %s : %s' %
+                          (remote_site.name, interface_policy.name, str(len(resp.json()))))
                 else:
                     print('Could not get remote endpoints for Site',
                           remote_site.name, 'Interface', interface_policy.name)
@@ -1578,7 +1625,10 @@ class CommandLine(cmd.Cmd):
                 if 'imdata' not in resp.json():
                     continue
                 for ep in resp.json()['imdata']:
-                    remote_ips.append(ep['l3extSubnet']['attributes']['name'])
+                    remote_ip = ep['l3extSubnet']['attributes']['ip']
+                    if '/32' in remote_ip:
+                        remote_ip = remote_ip.partition('/32')[0]
+                    remote_ips.append(remote_ip)
                 for ep in local_ips:
                     if ep not in remote_ips:
                         print ep, 'is missing from site', remote_site.name
@@ -1642,6 +1692,7 @@ def execute_tool(args, test_mode=False):
     logging.getLogger().addHandler(my_handler)
     logging.getLogger().setLevel(level)
 
+    logging.info('Starting the tool....')
     # Handle generating sample configuration
     if args.generateconfig:
         config = {'config': [
