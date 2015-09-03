@@ -38,11 +38,22 @@ of the Endpoints.
 import sys
 import acitoolkit.acitoolkit as aci
 import warnings
+import re
+import argparse
+import os
+import logging
+import time
+from daemon import Daemon
+
 try:
     import mysql.connector as mysql
 except ImportError:
     import pymysql as mysql
 
+def touch(fname, times = None):
+    """ Touch file """
+    with open(fname, 'a'):
+        os.utime(fname, times)
 
 def convert_timestamp_to_mysql(timestamp):
     """
@@ -56,38 +67,20 @@ def convert_timestamp_to_mysql(timestamp):
     resp_ts = resp_ts + remaining.split('+')[0].split('.')[0]
     return resp_ts
 
-
-def main():
-    """
-    Main Endpoint Tracker routine
-
-    :return: None
-    """
-    # Take login credentials from the command line if provided
-    # Otherwise, take them from your environment variables file ~/.profile
-    description = ('Application that logs on to the APIC and tracks'
-                   ' all of the Endpoints in a MySQL database.')
-    creds = aci.Credentials(qualifier=('apic', 'mysql'),
-                            description=description)
-    args = creds.get()
-
-    # Login to APIC
-    session = aci.Session(args.url, args.login, args.password)
-    resp = session.login()
-    if not resp.ok:
-        print '%% Could not login to APIC'
-        sys.exit(0)
-
+def connect_mysql(args):
     # Create the MySQL database
     cnx = mysql.connect(user=args.mysqllogin,
                         password=args.mysqlpassword,
                         host=args.mysqlip)
+    if args.daemon:
+        logging.info("Connecting to mysql database")
     c = cnx.cursor()
+
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
-        c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit;')
+        c.execute('CREATE DATABASE IF NOT EXISTS endpointtracker;')
         cnx.commit()
-    c.execute('USE acitoolkit;')
+    c.execute('USE endpointtracker;')
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
         c.execute('''CREATE TABLE IF NOT EXISTS endpoints (
@@ -101,27 +94,61 @@ def main():
                          timestop  TIMESTAMP);''')
         cnx.commit()
 
+    return c, cnx
+
+def tracker(args):
+    # Login to APIC
+    session = aci.Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print '%% Could not login to APIC'
+        sys.exit(0)
+
+    c, cnx = connect_mysql(args)
+
     # Download all of the Endpoints and store in the database
     endpoints = aci.Endpoint.get(session)
     for ep in endpoints:
-        epg = ep.get_parent()
+        try:
+            epg = ep.get_parent()
+        except AttributeError:
+            continue
         app_profile = epg.get_parent()
         tenant = app_profile.get_parent()
+        if ep.if_dn:
+            for dn in ep.if_dn:
+                match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
+                if match.group(1) and match.group(2):
+                    int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                    pass
+        else:
+            int_name = ep.if_name
+
         data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
-                ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
-        initial_insert_cmd = """INSERT INTO endpoints (mac, ip, tenant,
-                                app, epg, interface, timestart)
-                                VALUES ('%s', '%s', '%s', '%s',
-                                '%s', '%s', '%s')""" % data
-        c.execute(initial_insert_cmd)
-        cnx.commit()
+                int_name, convert_timestamp_to_mysql(ep.timestamp))
+
+        ep_exists = c.execute("""SELECT * FROM endpoints
+                                 WHERE mac="%s"
+                                 AND
+                                 timestop="0000-00-00 00:00:00";""" % ep.mac)
+        c.fetchall()
+        if not ep_exists:
+            c.execute("""INSERT INTO endpoints (mac, ip, tenant,
+                         app, epg, interface, timestart)
+                         VALUES ('%s', '%s', '%s', '%s',
+                         '%s', '%s', '%s')""" % data)
+            cnx.commit()
 
     # Subscribe to live updates and update the database
+    sys.stdout.write("Starting subscribe to apic events")
     aci.Endpoint.subscribe(session)
     while True:
         if aci.Endpoint.has_events(session):
             ep = aci.Endpoint.get_event(session)
-            epg = ep.get_parent()
+            try:
+                epg = ep.get_parent()
+            except AttributeError:
+                continue
             app_profile = epg.get_parent()
             tenant = app_profile.get_parent()
             if ep.is_deleted():
@@ -135,8 +162,17 @@ def main():
                                 timestop='0000-00-00 00:00:00'""" % data
                 c.execute(update_cmd)
             else:
+                if ep.if_dn:
+                    for dn in ep.if_dn:
+                        match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
+                        if match.group(1) and match.group(2):
+                            int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                            pass
+                else:
+                    int_name = ep.if_name
+
                 data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
-                        ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
+                        int_name, convert_timestamp_to_mysql(ep.timestamp))
                 insert_data = "'%s', '%s', '%s', '%s', '%s', '%s', '%s'" % data
                 query_data = ("mac='%s', ip='%s', tenant='%s', "
                               "app='%s', epg='%s', interface='%s', "
@@ -152,6 +188,65 @@ def main():
                                         VALUES (%s)""" % insert_data
                         c.execute(insert_cmd)
             cnx.commit()
+
+class Daemonize(Daemon):
+    """
+    Daemonize the endpointracker
+    Creates a daemon and then runs the tracker function
+    """
+    def __init__(self,
+                args,
+                pidfile,
+                stdin='/var/log/endpointracker.log',
+                stdout='/var/log/endpointracker.log',
+                stderr='/var/log/endpointracker.log'
+                ):
+        self.args = args
+        if not os.path.isfile(stdout):
+            touch(stdout)
+
+        super(Daemonize, self).__init__(pidfile, stdin, stdout, stderr)
+
+    def run(self):
+        """If --daemon is set we run the tracker function
+        """
+        logging.basicConfig(filename='/var/log/endpointracker.log',
+                            level=logging.INFO,
+                            format=('%(asctime)s %(message)s'))
+        logging.info('Starting endpointtracker')
+        while True:
+            try:
+                tracker(self.args)
+            except mysql.err.OperationalError:
+                logging.info("Lost connection to database, reconnecting in 10")
+                time.sleep(10)
+                pass
+
+def main():
+    """
+    Main Endpoint Tracker routine
+    :return: None
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = ('Application that logs on to the APIC and tracks'
+                   ' all of the Endpoints in a MySQL database.')
+    creds = aci.Credentials(qualifier=('apic', 'mysql', 'daemon'),
+                            description=description)
+    args = creds.get()
+
+    pid = '/var/run/endpointracker.pid'
+    if args.daemon:
+        daemon = Daemonize(args, pid)
+        daemon.start()
+    elif args.kill:
+        daemon = Daemonize(args, pid)
+        daemon.stop()
+    elif args.restart:
+        daemon = Daemonize(args, pid)
+        daemon.restart()
+    else:
+        tracker(args)
 
 if __name__ == '__main__':
     try:

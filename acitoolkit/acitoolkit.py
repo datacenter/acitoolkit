@@ -3168,6 +3168,8 @@ class Endpoint(BaseACIObject):
         self.ip = None
         self.encap = None
         self.if_name = None
+        self.if_dn = []
+
 
     @classmethod
     def _get_apic_classes(cls):
@@ -3244,17 +3246,20 @@ class Endpoint(BaseACIObject):
             obj.timestamp = str(attributes.get('modTs'))
             if obj.mac is None:
                 obj.mac = name
-            if status == 'deleted':
-                obj.mark_as_deleted()
-            elif with_relations:
-                objs = cls.get(session, name)
-                if len(objs):
-                    obj = objs[0]
-                else:
-                    # Endpoint was deleted before we could process the create
-                    # return what we what we can from the event
-                    pass
-            return obj
+            try:
+                if status == 'deleted':
+                    obj.mark_as_deleted()
+                elif with_relations:
+                    objs = cls.get(session, name)
+                    if len(objs):
+                        obj = objs[0]
+                    else:
+                        # Endpoint was deleted before we could process the create
+                        # return what we what we can from the event
+                        pass
+                return obj
+            except IndexError:
+                continue
 
     @staticmethod
     def _get(session, endpoint_name, interfaces, endpoints,
@@ -3307,14 +3312,21 @@ class Endpoint(BaseACIObject):
             for child in children:
                 if endpoint_path in child:
                     endpoint.if_name = str(child[endpoint_path]['attributes']['tDn'])
+
                     for interface in interfaces:
+
                         interface = interface['fabricPathEp']['attributes']
                         interface_dn = str(interface['dn'])
+
                         if endpoint.if_name == interface_dn:
                             if str(interface['lagT']) == 'not-aggregated':
                                 endpoint.if_name = _interface_from_dn(interface_dn).if_name
+                                
                             else:
                                 endpoint.if_name = interface['name']
+                                endpoint.if_dn.append(interface_dn)
+
+
                     # endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
                     # ret = session.get(endpoint_query_url)
             endpoints.append(endpoint)
