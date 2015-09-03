@@ -15,7 +15,7 @@ import cmd
 import sys
 import socket
 import subprocess
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, Timeout
 import time
 import os
 
@@ -344,7 +344,11 @@ class EndpointHandler(object):
             for tenant_json in self.db[remote_site]:
                 keep_trying = True
                 while keep_trying:
-                    resp = remote_session.push_to_apic(Tenant.get_url(), tenant_json)
+                    try:
+                        resp = remote_session.push_to_apic(Tenant.get_url(), tenant_json)
+                    except Timeout:
+                        logging.error('Timeout error when attempting configuration push')
+                        return
                     keep_trying = False
                     if not resp.ok:
                         if resp.status_code == 400:
