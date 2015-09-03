@@ -311,6 +311,9 @@ class EndpointHandler(object):
                      '&rsp-subtree-filter=eq(l3extSubnet.ip,"%s")&rsp-subtree-include=no-scoped' % (tenant_name, l3out_name, ip_addr))
         resp = session.get(query_url)
         if resp.ok and 'totalCount' in resp.text:
+            if resp.json()['totalCount'] == '0':
+                logging.warning('Could not find duplicate entry')
+                return False
             dn = resp.json()['imdata'][0]['l3extSubnet']['attributes']['dn']
             outside_epg_name = dn.partition('/instP-')[2].partition('/')[0]
             logging.warning('Duplicate entry found for IP: %s on tenant: %s l3out: %s remote_epg: %s', ip_addr, tenant_name, l3out_name, outside_epg_name)
