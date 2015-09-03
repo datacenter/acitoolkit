@@ -38,6 +38,7 @@ of the Endpoints.
 import sys
 import acitoolkit.acitoolkit as aci
 import warnings
+import re
 try:
     import mysql.connector as mysql
 except ImportError:
@@ -107,8 +108,17 @@ def main():
         epg = ep.get_parent()
         app_profile = epg.get_parent()
         tenant = app_profile.get_parent()
+        if ep.if_dn:
+            for dn in ep.if_dn:
+                match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
+                if match.group(1) and match.group(2):
+                    int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                    pass
+        else:
+            int_name = ep.if_name
+
         data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
-                ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
+                int_name, convert_timestamp_to_mysql(ep.timestamp))
         initial_insert_cmd = """INSERT INTO endpoints (mac, ip, tenant,
                                 app, epg, interface, timestart)
                                 VALUES ('%s', '%s', '%s', '%s',
@@ -135,8 +145,17 @@ def main():
                                 timestop='0000-00-00 00:00:00'""" % data
                 c.execute(update_cmd)
             else:
+                if ep.if_dn:
+                    for dn in ep.if_dn:
+                        match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
+                        if match.group(1) and match.group(2):
+                            int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                            pass
+                else:
+                    int_name = ep.if_name
+
                 data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
-                        ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
+                        int_name, convert_timestamp_to_mysql(ep.timestamp))
                 insert_data = "'%s', '%s', '%s', '%s', '%s', '%s', '%s'" % data
                 query_data = ("mac='%s', ip='%s', tenant='%s', "
                               "app='%s', epg='%s', interface='%s', "
