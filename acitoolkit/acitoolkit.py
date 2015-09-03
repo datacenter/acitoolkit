@@ -3246,17 +3246,20 @@ class Endpoint(BaseACIObject):
             obj.timestamp = str(attributes.get('modTs'))
             if obj.mac is None:
                 obj.mac = name
-            if status == 'deleted':
-                obj.mark_as_deleted()
-            elif with_relations:
-                objs = cls.get(session, name)
-                if len(objs):
-                    obj = objs[0]
-                else:
-                    # Endpoint was deleted before we could process the create
-                    # return what we what we can from the event
-                    pass
-            return obj
+            try:
+                if status == 'deleted':
+                    obj.mark_as_deleted()
+                elif with_relations:
+                    objs = cls.get(session, name)
+                    if len(objs):
+                        obj = objs[0]
+                    else:
+                        # Endpoint was deleted before we could process the create
+                        # return what we what we can from the event
+                        pass
+                return obj
+            except IndexError:
+                continue
 
     @staticmethod
     def _get(session, endpoint_name, interfaces, endpoints,

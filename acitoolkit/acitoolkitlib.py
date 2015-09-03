@@ -107,6 +107,16 @@ class Credentials(object):
             self._parser.add_argument('-s', '--mysqlpassword',
                                       default=DEFAULT_MYSQL_PASSWORD,
                                       help='MySQL login password.')
+        if 'daemon' in qualifier:
+            self._parser.add_argument('-d', '--daemon',
+                                      help='Run as a Daemon',
+                                      action='store_true')
+            self._parser.add_argument('--kill',
+                                      help='if run as a process, kill it',
+                                      action='store_true')
+            self._parser.add_argument('--restart',
+                                      help='if run as a process, restart it',
+                                      action='store_true')
         if 'server' in qualifier:
             DEFAULT_PORT = '5000'
             DEFAULT_IPADDRESS = '127.0.0.1'
@@ -186,6 +196,11 @@ class Credentials(object):
         Verify that the arguments have been passed in some way.  If not,
         ask the user through interactive prompt.
         """
+        try:
+            if self._args.kill:
+                return ''
+        except AttributeError:
+            pass
         if 'apic' in self._qualifier and self._args.snapshotfiles is None:
             if self._args.login is None:
                 self._args.login = self._get_from_user('APIC login username: ')
