@@ -713,6 +713,8 @@ class EPG(CommonEPG):
                 raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
         self._deployment_immediacy = None
+        self._dom_deployment_immediacy = None
+        self._dom_resolution_immediacy = None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -824,6 +826,22 @@ class EPG(CommonEPG):
         """
         self._deployment_immediacy = immediacy
 
+    def set_dom_deployment_immediacy(self, immediacy):
+        """
+        Set the deployment immediacy for PhysDomain of the EPG
+
+        :param immediacy: String containing either "immediate" or "lazy"
+        """
+        self._dom_deployment_immediacy = immediacy
+
+    def set_dom_resolution_immediacy(self, immediacy):
+        """
+        Set the resolution immediacy for PhysDomain of the EPG
+
+        :param immediacy: String containing either "immediate" or "lazy"
+        """
+        self._dom_resolution_immediacy = immediacy
+
     def _extract_relationships(self, data):
         app_profile = self.get_parent()
         tenant = app_profile.get_parent()
@@ -912,6 +930,11 @@ class EPG(CommonEPG):
             if len(self.get_children(only_class=EPGDomain)) == 0:
                 text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
+            if self._dom_deployment_immediacy:
+                text['fvRsDomAtt']['attributes']['instrImedcy'] = self._dom_deployment_immediacy
+            if self._dom_resolution_immediacy:
+                text['fvRsDomAtt']['attributes']['resImedcy'] = self._dom_resolution_immediacy
+
         is_vmms = False
         for vmm in self.get_all_attached(VmmDomain):
             is_vmms = True
