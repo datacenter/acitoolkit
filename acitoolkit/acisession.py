@@ -50,7 +50,8 @@ except ImportError:
 
 try:
     import urllib3
-except ImportError:
+    urllib3.disable_warnings()
+except (ImportError, AttributeError):
     pass
 else:
     try:
