@@ -29,17 +29,15 @@
 Simple application that logs on to the APIC and displays all
 of the Interfaces.
 """
+from operator import attrgetter
 import sys
-from acitoolkit.aciConcreteLib import *
+# noinspection PyPep8Naming
 import acitoolkit.acitoolkit as ACI
-from acitoolkit.acitoolkitlib import Credentials
-
-#from tenantJson import tenantJson
 
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'Simple application that logs on to the APIC and displays reports for the logical model.'
-creds = Credentials('apic', description)
+creds = ACI.Credentials('apic', description)
 creds.add_argument('-t', '--tenant',
                    type=str,
                    default=None,
@@ -91,7 +89,6 @@ def render_text_tenant(tenant):
     """
     Render the tenant info into a text string that can be directly display on
     a text monitor.
-    :param top:
     :param tenant:
     """
     title = 'Tenant:{0} - '.format(tenant.name)
@@ -117,9 +114,9 @@ def render_text_tenant(tenant):
         contracts = tenant.get_children(ACI.Contract)
         for contract in contracts:
             filter_entry = contract.get_children(ACI.FilterEntry)
-            for filter in filter_entry:
-                if filter not in filters:
-                    filters.append(filter)
+            for flter in filter_entry:
+                if flter not in filters:
+                    filters.append(flter)
 
         tables = ACI.FilterEntry.get_table(filters, title)
         for table in tables:
@@ -187,8 +184,8 @@ def show_tenant_long():
     if args.tenant:
         tenants = [ten for ten in tenants if ten.name == args.tenant]
 
-    for tenant in sorted(tenants, key=lambda x: x.name):
-        tenant = ACI.Tenant.get_deep(session, names=[tenant])
+    for tenant in sorted(tenants, key=attrgetter('name')):
+        tenant = ACI.Tenant.get_deep(session, names=[tenant.name])
 
         if tenant:
             print render_text_tenant(tenant[0])

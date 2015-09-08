@@ -36,7 +36,8 @@ will be printed on the screen.  Likewise, if an existing tenant is
 deleted.
 """
 import sys
-import acitoolkit.acitoolkit as aci
+
+import acitoolkit as aci
 
 
 def main():

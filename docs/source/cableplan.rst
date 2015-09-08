@@ -1,9 +1,9 @@
 .. toctree::
    :maxdepth: 3 
 
-===========================
+=====================
 Cableplan Application
-===========================
+=====================
 
 The Cable Plan module allows the programmer to easily import existing
 cable plans from XML files, import the currently running cable plan
@@ -16,15 +16,15 @@ file, query a cable plan, and modify a cable plan.
 
 .. _tut-using:
 
-****************************
+********************
 Using the Cable Plan
-****************************
+********************
 
 
 .. _tut-invoking:
 
 Invoking 
-========================
+========
 
 The Cable Plan module is imported from :file:`cableplan.py` which can
 be found in the ``acitoolkit/applications/cableplan`` directory.
@@ -149,9 +149,9 @@ modified cable plan::
   >>>cp2.export(f)
   >>>f.close()
 
-***************************
+********************************
 Cable Plan from the Command Line
-***************************
+********************************
 
 Invoking the cable plan application from the command line is very
 simple.
@@ -186,9 +186,9 @@ If you want to compare two files, then both the '-c1 file_name1' and
 This comparison will list all of the links in the first cable plan
 that are not in the second and vice-versa.
 
-***************************
+*********************
 Cable Plan XML Syntax 
-***************************
+*********************
 
 The cable plan XML looks like the following ::
 
@@ -244,9 +244,9 @@ Basically, the difference is calculated such that the minimum
 requirements of the first cable plan are met without exceeding the
 maximum capacity of the second cable plan.
 
-***************************
+************************
 Cable Plan API Reference
-***************************
+************************
 
 .. automodule:: cableplan
     :members:

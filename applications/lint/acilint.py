@@ -40,10 +40,32 @@ class Checker(object):
     Checker class contains a series of lint checks that are executed against the
     provided configuration.
     """
-    def __init__(self, session):
+    def __init__(self, session, output, fh=None):
         print 'Getting configuration from APIC....'
         self.tenants = Tenant.get_deep(session)
+        self.output = output
+        self.file = fh
         print 'Processing configuration....'
+
+    def output_handler(self, msg):
+        if self.output == 'console':
+            print msg
+        elif self.output == 'html':
+
+            color_map = {'Error': '#FF8C00',
+                         'Critical': '#FF0000',
+                         'Warning': '#FFFF00'}
+
+            sev = msg.split(':')[0].split(' ')[0]
+            rule = msg.split(':')[0].split(' ')[1]
+            descr = msg.split(': ')[1]
+            self.file.write("""
+            <tr>
+            <td bgcolor="{0}">{1}</td>
+            <td bgcolor="{0}">{2}</td>
+            <td bgcolor="{0}">{3}</td>
+            </tr>
+            """.format(color_map[sev], sev, rule, descr))
 
     @staticmethod
     def ensure_tagged(objects, tags):
@@ -66,8 +88,8 @@ class Checker(object):
         """
         for tenant in self.tenants:
             if len(tenant.get_children(AppProfile)) == 0:
-                print ("Warning 001: Tenant '%s' has no Application "
-                       "Profile." % tenant.name)
+                self.output_handler("Warning 001: Tenant '%s' has no Application "
+                                    "Profile." % tenant.name)
 
     def warning_002(self):
         """
@@ -75,7 +97,7 @@ class Checker(object):
         """
         for tenant in self.tenants:
             if len(tenant.get_children(Context)) == 0:
-                print "Warning 002: Tenant '%s' has no Context." % tenant.name
+                self.output_handler("Warning 002: Tenant '%s' has no Context." % tenant.name)
 
     def warning_003(self):
         """
@@ -84,8 +106,8 @@ class Checker(object):
         for tenant in self.tenants:
             for app in tenant.get_children(AppProfile):
                 if len(app.get_children(EPG)) == 0:
-                    print ("Warning 003: AppProfile '%s' in Tenant '%s'"
-                           " has no EPGs." % (app.name, tenant.name))
+                    self.output_handler("Warning 003: AppProfile '%s' in Tenant '%s'"
+                                        "has no EPGs." % (app.name, tenant.name))
 
     def warning_004(self):
         """
@@ -101,8 +123,8 @@ class Checker(object):
                     if context in contexts:
                         contexts.remove(context)
             for context in contexts:
-                print ("Warning 004: Context '%s' in Tenant '%s' has no "
-                       "BridgeDomains." % (context, tenant.name))
+                self.output_handler("Warning 004: Context '%s' in Tenant '%s' has no "
+                                    "BridgeDomains." % (context, tenant.name))
 
     def error_001(self):
         """
@@ -111,8 +133,8 @@ class Checker(object):
         for tenant in self.tenants:
             for bd in tenant.get_children(BridgeDomain):
                 if not bd.has_context():
-                    print ("Error 001: BridgeDomain '%s' in tenant '%s' "
-                           "has no Context assigned." % (bd.name, tenant.name))
+                    self.output_handler("Error 001: BridgeDomain '%s' in tenant '%s' "
+                                        "has no Context assigned." % (bd.name, tenant.name))
 
     def warning_005(self):
         """
@@ -129,8 +151,8 @@ class Checker(object):
                         if bd in bds:
                             bds.remove(bd)
             for bd in bds:
-                print ("Warning 005: BridgeDomain '%s' in Tenant '%s'"
-                       " has no EPGs." % (bd, tenant.name))
+                self.output_handler("Warning 005: BridgeDomain '%s' in Tenant '%s'"
+                                    " has no EPGs." % (bd, tenant.name))
 
     def warning_006(self):
         """
@@ -147,8 +169,8 @@ class Checker(object):
                         if contract.name in contracts:
                             contracts.remove(contract.name)
             for contract in contracts:
-                print ("Warning 006: Contract '%s' in Tenant '%s' is not"
-                       " provided at all." % (contract, tenant.name))
+                self.output_handler("Warning 006: Contract '%s' in Tenant '%s' is not"
+                                    " provided at all." % (contract, tenant.name))
 
     def warning_007(self):
         """
@@ -165,8 +187,8 @@ class Checker(object):
                         if contract.name in contracts:
                             contracts.remove(contract.name)
             for contract in contracts:
-                print ("Warning 007: Contract '%s' in Tenant '%s' is not"
-                       " consumed at all." % (contract, tenant.name))
+                self.output_handler("Warning 007: Contract '%s' in Tenant '%s' is not"
+                                    " consumed at all." % (contract, tenant.name))
 
     def error_002(self):
         """
@@ -176,10 +198,10 @@ class Checker(object):
             for app in tenant.get_children(AppProfile):
                 for epg in app.get_children(EPG):
                     if not epg.has_bd():
-                        print ("Error 002: EPG '%s' in Tenant '%s', "
-                               "AppProfile '%s' has no BridgeDomain "
-                               "assigned." % (epg.name, tenant.name,
-                                              app.name))
+                        self.output_handler("Error 002: EPG '%s' in Tenant '%s', "
+                                            "AppProfile '%s' has no BridgeDomain "
+                                            "assigned." % (epg.name, tenant.name,
+                                                           app.name))
 
     def error_004(self):
         # E004: EPG not assigned to an interface or VMM domain
@@ -198,13 +220,13 @@ class Checker(object):
                             if bd.has_context():
                                 context = bd.get_context()
                                 if context.get_allow_all():
-                                    print ("Warning 008: EPG '%s' providing "
-                                           "contracts in Tenant '%s', App"
-                                           "Profile '%s' but Context '%s' "
-                                           "is not enforcing." % (epg.name,
-                                                                  tenant.name,
-                                                                  app.name,
-                                                                  context.name))
+                                    self.output_handler("Warning 008: EPG '%s' providing "
+                                                        "contracts in Tenant '%s', App"
+                                                        "Profile '%s' but Context '%s' "
+                                                        "is not enforcing." % (epg.name,
+                                                                               tenant.name,
+                                                                               app.name,
+                                                                               context.name))
 
     def warning_010(self):
         """
@@ -241,16 +263,16 @@ class Checker(object):
                     consumed = epg.get_all_consumed()
                     for contract in consumed:
                         if tenant.name not in provide_db:
-                            print ("Warning 010: No contract provided within"
-                                   " this tenant '%s'" % tenant.name)
+                            self.output_handler("Warning 010: No contract provided within"
+                                                " this tenant '%s'" % tenant.name)
                         elif contract.name not in provide_db[tenant.name]:
-                            print ("Warning 010: Contract not provided "
-                                   "within the same tenant "
-                                   "'%s'" % tenant.name)
+                            self.output_handler("Warning 010: Contract not provided "
+                                                "within the same tenant "
+                                                "'%s'" % tenant.name)
                         elif context.name not in provide_db[tenant.name][contract.name]:
-                            print ("Warning 010: Contract '%s' not provided in context '%s' "
-                                   "where it is being consumed for"
-                                   " tenant '%s'" % (contract.name, context.name, tenant.name))
+                            self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
+                                                "where it is being consumed for"
+                                                " tenant '%s'" % (contract.name, context.name, tenant.name))
 
     def critical_001(self):
         """
@@ -266,38 +288,36 @@ class Checker(object):
             for app in tenant.get_children(AppProfile):
                 for epg in app.get_children(EPG):
                     if not self.ensure_tagged([epg], ('secure', 'nonsecure')):
-                        print ("Critical 001: EPG '%s' in tenant '%s' "
-                               "app '%s' is not assigned security "
-                               "clearance" % (epg.name, tenant.name, app.name))
+                        self.output_handler("Critical 001: EPG '%s' in tenant '%s' "
+                                            "app '%s' is not assigned security "
+                                            "clearance" % (epg.name, tenant.name, app.name))
                     if epg.has_tag('secure'):
                         if epg.has_tag('nonsecure'):
-                            print ("Critical 001: EPG '%s' in tenant '%s' "
-                                   "app '%s' is assigned secure and nonsecure security "
-                                   "clearance" % (epg.name, tenant.name, app.name))
+                            self.output_handler("Critical 001: EPG '%s' in tenant '%s' "
+                                                "app '%s' is assigned secure and nonsecure security "
+                                                "clearance" % (epg.name, tenant.name, app.name))
                             # Squirrel away the Secure EPGs
-                            secure_epgs.append(epg)
-                        else:
-                            nonsecure_epgs.append(epg)
+                        secure_epgs.append(epg)
+                    else:
+                        nonsecure_epgs.append(epg)
 
                 # Verify that the secure EPGs are only providing/consuming from
                 # secure EPGs
-                contracts = []
                 for secure_epg in secure_epgs:
                     for contract in secure_epg.get_all_provided():
                         for nonsecure_epg in nonsecure_epgs:
                             if nonsecure_epg.does_consume(contract):
-                                print ("Critical 001: Nonsecure EPG '%s' in tenant '%s' "
-                                       "is consuming secure contract from 'EPG' %s" % (nonsecure_epg.name,
-                                                                                       tenant.name,
-                                                                                       secure_epg.name))
+                                self.output_handler("Critical 001: Nonsecure EPG '%s' in tenant '%s' "
+                                                    "is consuming secure contract from 'EPG' %s" % (nonsecure_epg.name,
+                                                                                                    tenant.name,
+                                                                                                    secure_epg.name))
                     for contract in secure_epg.get_all_consumed():
                         for nonsecure_epg in nonsecure_epgs:
-                            print 'consumed ', contract.name
                             if nonsecure_epg.does_provide(contract):
-                                print ("Critical 001: Nonsecure EPG '%s' in tenant '%s' "
-                                       "is providing contract to secure EPG '%s'" % (nonsecure_epg.name,
-                                                                                     tenant.name,
-                                                                                     secure_epg.name))
+                                self.output_handler("Critical 001: Nonsecure EPG '%s' in tenant '%s' "
+                                                    "is providing contract to secure EPG '%s'" % (nonsecure_epg.name,
+                                                                                                  tenant.name,
+                                                                                                  secure_epg.name))
 
     def execute(self, methods):
         for method in methods:
@@ -318,8 +338,8 @@ def acilint():
     creds.add_argument('-c', '--configfile', type=argparse.FileType('r'))
     creds.add_argument('-g', '--generateconfigfile',
                        type=argparse.FileType('w'))
+    creds.add_argument('-o', '--output', required=False, default='console')
     args = creds.get()
-
     if args.generateconfigfile:
         print 'Generating configuration file....'
         f = args.generateconfigfile
@@ -355,7 +375,20 @@ def acilint():
             print '%% Could not login to APIC'
             sys.exit(0)
 
-    checker = Checker(session)
+    html = None
+    if args.output == 'html':
+        print 'Creating file lint.html'
+        html = open('lint.html', 'w')
+        html.write("""
+        <table border="2" style="width:100%">
+        <tr>
+        <th>Severity</th>
+        <th>Rule</th>
+        <th>Description</th>
+        </tr>
+        """)
+
+    checker = Checker(session, args.output, html)
     checker.execute(methods)
 
 if __name__ == "__main__":

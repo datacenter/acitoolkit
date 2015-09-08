@@ -46,9 +46,8 @@ override the URL specified in credentials.py to temporarily connect to a
 different APIC.
 """
 import argparse
-import os
-import sys
 import getpass
+import os
 
 
 class Credentials(object):
@@ -127,6 +126,13 @@ class Credentials(object):
             self._parser.add_argument('--port',
                                       default=DEFAULT_PORT,
                                       help='Port number to listen on.')
+            self._parser.add_argument('--test',
+                                      action='store_true', default=False,
+                                      help='Enable functions for lab testing.')
+            self._parser.add_argument('--debug', nargs='?',
+                                      choices=['verbose', 'warnings'],
+                                      const='warnings',
+                                      help='Enable debug messages.')
 
     @staticmethod
     def _get_from_user(prompt):

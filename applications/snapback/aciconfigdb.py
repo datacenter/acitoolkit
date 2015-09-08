@@ -33,13 +33,17 @@
 """
 import os
 import git
-import acitoolkit.acitoolkit as ACI
 import time
 import json
 import threading
 import datetime
 import sys
+
+import acitoolkit as ACI
 from requests import Timeout, ConnectionError
+from paramiko import SSHClient, AutoAddPolicy
+import tarfile
+import StringIO
 
 
 class SnapshotScheduler(threading.Thread):
@@ -139,7 +143,8 @@ class SnapshotScheduler(threading.Thread):
             cur_time = datetime.datetime.now()
             if start < cur_time:
                 print 'Taking snapshot'
-                self._cdb.take_snapshot(self._callback)
+                # self._cdb.take_snapshot(self._callback)
+                self._cdb.take_snapshot_using_export_policy(self._callback)
                 if self._schedule['frequency'] == 'onetime':
                     self.exit()
                 else:
@@ -196,6 +201,7 @@ class ConfigDB(object):
             print 'Unable to initialize repository. Are you sure git is installed ?'
             sys.exit(0)
         self._snapshot_scheduler = None
+        self.rsp_prop_include = 'config-only'
 
     def login(self, args, timeout=2):
         """
@@ -231,6 +237,8 @@ class ConfigDB(object):
         :returns: JSON dictionary of returned data
         """
         ret = self.session.get(url)
+        ret._content = ret.content.replace('\n', '')
+        ret._content = ret.content.replace("\\\'", "'")
         data = ret.json()
         return data
 
@@ -246,6 +254,15 @@ class ConfigDB(object):
         filename = os.path.join(self.repo_dir, filename)
         data = self._get_from_apic(query_url)
 
+        #sort the JSON format if the filename is a domain
+        if filename.endswith('domain.json'):
+            
+            #Extract the domain key based on the filename
+            domain_key = filename.rpartition('/')[2].partition('-')[0] + 'DomP'
+            
+            #sort the "imdata" list from the nested dict based on the key "name"
+            data['imdata'] = sorted(data['imdata'], key=lambda k: k[domain_key]['attributes']['name'])
+
         # Write the config to a file
         config_file = open(filename, 'w')
         config_file.write(json.dumps(data, indent=4, separators=(',', ':')))
@@ -254,36 +271,45 @@ class ConfigDB(object):
         # Add the file to Git
         self.repo.index.add([filename])
 
-    @staticmethod
-    def _get_url_for_file(filename):
+    def _get_url_for_file(self, filename):
         """
         Internal function to generate a URL for communicating with the APIC
         that will get the configuration for a given filename
 
         :param filename: string containing the filename
         """
+        config_resp = self.rsp_prop_include
         if filename.startswith('tenant-'):
             tenant_name = filename.split('tenant-')[1].split('.json')[0]
             url = ('/api/mo/uni/tn-%s.json?rsp-subtree=full&'
-                   'rsp-prop-include=config-only' % tenant_name)
+                   'rsp-prop-include=%s' % (tenant_name, config_resp))
+        elif filename.startswith('node-'):
+            url = ('/api/mo/', '/sys.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
         elif filename == 'infra.json':
             url = ('/api/mo/uni/infra.json?rsp-subtree=full&'
-                   'rsp-prop-include=config-only')
+                   'rsp-prop-include=%s' % config_resp)
         elif filename == 'fabric.json':
             url = ('/api/mo/uni/fabric.json?rsp-subtree=full&'
-                   'rsp-prop-include=config-only')
+                   'rsp-prop-include=%s' % config_resp)
         elif filename == 'phys-domain.json':
             url = ('/api/node/class/physDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
         elif filename == 'vmm-domain.json':
             url = ('/api/node/class/vmmDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
         elif filename == 'l2ext-domain.json':
             url = ('/api/node/class/l2extDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
         elif filename == 'l3ext-domain.json':
             url = ('/api/node/class/l3extDomP.json?query-target=self&'
-                   'rsp-subtree=full&rsp-prop-include=config-only')
+                   'rsp-subtree=full&rsp-prop-include=%s' % config_resp)
+        elif filename == 'topology.json':
+            url = ('/api/mo/topology.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
+        elif filename == 'comp.json':
+            url = ('/api/mo/comp.json?query-target=subtree'
+                   '&rsp-prop-include=%s' % config_resp)
         return url
 
     def take_snapshot(self, callback=None):
@@ -303,13 +329,92 @@ class ConfigDB(object):
             filename = 'tenant-%s.json' % tenant.name
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
+            
+        # Save each nodes config
+        nodes = ACI.Node.get(self.session)
+        for node in nodes:
+            filename = 'node-%s.json' % node.name
+            url_prefix, url_suff = self._get_url_for_file(filename)
+            url = '%s%s%s' % (url_prefix, node.dn, url_suff)
+            self._snapshot(url, filename)
 
         # Save the rest of the config
         filenames = ['infra.json', 'fabric.json', 'phys-domain.json',
-                     'vmm-domain.json', 'l2ext-domain.json', 'l3ext-domain.json']
+                     'vmm-domain.json', 'l2ext-domain.json', 'l3ext-domain.json',
+                     'topology.json', 'comp.json']
         for filename in filenames:
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
+
+        # Commit the files and tag with the timestamp
+        self.repo.index.commit(tag_name)
+        self.repo.git.tag(tag_name)
+
+        if callback:
+            callback()
+
+    def take_snapshot_using_export_policy(self, callback=None):
+        """
+        Perform an immediate snapshot of the APIC configuration.
+
+        :param callback: Optional callback function that can be used to notify
+                         applications when a snapshot is taken.  Used by the
+                         GUI to update the snapshots view when recurring
+                         snapshots are taken.
+        """
+        tag_name = time.strftime("%Y-%m-%d_%H.%M.%S", time.localtime())
+
+        url = '/api/node/mo/uni/fabric.json'
+        remote_path_payload = {"fileRemotePath": {"attributes": {
+                                                     "remotePort": "22",
+                                                     "name": "snapback",
+                                                     "host": "%s" % self.session.ipaddr,
+                                                     "remotePath": "/home/%s" % self.session.uid,
+                                                     "protocol": "scp",
+                                                     "userName": "%s" % self.session.uid,
+                                                     "userPasswd": "%s" % self.session.pwd},
+                                                  "children": []}}
+        resp = self.session.push_to_apic(url, remote_path_payload)
+
+        export_policy_payload = {"configExportP":{"attributes":{"name":"snapback",
+                                                                "adminSt":"triggered"},
+                                                  "children":[{"configRsRemotePath":
+                                                              {"attributes":{"tnFileRemotePathName":"snapback"},
+                                                               "children":[]}}]}}
+        resp = self.session.push_to_apic(url, export_policy_payload)
+        if not resp.ok:
+            print resp, resp.text
+
+        time.sleep(10)
+        ssh = SSHClient()
+        ssh.load_system_host_keys()
+        ssh.set_missing_host_key_policy(AutoAddPolicy())
+        ssh.connect(self.session.ipaddr, username=self.session.uid, password=self.session.pwd)
+
+        sftp = ssh.open_sftp()
+        sftp.chdir('/home/%s' % self.session.uid)
+        file_names = sftp.listdir()
+        for file_name in file_names:
+            if str(file_name).startswith('ce_snapback-'):
+                sftp.get('/home/' + self.session.uid + '/' + file_name, './' + file_name)
+                sftp.remove('/home/' + self.session.uid + '/' + file_name)
+                with tarfile.open(file_name, 'r:gz') as tfile:
+                    tfile.extractall(self.repo_dir)
+                os.remove(file_name)
+                for json_filename in os.listdir(self.repo_dir):
+                    print 'checking', json_filename
+                    if json_filename.startswith('ce_snapback') and json_filename.endswith('.json'):
+                        new_filename = 'snapshot_' + self.session.ipaddr + '_' + json_filename.rpartition('_')[2]
+                        new_filename = os.path.join(self.repo_dir, new_filename)
+                        print 'renaming', json_filename, 'to', new_filename
+                        json_filename = os.path.join(self.repo_dir, json_filename)
+                        with open(json_filename, 'r') as old_file:
+                            config = json.loads(old_file.read())
+                        with open(new_filename, 'w') as new_file:
+                            new_file.write(json.dumps(config, indent=4, separators=(',', ':')))
+                        os.remove(json_filename)
+                        # Add the file to Git
+                        self.repo.index.add([new_filename])
 
         # Commit the files and tag with the timestamp
         self.repo.index.commit(tag_name)
@@ -439,8 +544,12 @@ class ConfigDB(object):
                                                      version))
                 if 'insertions' in changes:
                     additions = changes.split(' insertions')[0].split(' ')[-1]
+                elif 'insertion' in changes:
+                    additions = '1'
                 if 'deletions' in changes:
                     deletions = changes.split(' deletions')[0].split(' ')[-1]
+                elif 'deletion' in changes:
+                    deletions = '1'
                 resp.append((version, additions, deletions))
                 previous_version = version
             return resp
@@ -497,8 +606,12 @@ class ConfigDB(object):
                     changes = ''
                 if 'insertions' in changes:
                     additions = changes.split(' insertions')[0].split(' ')[-1]
+                elif 'insertion' in changes:
+                    additions = '1'
                 if 'deletions' in changes:
                     deletions = changes.split(' deletions')[0].split(' ')[-1]
+                elif 'deletion' in changes:
+                    deletions = '1'
             else:
                 try:
                     content = self.repo.git.show('--shortstat',
@@ -711,6 +824,51 @@ class ConfigDB(object):
             # If differences exist, it is new config and will be removed.
             self._check_versions(filename, current_version, old_version)
 
+    def _generate_tar_gz(self, filenames, version):
+        tar = tarfile.open('ce_snapback.tar.gz', 'w:gz')
+        for filename in filenames:
+            content = self.get_file(filename, version)
+            content = json.loads(content)
+            output = StringIO.StringIO()
+            output.write(json.dumps(content))
+            output.seek(0)
+            info = tarfile.TarInfo(name=filename)
+            info.size = len(output.buf)
+            info.mtime = time.time()
+            tar.addfile(tarinfo=info, fileobj=output)
+        tar.close()
+
+    def rollback_using_import_policy(self, version):
+        filenames = self.get_filenames(version)
+
+        # Create the tar file of the selected JSON files
+        self._generate_tar_gz(filenames, version)
+
+        # Put the tar file on the APIC
+        ssh = SSHClient()
+        ssh.load_system_host_keys()
+        ssh.set_missing_host_key_policy(AutoAddPolicy())
+        ssh.connect(self.session.ipaddr, username=self.session.uid, password=self.session.pwd)
+        sftp = ssh.open_sftp()
+        sftp.chdir('/home/%s' % self.session.uid)
+        sftp.put('./ce_snapback.tar.gz', 'ce_snapback.tar.gz')
+
+        # Remove the local tar file
+        os.remove('./ce_snapback.tar.gz')
+
+        # Send the import policy to the APIC
+        url = '/api/node/mo/uni/fabric.json'
+        payload = {"configImportP": {"attributes": { "name": "snapback",
+                                                     "fileName": "ce_snapback.tar.gz",
+                                                     "adminSt": "triggered",
+                                                     "importType": "replace",
+                                                     "importMode": "atomic"},
+                                     "children": [{"configRsImportSource": {"attributes": {"tnFileRemotePathName": "snapback"},
+                                                                            "children": []
+                                                                            }}]}}
+        resp = self.session.push_to_apic(url, payload)
+        return resp
+
     def has_diffs(self, version1, version2, filename):
         """
         Check whether there are any changes in the specified file between the
@@ -735,13 +893,22 @@ def main():
     Main execution path when run from the command line
     """
     # Get all the arguments
-    description = 'Configuration Snapshot and Rollback tool for APIC.'
+    description = 'Configuration Snapshot and Rollback tool for APIC. v0.2'
     creds = ACI.Credentials('apic', description)
     commands = creds.add_mutually_exclusive_group()
     commands.add_argument('-s', '--snapshot', action='store_true',
                           help='Take a snapshot of the APIC configuration')
     commands.add_argument('-ls', '--list-snapshots', action='store_true',
-                          help='List all of the available snapshots')
+                          help='List all of the available snapshots')    
+    help_txt = ('Configuration file responses include all properties of'
+                ' the returned managed objects.')
+    creds.add_argument('-a', '--all-properties', action='store_true',
+                       default=False,
+                       help=help_txt)    
+    help_txt = ('Configuration snapshot using the method available in v0.1.')
+    creds.add_argument('--v1', action='store_true',
+                       default=False,
+                       help=help_txt)
     help_txt = 'List all of the available configuration files.'
     commands.add_argument('-lc', '--list-configfiles', nargs='*',
                           metavar=('VERSION'),
@@ -750,7 +917,7 @@ def main():
     help_txt = ('Rollback the configuration to the specified version.'
                 ' Optionally only for certain configuration files.')
     commands.add_argument('--rollback', nargs='+',
-                          metavar=('VERSION', 'CONFIGFILE'),
+                          metavar=('VERSION'),
                           help=help_txt)
     help_txt = ('Show the contents of a particular configfile'
                 ' from a particular snapshot version.')
@@ -779,14 +946,15 @@ def main():
     elif args.list_snapshots:
         cdb.print_versions()
     elif args.snapshot:
-        cdb.take_snapshot()
+        if args.all_properties:
+            cdb.rsp_prop_include = 'all'
+        if args.v1:
+            cdb.take_snapshot()
+        else:
+            cdb.take_snapshot_using_export_policy()
     elif args.rollback is not None:
         version = args.rollback[0]
-        print 'version:', version
-        filenames = args.rollback[1:]
-        if len(filenames) == 0:
-            filenames = cdb.get_filenames(version)
-        cdb.rollback(version, filenames)
+        cdb.rollback_using_import_policy(version)
     elif args.show is not None:
         version = args.show[0]
         filename = args.show[1]

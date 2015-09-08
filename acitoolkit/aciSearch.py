@@ -1,5 +1,5 @@
 __author__ = 'edsall'
-#!/usr/bin/env python
+# !/usr/bin/env python
 ################################################################################
 ################################################################################
 #                                                                              #
@@ -19,7 +19,6 @@ __author__ = 'edsall'
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
-# all the import
 
 
 class Searchable(object):
@@ -46,27 +45,53 @@ class Searchable(object):
     This `direct`/`indirect` relationship can be used by an application that is displaying the information to
     prioritize which ones are displayed first, i.e. to rank them.
     """
-    def __init__(self, keyword, value=None, relation='primary'):
+    def __init__(self, dirty_terms=()):
         """
-        Creates report of basic switch information
-        :param keyword: Keyword for a search
-        :param value: Optional value for the keyword
-        :param relation: Indication of whether the information is first hand, primary, or indirect
+        Creates a search item which is the list of search terms, the items the search terms come from
+        and the context of the item.
+        """
+        self.terms = set()
+        for term in dirty_terms:
+            keyword, value = term[:2]
+            relation = term[2] if len(term) == 3 else 'primary'
+            self.add_term(keyword, value, relation)
+        self.context = []
+
+    def add_term(self, keyword, value=None, relation='primary'):
+        """
+        Will add a search keyword, value pair to the searchable item
+        It will also add the relation.
+        :param keyword:
+        :param value:
+        :param relation:
         """
         if isinstance(value, unicode):
             value = str(value)
         if isinstance(keyword, unicode):
             keyword = str(keyword)
 
-        assert relation in ['primary', 'indirect']
+        assert relation in ['primary', 'secondary']
         assert isinstance(value, str) or (value is None)
-
-        self.value = value
-
         assert isinstance(keyword, str)
-        self.keyword = keyword
-        self.relation = relation
-        self.context = []
+
+        self.terms.add((keyword, value, relation))
+
+    @property
+    def primary(self):
+        """
+        Will return the first item of the context which is the current item.
+
+        :return:
+        """
+        if len(self.context) > 0:
+            return self.context[0]
+        else:
+            return 'None'
+
+    # @property
+    # def key_value(self):
+    #
+    #     return str(self.keyword)+'::'+str(self.value)
 
     def add_context(self, aci_object):
         """
@@ -77,34 +102,29 @@ class Searchable(object):
         self.context.append(aci_object)
 
     def __str__(self):
-        if len(self.context) > 0:
-            primary_object = type(self.context[0])
-        else:
-            primary_object = 'None'
-        return '{0:>18}::{1:<18} {2}'.format(self.keyword, self.value, primary_object)
+        return '{} {}'.format(self.primary, self.path())
 
-    def __eq__(self, other):
+    def path(self):
         """
-        Two searchables are equal if all the attributes are equal
+        Will return a string which is contructed by putting a slash between the names of all the items in the context
+
+        :return:
         """
-        if self.value != other.value:
-            return False
+        names = []
+        for item in reversed(self.context):
+            names.append(str(item))
+        path = '/'.join(names)
+        return path
 
-        if self.keyword != other.keyword:
-            return False
+    def __key(self):
 
-        if self.relation != other.relation:
-            return False
+        return self.primary
 
-        if len(self.context) != len(other.context):
-            return False
+    def __eq__(self, y):
+        return self.__key() == y.__key()
 
-        for index in range(len(self.context)):
-            if self.context[index] != other.context[index]:
-                return False
-
-        return True
-
+    def __hash__(self):
+        return hash(self.__key())
 
 
 class AciSearch(object):
@@ -134,9 +154,13 @@ class AciSearch(object):
         the object.  They are placed in a list and returned as the result
         :rtype : list
         """
-        result = []
-        # result.append(Searchable(keyword, value, relationship))
-        return result
+        return []
 
+    @staticmethod
+    def _dedup_searchables(result):
 
-
+        deduped = []
+        for item in result:
+            if item not in deduped:
+                deduped.append(item)
+        return deduped

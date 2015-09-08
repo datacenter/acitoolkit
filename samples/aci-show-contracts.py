@@ -35,6 +35,7 @@ of the Contracts.
 import sys
 import acitoolkit.acitoolkit as aci
 
+
 def main():
     """
     Main show contracts routine

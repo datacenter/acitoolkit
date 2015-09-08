@@ -1,0 +1,26 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{%  block head %}
+    {{  super() }}
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='d3-tablesort.css') }}">
+{% endblock %}
+{% block body %}
+    <script src="http://d3js.org/d3.v3.js"></script>
+    <script src="../static/d3-tablesort.js"></script>
+    <script src="../static/d3-searchresult.js"></script>
+
+    <p>{{ prompt }}</p>
+    <br>
+    {{ wtf.quick_form(form, form_type='horizonatal', button_map={'reload_button': 'primary'}) }}
+
+    {% if report %}
+        {%  if report == 'empty' %}
+            <p>None</p>
+        {%  else %}
+            <script>
+            searchResult({{ report|safe }});
+            </script>
+        {% endif %}
+    {% endif %}
+
+{% endblock %}

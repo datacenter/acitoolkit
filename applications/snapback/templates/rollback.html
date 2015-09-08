@@ -1,0 +1,10 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block body %}
+<p>Select the configuration snapshot version to apply to the APIC.</p>
+
+<p style="color:red">Warning: Rollback of APIC configuration may cause service disruption</p>
+
+<br>
+{{ wtf.quick_form(form) }}
+{% endblock %}

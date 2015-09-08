@@ -30,15 +30,21 @@
 """
 Physical object tests
 """
+from acitoolkit import ConcreteOverlay, ConcreteTunnel
 
 try:
-    from credentials import *
+    from credentials import URL, LOGIN, PASSWORD
 except ImportError:
     URL = ''
     LOGIN = ''
     PASSWORD = ''
-from acitoolkit.acitoolkit import *
-from acitoolkit.aciphysobject import *
+from acitoolkit.acisession import Session
+# TODO: resolve circular dependencies and order-dependent import
+from acitoolkit.acitoolkit import Search
+from acitoolkit.aciphysobject import (
+    ExternalSwitch, Fantray, Interface, Linecard, Link, Node, PhysicalModel,
+    Pod, Powersupply, Supervisorcard, Systemcontroller
+)
 import unittest
 
 
@@ -75,14 +81,6 @@ class TestPod(unittest.TestCase):
         """
         pod = Pod('1')
         self.assertEqual(pod.get_type(), 'pod')
-
-    def test_create_invalid(self):
-        """
-        Test invalid pod
-
-        :return: None
-        """
-        self.assertRaises(TypeError, Pod, '1', '2')
 
     def test_pod_invalid_session(self):
         """
@@ -327,8 +325,15 @@ class TestLink(unittest.TestCase):
         port2 = '7'
         link = '101'
 
-        link1 = Link(pod.pod, link, node1, slot1, port1,
-                     node2, slot2, port2, pod)
+        link1 = Link(pod)
+        link1.pod = pod.pod
+        link1.link = link
+        link1.node1 = node1
+        link1.slot1 = slot1
+        link1.port1 = port1
+        link1.node2 = node2
+        link1.slot2 = slot2
+        link1.port2 = port2
         self.assertEqual(link1.pod, pod.pod)
         self.assertEqual(link1.link, link)
         self.assertEqual(link1.node1, node1)
@@ -384,8 +389,16 @@ class TestLink(unittest.TestCase):
         interface2 = Interface(interface_type='eth', pod=pod_id,
                                node=node2_id, module=slot2_id,
                                port=port2_id, parent=linecard2)
-        link1 = Link(pod_id, link_id, node1_id, slot1_id, port1_id,
-                     node2_id, slot2_id, port2_id, pod)
+        link1 = Link(pod)
+        link1.pod = pod_id
+        link1.link = link_id
+        link1.node1 = node1_id
+        link1.slot1 = slot1_id
+        link1.port1 = port1_id
+        link1.node2 = node2_id
+        link1.slot2 = slot2_id
+        link1.port2 = port2_id
+
         self.assertEqual(node1, link1.get_node1())
         self.assertEqual(node2, link1.get_node2())
         self.assertEqual(linecard1, link1.get_slot1())
@@ -565,7 +578,9 @@ class TestExternalSwitch(unittest.TestCase):
         for child in children:
             self.assertEqual(child, node)
 
-        self.assertRaises(TypeError, ExternalSwitch, 'text')
+        pod = Node('1', '101', 'Spine2', 'leaf')
+
+        self.assertRaises(TypeError, ExternalSwitch, pod)
 
     def test_eNode_session(self):
         self.assertRaises(TypeError, ExternalSwitch.get, 'non-session')
@@ -594,6 +609,13 @@ class TestLivePod(TestLiveAPIC):
         nodes = Node.get(session)
         for node in nodes:
             if node.get_role() == 'spine' and node.fabricSt == 'active':
+                return node, session
+
+    def get_leaf(self):
+        session = self.login_to_apic()
+        nodes = Node.get(session)
+        for node in nodes:
+            if node.get_role() == 'leaf' and node.fabricSt == 'active':
                 return node, session
 
     def get_controller(self):
@@ -636,11 +658,26 @@ class TestLivePod(TestLiveAPIC):
             self.assertIn(node.get_role(), ['controller', 'leaf', 'spine'])
             self.assertIn(node.getFabricSt(), ['active', 'inactive', 'unknown'])
 
+    def test_node_get_parent_pod(self):
+        session = self.login_to_apic()
         pods = Pod.get(session)
         pod = pods[0]
         nodes = Node.get(session, parent=pod)
         self.assertEqual(len(nodes), len(pod.get_children()))
         self.assertEqual(nodes[0].get_parent(), pod)
+
+    def test_node_get_parent_pod_id(self):
+        session = self.login_to_apic()
+        pod = '1'
+        nodes = Node.get(session, parent=pod)
+
+        self.assertTrue(len(nodes) > 0)
+        self.assertEqual(nodes[0].get_parent(), None)
+
+    def test_node_get_invalid_parent(self):
+        session = self.login_to_apic()
+        pod = PhysicalModel()
+        self.assertRaises(TypeError,Node.get,session, parent=pod)
 
     def test_switch_children(self):
         spine, session = self.get_spine()
@@ -655,6 +692,67 @@ class TestLivePod(TestLiveAPIC):
         self.assertIn('supervisor', children_types)
         self.assertIn('powersupply', children_types)
         self.assertIn('fantray', children_types)
+
+    def test_switch_children_concrete(self):
+        leaf, session = self.get_leaf()
+        leaf.populate_children(deep=True, include_concrete=True)
+        children = leaf.get_children()
+        children_types = set()
+        for child in children:
+            children_types.add(child.__class__.__name__)
+
+        self.assertIn('ConcreteAccCtrlRule', children_types)
+        self.assertIn('ConcreteOverlay', children_types)
+        self.assertIn('ConcretePortChannel', children_types)
+        self.assertIn('ConcreteFilter', children_types)
+        self.assertIn('ConcreteLoopback', children_types)
+        self.assertIn('ConcreteContext', children_types)
+        self.assertIn('ConcreteArp', children_types)
+        self.assertIn('ConcreteBD', children_types)
+        self.assertIn('ConcreteEp', children_types)
+        self.assertIn('ConcreteSVI', children_types)
+        self.assertIn('ConcreteVpc', children_types)
+        self.assertGreater(len(children_types), 14)
+
+        overlays = leaf.get_children(ConcreteOverlay)
+        tunnels = overlays[0].get_children(ConcreteTunnel)
+        self.assertGreater(len(tunnels), 1)
+
+    def test_concrete_tunnel(self):
+        leaf, session = self.get_leaf()
+        node = leaf.node
+        pod = leaf.pod
+        leaf.populate_children(deep=True, include_concrete=True)
+        overlays = leaf.get_children(ConcreteOverlay)
+        tunnels = overlays[0].get_children(ConcreteTunnel)
+        for tunnel in tunnels:
+            self.assertEqual(tunnel.node, node, 'Tunnel node number does not match')
+            self.assertEqual(tunnel.pod, pod, 'Tunnel pod number is incorrect')
+            self.assertIsInstance(tunnel.attr['context'], str)
+            self.assertIsInstance(tunnel.attr['dest_tep_ip'], str)
+            self.assertIsInstance(tunnel.attr['dn'], str)
+            self.assertIsInstance(tunnel.attr['id'], str)
+            self.assertIsInstance(tunnel.attr['oper_st'], str)
+            self.assertIsInstance(tunnel.attr['oper_st_qual'], str)
+            self.assertIsInstance(tunnel.attr['src_tep_ip'], str)
+            self.assertIsInstance(tunnel.attr['type'], str)
+
+    def test_concrete_overlay(self):
+        leaf, session = self.get_leaf()
+        node = leaf.node
+        pod = leaf.pod
+        leaf.populate_children(deep=True, include_concrete=True)
+        overlays = leaf.get_children(ConcreteOverlay)
+        for overlay in overlays:
+            self.assertEqual(overlay.node, node, 'Overlay node number does not match')
+            self.assertEqual(overlay.pod, pod, 'Overlay pod number is incorrect')
+            self.assertIsInstance(overlay.attr['proxy_ip_mac'], str)
+            self.assertIsInstance(overlay.attr['proxy_ip_v4'], str)
+            self.assertIsInstance(overlay.attr['proxy_ip_v6'], str)
+            if overlay.attr['src_tep_ip'] is not None:
+                self.assertIsInstance(overlay.attr['src_tep_ip'], str)
+            if overlay.attr['vpc_tep_ip'] is not None:
+                self.assertIsInstance(overlay.attr['vpc_tep_ip'], str)
 
     def test_link_get_for_node(self):
         session = self.login_to_apic()
@@ -848,6 +946,56 @@ class TestLivePod(TestLiveAPIC):
         nodes = pod.get_children(Node)
         self.assertTrue(len(nodes) == original_num_nodes)
 
+    def test_get_linecard_parent_exception(self):
+        """
+        Checks that an exception is raised when a Linecard.get is called
+        with the wrong parent type
+        :return:
+        """
+        session = self.login_to_apic()
+        node = Pod('1')
+        self.assertRaises(TypeError, Linecard.get, session, node)
+
+    def test_get_powersupply_parent_exception(self):
+        """
+        Checks that an exception is raised when a Linecard.get is called
+        with the wrong parent type
+        :return:
+        """
+        session = self.login_to_apic()
+        node = Pod('1')
+        self.assertRaises(TypeError, Powersupply.get, session, node)
+
+    def test_get_fantray_parent_exception(self):
+        """
+        Checks that an exception is raised when a Linecard.get is called
+        with the wrong parent type
+        :return:
+        """
+        session = self.login_to_apic()
+        node = Pod('1')
+        self.assertRaises(TypeError, Fantray.get, session, node)
+
+    def test_get_supervisor_parent_exception(self):
+        """
+        Checks that an exception is raised when a Linecard.get is called
+        with the wrong parent type
+        :return:
+        """
+        session = self.login_to_apic()
+        node = Pod('1')
+        self.assertRaises(TypeError, Supervisorcard.get, session, node)
+
+    def test_get_systemcontroller_parent_exception(self):
+        """
+        Checks that an exception is raised when a Linecard.get is called
+        with the wrong parent type
+        :return:
+        """
+        session = self.login_to_apic()
+        node = Pod('1')
+        self.assertRaises(TypeError, Systemcontroller.get, session, node)
+
     def test_get_external_nodes(self):
         session = self.login_to_apic()
         enodes = ExternalSwitch.get(session)
@@ -881,6 +1029,35 @@ class TestLivePod(TestLiveAPIC):
 
             self.assertEqual(enode.role, 'external_switch')
             self.assertEqual(enode.pod, None)
+
+    def test_pod_valid_session(self):
+        """
+        Tests that the parent class of the pod
+        :return:
+        """
+        session = 'bogus'
+        parent = PhysicalModel()
+        self.assertRaises(TypeError, Pod.get, session, parent)
+
+    def test_pod_valid_parent(self):
+        """
+        Tests that the parent class of the pod
+        :return:
+        """
+        session = self.login_to_apic()
+        parent = PhysicalModel()
+        pod = Pod.get(session, parent)
+        children = parent.get_children()
+        self.assertEqual(pod, children)
+
+    def test_pod_invalid_parent(self):
+        """
+        Tests that the parent class of the pod
+        :return:
+        """
+        session = self.login_to_apic()
+        parent = Node('1','101','Switch')
+        self.assertRaises(TypeError, Pod.get, session, parent)
 
 
 class TestFind(unittest.TestCase):
@@ -933,7 +1110,7 @@ class TestInterface(unittest.TestCase):
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
         (phydomain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
                          "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
@@ -971,7 +1148,7 @@ class TestInterface(unittest.TestCase):
         intf = Interface('eth', '1', '101', '1', '5')
         intf.speed = '10G'
         (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-101-1-5'}, 'children': [{'infraLe"
                          "afS': {'attributes': {'type': 'range', 'name': '1-10"
                          "1-1-5'}, 'children': [{'infraNodeBlk': {'attributes'"
@@ -1008,7 +1185,7 @@ class TestInterface(unittest.TestCase):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.speed = '1G'
         (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
                          "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
                          "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"

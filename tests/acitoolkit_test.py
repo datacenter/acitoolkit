@@ -29,22 +29,35 @@
 ################################################################################
 """ACI Toolkit Test module
 """
-from acitoolkit.acitoolkit import *
-from acitoolkit.aciphysobject import *
-from acitoolkit.acibaseobject import *
+from acitoolkit.acibaseobject import BaseACIObject, BaseRelation
+from acitoolkit.aciHealthScore import HealthScore
+from acitoolkit.acisession import Session
+from acitoolkit.aciTable import Table
+from acitoolkit.acitoolkit import (
+    AppProfile, BaseContract, BGPSession, BridgeDomain, Context, Contract,
+    ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
+    L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
+    OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
+    PortChannel, Subnet, Taboo, Tenant, VmmDomain
+)
+# TODO: resolve circular dependencies and order-dependent import
+from acitoolkit.aciphysobject import Interface, Linecard, Node
 import unittest
 import string
 import random
+import time
+import json
 
 try:
-    from credentials import *
+    from credentials import URL, LOGIN, PASSWORD
 except ImportError:
+    print
+    print 'To run live tests, please create a credentials.py file with the following variables filled in:'
+    print """
     URL = ''
     LOGIN = ''
     PASSWORD = ''
-import sys
-import time
-import json
+    """
 
 MAX_RANDOM_STRING_SIZE = 20
 
@@ -382,6 +395,17 @@ class TestAppProfile(unittest.TestCase):
         app = AppProfile('app', tenant)
         self.assertTrue(type(app.get_json()) == dict)
 
+    def test_get_table(self):
+        """
+        Test app profile create table function
+        """
+        tenant1 = Tenant('tenant1')
+        tenant2 = Tenant('tenant2')
+        app1 = AppProfile('app', tenant1)
+        app2 = AppProfile('app', tenant2)
+        app_profiles = [app1, app2]
+        self.assertTrue(isinstance(AppProfile.get_table(app_profiles)[0], Table))
+
 
 class TestBridgeDomain(unittest.TestCase):
     """
@@ -622,6 +646,165 @@ class TestBridgeDomain(unittest.TestCase):
         bd.remove_context()
         self.assertTrue(bd.get_context() is None)
 
+    def test_get_table(self):
+        """
+        Test get table function
+        """
+        # Create a tenant
+        tenant = Tenant('tenant')
+
+        # Create a few bridge domains, generate and populate their attributes
+        bd1 = BridgeDomain('bd1', tenant)
+        attr1 = bd1._generate_attributes()
+        bd1._populate_from_attributes(attr1)
+
+        bd2 = BridgeDomain('bd2', tenant)
+        attr2 = bd2._generate_attributes()
+        bd2._populate_from_attributes(attr2)
+
+        bd3 = BridgeDomain('bd3', tenant)
+        attr3 = bd3._generate_attributes()
+        bd3._populate_from_attributes(attr3)
+
+        bridge_domains = [bd1, bd2, bd3]
+        self.assertTrue(isinstance(BridgeDomain.get_table(bridge_domains)[0], Table))
+
+    def test_unknown_mac_unicast_default(self):
+        """
+        Test default unknown mac unicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'proxy')
+
+    def test_unknown_mac_unicast_flood(self):
+        """
+        Test changing unknown mac unicast to flood
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_mac_unicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+
+    def test_set_mac(self):
+        """
+        Test an invalid unknown mac unicast
+        """
+        tenant, bd = self.create_bd()
+        bd.set_mac('00:11:22:33:44:55')
+        self.assertTrue(bd.mac, '00:11:22:33:44:55')
+
+    def test_unknown_mac_unicast_invalid(self):
+        """
+        Test an invalid unknown mac unicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unknown_mac_unicast, "invalid")
+
+    def test_unknown_mac_unicast_change(self):
+        """
+        Test changing unknown mac unicast multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_mac_unicast('proxy')
+        bd.set_unknown_mac_unicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+
+    def test_unknown_multicast_default(self):
+        """
+        Test default unknown multicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.get_unknown_multicast(), 'flood')
+
+    def test_unknown_multicast_opt_flood(self):
+        """
+        Test changing unknown multicast to optimized flood
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_multicast('opt-flood')
+        self.assertTrue(bd.get_unknown_multicast(), 'opt-flood')
+
+    def test_unknown_multicast_invalid(self):
+        """
+        Test an invalid unknown multicast
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unknown_multicast, "invalid")
+
+    def test_unknown_multicast_change(self):
+        """
+        Test changing unknown multicast multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unknown_multicast('opt-flood')
+        bd.set_unknown_multicast('flood')
+        self.assertTrue(bd.get_unknown_mac_unicast(), 'flood')
+
+    def test_arp_flood_default(self):
+        """
+        Test default arp flood
+        """
+        tenant, bd = self.create_bd()
+        self.assertFalse(bd.is_arp_flood())
+
+    def test_arp_flood_switch(self):
+        """
+        Test switching arp flood value
+        """
+        tenant, bd = self.create_bd()
+        bd.set_arp_flood("yes")
+        self.assertTrue(bd.is_arp_flood())
+
+    def test_arp_flood_invalid(self):
+        """
+        Test an invalid arp flood
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_arp_flood, 'invalid')
+
+    def test_arp_flood_change(self):
+        """
+        Test changing arp flood multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_arp_flood('yes')
+        bd.set_arp_flood('no')
+        self.assertFalse(bd.is_arp_flood())
+
+    def test_unicast_route_default(self):
+        """
+        Test default unicast route
+        """
+        tenant, bd = self.create_bd()
+        self.assertTrue(bd.is_unicast_route())
+
+    def test_unicast_route_switch(self):
+        """
+        Test switching unicast route value
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unicast_route('no')
+        self.assertFalse(bd.is_unicast_route())
+
+    def test_unicast_route_invalid(self):
+        """
+        Test an invalid unicast route
+        """
+        tenant, bd = self.create_bd()
+        self.assertRaises(ValueError,
+                          bd.set_unicast_route, 'invalid')
+
+    def test_unicast_route_change(self):
+        """
+        Test changing unicast route multiple times
+        """
+        tenant, bd = self.create_bd()
+        bd.set_unicast_route('no')
+        bd.set_unicast_route('yes')
+        self.assertTrue(bd.is_unicast_route())
+
 
 class TestL2Interface(unittest.TestCase):
     """
@@ -853,19 +1036,6 @@ class TestContract(unittest.TestCase):
         """
         self.assertEqual(Contract._get_contract_code(), 'vzBrCP')
 
-    def test_internal_get_subject_code(self):
-        """
-        Test _get_subject_code method
-        """
-        self.assertEqual(Contract._get_subject_code(), 'vzSubj')
-
-    def test_internal_get_subject_relation_code(self):
-        """
-        Test _get_subject_relation_code method
-        """
-        self.assertEqual(Contract._get_subject_relation_code(),
-                         'vzRsSubjFiltAtt')
-
     def test_get_parent_class(self):
         """
         Test _get_parent_class method
@@ -895,6 +1065,111 @@ class TestContract(unittest.TestCase):
         attributes = contract._generate_attributes()
         self.assertTrue('scope' in attributes)
         self.assertEqual(attributes['scope'], 'tenant')
+
+
+class TestContractSubject(unittest.TestCase):
+    """
+    Test ContractSubject Class
+    """
+    def test_create(self):
+        """
+        Test basic ContractSubject class creation
+        """
+        contract_subject = ContractSubject('ContractSubject')
+        self.assertTrue(isinstance(contract_subject, ContractSubject))
+
+    def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
+        self.assertEquals(ContractSubject._get_parent_class(), Contract)
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        cs_name = 'ContractSubject'
+        cs = ContractSubject(cs_name)
+        cs_json = cs.get_json()
+        self.assertTrue('vzSubj' in cs_json)
+        self.assertEqual(cs_json['vzSubj']['attributes']['name'], cs_name)
+
+    def test_get_json_with_children(self):
+        """
+        Test get_json method with Filter children
+        """
+        cs_name = 'ContractSubject'
+        cs = ContractSubject(cs_name)
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        cs.add_filter(filt)
+        cs_json = cs.get_json()
+        self.assertTrue('vzRsSubjFiltAtt' in cs_json['vzSubj']['children'][0])
+        self.assertEqual(cs_json['vzSubj']['children'][0]['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'],
+                         filt_name)
+
+
+class TestFilter(unittest.TestCase):
+    """
+    Test TestFilter class
+    """
+    def test_create(self):
+        """
+        Test basic TestFilter class creation
+        """
+        filt = Filter('Filter')
+        self.assertTrue(isinstance(filt, Filter))
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_json = filt.get_json()
+        self.assertTrue('vzFilter' in filt_json)
+        self.assertEqual(filt_json['vzFilter']['attributes']['name'], filt_name)
+
+    def test_get_json_with_children(self):
+        """
+        Test get_json method with FilterEntry children
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+        filt_json = filt.get_json()
+        self.assertTrue('vzEntry' in filt_json['vzFilter']['children'][0])
+        self.assertEqual(filt_json['vzFilter']['children'][0]['vzEntry']['attributes']['name'],
+                         filt_entry_name)
+
+
+class TestFilterEntry(unittest.TestCase):
+    """
+    Test TestFilterEntry class
+    """
+    def test_create(self):
+        """
+        Test basic TestFilterEntry class creation
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+        self.assertTrue(isinstance(filt_entry, FilterEntry))
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
+                         filt_entry_name)
 
 
 class TestTaboo(unittest.TestCase):
@@ -946,6 +1221,14 @@ class TestTaboo(unittest.TestCase):
         """
         dn = 'uni/tn-tenant/taboo-test'
         self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
+
+    def test_get_table(self):
+        tenant = Tenant('tenant')
+        taboo1 = Taboo('taboo1', tenant)
+        taboo2 = Taboo('taboo2', tenant)
+        taboo3 = Taboo('taboo3', tenant)
+        taboos = [taboo1, taboo2, taboo3]
+        self.assertIsInstance(Taboo.get_table(taboos)[0], Table)
 
 
 class TestEPG(unittest.TestCase):
@@ -1236,8 +1519,8 @@ class TestOutsideEPG(unittest.TestCase):
         Test OutsideEPG JSON creation
         """
         tenant = Tenant('cisco')
-        outside_epg = OutsideEPG('internet', tenant)
-        self.assertTrue('l3extOut' in str(outside_epg.get_json()))
+        outside_l3 = OutsideL3('internet', tenant)
+        self.assertTrue('l3extOut' in str(outside_l3.get_json()))
 
 
 class TestEndpoint(unittest.TestCase):
@@ -1285,10 +1568,11 @@ class TestEndpoint(unittest.TestCase):
                     self.assertTrue(status == 'deleted')
                 self.assertTrue(ep_name == mac)
                 children_checked += 1
-                self.assertTrue('fvRsStCEpToPathEp' in ep_child)
-                if_attr = ep_child['fvRsStCEpToPathEp']['attributes']
-                child_interface = if_attr['tDn']
-                self.assertTrue(child_interface == interface)
+                self.assertTrue('fvRsStCEpToPathEp' in ep_child or 'fvStIp' in ep_child)
+                if 'fvRsStCEpToPathEp' in ep_child:
+                    if_attr = ep_child['fvRsStCEpToPathEp']['attributes']
+                    child_interface = if_attr['tDn']
+                    self.assertTrue(child_interface == interface)
         self.assertTrue(children_checked >= 2)
 
     def test_create(self):
@@ -1345,6 +1629,44 @@ class TestEndpoint(unittest.TestCase):
         self.verify_json(data, True)
 
 
+class TestPhysDomain(unittest.TestCase):
+    """
+    Class for testing Phys Domain
+    """
+    def test_create(self):
+        """
+        Test create phys domain
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        self.assertTrue(isinstance(phys_domain, PhysDomain))
+
+    def test_json(self):
+        """
+        Test get json of phys domain
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        self.assertTrue(type(phys_domain.get_json()) is dict)
+
+    def test_generate_attributes_conditionals(self):
+        """
+        Test conditionals within generate attributes function
+        """
+        phys_domain = PhysDomain('test_phys_domain', None)
+        phys_domain.dn = 'dn'
+        phys_domain.lcOwn = 'lcOwn'
+        phys_domain.childAction = 'childAction'
+        self.assertEqual(phys_domain._generate_attributes()['dn'], phys_domain.dn)
+        self.assertEqual(phys_domain._generate_attributes()['lcOwn'], phys_domain.lcOwn)
+        self.assertEqual(phys_domain._generate_attributes()['childAction'], phys_domain.childAction)
+
+    def test_get_parent(self):
+        """
+        Test get parent function
+        """
+        phys_domain = PhysDomain('test-phys-domain', None)
+        self.assertEqual(phys_domain.get_parent(), phys_domain._parent)
+
+
 class TestJson(unittest.TestCase):
     """
     Class for testing JSON creation
@@ -1390,6 +1712,23 @@ class TestJson(unittest.TestCase):
                         'Did not see expected JSON returned')
 
 
+class TestEPGDomain(unittest.TestCase):
+    """
+    Test the EPG Domain class
+    """
+    def test_get_parent_class(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertIsNone(epg_domain._get_parent_class())
+
+    def test_get_parent(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertEquals(epg_domain.get_parent(), epg_domain._parent)
+
+    def test_get_json(self):
+        epg_domain = EPGDomain('test_epg_domain', None)
+        self.assertTrue(type(epg_domain.get_json()) is dict)
+
+
 class TestPortChannel(unittest.TestCase):
     """
     Test the PortChannel class
@@ -1414,7 +1753,7 @@ class TestPortChannel(unittest.TestCase):
         self.assertFalse(pc.is_vpc())
         fabric, infra = pc.get_json()
 
-        expected_resp = ("{'infraInfra': {'children': [{'infraNodeP': {'attrib"
+        expected_resp = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
                          "utes': {'name': '1-101-1-8'}, 'children': [{'infraLe"
                          "afS': {'attributes': {'type': 'range', 'name': '1-10"
                          "1-1-8'}, 'children': [{'infraNodeBlk': {'attributes'"
@@ -1554,7 +1893,8 @@ class TestBGP(unittest.TestCase):
         """
         tenant = Tenant('bgp-tenant')
         context = Context('bgp-test', tenant)
-        outside = OutsideEPG('out-1', tenant)
+        l3out = OutsideL3('out-1', tenant)
+        outside = OutsideEPG('out-epg-1', l3out)
         phyif = Interface('eth', '1', '101', '1', '46')
         phyif.speed = '1G'
         l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
@@ -1571,7 +1911,7 @@ class TestBGP(unittest.TestCase):
         bgpif.networks.append('0.0.0.0/0')
         contract1 = Contract('icmp')
         outside.provide(contract1)
-        outside.add_context(context)
+        l3out.add_context(context)
         outside.consume(contract1)
         outside.attach(bgpif)
         bgp_json = outside.get_json()
@@ -1650,6 +1990,17 @@ class TestLiveTenant(TestLiveAPIC):
     """
     Tenant tests on a live APIC
     """
+    def create_unique_live_tenant(self):
+        """
+        Creates test tenant that does not interfere with tenants in APIC
+        """
+        session = self.login_to_apic()
+        tenants = self.get_all_tenants()
+        non_existing_tenant = tenants[0]
+        while non_existing_tenant in tenants:
+            non_existing_tenant = Tenant(random_size_string())
+        return non_existing_tenant
+
     def get_all_tenants(self):
         """
         Test Tenant.get
@@ -1721,17 +2072,8 @@ class TestLiveTenant(TestLiveAPIC):
         """
         session = self.login_to_apic()
 
-        # Get all of the existing tenants
-        tenants = self.get_all_tenants()
-        tenant_names = self.get_all_tenant_names()
-
-        # Pick a unique tenant name not currently in APIC
-        tenant_name = tenant_names[0]
-        while tenant_name in tenant_names:
-            tenant_name = random_size_string()
-
         # Create the tenant and push to APIC
-        new_tenant = Tenant(tenant_name)
+        new_tenant = self.create_unique_live_tenant()
         resp = session.push_to_apic(new_tenant.get_url(),
                                     data=new_tenant.get_json())
         self.assertTrue(resp.ok)
@@ -1742,9 +2084,8 @@ class TestLiveTenant(TestLiveAPIC):
 
         # Now delete the tenant
         new_tenant.mark_as_deleted()
-        resp = session.push_to_apic(new_tenant.get_url(),
-                                    data=new_tenant.get_json())
-        self.assertTrue(resp.ok)
+        new_tenant.push_to_apic(session)
+        self.assertTrue(new_tenant.push_to_apic(session).ok)
 
         # Get all of the tenants and verify that the new tenant is deleted
         names = self.get_all_tenant_names()
@@ -1757,8 +2098,12 @@ class TestLiveSubscription(TestLiveAPIC):
     """
     def test_create_class_subscription(self):
         session = self.login_to_apic()
+        tenants = Tenant.get(session)
         Tenant.subscribe(session)
-        self.assertFalse(Tenant.has_events(session))
+        if len(tenants):
+            self.assertTrue(Tenant.has_events(session))
+        else:
+            self.assertFalse(Tenant.has_events(session))
         Tenant.unsubscribe(session)
 
     def test_delete_unsubscribed_class_subscription(self):
@@ -1768,9 +2113,13 @@ class TestLiveSubscription(TestLiveAPIC):
 
     def test_double_class_subscription(self):
         session = self.login_to_apic()
+        tenants = Tenant.get(session)
         Tenant.subscribe(session)
         Tenant.subscribe(session)
-        self.assertFalse(Tenant.has_events(session))
+        if len(tenants):
+            self.assertTrue(Tenant.has_events(session))
+        else:
+            self.assertFalse(Tenant.has_events(session))
         Tenant.unsubscribe(session)
 
     def test_get_event_no_subcribe(self):
@@ -1924,6 +2273,79 @@ class TestLiveEPG(TestLiveAPIC):
                 for epg in epgs:
                     self.assertTrue(isinstance(epg, EPG))
 
+    def test_get_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        for tenant in tenants:
+            apps = AppProfile.get(session, tenant)
+            for app in apps:
+                epgs = EPG.get(session, app, tenant)
+                self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
+
+
+class TestLiveL2ExtDomain(TestLiveAPIC):
+    """
+    Test L2ExtDomain class
+    """
+    def test_get(self):
+        session = self.login_to_apic()
+        l2ext_domains = L2ExtDomain.get(session)
+        for l2ext_domain in l2ext_domains:
+            self.assertTrue(isinstance(l2ext_domain, L2ExtDomain))
+        return l2ext_domains
+
+    def test_get_by_name(self):
+        session = self.login_to_apic()
+        l2ext_domains = self.test_get()
+        for l2ext_domain in l2ext_domains:
+            self.assertEqual(L2ExtDomain.get_by_name(session, l2ext_domain.name), l2ext_domain)
+
+    def test_generate_attributes(self):
+        l2ext_domains = self.test_get()
+        for l2ext_domain in l2ext_domains:
+            if l2ext_domain.name:
+                self.assertEqual(l2ext_domain._generate_attributes()['name'], l2ext_domain.name)
+            if l2ext_domain.dn:
+                self.assertEqual(l2ext_domain._generate_attributes()['dn'], l2ext_domain.dn)
+            if l2ext_domain.lcOwn:
+                self.assertEqual(l2ext_domain._generate_attributes()['lcOwn'], l2ext_domain.lcOwn)
+            if l2ext_domain.childAction:
+                self.assertEqual(l2ext_domain._generate_attributes()['childAction'], l2ext_domain.childAction)
+
+
+class TestLiveL3ExtDomain(TestLiveAPIC):
+    """
+    Test L3ExtDomain class
+    """
+    def test_get(self):
+        session = self.login_to_apic()
+        l3ext_domains = L3ExtDomain.get(session)
+        for l3ext_domain in l3ext_domains:
+            self.assertTrue(isinstance(l3ext_domain, L3ExtDomain))
+
+    def test_get_json(self):
+        session = self.login_to_apic()
+        l3ext_domains = L3ExtDomain.get(session)
+        for l3ext_domain in l3ext_domains:
+            l3ext_domain_json = l3ext_domain.get_json()
+            self.assertTrue(type(l3ext_domain_json) is dict)
+
+
+class TestLiveEPGDomain(TestLiveAPIC):
+    """
+    Test live EPG Domain
+    """
+    def test_get(self):
+        """
+        Test get all EPG Domains from APIC
+        """
+        session = self.login_to_apic()
+        epg_domains = EPGDomain.get(session)
+        self.assertTrue(len(epg_domains) > 0)
+        for epg_domain in epg_domains:
+            self.assertTrue(isinstance(epg_domain, EPGDomain))
+            self.assertTrue(isinstance(epg_domain.name, str))
+
 
 class TestLiveEndpoint(TestLiveAPIC):
     def test_get_bad_session(self):
@@ -1933,6 +2355,11 @@ class TestLiveEndpoint(TestLiveAPIC):
     def test_get(self):
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
+
+    def test_get_table(self):
+        session = self.login_to_apic()
+        endpoints = Endpoint.get(session)
+        self.assertTrue(isinstance(Endpoint.get_table(endpoints)[0], Table))
 
 
 class TestApic(TestLiveAPIC):
@@ -2026,8 +2453,10 @@ class TestApic(TestLiveAPIC):
                     ' "children": [{"fvAp": {"attributes": {"name": "app1"}, '
                     '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
                     '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
-                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"name": "bd1"},'
-                    ' "children": []}}]}}')
+                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"name": "bd1", '
+                    '"unkMacUcastAct": "proxy", "arpFlood": "no", '
+                    '"mac": "00:22:BD:F8:19:FF", "unicastRoute": "yes", '
+                    '"unkMcastAct": "flood"}, "children": []}}]}}')
         actual = json.dumps(tenant.get_json())
         self.assertTrue(actual == expected)
 
@@ -2042,6 +2471,17 @@ class TestApic(TestLiveAPIC):
     def test_get_contexts(self):
         (session, tenant, app, epg) = self.base_test_setup()
         Context.get(session, tenant)
+
+    def test_get_contexts_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        total_contexts = []
+        for tenant in tenants:
+            contexts = Context.get(session, tenant)
+            for context in contexts:
+                total_contexts.append(context)
+        contexts_table = Context.get_table(total_contexts)[0]
+        self.assertIsInstance(contexts_table, Table)
 
     def test_get_contexts_invalid_tenant_as_string(self):
         (session, tenant, app, epg) = self.base_test_setup()
@@ -2188,17 +2628,18 @@ class TestApic(TestLiveAPIC):
 
         # Create the Outside EPG
         self.assertRaises(TypeError, OutsideEPG, 'out-1', 'tenant')
-        outside = OutsideEPG('out-1', tenant)
-        outside.add_context(context)
-        outside.attach(ospfif)
+        outside_l3 = OutsideL3('out-1', tenant)
+        outside_l3.add_context(context)
+        outside_l3.attach(ospfif)
 
         # Create a contract and provide from the Outside EPG
         contract1 = Contract('contract-1', tenant)
-        outside.provide(contract1)
+        outside_epg = OutsideEPG('epg-1', outside_l3)
+        outside_epg.provide(contract1)
 
         # Create another contract and consume from the Outside EPG
         contract2 = Contract('contract-2', tenant)
-        outside.consume(contract2)
+        outside_epg.consume(contract2)
 
         # Push to APIC and verify a successful request
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
@@ -2206,6 +2647,175 @@ class TestApic(TestLiveAPIC):
 
         # Cleanup
         self.base_test_teardown(session, tenant)
+
+
+class TestLivePhysDomain(TestLiveAPIC):
+    """
+    Class to test live phys domain
+    """
+    def create_unique_live_phys_domain(self):
+        """
+        Create live phys domain that will not conflict with phys domains on APIC
+        """
+        session = self.login_to_apic()
+        phys_domains = PhysDomain.get(session)
+        non_existing_phys_domain = phys_domains[0]
+        while non_existing_phys_domain in phys_domains:
+            non_existing_phys_domain = PhysDomain(random_size_string(), None)
+        return non_existing_phys_domain
+
+    def get_all_phys_domains(self):
+        """
+        Get all phys domains from APIC and test phys domain get function
+        """
+        session = self.login_to_apic()
+        phys_domains = PhysDomain.get(session)
+        self.assertTrue(len(phys_domains) > 0)
+        return phys_domains
+
+    def get_all_phys_domain_names(self):
+        """
+        Test getting phys domain names
+        """
+        phys_domains = self.get_all_phys_domains()
+        names = []
+        for phys_domain in phys_domains:
+            names.append(phys_domain.name)
+        return names
+
+    def test_get_by_name(self):
+        """
+        Test get by name function
+        """
+        # Log in to APIC
+        session = self.login_to_apic()
+
+        # Create new phys domain and push to APIC
+        new_phys_domain = PhysDomain('phys_domain_toolkit_test', None)
+        new_phys_domain.push_to_apic(session)
+        self.assertTrue(new_phys_domain.push_to_apic(session).ok)
+
+        # Test get by name function (passing conditional to successfully find name)
+        phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
+        self.assertEquals(phys_domain_by_name, new_phys_domain)
+
+        # Delete new phys domain
+        new_phys_domain.mark_as_deleted()
+        new_phys_domain.push_to_apic(session)
+        self.assertTrue(new_phys_domain.push_to_apic(session).ok)
+
+        # Test get by name function (failing conditional to find name)
+        phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
+        self.assertIsNone(phys_domain_by_name)
+
+        # Verify that new phys domain is deleted
+        names = self.get_all_phys_domain_names()
+        self.assertTrue(new_phys_domain.name not in names)
+
+
+class TestLiveVmmDomain(TestLiveAPIC):
+    def test_get(self):
+        session = self.login_to_apic()
+        vmm_domains = VmmDomain.get(session)
+        for vmm_domain in vmm_domains:
+            self.assertTrue(isinstance(vmm_domain, VmmDomain))
+        return vmm_domains
+
+    def test_get_json(self):
+        vmm_domains = self.test_get()
+        for vmm_domain in vmm_domains:
+            self.assertTrue(type(vmm_domain.get_json()) is dict)
+
+    def test_get_by_name(self):
+        session = self.login_to_apic()
+        vmm_domains = VmmDomain.get(session)
+        for vmm_domain in vmm_domains:
+            self.assertEqual(VmmDomain.get_by_name(session, vmm_domain.name), vmm_domain)
+
+
+class TestLiveFilter(TestLiveAPIC):
+    def test_filter_no_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        filt = Filter('Filter')
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_no_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        filt = Filter('Filter')
+        filt_entry = FilterEntry('FilterEntry', filt)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_filter_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+        filt = Filter('Filter', contract_subject)
+        filt_entry = FilterEntry('FilterEntry', filt)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+
+class TestLiveFilterEntry(TestLiveAPIC):
+    def test_get(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        filter_entries = []
+        # contracts = []
+        for tenant in tenants:
+            tenant_contracts = Contract.get(session, tenant)
+            for tenant_contract in tenant_contracts:
+                contract_filter_entries = FilterEntry.get(session, tenant_contract, tenant)
+                for contract_filter_entry in contract_filter_entries:
+                    filter_entries.append(contract_filter_entry)
+        for filter_entry in filter_entries:
+            self.assertTrue(isinstance(filter_entry, FilterEntry))
+        return filter_entries
+
+    def test_get_table(self):
+        filter_entries = self.test_get()
+        self.assertTrue(FilterEntry.get_table(filter_entries), Table)
 
 
 class TestLiveContracts(TestLiveAPIC):
@@ -2315,13 +2925,72 @@ class TestLiveContracts(TestLiveAPIC):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
+    def test_get_table(self):
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+        total_contracts = []
+        for tenant in tenants:
+            contracts = Contract.get(session, tenant)
+            for contract in contracts:
+                total_contracts.append(contract)
+
+        self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
+
+
+class TestLiveContractSubject(TestLiveAPIC):
+    def test_filter_no_children_no_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract_subject = ContractSubject('contract_subject')
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_no_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_contract_subject_children_parent(self):
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+        filt = Filter('Filter', contract_subject)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
 
 class TestLiveOSPF(TestLiveAPIC):
     def test_no_auth(self):
         tenant = Tenant('cisco')
         context = Context('cisco-ctx1', tenant)
-        outside = OutsideEPG('out-1', tenant)
-        outside.add_context(context)
+        outside_l3 = OutsideL3('out-1', tenant)
+        outside_l3.add_context(context)
         phyif = Interface('eth', '1', '101', '1', '46')
         phyif.speed = '1G'
         l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
@@ -2343,10 +3012,11 @@ class TestLiveOSPF(TestLiveAPIC):
         ospfif.networks.append('55.5.5.0/24')
         ospfif.attach(l3if)
         contract1 = Contract('contract-1')
-        outside.provide(contract1)
+        outside_epg = OutsideEPG('epg-1', outside_l3)
+        outside_epg.provide(contract1)
         contract2 = Contract('contract-2')
-        outside.consume(contract2)
-        outside.attach(ospfif)
+        outside_epg.consume(contract2)
+        outside_l3.attach(ospfif)
         session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(),
                                     data=tenant.get_json())
@@ -2361,8 +3031,8 @@ class TestLiveOSPF(TestLiveAPIC):
     def test_authenticated(self):
         tenant = Tenant('cisco')
         context = Context('cisco-ctx1', tenant)
-        outside = OutsideEPG('out-1', tenant)
-        outside.add_context(context)
+        outside_l3 = OutsideL3('out-1', tenant)
+        outside_l3.add_context(context)
         phyif = Interface('eth', '1', '101', '1', '46')
         phyif.speed = '1G'
         l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
@@ -2387,10 +3057,11 @@ class TestLiveOSPF(TestLiveAPIC):
         ospfif.networks.append('55.5.5.0/24')
         ospfif.attach(l3if)
         contract1 = Contract('contract-1')
-        outside.provide(contract1)
+        outside_epg = OutsideEPG('epg-1', outside_l3)
+        outside_epg.provide(contract1)
         contract2 = Contract('contract-2')
-        outside.consume(contract2)
-        outside.attach(ospfif)
+        outside_epg.consume(contract2)
+        outside_l3.attach(ospfif)
 
         session = self.login_to_apic()
         resp = session.push_to_apic(tenant.get_url(),
@@ -2431,6 +3102,7 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
             self.assertIn(policy.policyType, ['fabric', 'access'])
             self.assertIsInstance(policy.name, str)
             self.check_collection_policy(policy)
+        return policies
 
     def test_monitor_target(self):
         session = self.login_to_apic()
@@ -2466,17 +3138,87 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
                     self.check_collection_policy(monitor_stat)
 
 
+class TestLiveHealthScores(TestLiveAPIC):
+
+    def base_test_setup(self):
+        session = self.login_to_apic()
+
+        # Create the Tenant
+        tenant = Tenant('aci-toolkit-test')
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Create the Application Profile
+        app = AppProfile('app1', tenant)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Create the EPG
+        epg = EPG('epg1', app)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        return (session, tenant, app, epg)
+
+    def base_test_teardown(self, session, tenant):
+        # Delete the tenant
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_get_all_healthscores(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        session = self.login_to_apic()
+        scores = HealthScore.get_all(session)
+        scores = HealthScore.get_all(session)
+        test = scores > 1
+        self.assertTrue(test)
+        self.base_test_teardown(session, tenant)
+
+    # TODO: the following lines are commented out until .dn attribute is implemented more pervasively
+    #
+    # def test_get_object_healthscore(self):
+    #     (session, tenant, app, epg) = self.base_test_setup()
+    #     push = session.push_to_apic(tenant.get_url(), tenant.get_json())
+    #     scores = []
+    #     for o in [tenant,app,epg]:
+    #         hs = HealthScore.get(session, o)
+    #         scores.append(hs.cur)
+    #     self.assertEqual(scores, ['100','100','100'])
+
+    def test_get_healthscore_by_dn(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        ts = HealthScore.get_by_dn(session, 'uni/tn-aci-toolkit-test')
+        self.assertIsInstance(ts.cur, unicode)
+        self.assertEqual(ts.cur, '100')
+        self.assertEqual(ts.__str__(), '100')
+        self.base_test_teardown(session, tenant)
+
+    def test_get_unhealthy(self):
+        (session, tenant, app, epg) = self.base_test_setup()
+        unhealthy = HealthScore.get_unhealthy(session, 100)
+
+
 if __name__ == '__main__':
     live = unittest.TestSuite()
+    live.addTest(unittest.makeSuite(TestLiveHealthScores))
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
     live.addTest(unittest.makeSuite(TestLiveInterface))
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveL2ExtDomain))
+    live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
+    live.addTest(unittest.makeSuite(TestLiveEPGDomain))
+    live.addTest(unittest.makeSuite(TestLiveFilter))
+    live.addTest(unittest.makeSuite(TestLiveFilterEntry))
     live.addTest(unittest.makeSuite(TestLiveContracts))
+    live.addTest(unittest.makeSuite(TestLiveContractSubject))
     live.addTest(unittest.makeSuite(TestLiveEndpoint))
     live.addTest(unittest.makeSuite(TestApic))
+    live.addTest(unittest.makeSuite(TestLivePhysDomain))
+    live.addTest(unittest.makeSuite(TestLiveVmmDomain))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
@@ -2491,10 +3233,15 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestL3Interface))
     offline.addTest(unittest.makeSuite(TestBaseContract))
     offline.addTest(unittest.makeSuite(TestContract))
+    offline.addTest(unittest.makeSuite(TestContractSubject))
+    offline.addTest(unittest.makeSuite(TestFilter))
+    offline.addTest(unittest.makeSuite(TestFilterEntry))
     offline.addTest(unittest.makeSuite(TestTaboo))
     offline.addTest(unittest.makeSuite(TestEPG))
     offline.addTest(unittest.makeSuite(TestOutsideEPG))
+    offline.addTest(unittest.makeSuite(TestPhysDomain))
     offline.addTest(unittest.makeSuite(TestJson))
+    offline.addTest(unittest.makeSuite(TestEPGDomain))
     offline.addTest(unittest.makeSuite(TestPortChannel))
     offline.addTest(unittest.makeSuite(TestContext))
     offline.addTest(unittest.makeSuite(TestOspf))

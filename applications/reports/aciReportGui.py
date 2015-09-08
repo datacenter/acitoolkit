@@ -17,8 +17,8 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
-"""  Search: ACI Toolkit search.  This is the controller for the ACI search
-tool.
+"""
+Reports: ACI Toolkit report GUI.
 """
 from flask import Flask, session, redirect, url_for
 from flask import flash
@@ -222,6 +222,8 @@ class CredentialsView(BaseView):
         """
         form = CredentialsForm()
         reset_form = ResetForm()
+        apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
+        rdb.set_login_credentials(apic_args)
         if form.validate_on_submit() and form.submit.data:
             old_ipaddr = session.get('ipaddr')
             old_username = session.get('username')

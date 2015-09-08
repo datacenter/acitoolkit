@@ -33,11 +33,15 @@ Sample of creating OSPF interface
 """
 
 from acitoolkit.acitoolkit import Credentials, Session, Tenant, Context
-from acitoolkit.acitoolkit import OutsideEPG, Interface, L2Interface
+from acitoolkit.acitoolkit import OutsideL3, OutsideEPG, Interface, L2Interface
 from acitoolkit.acitoolkit import L3Interface, OSPFRouter, OSPFInterfacePolicy
 from acitoolkit.acitoolkit import OSPFInterface, Contract
 
+
 def main():
+    """
+    Main execution routine
+    """
     creds = Credentials('apic')
     args = creds.get()
     session = Session(args.url, args.login, args.password)
@@ -45,8 +49,8 @@ def main():
 
     tenant = Tenant('Cisco-Demo')
     context = Context('ctx1', tenant)
-    outside = OutsideEPG('out-1', tenant)
-    outside.add_context(context)
+    outside_l3 = OutsideL3('out-1', tenant)
+    outside_l3.add_context(context)
     phyif = Interface('eth', '1', '101', '1', '46')
     phyif.speed = '1G'
     l2if = L2Interface('eth 1/101/1/46', 'vlan', '1')
@@ -71,10 +75,11 @@ def main():
     ospfif.networks.append('55.5.5.0/24')
     ospfif.attach(l3if)
     contract1 = Contract('contract-1')
-    outside.provide(contract1)
+    outside_epg = OutsideEPG('outepg', outside_l3)
+    outside_epg.provide(contract1)
     contract2 = Contract('contract-2')
-    outside.consume(contract2)
-    outside.attach(ospfif)
+    outside_epg.consume(contract2)
+    outside_l3.attach(ospfif)
 
     print(tenant.get_json())
     resp = session.push_to_apic(tenant.get_url(),

@@ -30,8 +30,7 @@
 import sys
 import re
 
-import acitoolkit.acitoolkit as ACI
-import acitoolkit.aciphysobject as ACI_PHYS
+import acitoolkit as ACI
 
 eTree = None
 Verbose_import_ = False
@@ -86,6 +85,12 @@ except ImportError:
 
 
 def parsexml_(*args, **kwargs):
+    """
+    parsexml_
+    :param args:
+    :param kwargs:
+    :return: doc
+    """
     if XMLParser_import_library == XMLParser_import_lxml and 'parser' not in kwargs:
         # Use the lxml ElementTree compatible parser so that, e.g.,
         #   we ignore comments.
@@ -93,21 +98,23 @@ def parsexml_(*args, **kwargs):
     doc = eTree.parse(*args, **kwargs)
     return doc
 
-# 
+#
 # Globals
-# 
+#
 
 Tag_pattern_ = re.compile(r'({.*})?(.*)')
-# 
+#
 # Support/utility functions.
-# 
+#
 
 
 def indent(level):
-    indent_string = ''
-    for idx in range(level):
-        indent_string += '   '
-    return indent_string
+    """
+    Indent the text to a specified level
+    :param level: The number of 4 space increments
+    :return: String containing the desired number of spaces for indentation
+    """
+    return level * '    '
 
 
 def quote_attrib(in_str):
@@ -124,6 +131,10 @@ def quote_attrib(in_str):
     else:
         s1 = '"%s"' % s1
     return s1
+
+
+def suffix_to_int(string):
+    return int(re.search(r'(\d+)$', string).group(1))
 
 
 class CABLEPLAN:
@@ -170,7 +181,7 @@ class CABLEPLAN:
 
     @classmethod
     def _parse_apic(cls, session):
-        pod = ACI_PHYS.Pod.get(session)[0]
+        pod = ACI.Pod.get(session)[0]
         pod.populate_children(deep=True)
         cable_plan = cls()
         cable_plan._build_apic(pod)
@@ -269,7 +280,7 @@ class CABLEPLAN:
     def difference_switch(self, cp):
         """Will return a list of switches that are in self, but not in cp.
 
-        :param cp: cable plan 
+        :param cp: cable plan
 
         :returns: list of CpSwitch
         """
@@ -447,14 +458,14 @@ class CABLEPLAN:
 
         :returns: None
         """
-        nodes = pod.get_children(ACI_PHYS.Node)
+        nodes = pod.get_children(ACI.Node)
         for node in nodes:
             if node.getFabricSt() == 'active':
                 if node.get_role() == 'spine':
                     self.add_switch(CpSwitch(node.get_name(), node.get_chassis_type(), spine=True))
                 if node.get_role() == 'leaf':
                     self.add_switch(CpSwitch(node.get_name(), node.get_chassis_type()))
-        links = pod.get_children(ACI_PHYS.Link)
+        links = pod.get_children(ACI.Link)
         for link in links:
             switch1 = link.get_node2()
             switch2 = link.get_node2()
@@ -554,7 +565,7 @@ class CpSwitch(object):
     def get_type(self):
         """Gets the chassis type. Examples of chassis types are 'n7k' or 'n9k'
 
-        :returns: str 
+        :returns: str
         """
         return self.chassis_type
 
@@ -650,24 +661,24 @@ class CpPort:
 
         # use a set so that there are no duplicate ports
         port_list = set()
-        port_set = re.sub('\s+', '', port_set)  # remove unnecessary white space
-        ports_n_ranges = re.split(',', port_set)
+        port_set = re.sub(r'\s+', '', port_set)  # remove unnecessary white space
+        ports_n_ranges = port_set.split(',')
         for portOrRange in ports_n_ranges:
             if '-' in portOrRange:
                 # this is a range
-                [startport, endport] = re.split('-', portOrRange)
-                prefix = re.findall('(.*/)\d+$', startport)
+                startport, endport = portOrRange.split('-')
+                prefix = re.findall(r'(.*/)\d+$', startport)
                 if len(prefix) != 1:
                     raise ValueError('Badly formed port name in range:"' + startport + '"')
 
-                prefix_e = re.findall('(.*/)\d+$', endport)
+                prefix_e = re.findall(r'(.*/)\d+$', endport)
                 if len(prefix_e) != 1:
                     raise ValueError('Badly formed port name in range:"' + endport + '"')
 
                 if prefix[0] != prefix_e[0]:
                     raise ValueError('port range invalid:"' + portOrRange + '"')
-                start_num = int(re.findall('(\d+)$', startport)[0])
-                end_num = int(re.findall('(\d+)$', endport)[0])
+                start_num = suffix_to_int(startport)
+                end_num = suffix_to_int(endport)
 
                 if start_num > end_num:
                     raise ValueError(
@@ -694,13 +705,13 @@ class CpPort:
 
         start_port = self.ports[index]
         cur_port = start_port
-        cur_num = int(re.findall('(\d+)$', cur_port)[0])
-        cur_prefix = re.findall('(.*/)\d+$', cur_port)[0]
-        start_num = int(re.findall('(\d+)$', start_port)[0])
+        cur_num = suffix_to_int(cur_port)
+        cur_prefix = re.findall(r'(.*/)\d+$', cur_port)[0]
+        start_num = suffix_to_int(start_port)
         while index < (numports - 1):
             next_port = self.ports[index + 1]
-            next_num = int(re.findall('(\d+)$', next_port)[0])
-            next_prefix = re.findall('(.*/)\d+$', next_port)[0]
+            next_num = suffix_to_int(next_port)
+            next_prefix = re.findall(r'(.*/)\d+$', next_port)[0]
             if next_num != cur_num + 1 or next_prefix != cur_prefix:
                 # there is a break in the sequence terminate the range
                 if cur_num == start_num:
@@ -712,12 +723,12 @@ class CpPort:
                     text_list.append(start_port + ' - ' + cur_port)
 
                 start_port = next_port
-                start_num = int(re.findall('(\d+)$', start_port)[0])
+                start_num = suffix_to_int(start_port)
 
             index += 1
             cur_port = self.ports[index]
-            cur_num = int(re.findall('(\d+)$', cur_port)[0])
-            cur_prefix = re.findall('(.*/)\d+$', cur_port)[0]
+            cur_num = suffix_to_int(cur_port)
+            cur_prefix = re.findall(r'(.*/)\d+$', cur_port)[0]
 
         # clean-up - index is one past end, cur is last one looked at
         if cur_num == start_num:
@@ -923,7 +934,7 @@ class CpLink:
         all ports included expanded lists of port sets.
 
         :param link: link to check to see if matches, or overlaps, with self
-        
+
         :returns: Boolean
         """
 
@@ -970,7 +981,7 @@ class CpLink:
 
         :param chassis: Chassis that is the parent of the LINK_INFO xml
         :param level:  Indentation level
-        
+
         :returns: str
         """
 

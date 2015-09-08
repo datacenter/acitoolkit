@@ -9,3 +9,6 @@ Applications
    cableplan
    snapback
    visualizations
+   eventfeeds
+   intersite
+   fakeapic

@@ -22,17 +22,35 @@
 """
 This is a library of all the Concrete classes that are on a switch.
 """
-"""
-"""
-# all the import
-from acibaseobject import BaseACIPhysObject
-import acitoolkit as ACI
 import copy
-from aciTable import Table
-from aciSearch import Searchable
+from operator import itemgetter
+
+from .acibaseobject import BaseACIPhysObject
+from .aciphysobject import Node
+from .aciSearch import Searchable
+from .aciTable import Table
+from .acitoolkit import Context, EPG
 
 
-class ConcreteArp(BaseACIPhysObject):
+class CommonConcreteObject(BaseACIPhysObject):
+    """
+    Intermediate abstract class that provides common methods for physical
+    objects storing data in an 'attr' dictionary.
+    """
+
+    def __eq__(self, other):
+        """
+        True when instances equal or derivative types and distinguished name
+        matches.
+        :param other:
+        :return: True if equal
+        """
+        if isinstance(other, self.__class__):
+            return self.attr.get('dn') == other.attr.get('dn')
+        return NotImplemented
+
+
+class ConcreteArp(CommonConcreteObject):
     """
     This class is for the ARP state on a switch.  It is organized into two data structures.
     The first is self.attr which holds attributes for the Arp in general.
@@ -48,12 +66,35 @@ class ConcreteArp(BaseACIPhysObject):
         """
             Initialize the ARP object.
             """
-        super(ConcreteArp, self).__init__(name='', parent=parent)
+
+        super(ConcreteArp, self).__init__(parent=parent)
         self.attr = {}
         self.domain = []
         self._parent = parent
         if parent is not None:
             self._parent.add_child(self)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['arpInst', 'arpDomStatsAdj', 'arpDomStatsRx', 'arpDomStatsTx', 'arpDom', 'arpDb', 'arpAdjEp']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -63,6 +104,7 @@ class ConcreteArp(BaseACIPhysObject):
         :param parent: Parent object of type Node
         :param top:
         """
+        cls.check_parent(parent)
 
         result = []
         node_data = top.get_class('arpInst')
@@ -71,38 +113,35 @@ class ConcreteArp(BaseACIPhysObject):
                 arp = cls()
                 arp.attr['adminSt'] = data['arpInst']['attributes']['adminSt']
                 arp.attr['dn'] = data['arpInst']['attributes']['dn']
-                if 'children' in data['arpInst']:
-                    arp.get_arp_domain(data['arpInst']['children'])
+                arp.get_arp_domain(top)
                 result.append(arp)
             if parent:
                 arp._parent = parent
                 arp._parent.add_child(arp)
         return result
 
-    def get_arp_domain(self, data):
+    def get_arp_domain(self, working_data):
         """
         Get various attributes from the arp domain
-        :param data:
+        :param working_data:
         """
+
+        data = working_data.get_subtree('arpDom', self.attr['dn'])
         for domain in data:
             result = {'stats': {},
                       'entry': [],
                       'name': domain['arpDom']['attributes']['name'],
                       'encap': domain['arpDom']['attributes']['encap']}
-            if 'children' in domain['arpDom']:
-                for child in domain['arpDom']['children']:
-                    if 'arpDomStatsAdj' in child:
-                        result['stats'].update(child['arpDomStatsAdj']['attributes'])
-                    if 'arpDomStatsRx' in child:
-                        result['stats'].update(child['arpDomStatsRx']['attributes'])
-                    if 'arpDomStatsTx' in child:
-                        result['stats'].update(child['arpDomStatsTx']['attributes'])
+            arpdom_dn = domain['arpDom']['attributes']['dn']
+            result['stats'].update(self.get_stats('arpDomStatsAdj', arpdom_dn, working_data))
+            result['stats'].update(self.get_stats('arpDomStatsRx', arpdom_dn, working_data))
+            result['stats'].update(self.get_stats('arpDomStatsTx', arpdom_dn, working_data))
 
-                    if 'arpDb' in child:
-                        if 'children' in child['arpDb']:
-                            for arp_adj_ep in child['arpDb']['children']:
-                                entry = self.get_arp_entry(arp_adj_ep)
-                                result['entry'].append(entry)
+            arpdb_data = working_data.get_subtree('arpDb', arpdom_dn)
+            for arpdb_datum in arpdb_data:
+                entry = self.get_arp_entry(arpdb_datum['arpDb']['attributes']['dn'], working_data)
+                result['entry'].append(entry)
+
             if ':' in result['name']:
                 result['tenant'] = result['name'].split(':')[0]
                 result['context'] = result['name'].split(':')[1]
@@ -113,16 +152,35 @@ class ConcreteArp(BaseACIPhysObject):
             self.domain.append(result)
 
     @staticmethod
-    def get_arp_entry(arp_adj_ep):
+    def get_stats(apic_class, dn, working_data):
+        """
+        Will get the statistics from the specified apic_class
+        :param apic_class:
+        :param dn:
+        :param working_data:
+        :return:
+        """
+        stat_data = working_data.get_subtree(apic_class, dn)
+        if stat_data:
+            return stat_data[0][apic_class]['attributes']
+        return {}
+
+    @staticmethod
+    def get_arp_entry(dn, working_data):
         """
         parses arpAdjEp
-        :param arp_adj_ep:
+        :param working_data:
+        :param dn:
         """
-        entry = {'interface_id': arp_adj_ep['arpAdjEp']['attributes']['ifId'],
-                 'ip': arp_adj_ep['arpAdjEp']['attributes']['ip'],
-                 'mac': arp_adj_ep['arpAdjEp']['attributes']['mac'],
-                 'physical_interface': arp_adj_ep['arpAdjEp']['attributes']['physIfId'],
-                 'oper_st': arp_adj_ep['arpAdjEp']['attributes']['operSt']}
+        data = working_data.get_subtree('arpAdjEp', dn)
+        entry = {}
+        for datum in data:
+
+            entry = {'interface_id': datum['arpAdjEp']['attributes']['ifId'],
+                     'ip': datum['arpAdjEp']['attributes']['ip'],
+                     'mac': datum['arpAdjEp']['attributes']['mac'],
+                     'physical_interface': datum['arpAdjEp']['attributes']['physIfId'],
+                     'oper_st': datum['arpAdjEp']['attributes']['operSt']}
         return entry
 
     @staticmethod
@@ -184,31 +242,30 @@ class ConcreteArp(BaseACIPhysObject):
         Create all of the searchable terms
 
         """
-        result = [Searchable('arp')]
-
+        result = Searchable()
+        result.add_term('arp')
         for domain in self.domain:
             if 'entry' in domain:
                 for entry in domain['entry']:
-                    if entry['ip'] is not None:
-                        result.append(Searchable('ipv4', entry['ip'], 'indirect'))
-                    if entry['mac'] is not None:
-                        result.append(Searchable('mac', entry['mac'], 'indirect'))
-                    if entry['physical_interface'] is not None:
-                        result.append(Searchable('interface', entry['physical_interface']))
+                    if entry.get('ip') is not None:
+                        result.add_term('ipv4', entry['ip'], 'secondary')
+                    if entry.get('mac') is not None:
+                        result.add_term('mac', entry['mac'], 'secondary')
+                    if entry.get('physical_interface') is not None:
+                        result.add_term('interface', entry['physical_interface'])
             if domain['name']:
-                result.append(Searchable('context', domain['name'], 'indirect'))
-                result.append(Searchable('name', domain['name'], 'primary'))
-        return result
+                result.add_term('context', domain['context'], 'secondary')
+                result.add_term('name', domain['name'], 'primary')
+            if domain['tenant']:
+                result.add_term('tenant', domain['tenant'], 'secondary')
+
+        return [result]
 
     def __str__(self):
-        return 'ConcreteARP'
-
-    def __eq__(self, other):
-
-        return self.attr.get('dn') == other.attr.get('dn')
+        return 'ARP'
 
 
-class ConcreteVpc(BaseACIPhysObject):
+class ConcreteVpc(CommonConcreteObject):
     """
     class for the VPC information for a switch
 
@@ -219,10 +276,32 @@ class ConcreteVpc(BaseACIPhysObject):
         """
         VPC info for a switch
         """
-        super(ConcreteVpc, self).__init__(name='', parent=parent)
+        super(ConcreteVpc, self).__init__(parent=parent)
         self.member_ports = []
         self.peer_info = {}
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['vpcEntity', 'vpcDom']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -234,6 +313,8 @@ class ConcreteVpc(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch context
         """
+        cls.check_parent(parent)
+
         result = []
         vpc_data = top.get_class('vpcEntity')
         for vpc_d in vpc_data:
@@ -305,7 +386,6 @@ class ConcreteVpc(BaseACIPhysObject):
         """
         result = []
         for vpc in vpcs:
-            data = []
             if vpc.attr['admin_st'] == 'enabled' and vpc.attr['dom_present']:
                 headers = ['Name',
                            'ID',
@@ -363,52 +443,71 @@ class ConcreteVpc(BaseACIPhysObject):
         Create all of the searchable terms
 
         """
-        result = [Searchable('vpc')]
+        result = Searchable()
+        result.add_term('vpc')
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'virtual_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['virtual_mac']))
+            result.add_term('mac', self.attr['virtual_mac'])
 
         if 'local_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['local_mac']))
+            result.add_term('mac', self.attr['local_mac'])
 
         if 'sys_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['sys_mac']))
+            result.add_term('mac', self.attr['sys_mac'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'role' in self.attr:
-            result.append(Searchable('role', self.attr['role']))
+            result.add_term('role', self.attr['role'])
 
         if 'mac' in self.peer_info:
-            result.append(Searchable('mac', self.peer_info['mac'], 'indirect'))
+            result.add_term('mac', self.peer_info['mac'], 'secondary')
 
         if 'ip' in self.peer_info:
-            result.append(Searchable('ipv4', self.peer_info['ip'].split('/')[0], 'indirect'))
+            result.add_term('ipv4', self.peer_info['ip'].split('/')[0], 'secondary')
 
         if 'virtual_ip' in self.attr:
-            result.append(Searchable('ipv4', self.attr['virtual_ip'].split('/')[0]))
+            result.add_term('ipv4', self.attr['virtual_ip'].split('/')[0])
 
-        return result
+        return [result]
 
     def __str__(self):
         return 'VPC_' + self.attr['id']
 
-    def __eq__(self, other):
 
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteVpcIf(BaseACIPhysObject):
+class ConcreteVpcIf(CommonConcreteObject):
     """
     Class to hold a VPC interface
     """
 
     def __init__(self, parent=None):
-        super(ConcreteVpcIf, self).__init__(name='', parent=parent)
+        super(ConcreteVpcIf, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteVpc
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['vpcIf', 'vpcRsVpcConf']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -418,6 +517,8 @@ class ConcreteVpcIf(BaseACIPhysObject):
         :param parent:
         :param top:
         """
+        cls.check_parent(parent)
+
         result = []
         vpc_members = top.get_class('vpcIf')
         for vpc_member in vpc_members:
@@ -500,32 +601,32 @@ class ConcreteVpcIf(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'interface' in self.attr:
-            result.append(Searchable('interface', self.attr['interface']))
+            result.add_term('interface', self.attr['interface'])
 
         if 'up_vlans' in self.attr:
             vlan_list = self.expand_vlans(self.attr['up_vlans'].replace(' ', ''))
             for vlan in vlan_list:
-                result.append(Searchable('vlan', str(vlan)))
+                result.add_term('vlan', str(vlan))
         if 'remote_up_vlans' in self.attr:
             vlan_list = self.expand_vlans(self.attr['remote_up_vlans'].replace(' ', ''))
             for vlan in vlan_list:
-                result.append(Searchable('vlan', str(vlan), 'indirect'))
+                result.add_term('vlan', str(vlan), 'secondary')
 
         if 'access_vlan' in self.attr:
-            result.append(Searchable('vlan', self.attr['access_vlan']))
+            result.add_term('vlan', self.attr['access_vlan'])
 
         if 'susp_vlans' in self.attr:
             vlan_list = self.expand_vlans(self.attr['susp_vlans'].replace(' ', ''))
             for vlan in vlan_list:
-                result.append(Searchable('vlan', str(vlan)))
+                result.add_term('vlan', str(vlan))
 
-        return result
+        return [result]
 
     @staticmethod
     def expand_vlans(vlans):
@@ -552,17 +653,8 @@ class ConcreteVpcIf(BaseACIPhysObject):
         """
         return 'VPC_Interface' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteContext(BaseACIPhysObject):
+class ConcreteContext(CommonConcreteObject):
     """
     The l3-context on a switch.  This is derived from
     the concrete model
@@ -572,8 +664,30 @@ class ConcreteContext(BaseACIPhysObject):
         """
         l3-context on a switch
         """
-        super(ConcreteContext, self).__init__(name='', parent=parent)
+        super(ConcreteContext, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['l3Ctx', 'l3Inst']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -587,6 +701,8 @@ class ConcreteContext(BaseACIPhysObject):
        :param top: the topSystem level json object
        :returns: list of Switch context
         """
+        cls.check_parent(parent)
+
         result = []
         ctx_data = top.get_class('l3Ctx')[:]
         ctx_data.extend(top.get_class('l3Inst')[:])
@@ -623,6 +739,7 @@ class ConcreteContext(BaseACIPhysObject):
         else:
             self.attr['tenant'] = ''
             self.attr['context'] = self.attr['name']
+        self.name = self.attr['context']
 
         if 'pcTag' in attr:
             self.attr['mcst_class_id'] = str(attr['pcTag'])
@@ -673,22 +790,22 @@ class ConcreteContext(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
-            result.append(Searchable('context', self.attr['name']))
+            result.add_term('name', self.attr['name'])
+            result.add_term('context', self.attr['name'])
 
         if 'vnid' in self.attr:
-            result.append(Searchable('vnid', self.attr['vnid']))
+            result.add_term('vnid', self.attr['vnid'])
 
         if 'scope' in self.attr:
-            result.append(Searchable('scope', self.attr['scope']))
+            result.add_term('scope', self.attr['scope'])
 
         if 'mcst_class_id' in self.attr:
-            result.append(Searchable('class', self.attr['mcst_class_id']))
+            result.add_term('class', self.attr['mcst_class_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -698,17 +815,8 @@ class ConcreteContext(BaseACIPhysObject):
         """
         return 'Concrete_Context' + self.attr.get('name')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteSVI(BaseACIPhysObject):
+class ConcreteSVI(CommonConcreteObject):
     """
     The SVIs on a switch.  This is derived from
     the concrete model in the switch
@@ -718,8 +826,30 @@ class ConcreteSVI(BaseACIPhysObject):
         """
         SVI on a switch
         """
-        super(ConcreteSVI, self).__init__(name='', parent=parent)
+        super(ConcreteSVI, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['sviIf']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -730,6 +860,7 @@ class ConcreteSVI(BaseACIPhysObject):
         :param top:  json record of entire switch config
         :returns: list of SVI
         """
+        cls.check_parent(parent)
         result = []
 
         svi_data = top.get_class('sviIf')
@@ -762,6 +893,10 @@ class ConcreteSVI(BaseACIPhysObject):
         self.attr['vlan_id'] = str(attr['vlanId'])
         self.attr['vlan_type'] = str(attr['vlanT'])
         self.attr['dn'] = str(attr['dn'])
+        if self.attr['name'] is '':
+            self.name = self.attr['id']
+        else:
+            self.name = self.attr['name']
 
     @staticmethod
     def get_table(aci_objects, title=''):
@@ -786,7 +921,7 @@ class ConcreteSVI(BaseACIPhysObject):
                 aci_object.attr.get('oper_st_qual', '')
             ])
 
-        data = sorted(data, key=lambda x: (x[0], x[1]))
+        data = sorted(data, key=itemgetter(0, 1))
         result.append(Table(data, headers, title=title + 'SVI (Router Interfaces)'))
         return result
 
@@ -796,21 +931,20 @@ class ConcreteSVI(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = [(Searchable('svi'))]
+        result = Searchable()
+        result.add_term('svi')
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
-
+            result.add_term('name', self.attr['name'])
         if 'mac' in self.attr:
-            result.append(Searchable('mac', self.attr['mac']))
-
+            result.add_term('mac', self.attr['mac'])
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'vlan_id' in self.attr:
-            result.append(Searchable('vlan', self.attr['vlan_id']))
+            result.add_term('vlan', self.attr['vlan_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -820,17 +954,8 @@ class ConcreteSVI(BaseACIPhysObject):
         """
         return 'Concrete_SVI' + self.attr.get('name')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteLoopback(BaseACIPhysObject):
+class ConcreteLoopback(CommonConcreteObject):
     """
     Loopback interfaces on the switch
     """
@@ -839,8 +964,30 @@ class ConcreteLoopback(BaseACIPhysObject):
         """
         SVI on a switch
         """
-        super(ConcreteLoopback, self).__init__(name='', parent=parent)
+        super(ConcreteLoopback, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['l3LbRtdIf', 'ethpmLbRtdIf']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -851,6 +998,8 @@ class ConcreteLoopback(BaseACIPhysObject):
        :param top: the topSystem level json object
        :returns: list of loopback
         """
+        cls.check_parent(parent)
+
         result = []
 
         data = top.get_class('l3LbRtdIf')
@@ -893,12 +1042,12 @@ class ConcreteLoopback(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -908,17 +1057,8 @@ class ConcreteLoopback(BaseACIPhysObject):
         """
         return 'Concrete_Loopback' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteBD(BaseACIPhysObject):
+class ConcreteBD(CommonConcreteObject):
     """
     The bridge domain on a switch.  This is derived from
     the concrete model
@@ -928,8 +1068,30 @@ class ConcreteBD(BaseACIPhysObject):
         """
         bridge domain on a switch
         """
-        super(ConcreteBD, self).__init__(name='', parent=parent)
+        super(ConcreteBD, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['l2BD', 'l3Ctx', 'l3Inst', 'fmcastGrp']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -943,6 +1105,8 @@ class ConcreteBD(BaseACIPhysObject):
        :param top: the topSystem level json object
        :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
+
         result = []
         bd_data = top.get_class('l2BD')
         for l2bd in bd_data:
@@ -1089,28 +1253,28 @@ class ConcreteBD(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if ':' in self.attr['name']:
-            result.append(Searchable('name', self.attr['name'].split(':')[-1]))
+            result.add_term('name', self.attr['name'].split(':')[-1])
         else:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'context_name' in self.attr:
             if ':' in self.attr['context_name']:
                 tenant = self.attr['context_name'].split(':')[0]
                 context = self.attr['context_name'].split(':')[1]
-                result.append(Searchable('context', context))
-                result.append(Searchable('tenant', tenant))
+                result.add_term('context', context)
+                result.add_term('tenant', tenant)
             else:
-                result.append(Searchable('context', self.attr['context_name']))
+                result.add_term('context', self.attr['context_name'])
 
         if 'vnid' in self.attr:
-            result.append(Searchable('vnid', self.attr['vnid']))
+            result.add_term('vnid', self.attr['vnid'])
         if 'flood_gipo' in self.attr:
-            result.append(Searchable('ipv4', self.attr['flood_gipo']))
+            result.add_term('ipv4', self.attr['flood_gipo'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1120,17 +1284,8 @@ class ConcreteBD(BaseACIPhysObject):
         """
         return 'Concrete_BD' + self.attr.get('name')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteAccCtrlRule(BaseACIPhysObject):
+class ConcreteAccCtrlRule(CommonConcreteObject):
     """
     Access control rules on a switch
     """
@@ -1139,8 +1294,30 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         """
         access control rules on a switch
         """
-        super(ConcreteAccCtrlRule, self).__init__(name='', parent=parent)
+        super(ConcreteAccCtrlRule, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['actrlRule']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1154,11 +1331,13 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
+
         result = []
 
         rule_data = top.get_class('actrlRule')
-        epgs = ACI.EPG.get(top.session)
-        contexts = ACI.Context.get(top.session)
+        epgs = EPG.get(top.session)
+        contexts = Context.get(top.session)
 
         for actrl_rule in rule_data:
             rule = cls()
@@ -1290,7 +1469,7 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
                 rule.attr.get('priority', ''),
                 rule.attr.get('relative_priority', '')])
 
-        table = sorted(table, key=lambda x: (x[11], x[0], x[1]))
+        table = sorted(table, key=itemgetter(11, 0, 1))
         result.append(Table(table, headers, title=title + 'Access Rules (Contracts/Access Policies)'))
 
         return result
@@ -1301,39 +1480,39 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'tenant' in self.attr:
-            result.append(Searchable('tenant', self.attr['tenant']))
+            result.add_term('tenant', self.attr['tenant'])
 
         if 'context' in self.attr:
-            result.append(Searchable('context', self.attr['context']))
+            result.add_term('context', self.attr['context'])
 
         if 'scope' in self.attr:
-            result.append(Searchable('scope', self.attr['scope']))
+            result.add_term('scope', self.attr['scope'])
 
         if 's_epg' in self.attr:
-            result.append(Searchable('epg', self.attr['s_epg']))
+            result.add_term('epg', self.attr['s_epg'])
 
         if 'd_epg' in self.attr:
-            result.append(Searchable('epg', self.attr['d_epg']))
+            result.add_term('epg', self.attr['d_epg'])
 
         if 'dclass' in self.attr:
-            result.append(Searchable('class', self.attr['dclass']))
+            result.add_term('class', self.attr['dclass'])
 
         if 'sclass' in self.attr:
-            result.append(Searchable('class', self.attr['sclass']))
+            result.add_term('class', self.attr['sclass'])
 
         if 'scope' in self.attr:
-            result.append(Searchable('scope', self.attr['scope']))
+            result.add_term('scope', self.attr['scope'])
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'filter_id' in self.attr:
-            result.append(Searchable('filter', self.attr['filter_id']))
+            result.add_term('filter', self.attr['filter_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1341,19 +1520,11 @@ class ConcreteAccCtrlRule(BaseACIPhysObject):
 
         :return: str
         """
-        return 'Concrete_Access_Rule' + self.attr.get('name')
-
-    def __eq__(self, other):
-
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
+        return 'Access_Rule-{0}_{1}_{2}'.\
+            format(self.attr.get('s_epg'), self.attr.get('d_epg'), self.attr.get('filter_id'))
 
 
-class ConcreteFilter(BaseACIPhysObject):
+class ConcreteFilter(CommonConcreteObject):
     """
     Access control filters on a switch
     """
@@ -1362,9 +1533,31 @@ class ConcreteFilter(BaseACIPhysObject):
         """
         access control filters on a switch
         """
-        super(ConcreteFilter, self).__init__(name='', parent=parent)
+        super(ConcreteFilter, self).__init__(parent=parent)
         self.entries = []
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['actrlFlt']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1378,6 +1571,8 @@ class ConcreteFilter(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
+
         result = []
         filter_data = top.get_class('actrlFlt')
 
@@ -1471,15 +1666,15 @@ class ConcreteFilter(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1489,17 +1684,8 @@ class ConcreteFilter(BaseACIPhysObject):
         """
         return 'Concrete_Filter' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteFilterEntry(BaseACIPhysObject):
+class ConcreteFilterEntry(CommonConcreteObject):
     """
     Access control entries of a filter
     """
@@ -1508,8 +1694,30 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         """
         access control filters of a filter
         """
-        super(ConcreteFilterEntry, self).__init__(name='', parent=parent)
+        super(ConcreteFilterEntry, self).__init__(parent=parent)
         self.attr = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteFilter
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['actrlEntry']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1523,6 +1731,7 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of Switch bridge domain
         """
+        cls.check_parent(parent)
         result = []
         entry_data = top.get_subtree('actrlEntry', parent.attr['dn'])
 
@@ -1573,7 +1782,10 @@ class ConcreteFilterEntry(BaseACIPhysObject):
                     'proto': 5,
                     'frag': 6,
                     'def': 7}
-        self.attr['relative_priority'] = prio_map.get(self.attr['priority'], 'unknown')
+        if self.attr['priority'] in prio_map:
+            self.attr['relative_priority'] = prio_map[self.attr['priority']]
+        else:
+            self.attr['relative_priority'] = 'unknown'
 
     def _get_filter_name(self):
         """
@@ -1593,18 +1805,18 @@ class ConcreteFilterEntry(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'filter_name' in self.attr:
-            result.append(Searchable('name', self.attr['filter_name']))
+            result.add_term('name', self.attr['filter_name'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1614,17 +1826,8 @@ class ConcreteFilterEntry(BaseACIPhysObject):
         """
         return 'Concrete_Filter_Entry' + self.attr.get('id')
 
-    def __eq__(self, other):
 
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
-
-
-class ConcreteEp(BaseACIPhysObject):
+class ConcreteEp(CommonConcreteObject):
     """
     Endpoint on the switch
     """
@@ -1633,8 +1836,30 @@ class ConcreteEp(BaseACIPhysObject):
         """
         endpoints on a switch
         """
-        super(ConcreteEp, self).__init__(name='', parent=parent)
+        super(ConcreteEp, self).__init__(parent=parent)
         self.attr = {'ip': None, 'mac': None}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['epmIpEp', 'epmMacEp', 'epmRsMacEpToIpEpAtt']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -1647,6 +1872,8 @@ class ConcreteEp(BaseACIPhysObject):
         :param top: the topSystem level json object
         :returns: list of endpoint
         """
+        cls.check_parent(parent)
+
         result = []
 
         ep_data = top.get_class('epmIpEp')[:]
@@ -1673,21 +1900,21 @@ class ConcreteEp(BaseACIPhysObject):
             if end_point.attr['address_family'] == 'mac':
                 rel_data = top.get_subtree('epmRsMacEpToIpEpAtt', end_point.attr['dn'])
                 for rel in rel_data:
-                    ip_add = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                        split('/ip-[')[1].split(']')[0])
+                    ip_add = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                 split('/ip-[')[1].split(']')[0])
                     if 'ctx-[vxlan-' in rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']:
 
-                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                            split('/ctx-[vxlan-')[1].split(']/')[0])
+                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                     split('/ctx-[vxlan-')[1].split(']/')[0])
                     elif '/inst-' in rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']:
-                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                            split('/inst-')[1].split('/')[0])
+                        ip_ctx = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                     split('/inst-')[1].split('/')[0])
                         if ip_ctx in top.ctx_dict:
                             ip_ctx = top.ctx_dict[ip_ctx]
                     else:
                         ip_ctx = None
-                    ip_bd = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn']. \
-                        split('/bd-[vxlan-')[1].split(']/')[0])
+                    ip_bd = str(rel['epmRsMacEpToIpEpAtt']['attributes']['tDn'].
+                                split('/bd-[vxlan-')[1].split(']/')[0])
                     if ip_ctx == end_point.attr['ctx_vnid'] and ip_bd == \
                             end_point.attr['bd_vnid']:
                         # we have an IP address for this MAC
@@ -1700,7 +1927,7 @@ class ConcreteEp(BaseACIPhysObject):
                             end_point.attr['ip'] = ip_add
                         rem_ep.append((ip_add, ip_ctx, ip_bd))
                     else:
-                        print 'unexpected context or bd mismatch', ip_add, ip_ctx, ip_bd
+                        print ('unexpected context or bd mismatch', ip_add, ip_ctx, ip_bd)
         result.extend(new_ep_list)
         final_result = []
         for ept in result:
@@ -1730,6 +1957,10 @@ class ConcreteEp(BaseACIPhysObject):
             if parent:
                 ep._parent = parent
                 ep._parent.add_child(ep)
+            if ep.attr['mac'] is not None:
+                ep.name = ep.attr['mac']
+            elif ep.attr['ip'] is not None:
+                ep.name = ep.attr['ip']
 
         return final_result
 
@@ -1765,7 +1996,7 @@ class ConcreteEp(BaseACIPhysObject):
             self.attr['bd_vnid'] = 'unknown'
             self.attr['bridge_domain'] = 'unknown'
 
-        #change context to tenant plus context
+        # change context to tenant plus context
 
         if ':' in self.attr['context']:
             context = self.attr['context'].split(':')[1]
@@ -1774,8 +2005,7 @@ class ConcreteEp(BaseACIPhysObject):
             self.attr['tenant'] = tenant
         else:
             self.attr['tenant'] = ''
-            #context already set
-
+            # context already set
 
     def _populate_from_attributes(self, attr):
         """
@@ -1952,22 +2182,25 @@ class ConcreteEp(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
+        result.add_term('type', 'endpoint')
 
+        if 'tenant' in self.attr:
+            result.add_term('tenant', self.attr['tenant'], 'secondary')
         if 'context' in self.attr:
-            result.append(Searchable('context', self.attr['context']))
+            result.add_term('context', self.attr['context'], 'secondary')
 
         if 'bridge_domain' in self.attr:
-            result.append(Searchable('bridgedomain', self.attr['bridge_domain']))
+            result.add_term('bridgedomain', self.attr['bridge_domain'], 'secondary')
 
         if 'mac' in self.attr:
-            result.append(Searchable('mac', self.attr['mac']))
+            result.add_term('mac', self.attr['mac'])
         if 'ip' in self.attr:
-            result.append(Searchable('ipv4', self.attr['ip']))
+            result.add_term('ipv4', self.attr['ip'])
         if 'interface_id' in self.attr:
-            result.append(Searchable('interface', self.attr['interface_id']))
+            result.add_term('interface', self.attr['interface_id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -1975,19 +2208,10 @@ class ConcreteEp(BaseACIPhysObject):
 
         :return: str
         """
-        return 'Concrete_Endpoint' + 'MAC-{0} IP-{1}'.format(self.attr.get('mac'), self.attr.get('ip'))
-
-    def __eq__(self, other):
-
-        """
-        Checks that the interfaces are equal
-        :param other:
-        :return: True if equal
-        """
-        return self.attr.get('dn') == other.attr.get('dn')
+        return 'Concrete_Endpoint-' + 'MAC({0})_IP({1})'.format(self.attr.get('mac'), self.attr.get('ip'))
 
 
-class ConcretePortChannel(BaseACIPhysObject):
+class ConcretePortChannel(CommonConcreteObject):
     """
     This gets the port channels for the switch
     """
@@ -1996,9 +2220,31 @@ class ConcretePortChannel(BaseACIPhysObject):
         """
         port channel on a switch
         """
-        super(ConcretePortChannel, self).__init__(name='', parent=parent)
+        super(ConcretePortChannel, self).__init__(parent=parent)
         self.attr = {}
         self.members = []
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['pcAggrIf', 'ethpmAggrIf', 'pcRsMbrIfs']
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
@@ -2006,18 +2252,20 @@ class ConcretePortChannel(BaseACIPhysObject):
         This will get all the SVIs on the switch
 
         :param parent:
-       :param top: the topSystem level json object
-       :returns: list of port channel
+        :param top: the topSystem level json object
+        :returns: list of port channel
         """
-        result = []
+        cls.check_parent(parent)
 
-        data = top.get_class('pcAggrIf')
+        result = []
+        apic_class = 'pcAggrIf'
+        data = top.get_class(apic_class)
         for obj in data:
             pch = cls()
-            if 'pcAggrIf' in obj:
-                pch._populate_from_attributes(obj['pcAggrIf']['attributes'])
-                pch._populate_oper_st(obj['pcAggrIf']['attributes']['dn'], top)
-                pch._populate_members(obj['pcAggrIf']['attributes']['dn'], top)
+            if apic_class in obj:
+                pch._populate_from_attributes(obj[apic_class]['attributes'])
+                pch._populate_oper_st(obj[apic_class]['attributes']['dn'], top)
+                pch._populate_members(obj[apic_class]['attributes']['dn'], top)
             result.append(pch)
             if parent:
                 pch._parent = parent
@@ -2154,7 +2402,7 @@ class ConcretePortChannel(BaseACIPhysObject):
                        'Oper Qualifier', 'Usage']
 
             table = []
-            for member in sorted(pch.members, key=lambda x: (x['id'])):
+            for member in sorted(pch.members, key=itemgetter('id')):
                 table.append([member.get('id', ''),
                               member.get('state', ''),
                               member.get('admin_st', ''),
@@ -2163,7 +2411,7 @@ class ConcretePortChannel(BaseACIPhysObject):
                               member.get('usage', '')])
 
             result.append(Table(table, headers, title=title +
-                                                      'Port Channel ({0}) Link Members'.format(pch.attr['id'])))
+                                'Port Channel ({0}) Link Members'.format(pch.attr['id'])))
 
         return result
 
@@ -2173,25 +2421,25 @@ class ConcretePortChannel(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = []
+        result = Searchable()
 
         if 'name' in self.attr:
-            result.append(Searchable('name', self.attr['name']))
+            result.add_term('name', self.attr['name'])
 
         if 'id' in self.attr:
-            result.append(Searchable('id', self.attr['id']))
+            result.add_term('id', self.attr['id'])
 
         if 'router_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['router_mac']))
+            result.add_term('mac', self.attr['router_mac'])
 
         if 'backplane_mac' in self.attr:
-            result.append(Searchable('mac', self.attr['backplane_mac']))
+            result.add_term('mac', self.attr['backplane_mac'])
 
         for member in self.members:
             if 'id' in member:
-                result.append(Searchable('interface', member['id']))
+                result.add_term('interface', member['id'])
 
-        return result
+        return [result]
 
     def __str__(self):
         """
@@ -2201,14 +2449,161 @@ class ConcretePortChannel(BaseACIPhysObject):
         """
         return 'Concrete_Portchannel' + self.attr.get('id')
 
+
+class ConcreteTunnel(BaseACIPhysObject):
+    """
+    Concrete representation of an overlay tunnel
+    """
+    def __init__(self, parent=None):
+        """
+        Tunnel init
+        """
+        super(ConcreteTunnel, self).__init__(parent=parent)
+        self.attr = {}
+        self.node = None
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteOverlay
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['tunnelIf']
+
+        return resp
+
+    @classmethod
+    def get(cls, top, parent=None):
+        """
+        Gather all the Overlay information for a switch
+
+        :param parent:
+        :param top: the topSystem level json object
+        :returns: list of tunnel objects
+        """
+        cls.check_parent(parent)
+
+        apic_class = cls._get_apic_classes()[0]
+        data = top.get_class(apic_class)
+        result = []
+        for obj in data:
+            tunnel = cls()
+            if apic_class in obj:
+                tunnel._populate_from_attributes(obj[apic_class]['attributes'])
+
+
+            if parent:
+                tunnel._parent = parent
+                tunnel._parent.add_child(tunnel)
+                tunnel.pod = tunnel._parent.pod
+                tunnel.node = tunnel._parent.node
+
+            tunnel.update_proxy_in_parent()
+
+            result.append(tunnel)
+
+        return result
+
+    def _populate_from_attributes(self, attr):
+        """
+        This will populate the tunnel object
+
+        :param attr: Attributes of the APIC object
+        """
+        self.attr['src_tep_ip'] = str(attr['src']).split('/')[0]
+        self.attr['dest_tep_ip']= str(attr['dest'])
+        self.attr['id']= str(attr['id'])
+        self.attr['oper_st'] = str(attr['operSt'])
+        self.attr['oper_st_qual'] = str(attr['operStQual'])
+        self.attr['context'] = str(attr['vrfName'])
+        self.attr['type'] = str(attr['type'])
+        self.attr['dn'] = str(attr['dn'])
+        self.name = self.attr['id']
+
+    def update_proxy_in_parent(self):
+        """
+        Will update the proxy addresses in the parent object
+        """
+        if self._parent:
+            if 'proxy-acast-mac' in self.attr['type']:
+                self._parent.attr['proxy_ip_mac'] = self.attr['dest_tep_ip']
+
+            if 'proxy-acast-v4' in self.attr['type']:
+                self._parent.attr['proxy_ip_v4'] = self.attr['dest_tep_ip']
+            if 'proxy-acast-v6' in self.attr['type']:
+                self._parent.attr['proxy_ip_v6'] = self.attr['dest_tep_ip']
+
+    @staticmethod
+    def get_table(tunnels, title=''):
+        """
+        Create print string for tunnel information
+        :param tunnels:
+        :param title:
+        """
+        result = []
+
+        headers = ['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
+                   'Oper State Qualifier']
+        table = []
+        for tunnel in tunnels:
+            table.append([tunnel.attr.get('id', ''),
+                          tunnel.attr.get('context', ''),
+                          tunnel.attr.get('dest_tep_ip', ''),
+                          tunnel.attr.get('type', ''),
+                          tunnel.attr.get('oper_st', ''),
+                          tunnel.attr.get('oper_st_qual', '')])
+        result.append(Table(table, headers, title=title + 'Overlay Tunnels'))
+        return result
+
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        result = Searchable()
+        result.add_term('id', self.attr['id'])
+
+        result.add_term('context', self.attr['context'])
+
+        result.add_term('ipv4', self.attr['dest_tep_ip'], 'secondary')
+        result.add_term('type', 'tunnel')
+
+
+        return [result]
+
+    def __str__(self):
+        """
+        Default print string
+
+        :return: str
+        """
+        return 'ConcreteTunnel'
+
     def __eq__(self, other):
 
         """
-        Checks that the interfaces are equal
+        Checks that the tunnels are equal
         :param other:
         :return: True if equal
         """
-        return self.attr.get('dn') == other.attr.get('dn')
+        if isinstance(other, self.__class__):
+            self_key = (self.get_parent(), self.attr.get('dn'))
+            other_key = (other.get_parent(), other.attr.get('dn'))
+            return self_key == other_key
+        return NotImplemented
 
 
 class ConcreteOverlay(BaseACIPhysObject):
@@ -2220,65 +2615,73 @@ class ConcreteOverlay(BaseACIPhysObject):
         """
         overlay information
         """
-        super(ConcreteOverlay, self).__init__(name='', parent=parent)
-        self.attr = {}
-        #adding VPC VTEP info to the Overlay Class
-        self.attr['vpc_tep_ip']= None
-        self.tunnels = []
+        super(ConcreteOverlay, self).__init__(parent=parent)
+        self.attr = {'vpc_tep_ip': None,
+                     'src_tep_ip': None,
+                     'proxy_ip_mac': None,
+                     'proxy_ip_v4': None,
+                     'proxy_ip_v6': None}
+        self.node = None
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteTunnel]
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = []
+
+        return resp
 
     @classmethod
     def get(cls, top, parent=None):
         """
         Gather all the Overlay information for a switch
+        The overlay object does not have a corresponding object in the APIC
+        so does not cause a direct read of the APIC itself.  The children,
+        tunnels, of the ConcreteOverlay are what trigger the read of the APIC.
 
         :param parent:
-       :param top: the topSystem level json object
-       :returns: Single overlay object
+        :param top: the topSystem level json object
+        :returns: Single overlay object in a list
         """
-        data = top.get_class('tunnelIf')
+        cls.check_parent(parent)
         ovly = cls()
-        tunnels = []
-
-        ###Adding the VPC VTEP to the list to help figure Tunnel endpoints
+        ovly._top = top
+        # Adding the VPC VTEP to the list to help figure Tunnel endpoints
         if parent.vpc_info:
-            if parent.vpc_info['oper_state']=='active':
-                ovly.attr['vpc_tep_ip']=parent.vpc_info['vtep_ip'].split('/')[0]
+            if parent.vpc_info['oper_state'] == 'active':
+                ovly.attr['vpc_tep_ip'] = parent.vpc_info['vtep_ip'].split('/')[0]
 
-        for obj in data:
-            if 'tunnelIf' in obj:
-                tunnels.append(ovly._populate_from_attributes(obj['tunnelIf']['attributes']))
-        if tunnels:
-            ovly.tunnels = sorted(tunnels, key=lambda x: (x['id']))
-        else:
-            ovly.tunnels = tunnels
         if parent:
             ovly._parent = parent
             ovly._parent.add_child(ovly)
+            ovly.node = ovly._parent.node
+            ovly.pod = ovly._parent.pod
 
-        return ovly
-
-    def _populate_from_attributes(self, attr):
-        """
-        This will populate the tunnel object
-
-        :param attr: Attributes of the APIC object
-        """
-        self.attr['src_tep_ip'] = str(attr['src']).split('/')[0]
-        tunnel = {'dest_tep_ip': str(attr['dest']),
-                  'id': str(attr['id']),
-                  'oper_st': str(attr['operSt']),
-                  'oper_st_qual': str(attr['operStQual']),
-                  'context': str(attr['vrfName']),
-                  'type': str(attr['type']),
-                  'dn': str(attr['dn'])}
-
-        if 'proxy-acast-mac' in tunnel['type']:
-            self.attr['proxy_ip_mac'] = tunnel['dest_tep_ip']
-        if 'proxy-acast-v4' in tunnel['type']:
-            self.attr['proxy_ip_v4'] = tunnel['dest_tep_ip']
-        if 'proxy-acast-v6' in tunnel['type']:
-            self.attr['proxy_ip_v6'] = tunnel['dest_tep_ip']
-        return tunnel
+        return [ovly]
 
     @staticmethod
     def get_table(overlay, title=''):
@@ -2303,17 +2706,6 @@ class ConcreteOverlay(BaseACIPhysObject):
             result.append(
                 Table(table, headers, title=title + 'Overlay Config', table_orientation='vertical', columns=1))
 
-            headers = ['Tunnel', 'Context', 'Dest TEP IP', 'Type', 'Oper St',
-                       'Oper State Qualifier']
-            table = []
-            for tunnel in ovly.tunnels:
-                table.append([tunnel.get('id', ''),
-                              tunnel.get('context', ''),
-                              tunnel.get('dest_tep_ip', ''),
-                              tunnel.get('type', ''),
-                              tunnel.get('oper_st', ''),
-                              tunnel.get('oper_st_qual', '')])
-            result.append(Table(table, headers, title=title + 'Overlay Tunnels'))
         return result
 
     def _define_searchables(self):
@@ -2322,31 +2714,38 @@ class ConcreteOverlay(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        result = [Searchable('overlay')]
-        if 'src_tep_ip' in self.attr:
-            result.append(Searchable('ipv4', self.attr['src_tep_ip']))
+        result = Searchable()
+        result.add_term('type', 'overlay')
+        result.add_term('ipv4', self.attr['vpc_tep_ip'])
+        result.add_term('ipv4', self.attr['src_tep_ip'])
+        result.add_term('ipv4', self.attr['proxy_ip_v4'], 'secondary')
 
-        if 'proxy_ip_v4' in self.attr:
-            result.append(Searchable('ipv4', self.attr['proxy_ip_v4'], 'indirect'))
+        result.add_term('ipv4', self.attr['proxy_ip_v6'], 'secondary')
 
-        if 'proxy_ip_v6' in self.attr:
-            result.append(Searchable('ipv4', self.attr['proxy_ip_v6'], 'indirect'))
+        result.add_term('ipv4', self.attr['proxy_ip_mac'], 'secondary')
 
-        if 'proxy_ip_mac' in self.attr:
-            result.append(Searchable('ipv4', self.attr['proxy_ip_mac'], 'indirect'))
+        return [result]
 
-        for tunnel in self.tunnels:
-            result.append(Searchable('tunnel'))
-            if 'id' in tunnel:
-                result.append(Searchable('id', tunnel['id']))
+    def populate_children(self, deep=False, include_concrete=False):
+        """
+        Populates all of the children and then calls populate_children\
+        of those children if deep is True.  This method should be\
+        overridden by any object that does have children.
 
-            if 'context' in tunnel:
-                result.append(Searchable('context', tunnel['context']))
+        If include_concrete is True, then if the object has concrete objects
+        below it, i.e. is a switch, then also populate those conrete object.
 
-            if 'dest_tep_ip' in tunnel:
-                result.append(Searchable('ipv4', tunnel['dest_tep_ip'], 'indirect'))
+        :param include_concrete: True or False. Default is False
+        :param deep: True or False.  Default is False.
+        """
+        for child_class in self._get_children_classes():
+            child_class.get(self._top, self)
 
-        return result
+        if deep:
+            for child in self._children:
+                child.populate_children(deep, include_concrete)
+
+        return self._children
 
     def __str__(self):
         """
@@ -2359,8 +2758,12 @@ class ConcreteOverlay(BaseACIPhysObject):
     def __eq__(self, other):
 
         """
-        Checks that the interfaces are equal
+        Checks that the overlays are equal
         :param other:
         :return: True if equal
         """
-        return self.attr.get('dn') == other.attr.get('dn')
+        if isinstance(other, self.__class__):
+            self_key = self.get_parent()
+            other_key = other.get_parent()
+            return self_key == other_key
+        return NotImplemented

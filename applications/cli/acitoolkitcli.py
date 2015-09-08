@@ -74,9 +74,12 @@ class SubMode(Cmd):
         self.negative = False
         self.apic = None
 
+    def set_prompt(self):
+        """ Should be overridden by inheriting classes """
+        pass
+
     def do_show(self, args, to_return=False):
         """ Show running system information"""
-        detail = False
         words = args.strip().split(' ')
         if len(words) > 1:
             if words[1] == 'detail':
@@ -284,6 +287,7 @@ class SubMode(Cmd):
         pass
 
     def complete_show(self, text, line, begidx, endidx):
+        " Complete the show command "
         show_args = ['bridgedomain', 'context', 'contract', 'app',
                      'port-channel', 'epg', 'infradomains', 'interface',
                      'tenant']
@@ -291,6 +295,7 @@ class SubMode(Cmd):
         return completions
 
     def complete_no(self, text, line, begidx, endidx):
+        " Complete the negative command "
         args, num, last_arg = self.get_args_num_last(text, line)
         do_args = self.completenames('' if len(args) <= 1 else args[1])
         pos_args = self.filter_args(NOT_NO_ARGS, do_args)
@@ -304,6 +309,7 @@ class SubMode(Cmd):
             return compfunc(text, line.partition(' ')[2], begidx, endidx)
 
     def do_no(self, *args):
+        " Negate the command "
         pass
 
     def do_exit(self, args):
@@ -1071,7 +1077,7 @@ class ContractConfigSubMode(SubMode):
                 elif oprt == 'gt':
                     port.insert(1, 65535)
                 elif oprt == 'eq':
-                    port.insert(0, args[idx+3])
+                    port.insert(0, args[idx + 3])
                 return port
             else:
                 return [0, 0]

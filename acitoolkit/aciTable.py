@@ -25,8 +25,12 @@
 #    under the License.                                                        #
 #                                                                              #
 ################################################################################
+"""
+A table class that allows data and headers to be added to the class and then a nicely formatted table
+retrieved from the class.
+
+"""
 from tabulate import tabulate
-import copy
 
 
 class Table(object):
@@ -56,9 +60,9 @@ class Table(object):
     of the formatting options.
     """
 
-    def __init__(self, data=None, headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
+    def __init__(self, data=(), headers=(), title=None, tablefmt='grid', floatfmt="g", numalign="decimal",
                  stralign="center",
-                 missingval="", columns = 1, table_orientation = 'horizontal'):
+                 missingval="", columns=1, table_orientation='horizontal'):
         """
 
         :param data: list of table data.  Each row is a list and each table is a list of rows
@@ -73,7 +77,11 @@ class Table(object):
         :param table_orientation: Orientation - 'Horizontal' or 'Vertical'. Default is 'Horizontal'
         """
         # TODO: make table_orientation dynamic, i.e. determined based on the number of rows vs. number of columns.
-        self.data = data
+        # TODO: make titles conform to tablefmt
+        self.data = [
+            [str(cell) if cell is not None else '' for cell in row]
+            for row in data
+        ]
         self.headers = headers
         self.tablefmt = tablefmt
         self.floatfmt = floatfmt
@@ -84,13 +92,6 @@ class Table(object):
         self.columns = columns
         assert(table_orientation in ['horizontal', 'vertical'])
         self.table_orientation = table_orientation
-
-        for row_index in range(len(self.data)):
-            for column_index in range(len(self.data[row_index])):
-                if self.data[row_index][column_index] is None:
-                    self.data[row_index][column_index] = ''
-                if type(self.data[row_index][column_index]) is not str:
-                    self.data[row_index][column_index] = str(self.data[row_index][column_index])
 
     def get_text(self, title=None, tablefmt=None, floatfmt=None, numalign=None, stralign=None,
                  missingval=None, supresstitle=False, columns=None, table_orientation=None):
@@ -129,21 +130,13 @@ class Table(object):
         if table_orientation == 'vertical':
 
             if self.headers:
-                assert(len(self.headers) == len(self.data[0]),
-                       'Headers and Data have different lenghts - {0} and {1} respectively'
-                       .format(len(self.headers), len(self.data[0])))
-
-            # rotate table
-            table_data = []
-            row_len = len(self.data[0])
-            for index in range(row_len):
-                new_row = []
-                if self.headers:
-                    new_row.append(self.headers[index])
-                for row in self.data:
-                    new_row.append(row[index])
-                table_data.append(new_row)
-
+                assert len(self.data[0]) == len(self.headers),\
+                    'Headers and Data have different lenghts - {0} and {1} respectively'\
+                    .format(len(self.headers), len(self.data[0]))
+                rows = [self.headers] + self.data
+            else:
+                rows = self.data
+            table_data = list(zip(*rows))  # transpose table
             header_data = []
         else:
             table_data = self.data
@@ -151,9 +144,9 @@ class Table(object):
 
         if columns == 1:
             result += tabulate(table_data, header_data, tablefmt=tablefmt, floatfmt=floatfmt,
-                               numalign=numalign, stralign=stralign, missingval=missingval)+'\n'
+                               numalign=numalign, stralign=stralign, missingval=missingval) + '\n'
         else:
-            table1_len = (len(table_data)+1)/2
+            table1_len = (len(table_data) + 1) / 2
             table2_len = len(table_data) - table1_len
 
             data1 = table_data[0:table1_len]
@@ -184,20 +177,20 @@ class Table(object):
 
         :return: "title"
         """
-        return '\"'+self.title+'\"'
+        return '\"' + self.title + '\"'
 
-    def multi_column(self, table_text):
-        """
-
-        :return: new, multi-column table text
-        """
-        result = ''
-        rows = table_text.split('\n')
-        for index in range(len(rows)/2):
-            result += rows[index]
-            if (len(rows)/2 + index) < len(rows):
-                result += rows[len(rows)/2 + index] + '\n'
-            else:
-                result += '\n'
-
-        return result
+    # def multi_column(self, table_text):
+    #     """
+    #
+    #     :return: new, multi-column table text
+    #     """
+    #     result = ''
+    #     rows = table_text.split('\n')
+    #     for index in range(len(rows)/2):
+    #         result += rows[index]
+    #         if (len(rows)/2 + index) < len(rows):
+    #             result += rows[len(rows)/2 + index] + '\n'
+    #         else:
+    #             result += '\n'
+    #
+    #     return result
