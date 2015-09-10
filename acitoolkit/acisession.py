@@ -36,6 +36,7 @@ import logging
 import ssl
 import threading
 import time
+import socket
 
 import requests
 try:
@@ -253,6 +254,8 @@ class Subscriber(threading.Thread):
             self.event_handler_thread.start()
         except WebSocketException:
             logging.error('Unable to open websocket connection due to WebSocketException')
+        except socket.error:
+            logging.error('Unable to open websocket connection due to Socket Error')
 
     def _resubscribe(self):
         """
