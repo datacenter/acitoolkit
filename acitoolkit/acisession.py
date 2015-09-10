@@ -89,7 +89,7 @@ class Login(threading.Thread):
         while not self._exit:
             time.sleep(self._login_timeout)
             try:
-                resp = self._apic.refresh_login(timeout=30)
+                resp = self._apic.refresh_login(timeout=120)
             except ConnectionError:
                 logging.error('Could not refresh APIC login due to ConnectionError')
                 self._login_timeout = 30
