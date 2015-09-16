@@ -153,7 +153,7 @@ class Tenant(BaseACIObject):
         resp = []
         if (isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names)):
             raise TypeError('names should be a Sequence of strings')
-        names = names or [tenant.name for tenant in Tenant.get(session)]
+        names = list(names) or [tenant.name for tenant in Tenant.get(session)]
         if 'common' in names:
             # If tenant common is part of the list, put it at the front so we populate that first
             names.remove('common')
