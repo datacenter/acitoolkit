@@ -763,6 +763,7 @@ class EPG(CommonEPG):
         self.class_id = attributes.get('pcTag')
         self.scope = attributes.get('scope')
         self.name = attributes.get('name')
+        self.dn = self.get_dn_from_attributes(attributes)
 
     # Infrastructure Domain references
     def add_infradomain(self, infradomain):
@@ -1940,6 +1941,8 @@ class BridgeDomain(BaseACIObject):
         self.unknown_mac_unicast = attributes.get('unkMacUcastAct')
         self.unknown_multicast = attributes.get('unkMcastAct')
         self.modified_time = attributes.get('modTs')
+        dn = attributes.get('dn')
+        self.dn = self.get_dn_from_attributes(attributes)
 
     @staticmethod
     def get_table(bridge_domains, title=''):
@@ -2088,6 +2091,7 @@ class Subnet(BaseACIObject):
         Called from the base object when calling the classmethod get()
         """
         self.set_addr(str(attributes.get('ip')))
+        self.dn = self.get_dn_from_attributes(attributes)
 
     @classmethod
     def get(cls, session, bridgedomain, tenant):
@@ -2106,6 +2110,9 @@ class Subnet(BaseACIObject):
         return BaseACIObject.get(session, cls, 'fvSubnet',
                                  parent=bridgedomain, tenant=tenant)
 
+    @property
+    def addr(self):
+        return self._addr
 
 class Context(BaseACIObject):
     """ Context :  roughly equivalent to fvCtx """
@@ -2177,6 +2184,7 @@ class Context(BaseACIObject):
         self.class_id = attributes.get('pcTag')
         self.scope = attributes.get('scope')
         self.vnid = attributes.get('seg')
+        self.dn = self.get_dn_from_attributes(attributes)
         dn = attributes.get('dn')
         if dn is not None:
             self.tenant = self._get_tenant_from_dn(dn)
@@ -2331,6 +2339,7 @@ class ContractInterface(BaseACIObject):
         self.descr = attributes.get('descr')
         self.modified_time = attributes.get('modTs')
         self.name = attributes.get('name')
+        self.dn = self.get_dn_from_attributes(attributes)
         dn = attributes.get('dn')
         if dn is not None:
             self.tenant = self._get_tenant_from_dn(dn)
@@ -2495,11 +2504,12 @@ class Contract(BaseContract):
         contract_data = working_data[0]['vzBrCP']
         contract = Contract(str(contract_data['attributes']['name']),
                             parent)
-
+        contract._populate_from_attributes(contract_data['attributes'])
         for child in contract_data.get('children', ()):
             if 'vzSubj' in child:
                 subject = child['vzSubj']
                 subj = ContractSubject(child['vzSubj']['attributes']['name'], contract)
+                subj._populate_from_attributes(child['vzSubj']['attributes'])
 
     @classmethod
     def get(cls, session, tenant):
@@ -2676,7 +2686,7 @@ class Filter(BaseACIObject):
     def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
         filter_data = working_data[0]['vzFilter']
         filt = Filter(str(filter_data['attributes']['name']), parent)
-
+        filt._populate_from_attributes(filter_data['attributes'])
         for child in filter_data.get('children', ()):
             if 'vzEntry' in child:
                 FilterEntry.create_from_apic_json(child, filt)
@@ -2831,6 +2841,7 @@ class FilterEntry(BaseACIObject):
         self.sFromPort = str(attributes['sFromPort'])
         self.sToPort = str(attributes['sToPort'])
         self.tcpRules = str(attributes['tcpRules'])
+        self.dn = self.get_dn_from_attributes(attributes)
 
     def get_json(self):
         """
@@ -3245,6 +3256,7 @@ class Endpoint(BaseACIObject):
         self.mac = str(attributes.get('mac'))
         self.ip = str(attributes.get('ip'))
         self.encap = str(attributes.get('encap'))
+        self.dn = self.get_dn_from_attributes(attributes)
 
     @classmethod
     def get_event(cls, session, with_relations=True):
@@ -3502,6 +3514,7 @@ class IPEndpoint(BaseACIObject):
         return None
 
     def _populate_from_attributes(self, attributes):
+        self.dn = self.get_dn_from_attributes(attributes)
         if 'addr' not in attributes:
             return
         self.ip = str(attributes.get('addr'))
@@ -5185,7 +5198,8 @@ class LogicalModel(BaseACIObject):
 
         super(LogicalModel, self).__init__(name='', parent=parent)
 
-        self.session = session
+        self._session = session
+        self.dn = 'logical'
 
     @classmethod
     def get(cls, session=None, parent=None):
@@ -5198,22 +5212,36 @@ class LogicalModel(BaseACIObject):
         logical_model = LogicalModel(session=session, parent=parent)
         return [logical_model]
 
+    @staticmethod
+    def _get_children_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [Tenant]
+
     def populate_children(self, deep=False, include_concrete=False):
         """
-        This method will populate the children of the logical model starting with Tenant.  If deep is set
-        to True, it will populate the logical tree.
+        Populates all of the children and then calls populate_children\
+        of those children if deep is True.  This method should be\
+        overridden by any object that does have children.
 
+        If include_concrete is True, then if the object has concrete objects
+        below it, i.e. is a switch, then also populate those conrete object.
 
-        :param deep:
-        :param include_concrete:
-        :return: list of immediate children objects
+        :param include_concrete: True or False. Default is False
+        :param deep: True or False.  Default is False.
         """
-        tenants = Tenant.get_deep(self.session, parent=self)
-        if deep:
-            for child in self._children:
-                child.populate_children(deep, include_concrete)
+        for child_class in self._get_children_classes():
+            if deep:
+                child_class.get_deep(self._session, parent=self)
+            else:
+                child_class.get(self._session, self)
 
         return self._children
+
 
     def _define_searchables(self):
         """
