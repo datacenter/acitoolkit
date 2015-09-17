@@ -153,7 +153,11 @@ class Tenant(BaseACIObject):
         resp = []
         if (isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names)):
             raise TypeError('names should be a Sequence of strings')
-        names = names or [tenant.name for tenant in Tenant.get(session)]
+        names = list(names) or [tenant.name for tenant in Tenant.get(session)]
+        if 'common' in names:
+            # If tenant common is part of the list, put it at the front so we populate that first
+            names.remove('common')
+            names.insert(0, 'common')
         params = {'query-target': 'self', 'rsp-subtree': subtree}
         if limit_to:
             params['rsp-subtree-class'] = ','.join(limit_to)
@@ -872,17 +876,45 @@ class EPG(CommonEPG):
                 contract_search = Search()
                 contract_search.name = contract_name
                 objs = tenant.find(contract_search)
-                for contract in objs:
-                    if isinstance(contract, Contract):
-                        self.provide(contract)
+                if len(objs):
+                    for contract in objs:
+                        if isinstance(contract, Contract):
+                            self.provide(contract)
+                else:
+                    # Need to check tenant common (if available)
+                    fabric = tenant.get_parent()
+                    if fabric is not None:
+                        tenant_search = Search()
+                        tenant_search.name = 'common'
+                        tenant_common = fabric.find(tenant_search)
+                        if len(tenant_common):
+                            objs = tenant_common[0].find(contract_search)
+                            if len(objs):
+                                for contract in objs:
+                                    if isinstance(contract, Contract):
+                                        self.provide(contract)
             elif 'fvRsCons' in child:
                 contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
                 contract_search = Search()
                 contract_search.name = contract_name
                 objs = tenant.find(contract_search)
-                for contract in objs:
-                    if isinstance(contract, Contract):
-                        self.consume(contract)
+                if len(objs):
+                    for contract in objs:
+                        if isinstance(contract, Contract):
+                            self.consume(contract)
+                else:
+                    # Need to check tenant common (if available)
+                    fabric = tenant.get_parent()
+                    if fabric is not None:
+                        tenant_search = Search()
+                        tenant_search.name = 'common'
+                        tenant_common = fabric.find(tenant_search)
+                        if len(tenant_common):
+                            objs = tenant_common[0].find(contract_search)
+                            if len(objs):
+                                for contract in objs:
+                                    if isinstance(contract, Contract):
+                                        self.consume(contract)
         super(EPG, self)._extract_relationships(data)
 
     # Output

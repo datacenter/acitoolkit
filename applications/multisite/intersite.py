@@ -148,6 +148,7 @@ class EndpointHandler(object):
                 for l3instp in l3out['l3extOut']['children']:
                     if 'l3extInstP' not in l3instp:
                         continue
+                    remove_list = []
                     for ep in l3instp['l3extInstP']['children']:
                         if 'l3extSubnet' not in ep:
                             continue
@@ -156,7 +157,9 @@ class EndpointHandler(object):
                         if endpoint.ip == '':
                             logging.warning('Endpoint has no IP %s %s', endpoint.name, endpoint.ip)
                         if ep['l3extSubnet']['attributes']['name'] == endpoint.ip:
-                            l3instp['l3extInstP']['children'].remove(ep)
+                            remove_list.append(ep)
+                    for ep in remove_list:
+                        l3instp['l3extInstP']['children'].remove(ep)
 
     def _merge_tenant_json(self, remote_site, new_json):
         """
@@ -990,6 +993,8 @@ class LocalSite(Site):
                     children = []
                     for item in resp.json()['imdata']:
                         ip_addr = item['l3extSubnet']['attributes']['ip'].rpartition('-')[-1]
+                        if '/32' in ip_addr:
+                            ip_addr = ip_addr.rpartition('/32')[0]
                         if ip_addr not in local_endpoints:
                             # Delete this L3out entry
                             data = {'l3extSubnet': {'attributes': {'ip': ip_addr,
