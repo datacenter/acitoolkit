@@ -38,7 +38,6 @@ of the Endpoints.
 import sys
 import acitoolkit.acitoolkit as aci
 import warnings
-import re
 import argparse
 import os
 import logging
@@ -115,23 +114,18 @@ def tracker(args):
             continue
         app_profile = epg.get_parent()
         tenant = app_profile.get_parent()
-        if ep.if_dn:
-            for dn in ep.if_dn:
-                match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
-                if match.group(1) and match.group(2):
-                    int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
-                    pass
-        else:
-            int_name = ep.if_name
-
-        data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
-                int_name, convert_timestamp_to_mysql(ep.timestamp))
+        try:
+            data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
+                    ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
+        except ValueError, e:
+            if args.daemon:
+                logging.info(e)
+            continue
 
         ep_exists = c.execute("""SELECT * FROM endpoints
                                  WHERE mac="%s"
                                  AND
                                  timestop="0000-00-00 00:00:00";""" % ep.mac)
-        c.fetchall()
         if not ep_exists:
             c.execute("""INSERT INTO endpoints (mac, ip, tenant,
                          app, epg, interface, timestart)
@@ -156,23 +150,13 @@ def tracker(args):
                 data = (convert_timestamp_to_mysql(ep.timestamp),
                         ep.mac,
                         tenant.name)
-                update_cmd = """UPDATE endpoints SET timestop='%s',
-                                timestart=timestart
+                update_cmd = """UPDATE endpoints SET timestop='%s'
                                 WHERE mac='%s' AND tenant='%s' AND
                                 timestop='0000-00-00 00:00:00'""" % data
                 c.execute(update_cmd)
             else:
-                if ep.if_dn:
-                    for dn in ep.if_dn:
-                        match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
-                        if match.group(1) and match.group(2):
-                            int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
-                            pass
-                else:
-                    int_name = ep.if_name
-
                 data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
-                        int_name, convert_timestamp_to_mysql(ep.timestamp))
+                        ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
                 insert_data = "'%s', '%s', '%s', '%s', '%s', '%s', '%s'" % data
                 query_data = ("mac='%s', ip='%s', tenant='%s', "
                               "app='%s', epg='%s', interface='%s', "
@@ -188,6 +172,8 @@ def tracker(args):
                                         VALUES (%s)""" % insert_data
                         c.execute(insert_cmd)
             cnx.commit()
+
+        time.sleep(0.1)
 
 class Daemonize(Daemon):
     """
@@ -235,16 +221,17 @@ def main():
                             description=description)
     args = creds.get()
 
-    pid = '/var/run/endpointracker.pid'
-    if args.daemon:
+    if args.daemon or args.kill or args.restart:
+        args.daemon = True
+        pid = '/var/run/endpointracker.pid'
         daemon = Daemonize(args, pid)
-        daemon.start()
-    elif args.kill:
-        daemon = Daemonize(args, pid)
+
+    if args.kill:
         daemon.stop()
     elif args.restart:
-        daemon = Daemonize(args, pid)
         daemon.restart()
+    elif args.daemon:
+        daemon.start()
     else:
         tracker(args)
 
