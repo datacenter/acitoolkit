@@ -118,9 +118,11 @@ def tracker(args):
         if ep.if_dn:
             for dn in ep.if_dn:
                 match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
-                if match.group(1) and match.group(2):
-                    int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
-                    pass
+                if match:
+                    if match.group(1) and match.group(2):
+                        int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                        pass
+                
         else:
             int_name = ep.if_name
 
@@ -170,9 +172,10 @@ def tracker(args):
                 if ep.if_dn:
                     for dn in ep.if_dn:
                         match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
-                        if match.group(1) and match.group(2):
-                            int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
-                            pass
+                        if match:
+                            if match.group(1) and match.group(2):
+                                int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                                pass
                 else:
                     int_name = ep.if_name
 
