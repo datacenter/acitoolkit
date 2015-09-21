@@ -118,14 +118,21 @@ def tracker(args):
         if ep.if_dn:
             for dn in ep.if_dn:
                 match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
-                if match.group(1) and match.group(2):
-                    int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
-                    pass
+                if match:
+                    if match.group(1) and match.group(2):
+                        int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                        pass
+                
         else:
             int_name = ep.if_name
 
-        data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
-                int_name, convert_timestamp_to_mysql(ep.timestamp))
+        try:
+            data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
+                    ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
+        except ValueError, e:
+            if args.daemon:
+                logging.info(e)
+            continue
 
         ep_exists = c.execute("""SELECT * FROM endpoints
                                  WHERE mac="%s"
@@ -165,9 +172,10 @@ def tracker(args):
                 if ep.if_dn:
                     for dn in ep.if_dn:
                         match = re.match('protpaths-(\d+)-(\d+)', dn.split('/')[2])
-                        if match.group(1) and match.group(2):
-                            int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
-                            pass
+                        if match:
+                            if match.group(1) and match.group(2):
+                                int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
+                                pass
                 else:
                     int_name = ep.if_name
 
@@ -188,18 +196,20 @@ def tracker(args):
                                         VALUES (%s)""" % insert_data
                         c.execute(insert_cmd)
             cnx.commit()
+        # Sleep or else the endpointtracker will take 100% cpu
+        time.sleep(0.1)
 
 class Daemonize(Daemon):
     """
-    Daemonize the endpointracker
+    Daemonize the endpointtracker
     Creates a daemon and then runs the tracker function
     """
     def __init__(self,
                 args,
                 pidfile,
-                stdin='/var/log/endpointracker.log',
-                stdout='/var/log/endpointracker.log',
-                stderr='/var/log/endpointracker.log'
+                stdin='/var/log/endpointtracker.log',
+                stdout='/var/log/endpointtracker.log',
+                stderr='/var/log/endpointtracker.log'
                 ):
         self.args = args
         if not os.path.isfile(stdout):
@@ -210,7 +220,7 @@ class Daemonize(Daemon):
     def run(self):
         """If --daemon is set we run the tracker function
         """
-        logging.basicConfig(filename='/var/log/endpointracker.log',
+        logging.basicConfig(filename='/var/log/endpointtracker.log',
                             level=logging.INFO,
                             format=('%(asctime)s %(message)s'))
         logging.info('Starting endpointtracker')
@@ -235,16 +245,17 @@ def main():
                             description=description)
     args = creds.get()
 
-    pid = '/var/run/endpointracker.pid'
-    if args.daemon:
+    if args.daemon or args.kill or args.restart:
+        args.daemon = True
+        pid = '/var/run/endpointtracker.pid'
         daemon = Daemonize(args, pid)
-        daemon.start()
-    elif args.kill:
-        daemon = Daemonize(args, pid)
+
+    if args.kill:
         daemon.stop()
     elif args.restart:
-        daemon = Daemonize(args, pid)
         daemon.restart()
+    elif args.daemon:
+        daemon.start()
     else:
         tracker(args)
 
