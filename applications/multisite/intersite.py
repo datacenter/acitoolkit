@@ -1330,10 +1330,14 @@ class MultisiteCollector(object):
                 new_config = json.load(config_file)
         except IOError:
             print '%% Could not load configuration file'
-            return
+            return False
+        except ValueError as e:
+            print 'Could not load improperly formatted configuration file'
+            print e
+            return False
         if 'config' not in new_config:
             print '%% Invalid configuration file'
-            return
+            return False
         old_config = self.config
         logging.debug('Old configuration: %s', self.config.get_config())
         try:
@@ -1341,7 +1345,7 @@ class MultisiteCollector(object):
         except ValueError as e:
             print 'Could not load improperly formatted configuration file'
             print e
-            return
+            return False
         # Handle any changes in site configuration
         added_local_site = self._reload_sites(old_config, new_config)
         self.config = new_config
@@ -1353,7 +1357,7 @@ class MultisiteCollector(object):
         local_site = self.get_local_site()
         if local_site is None:
             print '%% No local site configured'
-            return
+            return False
 
         # Handle any policies that have been deleted
         for old_policy in old_config.export_policies:
@@ -1372,6 +1376,7 @@ class MultisiteCollector(object):
         for new_policy in new_config.export_policies:
             local_site.add_policy(new_policy)
         local_site.process_policy_queue()
+        return True
 
     def save_config(self, config):
         logging.info('')
@@ -1502,8 +1507,8 @@ class CommandLine(cmd.Cmd):
         reloadconfig
         Reload the configuration file and apply the configuration.
         '''
-        self.collector.reload_config()
-        print 'Configuration reload complete'
+        if self.collector.reload_config():
+            print 'Configuration reload complete'
 
     def do_configfile(self, filename):
         '''
