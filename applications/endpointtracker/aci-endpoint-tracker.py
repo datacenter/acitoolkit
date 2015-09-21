@@ -201,15 +201,15 @@ def tracker(args):
 
 class Daemonize(Daemon):
     """
-    Daemonize the endpointracker
+    Daemonize the endpointtracker
     Creates a daemon and then runs the tracker function
     """
     def __init__(self,
                 args,
                 pidfile,
-                stdin='/var/log/endpointracker.log',
-                stdout='/var/log/endpointracker.log',
-                stderr='/var/log/endpointracker.log'
+                stdin='/var/log/endpointtracker.log',
+                stdout='/var/log/endpointtracker.log',
+                stderr='/var/log/endpointtracker.log'
                 ):
         self.args = args
         if not os.path.isfile(stdout):
@@ -220,7 +220,7 @@ class Daemonize(Daemon):
     def run(self):
         """If --daemon is set we run the tracker function
         """
-        logging.basicConfig(filename='/var/log/endpointracker.log',
+        logging.basicConfig(filename='/var/log/endpointtracker.log',
                             level=logging.INFO,
                             format=('%(asctime)s %(message)s'))
         logging.info('Starting endpointtracker')
@@ -247,7 +247,7 @@ def main():
 
     if args.daemon or args.kill or args.restart:
         args.daemon = True
-        pid = '/var/run/endpointracker.pid'
+        pid = '/var/run/endpointtracker.pid'
         daemon = Daemonize(args, pid)
 
     if args.kill:
