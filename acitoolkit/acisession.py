@@ -36,6 +36,7 @@ import logging
 import ssl
 import threading
 import time
+import socket
 
 import requests
 try:
@@ -90,7 +91,7 @@ class Login(threading.Thread):
         while not self._exit:
             time.sleep(self._login_timeout)
             try:
-                resp = self._apic.refresh_login(timeout=30)
+                resp = self._apic.refresh_login(timeout=120)
             except ConnectionError:
                 logging.error('Could not refresh APIC login due to ConnectionError')
                 self._login_timeout = 30
@@ -254,6 +255,8 @@ class Subscriber(threading.Thread):
             self.event_handler_thread.start()
         except WebSocketException:
             logging.error('Unable to open websocket connection due to WebSocketException')
+        except socket.error:
+            logging.error('Unable to open websocket connection due to Socket Error')
 
     def _resubscribe(self):
         """
