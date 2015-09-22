@@ -43,7 +43,6 @@ from .aciphysobject import Interface
 from .acisession import Session
 from .aciTable import Table
 from .acitoolkitlib import Credentials
-from .aciSearch import Searchable
 
 
 def cmdline_login_to_apic(description=''):
@@ -249,18 +248,6 @@ class Tenant(BaseACIObject):
         table = Table(data, headers, title=title + 'Tenant')
         return [table, ]
 
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'tenant')
-        result.add_term('name', self.name)
-        result.add_term('tenant', self.name)
-
-        return [result]
-
 
 class AppProfile(BaseACIObject):
     """
@@ -366,17 +353,6 @@ class AppProfile(BaseACIObject):
                 ])
             result.append(Table(data, headers, title=title + 'Application Profile: {0}'.format(app_profile.name)))
         return result
-
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'app_profile')
-        result.add_term('name', self.name)
-        result.add_term('app_profile', self.name)
-        return [result]
 
 
 class L2Interface(BaseACIObject):
@@ -1042,23 +1018,6 @@ class EPG(CommonEPG):
         data = sorted(data)
         table = Table(data, headers, title=title + 'EPGs')
         return [table, ]
-
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'epg')
-        result.add_term('name', self.name)
-        if self.has_bd():
-            result.add_term('bd', self.get_bd().name, 'secondary')
-            if self.get_bd().has_context():
-                result.add_term('context', self.get_bd().get_context().name, 'secondary')
-        result.add_term('epg', self.name)
-        result.add_term('class', self.class_id)
-
-        return [result]
 
 
 class OutsideNetwork(CommonEPG):
@@ -2027,20 +1986,6 @@ class BridgeDomain(BaseACIObject):
         table = Table(data, headers, title=title + 'Bridge Domains')
         return [table, ]
 
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'bd')
-        result.add_term('name', self.name)
-        result.add_term('vnid', self.vnid)
-        result.add_term('scope', self.scope)
-        result.add_term('class', self.class_id)
-        result.add_term('mac', self.mac)
-        return [result]
-
 
 class Subnet(BaseACIObject):
     """ Subnet :  roughly equivalent to fvSubnet """
@@ -2501,6 +2446,12 @@ class BaseContract(BaseACIObject):
         resp_json.append(contract)
         return resp_json
 
+    def get_attributes(self, name=None):
+
+        result = super(BaseContract, self).get_attributes(name)
+        result['scope'] = self.get_scope()
+        return result
+
 
 class Contract(BaseContract):
     """ Contract :  Class for Contracts """
@@ -2571,18 +2522,6 @@ class Contract(BaseContract):
 
             result.append(Table(data, headers, title=title + 'Contract:{0}'.format(contract.name)))
         return result
-
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'contract')
-        result.add_term('name', self.name)
-        result.add_term('contract', self.name)
-        result.add_term('scope', self.get_scope())
-        return [result]
 
 
 class ContractSubject(BaseACIObject):
@@ -2793,17 +2732,6 @@ class Taboo(BaseContract):
             result.append(Table(data, headers, title=title + 'Taboo:{0}'.format(taboo.name)))
         return result
 
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'taboo')
-        result.add_term('name', self.name)
-        result.add_term('scope', self.get_scope())
-        return [result]
-
 
 class FilterEntry(BaseACIObject):
     """ FilterEntry :  roughly equivalent to vzEntry """
@@ -2983,17 +2911,6 @@ class FilterEntry(BaseACIObject):
         data = sorted(data)
         table = Table(data, headers, title=title + 'Filters')
         return [table, ]
-
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'filter')
-        result.add_term('name', self.name)
-        result.add_term('filter', self.name)
-        return [result]
 
     @staticmethod
     def _get_port(from_port, to_port):
@@ -3491,19 +3408,6 @@ class Endpoint(BaseACIObject):
         data = sorted(data, key=itemgetter(1, 2, 3, 4))
         result.append(Table(data, headers, title=title + 'Endpoints'))
         return result
-
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        """
-        result = Searchable()
-        result.add_term('type', 'endpoint')
-        result.add_term('name', self.name)
-        result.add_term('mac', self.mac)
-        result.add_term('ip', self.ip)
-        result.add_term('interface', self.if_name)
-        return [result]
 
 
 class IPEndpoint(BaseACIObject):
@@ -5274,13 +5178,12 @@ class LogicalModel(BaseACIObject):
 
         return self._children
 
-
     def _define_searchables(self):
         """
         Create all of the searchable terms
 
         """
-        result = Searchable()
-        result.add_term('model', 'logical')
+        results = super(LogicalModel, self)._define_searchables()
+        results[0].add_term('model', 'logical')
 
-        return [result]
+        return results
