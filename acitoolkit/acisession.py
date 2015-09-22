@@ -49,7 +49,8 @@ from requests.exceptions import ConnectionError
 
 try:
     import urllib3
-except ImportError:
+    urllib3.disable_warnings()
+except (ImportError, AttributeError):
     pass
 else:
     try:
@@ -205,7 +206,10 @@ class Subscriber(threading.Thread):
         # while we are refreshing
         current_subscriptions = {}
         for subscription in self._subscriptions:
-            current_subscriptions[subscription] = self._subscriptions[subscription]
+            try:
+                current_subscriptions[subscription] = self._subscriptions[subscription]
+            except KeyError:
+                logging.warning('Subscription removed while copying')
 
         # Refresh the subscriptions
         for subscription in current_subscriptions:
@@ -213,7 +217,11 @@ class Subscriber(threading.Thread):
                 if not self._ws.connected:
                     logging.warning('Websocket not established on subscription refresh. Re-establishing websocket')
                     self._open_web_socket('https://' in subscription)
-            subscription_id = self._subscriptions[subscription]
+            try:
+                subscription_id = self._subscriptions[subscription]
+            except KeyError:
+                logging.warning('Subscription has been removed while trying to refresh')
+                continue
             if subscription_id is None:
                 self._send_subscription(subscription)
                 continue
