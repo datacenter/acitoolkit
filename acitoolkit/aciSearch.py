@@ -88,6 +88,14 @@ class Searchable(object):
         else:
             return 'None'
 
+    @property
+    def object_class(self):
+        """
+        will return the acitoolkit class of the primary item as a string
+        :return: str
+        """
+        return self.primary.__class__.__name__
+
     # @property
     # def key_value(self):
     #
@@ -149,12 +157,19 @@ class AciSearch(object):
 
     def _define_searchables(self):
         """
-        Abstract method that should be implemented in each child object.
+        Abstract method that should be called in each child object.
         It is here that all of the searchable instances are defined for
         the object.  They are placed in a list and returned as the result
         :rtype : list
         """
-        return []
+        result = Searchable()
+        atk_attrs = self.get_attributes()
+        for atk_attr in atk_attrs:
+            if atk_attrs[atk_attr] is not None:
+                if not isinstance(atk_attrs[atk_attr], str):
+                    print 'wrong type', atk_attr
+                result.add_term(atk_attr, atk_attrs[atk_attr])
+        return [result]
 
     @staticmethod
     def _dedup_searchables(result):
