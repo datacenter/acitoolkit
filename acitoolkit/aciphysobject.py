@@ -160,7 +160,6 @@ class Systemcontroller(BaseACIPhysModule):
         if self.type == 'unknown':
             self.type = 'systemctrlcard'
 
-
 class Cluster(BaseACIObject):
     """
     Represents the global settings of the Cluster
@@ -352,22 +351,22 @@ class Linecard(BaseACIPhysModule):
         result.append(Table(table, headers, title=super_title + 'Linecards'))
         return result
 
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        :rtype : list of Searchable
-        """
-        results = super(Linecard, self)._define_searchables()
-
-        for result in results:
-            if self.hardware_version is not None:
-                result.add_term('version', self.hardware_version)
-
-            if self.hardware_revision is not None:
-                result.add_term('revision', self.hardware_revision)
-
-        return results
+    # def _define_searchables(self):
+    #     """
+    #     Create all of the searchable terms
+    #
+    #     :rtype : list of Searchable
+    #     """
+    #     results = super(Linecard, self)._define_searchables()
+    #
+    #     for result in results:
+    #         if self.hardware_version is not None:
+    #             result.add_term('version', self.hardware_version)
+    #
+    #         if self.hardware_revision is not None:
+    #             result.add_term('revision', self.hardware_revision)
+    #
+    #     return results
 
 
 class Supervisorcard(BaseACIPhysModule):
@@ -475,23 +474,23 @@ class Supervisorcard(BaseACIPhysModule):
         result.append(Table(table, headers, title=super_title + 'Supervisors'))
         return result
 
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        :rtype : list of Searchable
-        """
-
-        results = super(Supervisorcard, self)._define_searchables()
-
-        for result in results:
-            if self.hardware_version is not None:
-                result.add_term('version', self.hardware_version)
-
-            if self.hardware_revision is not None:
-                result.add_term('revision', self.hardware_revision)
-
-        return results
+    # def _define_searchables(self):
+    #     """
+    #     Create all of the searchable terms
+    #
+    #     :rtype : list of Searchable
+    #     """
+    #
+    #     results = super(Supervisorcard, self)._define_searchables()
+    #
+    #     for result in results:
+    #         if self.hardware_version is not None:
+    #             result.add_term('version', self.hardware_version)
+    #
+    #         if self.hardware_revision is not None:
+    #             result.add_term('revision', self.hardware_revision)
+    #
+    #     return results
 
 
 class Fantray(BaseACIPhysModule):
@@ -878,22 +877,22 @@ class Powersupply(BaseACIPhysModule):
         result.append(Table(table, headers, title=super_title + 'Power Supplies'))
         return result
 
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        :rtype : list of Searchable
-        """
-        results = super(Powersupply, self)._define_searchables()
-        for result in results:
-            if self.hardware_version is not None:
-                result.add_term('version', self.hardware_version)
-            if self.hardware_revision is not None:
-                result.add_term('revision', self.hardware_revision)
-            if self.voltage_source is not None:
-                result.add_term('voltage', self.voltage_source)
-
-        return results
+    # def _define_searchables(self):
+    #     """
+    #     Create all of the searchable terms
+    #
+    #     :rtype : list of Searchable
+    #     """
+    #     results = super(Powersupply, self)._define_searchables()
+    #     for result in results:
+    #         if self.hardware_version is not None:
+    #             result.add_term('version', self.hardware_version)
+    #         if self.hardware_revision is not None:
+    #             result.add_term('revision', self.hardware_revision)
+    #         if self.voltage_source is not None:
+    #             result.add_term('voltage', self.voltage_source)
+    #
+    #     return results
 
 
 class Pod(BaseACIPhysObject):
@@ -1024,7 +1023,7 @@ class Node(BaseACIPhysObject):
         self.macAddress = None
         self.state = None
         self.mode = None
-        self.operSt = None
+        self.oper_st = None
         self.operStQual = None
         self.descr = None
         self.model = None
@@ -1330,12 +1329,12 @@ class Node(BaseACIPhysObject):
     def _populate_from_attributes(self, attributes):
         """Fills in an object with the desired attributes.
         """
-        self.serial = attributes['serial']
-        self.model = attributes['model']
-        self.dn = attributes['dn']
-        self.vendor = attributes['vendor']
-        self.fabricSt = attributes['fabricSt']
-        self.modify_time = attributes['modTs']
+        self.serial = str(attributes['serial'])
+        self.model = str(attributes['model'])
+        self.dn = str(attributes['dn'])
+        self.vendor = str(attributes['vendor'])
+        self.fabricSt = str(attributes['fabricSt'])
+        self.modify_time = str(attributes['modTs'])
 
     def _get_topsystem_info(self, working_data):
         """ will read in topSystem object to get more information about Node"""
@@ -1357,52 +1356,56 @@ class Node(BaseACIPhysObject):
                 node_data = working_data.get_object(self.dn + '/sys/ch')
                 if node_data:
                     if 'eqptCh' in node_data:
-                        self.operSt = str(node_data['eqptCh']['attributes']['operSt'])
+                        self.oper_st = str(node_data['eqptCh']['attributes']['operSt'])
                         self.operStQual = str(node_data['eqptCh']['attributes']['operStQual'])
                         self.descr = str(node_data['eqptCh']['attributes']['descr'])
 
                 # get the total number of ports = number of l1PhysIf
                 node_data = working_data.get_subtree('l1PhysIf', self.dn + '/sys')
                 if node_data:
-                    self.num_ports = len(node_data)
+                    self.num_ports = str(len(node_data))
 
                 # get the total number of ports = number of fan slots
                 node_data = working_data.get_subtree('eqptFtSlot', self.dn + '/sys')
                 if node_data:
-                    self.num_fan_slots = len(node_data)
+                    self.num_fan_slots = str(len(node_data))
 
                 self.num_fan_modules = 0
                 if node_data:
                     for slot in node_data:
                         if slot['eqptFtSlot']['attributes']['operSt'] == 'inserted':
                             self.num_fan_modules += 1
+                self.num_fan_modules = str(self.num_fan_modules)
 
                 # get the total number of ports = number of linecard slots
                 node_data = working_data.get_subtree('eqptLCSlot', self.dn + '/sys/ch')
-                self.num_lc_slots = len(node_data)
+                self.num_lc_slots = str(len(node_data))
                 self.num_lc_modules = 0
                 if node_data:
                     for slot in node_data:
                         if slot['eqptLCSlot']['attributes']['operSt'] == 'inserted':
                             self.num_lc_modules += 1
+                self.num_lc_modules = str(self.num_lc_modules)
 
                 # get the total number of ports = number of power supply slots
                 node_data = working_data.get_subtree('eqptPsuSlot', self.dn + '/sys/ch')
-                self.num_ps_slots = len(node_data)
+                self.num_ps_slots = str(len(node_data))
                 self.num_ps_modules = 0
                 if node_data:
                     for slot in node_data:
                         if slot['eqptPsuSlot']['attributes']['operSt'] == 'inserted':
                             self.num_ps_modules += 1
+                self.num_ps_modules = str(self.num_ps_modules)
 
                 # get the total number of ports = number of supervisor slots
                 node_data = working_data.get_subtree('eqptSupCSlot', self.dn + '/sys/ch')
-                self.num_sup_slots = len(node_data)
+                self.num_sup_slots = str(len(node_data))
                 self.num_sup_modules = 0
                 if node_data:
                     for slot in node_data:
                         if slot['eqptSupCSlot']['attributes']['operSt'] == 'inserted':
                             self.num_sup_modules += 1
+                self.num_sup_modules = str(self.num_sup_modules)
 
                 # get dynamic load balancing config
                 self.dynamic_load_balancing_mode = 'unknown'
@@ -1419,6 +1422,14 @@ class Node(BaseACIPhysObject):
                 # for info in node_data:
                 #     if 'topoctrlVxlanP' in info:
                 #         self.ivxlan_udp_port = info['topoctrlVxlanP']['attributes']['udpPort']
+
+    @property
+    def operSt(self):
+        """
+        changed value to "oper_st" so this makes the class backward compatible
+        :return:
+        """
+        return self.oper_st
 
     def populate_children(self, deep=False, include_concrete=False):
         """Will populate all of the children modules such as
@@ -1534,36 +1545,23 @@ class Node(BaseACIPhysObject):
 
         :rtype : list of Searchable
         """
-        search_terms = []
+        results = super(Node, self)._define_searchables()
+
         if self.role != 'controller':
-            search_terms.append(('type', 'switch'))
-            search_terms.append(('switch', self.name))
-            search_terms.append(('switch', self.node))
+            results[0].add_term('switch', self.name)
+            results[0].add_term('switch', self.node)
         else:
-            search_terms.append(('type', 'controller'))
-            search_terms.append(('controller', self.name))
-            search_terms.append(('controller', self.node))
-            search_terms.append(('apic', self.name))
-            search_terms.append(('apic', self.node))
-        search_terms.append(('node', self.node))
-        if self.name:
-            search_terms.append(('name', self.name))
+            results[0].add_term('controller', self.name)
+            results[0].add_term('controller', self.node)
+            results[0].add_term('apic', self.name)
+            results[0].add_term('apic', self.node)
 
-        if self.serial:
-            search_terms.append(('serial', self.serial))
-        if self.model:
-            search_terms.append(('model', self.model))
-        if self.firmware:
-            search_terms.append(('firmware', self.firmware))
-        if self.role:
-            search_terms.append(('role', self.role))
+        results[0].add_term('ipv4', self.inb_mgmt_ip)
+        results[0].add_term('ipv4', self.oob_mgmt_ip)
+        results[0].add_term('management', self.inb_mgmt_ip)
+        results[0].add_term('management', self.oob_mgmt_ip)
 
-        search_terms.append(('ipv4', self.inb_mgmt_ip))
-        search_terms.append(('ipv4', self.oob_mgmt_ip))
-        search_terms.append(('management', self.inb_mgmt_ip))
-        search_terms.append(('management', self.oob_mgmt_ip))
-
-        return [Searchable(search_terms)]
+        return results
 
 
 class ExternalSwitch(BaseACIPhysObject):
@@ -1944,6 +1942,12 @@ class Link(BaseACIPhysObject):
         (pod, link) = Link._parse_dn(self.dn)
         self.pod = pod
         self.link = link
+        self.name = 'n{0}/s{1}/p{2}_n{3}/s{4}/p{5}'.format(self.node1,
+                                                      self.slot1,
+                                                      self.port1,
+                                                      self.node2,
+                                                      self.slot2,
+                                                      self.port2)
 
     def __str__(self):
         text = 'n%s/s%s/p%s-n%s/s%s/p%s' % (self.node1, self.slot1,
@@ -2141,7 +2145,7 @@ class Interface(BaseInterface):
         self._parent = parent
         if parent:
             self._parent.add_child(self)
-        self.stats = InterfaceStats(self, self.attributes.get('dist_name'))
+        self.stats = InterfaceStats(self, self.attributes.get('dn'))
 
     def is_interface(self):
         """
@@ -2559,7 +2563,8 @@ class Interface(BaseInterface):
             if 'l1PhysIf' in interface:
                 attributes = {}
                 dist_name = str(interface['l1PhysIf']['attributes']['dn'])
-                attributes['dist_name'] = dist_name
+                attributes['dn'] = dist_name
+
                 porttype = str(interface['l1PhysIf']['attributes']['portT'])
                 attributes['porttype'] = porttype
                 adminstatus = str(interface['l1PhysIf']['attributes']['adminSt'])
@@ -2589,6 +2594,7 @@ class Interface(BaseInterface):
                 interface_obj.adminstatus = adminstatus
                 interface_obj.speed = speed
                 interface_obj.mtu = mtu
+                interface_obj.dn = dist_name
 
                 if not isinstance(pod_parent, str) and pod_parent:
                     if interface_obj.pod == pod_parent.pod and interface_obj.node == pod_parent.node and \
@@ -2984,7 +2990,7 @@ class PhysicalModel(BaseACIObject):
             assert isinstance(parent, Fabric)
 
         super(PhysicalModel, self).__init__(name='', parent=parent)
-
+        self.dn = 'topology'
         self._session = session
 
     @staticmethod
@@ -3028,6 +3034,7 @@ class Fabric(BaseACIObject):
         super(Fabric, self).__init__(name='', parent=None)
 
         self._session = session
+        self.dn = '/'
 
     @classmethod
     def get(cls, session):
@@ -3054,7 +3061,7 @@ class Fabric(BaseACIObject):
         Create all of the searchable terms
 
         """
-        result = Searchable()
-        result.add_term('model', 'physical')
+        results = super(Fabric, self)._define_searchables()
+        results[0].add_term('model', 'physical')
 
-        return [result]
+        return results
