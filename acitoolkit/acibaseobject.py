@@ -141,6 +141,7 @@ class BaseACIObject(AciSearch):
         self._tags = []
         self._parent = parent
         self.descr = None
+        self.dn = ''
         # self.subscribe = self._instance_subscribe
         # self.unsubscribe = self._instance_unsubscribe
         # self.has_events = self._instance_has_events
@@ -712,6 +713,13 @@ class BaseACIObject(AciSearch):
         """
         return self._parent
 
+    def has_parent(self):
+        """
+        returns True if this object has a parent
+        :return: bool
+        """
+        return self._parent is not None
+
     def _has_any_relation(self, other_class):
         """Check if the object has any relation to the other class"""
         for relation in self._relations:
@@ -910,7 +918,33 @@ class BaseACIObject(AciSearch):
            Overridden by inheriting classes to provide the specific attributes
            when getting objects from the APIC.
         """
-        pass
+
+        # always get a dn
+        self.dn = self.get_dn_from_attributes(attributes)
+        # pass
+
+    def get_dn_from_attributes(self, attributes):
+        """
+        Will get the dn from the attributes or construct it
+        using the dn of the parent plus the rn.
+        Failing those, it will return None
+        :rtype : dn string
+        :param attributes:
+        """
+
+        if attributes is not None:
+            dn = attributes.get('dn')
+            if dn is not None:
+                dn = str(attributes.get('dn'))
+            else:
+                if self.has_parent:
+                    dn = '{0}/{1}'.format(self.get_parent().dn, str(attributes.get('rn')))
+                else:
+                    dn = None
+        else:
+            dn = None
+
+        return dn
 
     def _generate_attributes(self):
         """Gets the attributes used in generating the JSON for the object
@@ -1049,6 +1083,35 @@ class BaseACIObject(AciSearch):
 
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
+
+    def get_attributes(self, name=None):
+        """
+        Will return the value of the named attribute in a dictionary format.  If no name is given, then
+        it will return all attributes.
+
+        Note that attributes that start with _ (underbar) will NOT be included unless explicitly named
+
+        This method should be over-written as appropriate by inheriting objects to handle how their
+        local attributes are implemented.
+
+        This is intended to normalize how all attributes on all objects can be accessed since the implementations
+        were not consistent.
+
+        :param name: optional name of attribute to return
+        :return: dictionary of attributes and their values
+        """
+        result = {}
+        if name:
+            result[name] = getattr(self, name)
+            return result
+
+        for attrib in self.__dict__:
+            if attrib[0] != '_':
+                value = getattr(self, attrib)
+                if isinstance(value, str) or isinstance(value, int) or isinstance(value, unicode):
+                    result[attrib] = str(getattr(self, attrib))
+        return result
+
 
 
 
@@ -1382,39 +1445,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
         :returns: serial number string
         """
         return self.serial
-
-    def _define_searchables(self):
-        """
-        Create all of the searchable terms
-
-        :rtype : list of Searchable
-        """
-        search_terms = [('node', self.node, 'secondary'), ('slot', self.slot)]
-
-        # result = [Searchable('node', self.node, 'indirect'), Searchable('slot', self.slot)]
-
-        if self.firmware is not None:
-            search_terms.append(('firmware', self.firmware))
-
-        if self.bios is not None:
-            search_terms.append(('bios', self.bios))
-
-        if self.serial is not None:
-            search_terms.append(('serial', self.serial))
-
-        if self.model is not None:
-            search_terms.append(('model', self.model))
-
-        if self.type is not None:
-            search_terms.append(('type', self.type))
-
-        if self.name is not None:
-            search_terms.append(('name', self.name))
-
-        if self.oper_st is not None:
-            search_terms.append(('oper_st', self.oper_st))
-
-        return [Searchable(search_terms)]
 
 
 class BaseInterface(BaseACIObject):
