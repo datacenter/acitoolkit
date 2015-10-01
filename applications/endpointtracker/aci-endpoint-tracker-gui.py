@@ -53,9 +53,9 @@ def populate_data(mysql_ip, mysql_username, mysql_password):
     # Create the MySQL database
     cnx = mysql.connect(user=mysql_username, password=mysql_password,
                         host=mysql_ip,
-                        database='acitoolkit')
+                        database='endpointtracker')
     c = cnx.cursor()
-    c.execute('USE acitoolkit;')
+    c.execute('USE endpointtracker;')
     c.execute('SELECT * FROM endpoints;')
 
     data = ''
@@ -94,4 +94,4 @@ if __name__ == '__main__':
     creds = Credentials(['mysql', 'server'], description)
     args = creds.get()
 
-    app.run(debug=True, host=args.ip, port=int(args.port))
+    app.run(debug=False, host=args.ip, port=int(args.port))

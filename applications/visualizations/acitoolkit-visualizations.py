@@ -84,4 +84,4 @@ def endpoint_epg_tree():
 
 if __name__ == '__main__':
     #app.run(debug=True)
-    app.run(debug=True, host=args.ip, port=int(args.port))
+    app.run(debug=False, host=args.ip, port=int(args.port))

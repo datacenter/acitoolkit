@@ -38,7 +38,7 @@ def regenerate_pie_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
     cnx = mysql.connect(user=MYSQL_USERID, password=MYSQL_PASSWORD,
                         host=MYSQL_IP)
     c = cnx.cursor()
-    c.execute('USE acitoolkit;')
+    c.execute('USE endpointtracker;')
     c.execute("SELECT DISTINCT(tenant) FROM endpoints;")
 
     tenants = []
@@ -73,7 +73,7 @@ def regenerate_radial_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
                             password=MYSQL_PASSWORD,
                             host=MYSQL_IP)
         c = cnx.cursor()
-        c.execute('USE acitoolkit;')
+        c.execute('USE endpointtracker;')
         c.execute("SELECT DISTINCT(tenant) FROM endpoints;")
 
         tenants = {}
@@ -119,9 +119,9 @@ def regenerate_radial_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
 def regenerate_sunburst_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
     cnx = mysql.connect(user=MYSQL_USERID, password=MYSQL_PASSWORD,
                         host=MYSQL_IP,
-                        database='acitoolkit')
+                        database='endpointtracker')
     c = cnx.cursor()
-    c.execute('USE acitoolkit;')
+    c.execute('USE endpointtracker;')
     query = """select distinct mac,tenant,app,epg from endpoints;"""
     c.execute(query)
 
@@ -179,7 +179,7 @@ def regenerate_endpoint_epg_tree(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
                             password=MYSQL_PASSWORD,
                             host=MYSQL_IP)
         c = cnx.cursor()
-        c.execute('USE acitoolkit;')
+        c.execute('USE endpointtracker;')
         c.execute("SELECT DISTINCT(tenant) FROM endpoints;")
 
         tenants = {}
