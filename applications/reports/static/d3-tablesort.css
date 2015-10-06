@@ -18,7 +18,7 @@
 .header-table {
     overflow-x: auto;
     table-layout: fixed;
-    border-width:5px;
+    border-width:15px;
     width:150px;
     border-collapse: separate;
 }
