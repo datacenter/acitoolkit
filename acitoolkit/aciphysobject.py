@@ -3044,6 +3044,7 @@ class Fabric(BaseACIObject):
         """
         cls.check_session(session)
         fabric = Fabric(session)
+        fabric.name = 'Fabric'
         return [fabric]
 
     @staticmethod
