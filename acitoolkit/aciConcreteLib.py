@@ -38,14 +38,35 @@ class CommonConcreteObject(BaseACIPhysObject):
     objects storing data in an 'attr' dictionary.
     """
 
+    def __init__(self, parent=None):
+        self.attr = {'dn':'', 'name':''}
+        super(CommonConcreteObject, self).__init__(parent=parent)
+
     def get_attributes(self, name=None):
         results = super(CommonConcreteObject, self).get_attributes(name)
-        results.update(self.attr)
+        for attr in self.attr:
+            if isinstance(self.attr[attr], str) or isinstance(self.attr[attr], bool):
+                results[attr] = str(self.attr[attr])
+            else:
+                if self.attr[attr] is not None:
+                    print 'Wrong Instance Type', attr, self.__class__.__name__, 'found', type(self.attr[attr])
         return results
 
     @property
     def dn(self):
         return self.attr['dn']
+
+    @dn.setter
+    def dn(self, value):
+        self.attr['dn'] = value
+
+    @property
+    def name(self):
+        return self.attr['name']
+
+    @name.setter
+    def name(self, value):
+        self.attr['name'] = value
 
     def __eq__(self, other):
         """
@@ -73,11 +94,10 @@ class ConcreteArp(CommonConcreteObject):
 
     def __init__(self, parent=None):
         """
-            Initialize the ARP object.
-            """
+        Initialize the ARP object.
+        """
 
         super(ConcreteArp, self).__init__(parent=parent)
-        self.attr = {}
         self.domain = []
         self._parent = parent
         if parent is not None:
@@ -264,7 +284,6 @@ class ConcreteVpc(CommonConcreteObject):
         super(ConcreteVpc, self).__init__(parent=parent)
         self.member_ports = []
         self.peer_info = {}
-        self.attr = {}
 
     @staticmethod
     def _get_parent_class():
@@ -432,10 +451,6 @@ class ConcreteVpcIf(CommonConcreteObject):
     Class to hold a VPC interface
     """
 
-    def __init__(self, parent=None):
-        super(ConcreteVpcIf, self).__init__(parent=parent)
-        self.attr = {}
-
     @staticmethod
     def _get_parent_class():
         """
@@ -600,13 +615,6 @@ class ConcreteContext(CommonConcreteObject):
     the concrete model
     """
 
-    def __init__(self, parent=None):
-        """
-        l3-context on a switch
-        """
-        super(ConcreteContext, self).__init__(parent=parent)
-        self.attr = {}
-
     @staticmethod
     def _get_parent_class():
         """
@@ -739,13 +747,6 @@ class ConcreteSVI(CommonConcreteObject):
     the concrete model in the switch
     """
 
-    def __init__(self, parent=None):
-        """
-        SVI on a switch
-        """
-        super(ConcreteSVI, self).__init__(parent=parent)
-        self.attr = {}
-
     @staticmethod
     def _get_parent_class():
         """
@@ -856,13 +857,6 @@ class ConcreteLoopback(CommonConcreteObject):
     Loopback interfaces on the switch
     """
 
-    def __init__(self, parent=None):
-        """
-        SVI on a switch
-        """
-        super(ConcreteLoopback, self).__init__(parent=parent)
-        self.attr = {}
-
     @staticmethod
     def _get_parent_class():
         """
@@ -920,6 +914,7 @@ class ConcreteLoopback(CommonConcreteObject):
         self.attr['admin_st'] = str(attr['adminSt'])
         self.attr['id'] = str(attr['id'])
         self.attr['dn'] = str(attr['dn'])
+        self.name = self.attr['id']
 
     def _get_oper_st(self, dname, top):
         """
@@ -946,13 +941,6 @@ class ConcreteBD(CommonConcreteObject):
     The bridge domain on a switch.  This is derived from
     the concrete model
     """
-
-    def __init__(self, parent=None):
-        """
-        bridge domain on a switch
-        """
-        super(ConcreteBD, self).__init__(parent=parent)
-        self.attr = {}
 
     @staticmethod
     def _get_parent_class():
@@ -1169,13 +1157,6 @@ class ConcreteAccCtrlRule(CommonConcreteObject):
     Access control rules on a switch
     """
 
-    def __init__(self, parent=None):
-        """
-        access control rules on a switch
-        """
-        super(ConcreteAccCtrlRule, self).__init__(parent=parent)
-        self.attr = {}
-
     @staticmethod
     def _get_parent_class():
         """
@@ -1225,12 +1206,22 @@ class ConcreteAccCtrlRule(CommonConcreteObject):
             rule._get_tenant_context(contexts)
             rule._get_epg_names(epgs)
             rule._get_pod_node()
+            rule._set_name()
             result.append(rule)
             if parent:
                 rule._parent = parent
                 rule._parent.add_child(rule)
         return result
-
+    def _set_name(self):
+        """
+        Will create a name if one does not exist
+        :return:
+        """
+        if self.attr['name'] =='':
+            self.attr['name'] = '{3}_{0}_{1}_{2}'.format(self.attr['s_epg'],
+                                                     self.attr['d_epg'],
+                                                     self.attr['filter_id'],
+                                                     self.attr['tenant'])
     def _populate_from_attributes(self, attr):
         """
         This will populate the object from the APIC attribute
@@ -1260,17 +1251,17 @@ class ConcreteAccCtrlRule(CommonConcreteObject):
         Annotate the priority string with a number that indicates its relative priority
         :return:None
         """
-        prio_map = {'black_list': 1,
-                    'fabric_infra': 2,
-                    'fully_qual': 3,
-                    'system_incomplete': 4,
-                    'src_dst_any': 5,
-                    'src_any_filter': 6,
-                    'any_dest_filter': 7,
-                    'src_any_any': 8,
-                    'any_dest_any': 9,
-                    'any_any_filter': 10,
-                    'any_any_any': 12}
+        prio_map = {'black_list': '1',
+                    'fabric_infra': '2',
+                    'fully_qual': '3',
+                    'system_incomplete': '4',
+                    'src_dst_any': '5',
+                    'src_any_filter': '6',
+                    'any_dest_filter': '7',
+                    'src_any_any': '8',
+                    'any_dest_any': '9',
+                    'any_any_filter': '10',
+                    'any_any_any': '12'}
         self.attr['relative_priority'] = prio_map.get(self.attr['priority'], 'unknown')
 
     def _get_tenant_context(self, contexts):
@@ -1374,7 +1365,6 @@ class ConcreteFilter(CommonConcreteObject):
         """
         super(ConcreteFilter, self).__init__(parent=parent)
         self.entries = []
-        self.attr = {}
 
     @staticmethod
     def _get_parent_class():
@@ -1439,6 +1429,8 @@ class ConcreteFilter(CommonConcreteObject):
         self.attr['status'] = str(attr['status'])
         self.attr['modified_time'] = str(attr['modTs'])
         self.attr['dn'] = str(attr['dn'])
+        if self.name == '':
+            self.name = self.attr['id']
 
     def _get_entries(self, top):
         """
@@ -1512,13 +1504,6 @@ class ConcreteFilterEntry(CommonConcreteObject):
     """
     Access control entries of a filter
     """
-
-    def __init__(self, parent=None):
-        """
-        access control filters of a filter
-        """
-        super(ConcreteFilterEntry, self).__init__(parent=parent)
-        self.attr = {}
 
     @staticmethod
     def _get_parent_class():
@@ -1641,7 +1626,8 @@ class ConcreteEp(CommonConcreteObject):
         endpoints on a switch
         """
         super(ConcreteEp, self).__init__(parent=parent)
-        self.attr = {'ip': None, 'mac': None}
+        self.attr['ip'] = None
+        self.attr['mac'] = None
 
     @staticmethod
     def _get_parent_class():
@@ -1761,7 +1747,9 @@ class ConcreteEp(CommonConcreteObject):
             if parent:
                 ep._parent = parent
                 ep._parent.add_child(ep)
-            if ep.attr['mac'] is not None:
+            if ep.attr['mac'] is not None and ep.attr['ip'] is not None:
+                ep.name = '{0}_{1}'.format(ep.attr['mac'], ep.attr['ip'])
+            elif ep.attr['mac'] is not None:
                 ep.name = ep.attr['mac']
             elif ep.attr['ip'] is not None:
                 ep.name = ep.attr['ip']
@@ -1999,7 +1987,6 @@ class ConcretePortChannel(CommonConcreteObject):
         port channel on a switch
         """
         super(ConcretePortChannel, self).__init__(parent=parent)
-        self.attr = {}
         self.members = []
 
     @staticmethod
@@ -2211,7 +2198,6 @@ class ConcreteTunnel(CommonConcreteObject):
         Tunnel init
         """
         super(ConcreteTunnel, self).__init__(parent=parent)
-        self.attr = {}
         self.node = None
 
     @staticmethod
@@ -2351,11 +2337,11 @@ class ConcreteOverlay(CommonConcreteObject):
         overlay information
         """
         super(ConcreteOverlay, self).__init__(parent=parent)
-        self.attr = {'vpc_tep_ip': None,
-                     'src_tep_ip': None,
-                     'proxy_ip_mac': None,
-                     'proxy_ip_v4': None,
-                     'proxy_ip_v6': None}
+        self.attr['vpc_tep_ip'] = None
+        self.attr['src_tep_ip'] = None
+        self.attr['proxy_ip_mac'] = None
+        self.attr['proxy_ip_v4'] = None
+        self.attr['proxy_ip_v6'] = None
         self.node = None
 
     @staticmethod
