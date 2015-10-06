@@ -391,7 +391,7 @@ class BaseACIObject(AciSearch):
         return obj
 
     @classmethod
-    def subscribe(cls, session):
+    def subscribe(cls, session, only_new=False):
         """
         Subscribe to events from the APIC that pertain to instances of this
         class.
@@ -400,7 +400,7 @@ class BaseACIObject(AciSearch):
         """
         urls = cls._get_subscription_urls()
         for url in urls:
-            resp = session.subscribe(url)
+            resp = session.subscribe(url, only_new=only_new)
             if resp is not None:
                 if not resp.ok:
                     return resp
