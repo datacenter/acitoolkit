@@ -754,6 +754,29 @@ class TestLivePod(TestLiveAPIC):
             if overlay.attr['vpc_tep_ip'] is not None:
                 self.assertIsInstance(overlay.attr['vpc_tep_ip'], str)
 
+    def check_children_attributes(self, branch):
+        """
+        Walk through the entire heirarchy tree and check that all attributes returned by get_attribute
+        is a string.
+        :param branch:
+        :return:
+        """
+        attributes = branch.get_attributes()
+        for attr in attributes:
+            if not isinstance(attributes[attr], str) :
+                print 'Attribute '+str(attr)+' of '+ branch.__class__.__name__ + ' should be str'
+                self.assertTrue(False)
+        children = branch.get_children()
+        for child in children:
+            self.check_children_attributes(child)
+
+    def test_get_attributes(self):
+        session = self.login_to_apic()
+        physical_model = PhysicalModel.get(session)[0]
+        physical_model.populate_children(deep=True, include_concrete=True)
+        self.check_children_attributes(physical_model)
+
+
     def test_link_get_for_node(self):
         session = self.login_to_apic()
         pod = Pod.get(session)[0]
