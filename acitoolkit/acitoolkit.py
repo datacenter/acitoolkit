@@ -739,10 +739,10 @@ class EPG(CommonEPG):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.match_type = attributes.get('matchT')
-        self.class_id = attributes.get('pcTag')
-        self.scope = attributes.get('scope')
-        self.name = attributes.get('name')
+        self.match_type = str(attributes.get('matchT'))
+        self.class_id = str(attributes.get('pcTag'))
+        self.scope = str(attributes.get('scope'))
+        self.name = str(attributes.get('name'))
         self.dn = self.get_dn_from_attributes(attributes)
 
     # Infrastructure Domain references
@@ -1353,6 +1353,12 @@ class L3Interface(BaseACIObject):
                                         'children': []}}
         return text
 
+    def get_attributes(self, name=None):
+
+        result = super(L3Interface, self).get_attributes(name)
+        result['addr'] = self.get_addr()
+        result['mtu'] = self.get_mtu()
+        return result
 
 class OSPFInterfacePolicy(BaseACIObject):
     """
@@ -2091,6 +2097,12 @@ class Subnet(BaseACIObject):
     def addr(self):
         return self._addr
 
+    def get_attributes(self, name=None):
+
+        result = super(Subnet, self).get_attributes(name)
+        result['addr'] = self.get_addr()
+        return result
+
 class Context(BaseACIObject):
     """ Context :  roughly equivalent to fvCtx """
 
@@ -2154,17 +2166,17 @@ class Context(BaseACIObject):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.descr = attributes.get('descr')
-        self.known_mcast = attributes.get('knwMcastAct')
-        self.modified_time = attributes.get('modTs')
-        self.name = attributes.get('name')
-        self.class_id = attributes.get('pcTag')
-        self.scope = attributes.get('scope')
-        self.vnid = attributes.get('seg')
+        self.descr = str(attributes.get('descr'))
+        self.known_mcast = str(attributes.get('knwMcastAct'))
+        self.modified_time = str(attributes.get('modTs'))
+        self.name = str(attributes.get('name'))
+        self.class_id = str(attributes.get('pcTag'))
+        self.scope = str(attributes.get('scope'))
+        self.vnid = str(attributes.get('seg'))
         self.dn = self.get_dn_from_attributes(attributes)
         dn = attributes.get('dn')
         if dn is not None:
-            self.tenant = self._get_tenant_from_dn(dn)
+            self.tenant = str(self._get_tenant_from_dn(dn))
         else:
             self.tenant = None
         if attributes.get('pcEnfPref') == 'unenforced':
