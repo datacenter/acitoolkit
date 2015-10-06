@@ -96,11 +96,6 @@ class Searchable(object):
         """
         return self.primary.__class__.__name__
 
-    # @property
-    # def key_value(self):
-    #
-    #     return str(self.keyword)+'::'+str(self.value)
-
     def add_context(self, aci_object):
         """
         Method to add an aciobject to a Searchable instance.  It will simply be appended to the end of the list
@@ -118,10 +113,7 @@ class Searchable(object):
 
         :return:
         """
-        names = []
-        for item in reversed(self.context):
-            names.append(str(item))
-        path = '/'.join(names)
+        path = self.primary.dn
         return path
 
     def __key(self):
@@ -166,9 +158,9 @@ class AciSearch(object):
         atk_attrs = self.get_attributes()
         for atk_attr in atk_attrs:
             if atk_attrs[atk_attr] is not None:
-                if not isinstance(atk_attrs[atk_attr], str):
+                if not isinstance(atk_attrs[atk_attr], str) and not isinstance(atk_attrs[atk_attr], bool):
                     print 'wrong type', atk_attr
-                result.add_term(atk_attr, atk_attrs[atk_attr])
+                result.add_term(atk_attr, str(atk_attrs[atk_attr]))
         return [result]
 
     @staticmethod
