@@ -164,7 +164,7 @@ class Subscriber(threading.Thread):
         """
         self._exit = True
 
-    def _send_subscription(self, url):
+    def _send_subscription(self, url, only_new=False):
         """
         Send the subscription for the specified URL.
 
@@ -189,13 +189,14 @@ class Subscriber(threading.Thread):
         resp_data = json.loads(resp.text)
         subscription_id = resp_data['subscriptionId']
         self._subscriptions[url] = subscription_id
-        while int(resp_data['totalCount']):
-            event = {"totalCount": "1",
-                     "subscriptionId": [resp_data['subscriptionId']],
-                     "imdata": [resp_data["imdata"][0]]}
-            self._event_q.put(json.dumps(event))
-            resp_data['totalCount'] = str(int(resp_data['totalCount']) - 1)
-            resp_data["imdata"].remove(resp_data["imdata"][0])
+        if not only_new:
+            while int(resp_data['totalCount']):
+                event = {"totalCount": "1",
+                         "subscriptionId": [resp_data['subscriptionId']],
+                         "imdata": [resp_data["imdata"][0]]}
+                self._event_q.put(json.dumps(event))
+                resp_data['totalCount'] = str(int(resp_data['totalCount']) - 1)
+                resp_data["imdata"].remove(resp_data["imdata"][0])
         return resp
 
     def refresh_subscriptions(self):
@@ -278,7 +279,7 @@ class Subscriber(threading.Thread):
             urls.append(url)
         self._subscriptions = {}
         for url in urls:
-            self.subscribe(url)
+            self.subscribe(url, only_new=True)
 
     def _process_event_q(self):
         """
@@ -310,7 +311,7 @@ class Subscriber(threading.Thread):
                 if num_subscriptions > 1:
                     event = copy.deepcopy(event)
 
-    def subscribe(self, url):
+    def subscribe(self, url, only_new=False):
         """
         Subscribe to a particular APIC URL.  Used internally by the
         Class and Instance subscriptions.
@@ -326,7 +327,7 @@ class Subscriber(threading.Thread):
             if not self._ws.connected:
                 self._open_web_socket('https://' in url)
 
-        resp = self._send_subscription(url)
+        resp = self._send_subscription(url, only_new=only_new)
         return resp
 
     def is_subscribed(self, url):
@@ -520,7 +521,7 @@ class Session(object):
         """
         self.session.close()
 
-    def subscribe(self, url):
+    def subscribe(self, url, only_new=False):
         """
         Subscribe to events for a particular URL.  Used internally by the
         class and instance subscriptions.
@@ -528,7 +529,7 @@ class Session(object):
         :param url:  URL string to issue subscription
         """
         if self._subscription_enabled:
-            resp = self.subscription_thread.subscribe(url)
+            resp = self.subscription_thread.subscribe(url, only_new=only_new)
             return resp
 
     def is_subscribed(self, url):
