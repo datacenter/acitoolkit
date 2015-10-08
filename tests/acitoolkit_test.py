@@ -2042,6 +2042,50 @@ class TestLiveTenant(TestLiveAPIC):
             self.assertTrue(isinstance(tenant, Tenant))
             self.assertTrue(isinstance(tenant.name, str))
 
+    def test_get_deep_tenants_invalid_names(self):
+        """
+        Test Tenant.get_deep
+        """
+        session = self.login_to_apic()
+        self.assertRaises(TypeError, Tenant.get_deep, session, names=[4,5])
+
+    def test_get_deep_tenants_limit_to_as_string(self):
+        """
+        Test Tenant.get_deep
+        """
+        session = self.login_to_apic()
+        self.assertRaises(TypeError, Tenant.get_deep, session, limit_to='fvTenant')
+
+    def test_get_deep_tenants_config_only(self):
+        """
+        Test Tenant.get_deep
+        """
+        session = self.login_to_apic()
+        tenants = Tenant.get_deep(session, limit_to=['fvTenant'], config_only=True)
+        self.assertTrue(len(tenants) > 0)
+        for tenant in tenants:
+            self.assertTrue(isinstance(tenant, Tenant))
+
+    def test_get_deep_tenants_limit_to_multiple(self):
+        """
+        Test Tenant.get_deep
+        """
+        session = self.login_to_apic()
+        tenants = Tenant.get_deep(session, limit_to=['fvTenant', 'fvBD'])
+        self.assertTrue(len(tenants) > 0)
+        for tenant in tenants:
+            self.assertTrue(isinstance(tenant, Tenant))
+
+    def test_get_deep_tenants_limit_to_multiple_as_set(self):
+        """
+        Test Tenant.get_deep
+        """
+        session = self.login_to_apic()
+        tenants = Tenant.get_deep(session, limit_to=('fvTenant', 'fvBD'))
+        self.assertTrue(len(tenants) > 0)
+        for tenant in tenants:
+            self.assertTrue(isinstance(tenant, Tenant))
+
     def test_exists_tenant(self):
         """
         Test exists method with valid tenant
@@ -2125,7 +2169,7 @@ class TestLiveSubscription(TestLiveAPIC):
     def test_get_event_no_subcribe(self):
         session = self.login_to_apic()
         self.assertFalse(Tenant.has_events(session))
-        self.assertRaises(ValueError, Tenant.get_event(session))
+        self.assertIsNone(Tenant.get_event(session))
 
     def test_get_actual_event(self):
         session = self.login_to_apic()

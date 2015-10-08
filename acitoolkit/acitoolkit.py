@@ -149,16 +149,31 @@ class Tenant(BaseACIObject):
 
     @classmethod
     def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False, parent=None):
+        """
+        Get the Tenant objects and all of the children objects.
+
+        :param session: the instance of Session used for APIC communication
+        :param names: list of strings containing the tenant names. If no list is given, all tenants will be collected.
+        :param limit_to: list of strings containing the APIC classes to limit the collection to i.e. ['fvTenant',
+                         'fvBD']. If no list is given, all classes will be collected.
+        :param subtree: String containing the rsp-subtree option. Default is 'full'.
+        :param config_only: Boolean containing whether to collect only configurable parameters
+        :param parent: The parent instance to assign to the tenant objects.
+        :returns: Requests Response code
+        """
         resp = []
-        if (isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names)):
+        if isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names):
             raise TypeError('names should be a Sequence of strings')
         names = list(names) or [tenant.name for tenant in Tenant.get(session)]
+        if isinstance(limit_to, str) or not isinstance(limit_to, Sequence) or not all(isinstance(class_name, str) for class_name in limit_to):
+            raise TypeError('limit_to should be a Sequence of strings')
+        limit_to = list(limit_to)
         if 'common' in names:
             # If tenant common is part of the list, put it at the front so we populate that first
             names.remove('common')
             names.insert(0, 'common')
         params = {'query-target': 'self', 'rsp-subtree': subtree}
-        if limit_to:
+        if len(limit_to):
             params['rsp-subtree-class'] = ','.join(limit_to)
         if config_only:
             params['rsp-prop-include'] = 'config-only'
@@ -2553,7 +2568,7 @@ class ContractSubject(BaseACIObject):
         for child in contract_data:
             if 'vzBrCP' in child and 'children' in child['vzBrCP']:
                 for subj in child['vzBrCP']['children']:
-                    if 'vzSubj' in subj:
+                    try:
                         if subj['vzSubj']['attributes']['name'] == self.name:
                             for filt in subj['vzSubj']['children']:
                                 if 'vzRsSubjFiltAtt' in filt:
@@ -2564,6 +2579,8 @@ class ContractSubject(BaseACIObject):
                                     for filt in objs:
                                         if isinstance(filt, Filter):
                                             self.add_filter(filt)
+                    except KeyError:
+                        pass
 
     @staticmethod
     def _get_parent_class():
