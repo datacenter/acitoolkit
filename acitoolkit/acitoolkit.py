@@ -1369,11 +1369,11 @@ class L3Interface(BaseACIObject):
         return text
 
     def get_attributes(self, name=None):
-
         result = super(L3Interface, self).get_attributes(name)
         result['addr'] = self.get_addr()
         result['mtu'] = self.get_mtu()
         return result
+
 
 class OSPFInterfacePolicy(BaseACIObject):
     """
@@ -2118,6 +2118,7 @@ class Subnet(BaseACIObject):
         result['addr'] = self.get_addr()
         return result
 
+
 class Context(BaseACIObject):
     """ Context :  roughly equivalent to fvCtx """
 
@@ -2599,8 +2600,8 @@ class ContractSubject(BaseACIObject):
         """
         attr = self._generate_attributes()
         resp_json = super(ContractSubject, self).get_json('vzSubj',
-                                                 attributes=attr,
-                                                 get_children=False)
+                                                          attributes=attr,
+                                                          get_children=False)
         filters = []
         for entry in self.get_filters():
             filt = {'vzRsSubjFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
@@ -3182,7 +3183,6 @@ class Endpoint(BaseACIObject):
         self.if_name = None
         self.if_dn = []
 
-
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -3334,12 +3334,9 @@ class Endpoint(BaseACIObject):
                         if endpoint.if_name == interface_dn:
                             if str(interface['lagT']) == 'not-aggregated':
                                 endpoint.if_name = _interface_from_dn(interface_dn).if_name
-                                
                             else:
                                 endpoint.if_name = interface['name']
                                 endpoint.if_dn.append(interface_dn)
-
-
                     # endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
                     # ret = session.get(endpoint_query_url)
             endpoints.append(endpoint)

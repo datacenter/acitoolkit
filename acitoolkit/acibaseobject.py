@@ -365,6 +365,9 @@ class BaseACIObject(AciSearch):
         :param full_data:
         :param working_data:
         :param parent:
+        :param limit_to:
+        :param subtree:
+        :param config_only:
         """
         obj = None
         for item in working_data:
@@ -397,6 +400,10 @@ class BaseACIObject(AciSearch):
         class.
 
         :param session:  the instance of Session used for APIC communication
+        :param only_new: Boolean indicating whether to get all events or only the new events. All events (indicated by
+                         setting only_new to True) will queue a create event for all of the currently existing objects.
+                         Setting only_new to False will only queue events that occur after the initial subscribe. The
+                         default has only_new set to False.
         """
         urls = cls._get_subscription_urls()
         for url in urls:
@@ -1111,8 +1118,6 @@ class BaseACIObject(AciSearch):
                 if isinstance(value, str) or isinstance(value, int) or isinstance(value, unicode):
                     result[attrib] = str(getattr(self, attrib))
         return result
-
-
 
 
 class BaseACIPhysObject(BaseACIObject):
