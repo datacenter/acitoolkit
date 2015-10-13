@@ -1020,7 +1020,7 @@ class BaseACIObject(AciSearch):
         match = True
         for attrib in search_object.__dict__:
             value1 = getattr(search_object, attrib)
-            if value1:
+            if value1 is not None:
                 if hasattr(self, attrib):
                     value2 = getattr(self, attrib)
                     if value1 != value2:
