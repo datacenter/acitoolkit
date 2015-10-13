@@ -3218,6 +3218,7 @@ class Endpoint(BaseACIObject):
         self.ip = str(attributes.get('ip'))
         self.encap = str(attributes.get('encap'))
         self.dn = self.get_dn_from_attributes(attributes)
+        self.life_cycle = str(attributes.get('lcC'))
 
     @classmethod
     def get_event(cls, session, with_relations=True):
