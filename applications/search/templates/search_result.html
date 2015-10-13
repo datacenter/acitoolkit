@@ -3,24 +3,38 @@
 {%  block head %}
     {{  super() }}
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='d3-tablesort.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='autocomplete.css') }}">
 {% endblock %}
 {% block body %}
     <script src="http://d3js.org/d3.v3.js"></script>
     <script src="../static/d3-tablesort.js"></script>
     <script src="../static/d3-searchresult.js"></script>
+    <script src="../static/autocomplete.js"></script>
 
     <p>{{ prompt }}</p>
     <br>
     {{ wtf.quick_form(form, form_type='horizonatal', button_map={'reload_button': 'primary'}) }}
+    <script>
+        d3.select(".span10").select("#content")
+                .append("div")
+                .attr("id", "autoComplete");
 
-    {% if report %}
-        {%  if report == 'empty' %}
-            <p>None</p>
-        {%  else %}
-            <script>
-            searchResult({{ report|safe }});
-            </script>
-        {% endif %}
-    {% endif %}
+        d3.select(".span10").select("#content")
+                .append("div")
+                .attr("id", "records");
+        var searchStatus = d3.select(".ac-searching");
+
+        var keys = {{ keys|safe }};
+        var values = {{ values|safe }};
+        function callBack(search_terms) {
+            renderSearch($.param({'first':search_terms}));
+        }
+        autoComplete(keys, values, callBack);
+
+        function renderSearch(search_terms) {d3.json("/search/terms?" + search_terms, function (error, report){
+            searchResult(report);
+        })
+        }
+    </script>
 
 {% endblock %}
