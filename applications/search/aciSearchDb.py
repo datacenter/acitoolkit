@@ -30,8 +30,9 @@ import datetime
 import os.path
 import pickle
 import sys
+from acitoolkit import LogicalModel, ConcreteBD, Tenant, BridgeDomain, Context, Contract
 
-from acitoolkit.aciphysobject import Session, Fabric
+from acitoolkit.aciphysobject import Session, Fabric, PhysicalModel, Node
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 
@@ -63,6 +64,7 @@ class SearchDb(object):
         self.keywords = []
         self.values = []
         self.ranked_items = {}
+        self.map_class = {}  # index of objects by their class
 
     def lookup_keyword(self, keyword):
         """
@@ -115,7 +117,8 @@ class SearchDb(object):
         """
         return sorted(self.by_value.keys())
 
-    def load_db(self, force_reload=False):
+    @staticmethod
+    def load_db(force_reload=False, args = None):
 
         """
         Will load the search data from a saved search.p file if it exists, otherwise it will
@@ -126,29 +129,45 @@ class SearchDb(object):
 
         :param force_reload:
         """
+        sdb = SearchDb()
+        if args :
+            sdb.set_login_credentials(args)
         # TODO: provide a way to save multiple different APIC dBs.
-        if not self.file_exists(self.save_file) or force_reload:
+        if not sdb.file_exists(sdb.save_file) or force_reload or True:
             print 'load from APIC',
-            fabric = Fabric.get(self.session)[0]
+            fabric = Fabric.get(sdb.session)[0]
             print '.',
             fabric.populate_children(deep=True, include_concrete=True)
             print '...done'
 
             searchables = fabric.get_searchable()
             print 'Indexing',
-            self.index_searchables(searchables)
+            sdb.index_searchables(searchables)
             print '.',
-            self.save_db()
+            sdb.create_object_directory(fabric)
+            sdb.save_db()
             print '...done'
         else:
             print 'loading from file',
-            p_file = open(self.save_file, "rb")
+            p_file = open(sdb.save_file, "rb")
             print '.',
-            (self.by_key_value, self.by_key, self.by_value) = pickle.load(p_file)
+            # (self.object_directory, self.by_key_value, self.by_key, self.by_value) = pickle.load(p_file)
+            sdb = pickle.load(p_file)
+
             print '..done'
 
-        self.keywords = self.get_keywords()
-        self.values = self.get_values()
+        sdb.keywords = sdb.get_keywords()
+        sdb.values = sdb.get_values()
+        sdb.cross_reference_objects()
+        return sdb
+
+    def save_db(self):
+        """
+        pickle the indexed data structures and save in search.p
+
+        """
+        #pickle.dump((self.object_directory, self.by_key_value, self.by_key, self.by_value), open(self.save_file, "wb"))
+        pickle.dump(self, open(self.save_file, "wb"))
 
     @staticmethod
     def file_exists(file_name):
@@ -177,6 +196,10 @@ class SearchDb(object):
             count += 1
             if count % 1000 == 0:
                 print count
+            atk_class = searchable.object_class
+            if atk_class not in self.by_key:
+                self.by_key[atk_class] = set([])
+            self.by_key[atk_class].add(searchable)
 
             for term in searchable.terms:
 
@@ -200,12 +223,132 @@ class SearchDb(object):
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
 
-    def save_db(self):
+    def create_object_directory(self,root):
         """
-        pickle the indexed data structures and save in search.p
+        Will create a dictionary of all the atk objects indexed by their dn.
+        :param root:
+        :return:
+        """
+        self.object_directory = {}
+        self._add_dir_entry(root)
 
+    def _add_dir_entry(self, root):
         """
-        pickle.dump((self.by_key_value, self.by_key, self.by_value), open(self.save_file, "wb"))
+        Will recursively add each object and its children to directory
+        :param root:
+        :return:
+        """
+        attrs = root.get_attributes()
+        if 'dn' not in attrs:
+            print 'no guid'
+        guid = attrs['dn']
+        if guid in self.object_directory:
+            print 'Duplicate guid', guid
+
+        self.object_directory[guid] = root
+        for child in root.get_children():
+            self._add_dir_entry(child)
+
+        #build class map
+        if root.__class__.__name__ not in self.map_class:
+            self.map_class[root.__class__.__name__] = []
+
+        self.map_class[root.__class__.__name__].append(root)
+
+    def cross_reference_objects(self):
+        """
+        Will go through various objects and add gui cross reference related information
+        such as adding switches to a tenant object
+        :return:
+        """
+
+        # map tenants to switches
+        for tenant in self.map_class['Tenant']:
+            for concrete_bd in self.map_class['ConcreteBD']:
+                ctenant_name = concrete_bd.attr['tenant']
+                if ctenant_name == tenant.name:
+                    switch = concrete_bd._parent
+                    self._add_relation('switches', switch, tenant)
+                    self._add_relation('tenants', tenant, switch)
+
+        for bridge_domain in self.map_class['BridgeDomain']:
+            for concrete_bd in self.map_class['ConcreteBD']:
+                if ':' in concrete_bd.attr['name']:
+                    cbd_name = concrete_bd.attr['name'].split(':')[-1]
+                else:
+                    cbd_name = concrete_bd.attr['name']
+
+                if cbd_name == bridge_domain.name and concrete_bd.attr['tenant']==bridge_domain._parent.name:
+                    switch = concrete_bd._parent
+                    self._add_relation('switches', switch, bridge_domain)
+                    self._add_relation('bridge domains', bridge_domain, switch)
+
+                    self._add_relation('concrete BD', concrete_bd, bridge_domain)
+                    self._add_relation('logical BD', bridge_domain, concrete_bd)
+
+            relations = bridge_domain._relations
+            for relation in relations:
+                if isinstance(relation.item, Context):
+                    self._add_relation('context', relation.item, bridge_domain)
+                    self._add_relation('bridge domains',bridge_domain, relation.item)
+
+        for context in self.map_class['Context']:
+            for concrete_bd in self.map_class['ConcreteBD']:
+                ccontext_name = concrete_bd.attr['context']
+                if ccontext_name == context.name and concrete_bd.attr['tenant']==context._parent.name:
+                    switch = concrete_bd._parent
+                    self._add_relation('switches', switch, context)
+                    self._add_relation('contexts', context, switch)
+
+        for ep in self.map_class['Endpoint']:
+            epg = ep._parent
+            app_profile = epg._parent
+            tenant = app_profile._parent
+            self._add_relation('endpoints', ep, app_profile)
+            self._add_relation('endpoints', ep, tenant)
+            self._add_relation('tenant', tenant, ep)
+            self._add_relation('app profile', app_profile, ep)
+
+        for epg in self.map_class['EPG']:
+            relations = epg._relations
+            for relation in relations:
+                if isinstance(relation.item, Contract):
+                    if relation.relation_type == 'consumed':
+                        self._add_relation('consumes', relation.item, epg)
+                        self._add_relation('consumed by', epg, relation.item)
+                    elif relation.relation_type == 'provided':
+                        self._add_relation('provides', relation.item, epg)
+                        self._add_relation('provided by', epg, relation.item)
+                    else:
+                        print 'unexpected relation type', relation.relation_type
+                if isinstance(relation.item, BridgeDomain):
+                    self._add_relation('bridge domain',relation.item, epg)
+                    self._add_relation('epgs', epg, relation.item)
+
+    @staticmethod
+    def _add_relation(relationship_type, child_obj, parent_obj ):
+        """
+        Will add child_obj to parent_obj with the relationship type
+        :param child_obj:
+        :param parent_obj:
+        :return:
+        """
+        if 'gui_x_reference' not in parent_obj.__dict__:
+            parent_obj.gui_x_reference = {}
+
+        if isinstance(child_obj, BridgeDomain) or isinstance(child_obj, Context) :
+            child_name = child_obj._parent.name+':'+child_obj.name
+        else:
+            child_name = child_obj.name
+
+        record = {'class': child_obj.__class__.__name__, 'name': child_name, 'dn': child_obj.dn}
+        if relationship_type not in parent_obj.gui_x_reference:
+            parent_obj.gui_x_reference[relationship_type] = []
+
+        for existing_record in parent_obj.gui_x_reference[relationship_type]:
+            if record['dn']==existing_record['dn']:
+                return
+        parent_obj.gui_x_reference[relationship_type].append(record)
 
     @property
     def session(self):
@@ -248,6 +391,68 @@ class SearchDb(object):
         :return:
         """
         self._session = None
+
+    def get_object_info(self, obj_dn):
+        """
+        Will return dictionary containing all of the information in the
+        object
+        :param obj_dn:
+        :return:
+        """
+        result = {}
+        atk_obj = self.object_directory[obj_dn]
+        attr = atk_obj.get_attributes()
+
+        result['properties'] = {'class': atk_obj.__class__.__name__,'name': attr['name'],'dn':obj_dn}
+
+        result['attributes'] = atk_obj.get_attributes()
+
+        if atk_obj._parent is not None:
+            parent = atk_obj._parent.get_attributes()['name']
+            parent_dn = atk_obj._parent.get_attributes()['dn']
+            parent_class = atk_obj._parent.__class__.__name__
+            result['parent'] = {'class':parent_class, 'name':parent, 'dn':parent_dn}
+        # else:
+        #     result['parent'] = {'class':'None','name':'', 'dn':''}
+
+        children = atk_obj.get_children()
+        result['children'] = {}
+        for child in children:
+            child_class = child.__class__.__name__
+            if child_class not in result['children']:
+                result['children'][child_class] = []
+
+            result['children'][child_class].append({'class': child.__class__.__name__,
+                                                    'name': child.get_attributes()['name'],
+                                                    'dn': child.get_attributes()['dn']})
+
+        if 'gui_x_reference' in atk_obj.__dict__:
+            result['relations'] = atk_obj.gui_x_reference
+
+        return result
+
+    def get_node_relations(self, atk_obj, result):
+        """
+        Will add additional relations to the object result as appropriate
+        :param result:
+        :return:
+        """
+        if atk_obj.role != 'leaf':
+            if 'relations' not in result:
+                result['relations'] = {}
+            result['relations']['tenants'] = []
+            bridge_domains = atk_obj.get_children(ConcreteBD)
+            local_tenants = set()
+            for bd in bridge_domains:
+                local_tenants.add = bd.attr['tenant']
+            logical_tenant = []
+            for tenant in local_tenants:
+                logical_tenant.append(self.map_tenant[tenant])
+
+            for l_tenant in logical_tenant:
+                result['relations']['tenant'].append({'class':l_tenant.__class__.__name__,
+                                                      'name': l_tenant.name,
+                                                      'dn': l_tenant.dn})
 
     def search(self, term_string):
         """
@@ -326,8 +531,11 @@ class SearchDb(object):
                             self.ranked_items[item]['terms'].add(s_results['result'][0])
         print 'end ranking'
         resp = []
+        count = 0
         for result in sorted(self.ranked_items,
                              key=lambda x: (self.ranked_items[x]['pscore'], self.ranked_items[x]['sscore']), reverse=True):
+
+            count += 1
             record = {'pscore': self.ranked_items[result]['pscore'],
                       'sscore': self.ranked_items[result]['sscore'],
                       'name': str(result.primary.name),
@@ -343,8 +551,10 @@ class SearchDb(object):
                                                    'headers': table.headers,
                                                    'title_flask': table.title_flask})
             resp.append(record)
+            if count > 100:
+                break
 
-        return resp
+        return resp, len(self.ranked_items)
 
     @staticmethod
     def is_primary(item, p_set):
@@ -354,9 +564,6 @@ class SearchDb(object):
         :param p_set:
         :return:
         """
-        #if p_set is None:
-        #    return False
-        #return any(elem.primary == item for elem in p_set)
         return item in p_set
 
     @classmethod
@@ -429,10 +636,10 @@ def main():
 
     args = creds.get()
     print args
-    sdb = SearchDb()
-    sdb.set_login_credentials(args)
+    #sdb = SearchDb()
+    #sdb.set_login_credentials(args)
     try:
-        sdb.load_db(args.force)
+        sdb = SearchDb.load_db(args.force, args)
     except (LoginError, Timeout, ConnectionError):
         print '%% Could not login to APIC'
         sys.exit(0)
