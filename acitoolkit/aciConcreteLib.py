@@ -42,6 +42,31 @@ class CommonConcreteObject(BaseACIPhysObject):
         self.attr = {'dn':'', 'name':''}
         super(CommonConcreteObject, self).__init__(parent=parent)
 
+    def populate_children(self, deep=False, include_concrete=False):
+        """
+        Populates all of the children and then calls populate_children\
+        of those children if deep is True.  This method should be\
+        overridden by any object that does have children.
+
+        If include_concrete is True, then if the object has concrete objects
+        below it, i.e. is a switch, then also populate those conrete object.
+
+        :param include_concrete: True or False. Default is False
+        :param deep: True or False.  Default is False.
+        """
+        for child_class in self._get_children_classes():
+            child_class.get(self._top, self)
+
+        if include_concrete:
+            for concrete_class in self._get_children_concrete_classes():
+                concrete_class.get(self._top, self)
+
+        if deep:
+            for child in self._children:
+                child.populate_children(deep, include_concrete)
+
+        return self._children
+
     def get_attributes(self, name=None):
         results = super(CommonConcreteObject, self).get_attributes(name)
         for attr in self.attr:
@@ -756,7 +781,7 @@ class ConcreteSVI(CommonConcreteObject):
 
         :returns: class of parent object
         """
-        return Node
+        return ConcreteBD
 
     @classmethod
     def _get_apic_classes(cls):
@@ -781,7 +806,11 @@ class ConcreteSVI(CommonConcreteObject):
         cls.check_parent(parent)
         result = []
 
-        svi_data = top.get_class('sviIf')
+        if parent is not None:
+            svi_data = top.get_subtree('sviIf', parent.dn)
+        else:
+            svi_data = top.get_class('sviIf')
+
         for svi_obj in svi_data:
             svi = cls()
             if 'sviIf' in svi_obj:
@@ -842,6 +871,18 @@ class ConcreteSVI(CommonConcreteObject):
         data = sorted(data, key=itemgetter(0, 1))
         result.append(Table(data, headers, title=title + 'SVI (Router Interfaces)'))
         return result
+
+    def __eq__(self, other):
+
+        """
+        Checks that the tunnels are equal
+        :param other:
+        :return: True if equal
+        """
+        if isinstance(other, self.__class__):
+            return self.dn == other.dn
+        else:
+            return False
 
     def __str__(self):
         """
@@ -964,6 +1005,16 @@ class ConcreteBD(CommonConcreteObject):
 
         return resp
 
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the concrete children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteSVI]
+
     @classmethod
     def get(cls, top, parent=None):
         """
@@ -982,6 +1033,7 @@ class ConcreteBD(CommonConcreteObject):
         bd_data = top.get_class('l2BD')
         for l2bd in bd_data:
             bdomain = cls()
+            bdomain._top = top
             bdomain._populate_from_attributes(l2bd['l2BD']['attributes'])
 
             # get the context name by reading the context
@@ -2356,7 +2408,7 @@ class ConcreteOverlay(CommonConcreteObject):
         return Node
 
     @staticmethod
-    def _get_children_classes():
+    def _get_children_concrete_classes():
         """
         Get the acitoolkit class of the children of this object.
         This is meant to be overridden by any inheriting classes that have children.
@@ -2431,26 +2483,26 @@ class ConcreteOverlay(CommonConcreteObject):
 
         return result
 
-    def populate_children(self, deep=False, include_concrete=False):
-        """
-        Populates all of the children and then calls populate_children\
-        of those children if deep is True.  This method should be\
-        overridden by any object that does have children.
-
-        If include_concrete is True, then if the object has concrete objects
-        below it, i.e. is a switch, then also populate those conrete object.
-
-        :param include_concrete: True or False. Default is False
-        :param deep: True or False.  Default is False.
-        """
-        for child_class in self._get_children_classes():
-            child_class.get(self._top, self)
-
-        if deep:
-            for child in self._children:
-                child.populate_children(deep, include_concrete)
-
-        return self._children
+    # def populate_children(self, deep=False, include_concrete=False):
+    #     """
+    #     Populates all of the children and then calls populate_children\
+    #     of those children if deep is True.  This method should be\
+    #     overridden by any object that does have children.
+    #
+    #     If include_concrete is True, then if the object has concrete objects
+    #     below it, i.e. is a switch, then also populate those conrete object.
+    #
+    #     :param include_concrete: True or False. Default is False
+    #     :param deep: True or False.  Default is False.
+    #     """
+    #     for child_class in self._get_children_classes():
+    #         child_class.get(self._top, self)
+    #
+    #     if deep:
+    #         for child in self._children:
+    #             child.populate_children(deep, include_concrete)
+    #
+    #     return self._children
 
     def __str__(self):
         """
