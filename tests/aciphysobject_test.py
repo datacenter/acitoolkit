@@ -710,9 +710,8 @@ class TestLivePod(TestLiveAPIC):
         self.assertIn('ConcreteArp', children_types)
         self.assertIn('ConcreteBD', children_types)
         self.assertIn('ConcreteEp', children_types)
-        self.assertIn('ConcreteSVI', children_types)
         self.assertIn('ConcreteVpc', children_types)
-        self.assertGreater(len(children_types), 14)
+        self.assertGreater(len(children_types), 13)
 
         overlays = leaf.get_children(ConcreteOverlay)
         tunnels = overlays[0].get_children(ConcreteTunnel)
