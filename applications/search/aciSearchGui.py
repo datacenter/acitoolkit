@@ -20,9 +20,10 @@
 """
 Reports: ACI Toolkit report GUI.
 """
-from flask import Flask, session, redirect, url_for, jsonify
-from flask import flash
+from flask import Flask, session, redirect, url_for, jsonify, render_template
+from flask import flash, request
 from flask.ext import admin
+# from flask import Flask
 from flask.ext.admin import BaseView, AdminIndexView, expose
 from flask.ext.admin.actions import action
 from flask.ext.admin.contrib.sqla import ModelView
@@ -87,35 +88,36 @@ class SearchBar(Form):
     """
     Base form for showing the select switch form.  List of switches and list of reports.
     """
-    search_field = StringField('Search:', validators=[Required()])
-    reload = BooleanField('Reload fabric info', validators=[])
-    submit = SubmitField('Search')
+    pass
+
 
 class SelectSwitchView(BaseView):
     """
     The actual select switch page generator.
     """
-    @expose('/', methods=['GET', 'POST'])
+    @expose('/')
     def index(self):
         """
         Allow user to select which report to show.
 
         :return:
         """
+        global sdb
         form = SearchBar()
         report = {}
+        # load data from file if it has not been otherwise loaded
+        if sdb.by_key == {}:
+            apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
+            sdb = SearchDb.load_db(False, apic_args)
         if form.validate_on_submit() and form.submit.data:
 
             # load data from APIC if requested
             if form.data['reload']:
                 print 'reload'
                 apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-                sdb.set_login_credentials(apic_args)
-                sdb.load_db(force_reload=True)
-
-            # load data from file if it has not been otherwise loaded
-            if sdb.by_key == {}:
-                sdb.load_db()
+                sdb = SearchDb.load_db(True, apic_args)
+                #sdb.set_login_credentials(apic_args)
+                #sdb.load_db(force_reload=True)
 
             # report = DynamicTableForm()
             try:
@@ -129,10 +131,11 @@ class SelectSwitchView(BaseView):
             except ConnectionError:
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
+        temp = sdb
         if report != {}:
-            return self.render('search_result.html', form=form, report=report)
+            return self.render('search_result.html', form=form, report=report, keys=sdb.keywords, values=sdb.values)
         else:
-            return self.render('search_result.html', form=form)
+            return self.render('search_result.html', form=form, keys=sdb.keywords, values=sdb.values)
 
 
 class About(BaseView):
@@ -147,6 +150,30 @@ class About(BaseView):
         :return:
         """
         return self.render('about.html')
+
+
+class ShowObjectView(BaseView):
+    """
+    Displays the about information
+    """
+    @expose('/')
+    def index(self):
+        """
+        Show about information
+
+        :return:
+        """
+        global sdb
+        apic_object_dn = str(request.args.get('dn'))
+        if sdb.by_key == {}:
+            apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
+            sdb = SearchDb.load_db(False, apic_args)
+        if apic_object_dn != 'None':
+            atk_object_info = sdb.get_object_info(apic_object_dn)
+        else:
+            atk_object_info = sdb.get_object_info('/')
+
+        return self.render('atk_object_view.html', result=atk_object_info)
 
 
 class CredentialsView(BaseView):
@@ -202,15 +229,6 @@ class CredentialsView(BaseView):
                            security=session.get('secure', 'False'))
 
 
-# Customized admin interface
-# class CustomView(ModelView):
-#     """
-#     Custom view placeholder class
-#     """
-#     list_template = 'list.html'
-
-
-
 # Create admin with custom base template
 homepage_view = AdminIndexView(name='Home', template='admin/index.html',
                                url='/')
@@ -221,11 +239,22 @@ admin = admin.Admin(app,
 
 # Add views
 admin.add_view(CredentialsView(name='Credentials'))
-admin.add_view(About(name='About' , endpoint='test1', category='Test'))
-admin.add_view(About(name='About', endpoint='test2', category='Test'))
-admin.add_view(About(name='About 3', endpoint='test3', category='Test'))
+admin.add_view(About(name='About', endpoint='about', category='Test'))
 admin.add_view(Feedback(name='Feedback'))
-admin.add_view(SelectSwitchView(name='Switch Search'))
+admin.add_view(SelectSwitchView(name='ACI Search'))
+admin.add_view(ShowObjectView(name='Object View', endpoint='atk_object'))
+
+
+@app.route("/search/<search_terms>")
+def search_result_page(search_terms='1/101/1/49'):
+    """
+    URL to request information about a specific port
+    """
+    terms = str(request.args['first'])
+    print 'search terms', terms
+
+    result, total_hits = sdb.get_search_result(terms)
+    return jsonify(result=result, total_hits=total_hits)
 
 if __name__ == '__main__':
     description = 'ACI Search Viewer Tool.'
@@ -235,6 +264,7 @@ if __name__ == '__main__':
                        default=False,
                        help='Force a rebuild of the search index')
     args = creds.get()
-    #sdb.load_db(args.force)
+
     # Start app
-    app.run(debug=True, host=args.ip, port=int(args.port))
+    # app.run(debug=True, host=args.ip, port=int(args.port))
+    app.run(debug=True, host=args.ip, port=5001)
