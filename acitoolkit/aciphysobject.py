@@ -703,14 +703,7 @@ class Fan(BaseACIPhysModule):
         if node_data:
             for fan_obj in node_data:
                 fan = Fan()
-                fan.dn = str(fan_obj['eqptFan']['attributes']['dn'])
-                fan.id = str(fan_obj['eqptFan']['attributes']['id'])
-                fan.descr = str(fan_obj['eqptFan']['attributes']['descr'])
-                fan.oper_st = str(fan_obj['eqptFan']['attributes']['operSt'])
-                fan.direction = str(fan_obj['eqptFan']['attributes']['dir'])
-                fan.model = str(fan_obj['eqptFan']['attributes']['model'])
-                fan.serial = str(fan_obj['eqptFan']['attributes']['ser'])
-
+                fan._populate_from_attributes(fan_obj['eqptFan']['attributes'])
                 # now get speed if it is being monitored
                 mo_query_url = '/api/mo/' + fan.dn + \
                                '.json?rsp-subtree-include=stats&rsp-subtree-class=eqptFanStats5min'
@@ -731,6 +724,21 @@ class Fan(BaseACIPhysModule):
                     parent.add_child(fan)
                 fans.append(fan)
         return fans
+
+    def _populate_from_attributes(self, attributes):
+        """Fills in an object with the desired attributes.
+           Overridden by inheriting classes to provide the specific attributes
+           when getting objects from the APIC.
+        """
+        self.dn = str(attributes['dn'])
+        self.id = str(attributes['id'])
+        self.descr = str(attributes['descr'])
+        self.oper_st = str(attributes['operSt'])
+        self.direction = str(attributes['dir'])
+        self.model = str(attributes['model'])
+        self.serial = str(attributes['ser'])
+        self.name = 'fan-{0}'.format(self.id)
+
 
     def __eq__(self, other):
         """compares two fans and returns True if they are the same.
@@ -1086,12 +1094,12 @@ class Node(BaseACIPhysObject):
         from .aciConcreteLib import (
             ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext,
             ConcreteEp, ConcreteFilter, ConcreteLoopback, ConcreteOverlay,
-            ConcretePortChannel, ConcreteSVI, ConcreteVpc
+            ConcretePortChannel, ConcreteVpc
         )
 
         return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
-                ConcreteContext, ConcreteSVI, ConcreteVpc]
+                ConcreteContext, ConcreteVpc]
 
     @classmethod
     def _get_apic_classes(cls):
