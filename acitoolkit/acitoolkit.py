@@ -2063,11 +2063,15 @@ class Subnet(BaseACIObject):
         """
         Set the subnet address
 
-        :param scope: The subnet scope. It can be either "public", "private" or "shared".
+        :param scope: The subnet scope. It can be either "public" or "private".
+        :param scope may optionally contain ",shared" appended, to mark the
+        subnet as leakable to other VRFs within the fabric.
         """
         if scope is None:
             raise TypeError('Scope can not be set to None')
-        self._scope = scope
+        elif scope.lower() not in ["public", "private", "public,shared", "private,shared"]:
+            raise ValueError('Scope must be one "public" or "private", and optionally include ",shared" appended.')
+        self._scope = scope.lower()
 
     def get_json(self):
         """
