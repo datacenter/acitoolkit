@@ -707,6 +707,7 @@ class EPG(CommonEPG):
             if not isinstance(parent, AppProfile):
                 raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
+        self._leaf_bindings=[]
         self._deployment_immediacy = None
         self._dom_deployment_immediacy = None
         self._dom_resolution_immediacy = None
@@ -908,6 +909,39 @@ class EPG(CommonEPG):
                                         self.consume(contract)
         super(EPG, self)._extract_relationships(data)
 
+    def add_static_leaf_binding(self, leaf_id, encap_type, encap_id, encap_mode="regular", immediacy="immediate", pod=1):
+        """
+        Adds a static leaf binding to this EPG.
+
+        :param leaf_id: Integer containing the node ID (e.g. 101)
+        :param encap_type: String containing the encapsulation type.\
+        Valid values are 'vlan', 'vxlan', or 'nvgre'.
+        :param encap_id: String containing the encapsulation specific\
+        identifier representing the virtual L2 network (i.e. for VXLAN,\
+        this is the numeric value of the VNID).
+
+        :param encap_mode: String containing the encapsulation mode. Use
+        "regular" for normal dot1q tagged traffic, "untagged" for traffic
+        reaching the leaf without any dot1q tags, and "native" for
+        traffic tagged with a 802.1P tag.
+
+        :param immediacy: String containing either "immediate" or "lazy"
+        :param pod: Integer containing the ACI Pod where the supplied leaf is located.
+        :param immediacy: String containing either "immediate" or "lazy"
+        """
+        if encap_type not in ('vlan', 'vxlan', 'nvgre'):
+            raise ValueError("Encap type must be one of 'vlan', 'vxlan', or 'nvgre'")
+        if encap_mode not in ('regular', 'untagged', 'native'):
+            raise ValueError("Encap mode must be one of 'regular', 'untagged', or 'native'")
+        text = {'fvRsNodeAtt': {'attributes': {'encap': "%s-%s" % (encap_type, str(encap_id)),
+                                               'instrImedcy': immediacy,
+                                               'mode': encap_mode,
+                                               "tDn": "topology/pod-%s/node-%s" % (str(pod), str(leaf_id))
+                                               }
+                                }
+                }
+        self._leaf_bindings.append(text)
+
     # Output
     def get_json(self):
         """
@@ -919,6 +953,9 @@ class EPG(CommonEPG):
         if self.has_bd():
             text = {'fvRsBd': {'attributes': {'tnFvBDName': self.get_bd().name}}}
             children.append(text)
+        # Static leaf bindings
+        for leaf_binding in self._leaf_bindings:
+            children.append(leaf_binding)
         is_interfaces = False
         for interface in self.get_interfaces():
             is_interfaces = True
