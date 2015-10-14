@@ -1,5 +1,26 @@
+/*
+################################################################################
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
+*/
 function onClick_show_object(d) {
-    var uri = '/atk_object?dn='+d['path']
+    var uri = '/atk_object?dn='+d['path'];
     window.location.assign(encodeURI(uri))
 }
 function searchResult(result) {
@@ -40,13 +61,13 @@ function searchResult(result) {
         .append("div")
         .attr("class", "record_summary")
         .html(function (d) {return gen_summary(d);})
-        .on("click", function (d, i) { onClick_show_object(d); });
+        .on("click", function (d) { onClick_show_object(d); });
 
 
     if (report.length==0) {
         d3.select('.ac-searching').text('No results').style("display", "block");
     } else {
-        index = report.length;
+        var index = report.length;
         d3.select('.ac-searching').text('Showing '+index+' of ' + total_hits+' results').style("display", "block");
 
     }

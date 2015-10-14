@@ -70,7 +70,7 @@
             .append("th")
             .text(function(d){return d;})
             .selectAll('span')
-            .data(function (d, i) {return [d]; }).enter()
+            .data(function (d) {return [d]; }).enter()
             .append('span')
             .classed('sort_indicator sort_desc', true)
             .on('click', sort);

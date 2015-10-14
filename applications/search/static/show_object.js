@@ -1,3 +1,24 @@
+/*
+################################################################################
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
+*/
 function onClickGoToChild(d) {
     var uri = '/atk_object?dn='+d['path'];
     window.location.assign(encodeURI(uri))
@@ -69,23 +90,17 @@ function show_object(data) {
             });
 
     }
-    view = d3.select(".atk_object_view");
+    var view = d3.select(".atk_object_view");
 
     view.selectAll('div').remove();
 
     view.append('hr');
 
-    props = view.append('div')
+    var props = view.append('div')
         .attr('class', 'subspan11')
         .attr('id','obj_properties');
 
-    //var prop_key = d3.keys(properties).sort();
-    //props.selectAll('p')
-    //    .data(prop_key).enter()
-    //    .append('p')
-    //    .text(function(d) {return capitalize(d)+': '+properties[d];});
-
-    rel_parent = view.append('div')
+    var rel_parent = view.append('div')
         .attr('class', 'subspan12')
 
     rel_parent.append('p')
@@ -103,10 +118,10 @@ function show_object(data) {
 
     var children_classes = d3.keys(children);
     if (children_classes.length > 0) {
-        childLink = rel_parent.append('p')
+        var childLink = rel_parent.append('p')
             .text('Children: ');
 
-        childDropDown1 = childLink.append('select')
+        var childDropDown1 = childLink.append('select')
             .attr('class', 'atk-select')
             .attr('id', 'children_dropdown');
 
@@ -120,7 +135,7 @@ function show_object(data) {
                 return d
             });
 
-        childDropDown2 = childLink.append('select')
+        var childDropDown2 = childLink.append('select')
             .attr('class','atk-select')
             .attr('id', 'children_instance');
 
@@ -141,7 +156,7 @@ function show_object(data) {
 
 
     } else {
-        childDropDown = rel_parent.append('p')
+        var childDropDown = rel_parent.append('p')
             .text('Children: None');
     }
 
@@ -181,7 +196,7 @@ function show_object(data) {
                 .text('Select 1 of ' + rel_data.length);
         }
     }
-    table = view.append('div')
+    var table = view.append('div')
         .attr("class", "attr-table")
         .attr('id','attr_table')
         .append('hr');
@@ -192,7 +207,7 @@ function show_object(data) {
     table = table.append("table")
         .attr('border', '1');
 
-    table_row = table.selectAll('tr')
+    var table_row = table.selectAll('tr')
         .data(attr_key).enter()
         .append("tr");
 

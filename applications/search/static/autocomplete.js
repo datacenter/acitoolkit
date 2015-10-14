@@ -110,7 +110,7 @@ function autoComplete(keywords, values, callBack) {
                 onSpace();
             }
             if (e.which===13) {
-                console.log('Done')
+                console.log('Done');
                 hideDropDown();
                 showSearching("Searching...");
                 selectedCallBack(input.node().value);
@@ -132,21 +132,20 @@ function autoComplete(keywords, values, callBack) {
         var str = searchString;
         console.log("searching on " + searchString.split(' '));
 
-        matches = [];
+        var matches = [];
+        var match=false;
         onSpaceDone = false;  // allow the matched item to be added with a <sp>
         for (var i = 0; i < keywords.length; i++) {
-            var match = false;
             match = (keywords[i].toLowerCase().indexOf(str.toLowerCase()) == 0);
             if (match) {
                 matches.push(keywords[i]);
                 // console.log("matches " + keywords[i]);
             }
         }
-        for (var i = 0; i < values.length; i++) {
-            var match = false;
-            match = (values[i].toLowerCase().indexOf(str.toLowerCase()) == 0);
+        for (var j = 0; j < values.length; j++) {
+            match = (values[j].toLowerCase().indexOf(str.toLowerCase()) == 0);
             if (match) {
-                matches.push(values[i]);
+                matches.push(values[j]);
                 // console.log("matches " + values[i]);
             }
         }
@@ -157,7 +156,7 @@ function autoComplete(keywords, values, callBack) {
         var results = dropDown.selectAll(".ac-row").data(matches, function (d) {return d;});
         results.enter()
             .append("div").attr("class", "ac-row")
-            .on("click", function (d, i) { row_onClick(d); })
+            .on("click", function (d) { row_onClick(d); })
             .append("div").attr("class", "ac-title")
             .html(function (d) {
                 var re = new RegExp(searchString, 'i');
@@ -194,7 +193,7 @@ function autoComplete(keywords, values, callBack) {
     function row_onClick(d) {
         hideDropDown();
         searchTerms = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ');
-        searchTerms.pop()
+        searchTerms.pop();
         searchTerms.push(d);
         input.node().value = searchTerms.join(' ');
     }
@@ -221,5 +220,5 @@ function autoComplete(keywords, values, callBack) {
         selectedCallBack(input.node().value);
         searchTerms = [];
     }
-};
+}
 
