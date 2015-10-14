@@ -23,7 +23,7 @@ Forms for report GUI
 from flask.ext.wtf import Form
 from wtforms import StringField, SubmitField, PasswordField, BooleanField
 from wtforms import TextAreaField, SelectField
-from wtforms.validators import Required, IPAddress
+from wtforms.validators import IPAddress
 
 __author__ = 'edsall'
 
@@ -36,7 +36,7 @@ class FeedbackForm(Form):
                                         ('enhancement', 'Enhancement Request'),
                                         ('question', 'General Question'),
                                         ('comment', 'General Comment')])
-    comment = TextAreaField('Comment', validators=[Required()])
+    comment = TextAreaField('Comment')
     submit = SubmitField('Submit')
 
 
@@ -45,10 +45,10 @@ class CredentialsForm(Form):
     class to hold the form definition for the credentials
     """
     ipaddr = StringField('APIC IP Address:',
-                         validators=[Required(), IPAddress()])
+                         validators=[IPAddress()])
     secure = BooleanField('Use secure connection', validators=[])
-    username = StringField('APIC Username:', validators=[Required()])
-    password = PasswordField('APIC Password:', validators=[Required()])
+    username = StringField('APIC Username:', validators=[])
+    password = PasswordField('APIC Password:', validators=[])
     submit = SubmitField('Save')
 
 
