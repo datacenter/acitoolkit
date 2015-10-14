@@ -25,14 +25,14 @@ from flask import flash, request
 from flask.ext import admin
 # from flask import Flask
 from flask.ext.admin import BaseView, AdminIndexView, expose
-from flask.ext.admin.actions import action
-from flask.ext.admin.contrib.sqla import ModelView
-from flask.ext.admin.model.template import macro
+# from flask.ext.admin.actions import action
+# from flask.ext.admin.contrib.sqla import ModelView
+# from flask.ext.admin.model.template import macro
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.wtf import Form, CsrfProtect
-from wtforms import SubmitField, StringField, BooleanField
-from wtforms import SelectField
-from wtforms.validators import Required
+# from wtforms import SubmitField, StringField, BooleanField
+# from wtforms import SelectField
+# from wtforms.validators import Required
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 # Create application
@@ -51,6 +51,7 @@ bootstrap = Bootstrap(app)
 
 # Create the ACI Search Database
 sdb = SearchDb()
+
 
 class APICArgs(object):
     """
@@ -111,15 +112,10 @@ class SelectSwitchView(BaseView):
             sdb = SearchDb.load_db(False, apic_args)
         if form.validate_on_submit() and form.submit.data:
 
-            # load data from APIC if requested
             if form.data['reload']:
                 print 'reload'
                 apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
                 sdb = SearchDb.load_db(True, apic_args)
-                #sdb.set_login_credentials(apic_args)
-                #sdb.load_db(force_reload=True)
-
-            # report = DynamicTableForm()
             try:
                 report = sdb.get_search_result(form.data['search_field'])
             except Timeout:
@@ -131,7 +127,6 @@ class SelectSwitchView(BaseView):
             except ConnectionError:
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
-        temp = sdb
         if report != {}:
             return self.render('search_result.html', form=form, report=report, keys=sdb.keywords, values=sdb.values)
         else:
@@ -203,10 +198,12 @@ class CredentialsView(BaseView):
             old_secure = session.get('secure')
             old_password = session.get('password')
             if ((old_ipaddr is not None and old_ipaddr != form.ipaddr.data) or
-                 (old_username is not None and old_username != form.username.data) or
-                 (old_secure is not None and old_secure != form.secure.data) or
-                 (old_password is not None and old_password != form.password.data)):
+                (old_username is not None and old_username != form.username.data) or
+                (old_secure is not None and old_secure != form.secure.data) or
+                (old_password is not None and old_password != form.password.data)):
+
                 flash('APIC Credentials have been updated')
+
             session['ipaddr'] = form.ipaddr.data
             session['secure'] = form.secure.data
             session['username'] = form.username.data
@@ -249,6 +246,7 @@ admin.add_view(ShowObjectView(name='Object View', endpoint='atk_object'))
 def search_result_page(search_terms='1/101/1/49'):
     """
     URL to request information about a specific port
+    :param search_terms:
     """
     terms = str(request.args['first'])
     print 'search terms', terms

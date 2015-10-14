@@ -30,9 +30,9 @@ import datetime
 import os.path
 import pickle
 import sys
-from acitoolkit import LogicalModel, ConcreteBD, Tenant, BridgeDomain, Context, Contract
+from acitoolkit import BridgeDomain, Context, Contract
 
-from acitoolkit.aciphysobject import Session, Fabric, PhysicalModel, Node
+from acitoolkit.aciphysobject import Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 
@@ -65,6 +65,7 @@ class SearchDb(object):
         self.values = []
         self.ranked_items = {}
         self.map_class = {}  # index of objects by their class
+        self.object_directory = {}
 
     def lookup_keyword(self, keyword):
         """
@@ -118,7 +119,7 @@ class SearchDb(object):
         return sorted(self.by_value.keys())
 
     @staticmethod
-    def load_db(force_reload=False, args = None):
+    def load_db(force_reload=False, args=None):
 
         """
         Will load the search data from a saved search.p file if it exists, otherwise it will
@@ -127,10 +128,11 @@ class SearchDb(object):
         If the force_reload option is true, it will reload the data from the APIC and save it irrespective of whether
         the search.p file already exists
 
+        :param args:
         :param force_reload:
         """
         sdb = SearchDb()
-        if args :
+        if args:
             sdb.set_login_credentials(args)
         # TODO: provide a way to save multiple different APIC dBs.
         if not sdb.file_exists(sdb.save_file) or force_reload or True:
@@ -166,7 +168,6 @@ class SearchDb(object):
         pickle the indexed data structures and save in search.p
 
         """
-        #pickle.dump((self.object_directory, self.by_key_value, self.by_key, self.by_value), open(self.save_file, "wb"))
         pickle.dump(self, open(self.save_file, "wb"))
 
     @staticmethod
@@ -223,7 +224,7 @@ class SearchDb(object):
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
 
-    def create_object_directory(self,root):
+    def create_object_directory(self, root):
         """
         Will create a dictionary of all the atk objects indexed by their dn.
         :param root:
@@ -249,7 +250,7 @@ class SearchDb(object):
         for child in root.get_children():
             self._add_dir_entry(child)
 
-        #build class map
+        # build class map
         if root.__class__.__name__ not in self.map_class:
             self.map_class[root.__class__.__name__] = []
 
@@ -267,7 +268,7 @@ class SearchDb(object):
             for concrete_bd in self.map_class['ConcreteBD']:
                 ctenant_name = concrete_bd.attr['tenant']
                 if ctenant_name == tenant.name:
-                    switch = concrete_bd._parent
+                    switch = concrete_bd.get_parent()
                     self._add_relation('switches', switch, tenant)
                     self._add_relation('tenants', tenant, switch)
 
@@ -278,8 +279,8 @@ class SearchDb(object):
                 else:
                     cbd_name = concrete_bd.attr['name']
 
-                if cbd_name == bridge_domain.name and concrete_bd.attr['tenant']==bridge_domain._parent.name:
-                    switch = concrete_bd._parent
+                if cbd_name == bridge_domain.name and concrete_bd.attr['tenant'] == bridge_domain.get_parent().name:
+                    switch = concrete_bd.get_parent()
                     self._add_relation('switches', switch, bridge_domain)
                     self._add_relation('bridge domains', bridge_domain, switch)
 
@@ -290,20 +291,20 @@ class SearchDb(object):
             for relation in relations:
                 if isinstance(relation.item, Context):
                     self._add_relation('context', relation.item, bridge_domain)
-                    self._add_relation('bridge domains',bridge_domain, relation.item)
+                    self._add_relation('bridge domains', bridge_domain, relation.item)
 
         for context in self.map_class['Context']:
             for concrete_bd in self.map_class['ConcreteBD']:
                 ccontext_name = concrete_bd.attr['context']
-                if ccontext_name == context.name and concrete_bd.attr['tenant']==context._parent.name:
-                    switch = concrete_bd._parent
+                if ccontext_name == context.name and concrete_bd.attr['tenant'] == context.get_parent().name:
+                    switch = concrete_bd.get_parent()
                     self._add_relation('switches', switch, context)
                     self._add_relation('contexts', context, switch)
 
         for ep in self.map_class['Endpoint']:
-            epg = ep._parent
-            app_profile = epg._parent
-            tenant = app_profile._parent
+            epg = ep.get_parent()
+            app_profile = epg.get_parent()
+            tenant = app_profile.get_parent()
             self._add_relation('endpoints', ep, app_profile)
             self._add_relation('endpoints', ep, tenant)
             self._add_relation('tenant', tenant, ep)
@@ -322,11 +323,11 @@ class SearchDb(object):
                     else:
                         print 'unexpected relation type', relation.relation_type
                 if isinstance(relation.item, BridgeDomain):
-                    self._add_relation('bridge domain',relation.item, epg)
+                    self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
 
     @staticmethod
-    def _add_relation(relationship_type, child_obj, parent_obj ):
+    def _add_relation(relationship_type, child_obj, parent_obj):
         """
         Will add child_obj to parent_obj with the relationship type
         :param child_obj:
@@ -336,8 +337,8 @@ class SearchDb(object):
         if 'gui_x_reference' not in parent_obj.__dict__:
             parent_obj.gui_x_reference = {}
 
-        if isinstance(child_obj, BridgeDomain) or isinstance(child_obj, Context) :
-            child_name = child_obj._parent.name+':'+child_obj.name
+        if isinstance(child_obj, BridgeDomain) or isinstance(child_obj, Context):
+            child_name = child_obj.get_parent().name + ':' + child_obj.name
         else:
             child_name = child_obj.name
 
@@ -346,7 +347,7 @@ class SearchDb(object):
             parent_obj.gui_x_reference[relationship_type] = []
 
         for existing_record in parent_obj.gui_x_reference[relationship_type]:
-            if record['dn']==existing_record['dn']:
+            if record['dn'] == existing_record['dn']:
                 return
         parent_obj.gui_x_reference[relationship_type].append(record)
 
@@ -403,15 +404,15 @@ class SearchDb(object):
         atk_obj = self.object_directory[obj_dn]
         attr = atk_obj.get_attributes()
 
-        result['properties'] = {'class': atk_obj.__class__.__name__,'name': attr['name'],'dn':obj_dn}
+        result['properties'] = {'class': atk_obj.__class__.__name__, 'name': attr['name'], 'dn': obj_dn}
 
         result['attributes'] = atk_obj.get_attributes()
 
-        if atk_obj._parent is not None:
-            parent = atk_obj._parent.get_attributes()['name']
-            parent_dn = atk_obj._parent.get_attributes()['dn']
-            parent_class = atk_obj._parent.__class__.__name__
-            result['parent'] = {'class':parent_class, 'name':parent, 'dn':parent_dn}
+        if atk_obj.get_parent() is not None:
+            parent = atk_obj.get_parent().get_attributes()['name']
+            parent_dn = atk_obj.get_parent().get_attributes()['dn']
+            parent_class = atk_obj.get_parent().__class__.__name__
+            result['parent'] = {'class': parent_class, 'name': parent, 'dn': parent_dn}
         # else:
         #     result['parent'] = {'class':'None','name':'', 'dn':''}
 
@@ -430,29 +431,6 @@ class SearchDb(object):
             result['relations'] = atk_obj.gui_x_reference
 
         return result
-
-    def get_node_relations(self, atk_obj, result):
-        """
-        Will add additional relations to the object result as appropriate
-        :param result:
-        :return:
-        """
-        if atk_obj.role != 'leaf':
-            if 'relations' not in result:
-                result['relations'] = {}
-            result['relations']['tenants'] = []
-            bridge_domains = atk_obj.get_children(ConcreteBD)
-            local_tenants = set()
-            for bd in bridge_domains:
-                local_tenants.add = bd.attr['tenant']
-            logical_tenant = []
-            for tenant in local_tenants:
-                logical_tenant.append(self.map_tenant[tenant])
-
-            for l_tenant in logical_tenant:
-                result['relations']['tenant'].append({'class':l_tenant.__class__.__name__,
-                                                      'name': l_tenant.name,
-                                                      'dn': l_tenant.dn})
 
     def search(self, term_string):
         """
@@ -485,7 +463,7 @@ class SearchDb(object):
                 print 'no match', term
             if t_result is not None:
                 if t_result[1] is not None:
-                    results.append({'result':t_result, 'primaries':set(elem.primary for elem in t_result[1])})
+                    results.append({'result': t_result, 'primaries': set(elem.primary for elem in t_result[1])})
 
         results2 = self.rank_results(results)
         t2 = datetime.datetime.now()
@@ -506,8 +484,8 @@ class SearchDb(object):
 
         self.ranked_items = {}
         for item in master_items:
-            #self.ranked_items[item] = [0, 0, set()]  # score, sub-score, matching terms
-            self.ranked_items[item] = {'pscore':0, 'sscore':0, 'terms':set()}  # score, sub-score, matching terms
+            # self.ranked_items[item] = [0, 0, set()]  # score, sub-score, matching terms
+            self.ranked_items[item] = {'pscore': 0, 'sscore': 0, 'terms': set()}  # score, sub-score, matching terms
 
         # now calculate sub-score
         # sub-score is one point for any term that is not a primiary hit, but is a secondary hit
@@ -527,13 +505,14 @@ class SearchDb(object):
                         self.ranked_items[item]['pscore'] += 1
                         self.ranked_items[item]['terms'].add(s_results['result'][0])
                     elif self.is_secondary(item, s_primaries):
-                            self.ranked_items[item]['sscore'] += 1
-                            self.ranked_items[item]['terms'].add(s_results['result'][0])
+                        self.ranked_items[item]['sscore'] += 1
+                        self.ranked_items[item]['terms'].add(s_results['result'][0])
         print 'end ranking'
         resp = []
         count = 0
         for result in sorted(self.ranked_items,
-                             key=lambda x: (self.ranked_items[x]['pscore'], self.ranked_items[x]['sscore']), reverse=True):
+                             key=lambda x: (self.ranked_items[x]['pscore'], self.ranked_items[x]['sscore']),
+                             reverse=True):
 
             count += 1
             record = {'pscore': self.ranked_items[result]['pscore'],
@@ -636,8 +615,6 @@ def main():
 
     args = creds.get()
     print args
-    #sdb = SearchDb()
-    #sdb.set_login_credentials(args)
     try:
         sdb = SearchDb.load_db(args.force, args)
     except (LoginError, Timeout, ConnectionError):
@@ -648,15 +625,7 @@ def main():
     count = 0
     for res in results:
         count += 1
-        print 'score', res['pscore'], res['sscore'], res['terms'], res['title'], res['path']
-        tables = res['primary'].get_table([res['primary'], ])
-        for table in tables:
-            if table.data:
-                print table.get_text()
-        if count > 10:
-            print 'Showing 10 of', len(results), 'results'
-            break
-
+        print res
 
 if __name__ == '__main__':
     try:
