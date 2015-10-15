@@ -74,7 +74,8 @@ class CommonConcreteObject(BaseACIPhysObject):
                 results[attr] = str(self.attr[attr])
             else:
                 if self.attr[attr] is not None:
-                    print 'Wrong Instance Type', attr, self.__class__.__name__, 'found', type(self.attr[attr])
+                    print('Wrong Instance Type %s %s found %s' % (attr, self.__class__.__name__, type(self.attr[attr])))
+                    
         return results
 
     @property
