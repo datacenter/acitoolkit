@@ -1763,6 +1763,14 @@ class BridgeDomain(BaseACIObject):
         """
         return self.arp_flood == 'yes'
 
+    def get_arp_flood(self):
+        """
+        Get the ARP flooding policy for this BD
+
+        :returns: a string containing the ARP flooding policy of the BridgeDomain
+        """
+        return self.arp_flood
+
     def set_unicast_route(self, route):
         """
         Set the unicast route for this BD
