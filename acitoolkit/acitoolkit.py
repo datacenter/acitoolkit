@@ -1718,6 +1718,15 @@ class BridgeDomain(BaseACIObject):
 
         self.mac = mac
 
+    def get_mac(self):
+        """
+        Get the mac address for the BD
+
+        :returns: string containing the mac address of the BD (e.g. 00:22:BD:F8:19:FF)
+        """
+
+        return self.mac
+
     def set_unknown_multicast(self, multicast):
         """
         Set the unknown multicast for this BD
