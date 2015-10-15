@@ -161,7 +161,7 @@ class AciSearch(object):
         for atk_attr in atk_attrs:
             if atk_attrs[atk_attr] is not None:
                 if not isinstance(atk_attrs[atk_attr], str) and not isinstance(atk_attrs[atk_attr], bool):
-                    print 'wrong type', atk_attr
+                    print("wrong type %s" % str(atk_attr))
                 result.add_term(atk_attr, str(atk_attrs[atk_attr]))
         return [result]
 
