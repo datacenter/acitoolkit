@@ -909,7 +909,8 @@ class EPG(CommonEPG):
                                         self.consume(contract)
         super(EPG, self)._extract_relationships(data)
 
-    def add_static_leaf_binding(self, leaf_id, encap_type, encap_id, encap_mode="regular", immediacy="immediate", pod=1):
+
+    def add_static_leaf_binding(self, leaf_id, encap_type, encap_id, encap_mode="regular", immediacy="lazy", pod=1):
         """
         Adds a static leaf binding to this EPG.
 
@@ -929,6 +930,8 @@ class EPG(CommonEPG):
         :param pod: Integer containing the ACI Pod where the supplied leaf is located.
         :param immediacy: String containing either "immediate" or "lazy"
         """
+        if immediacy not in ('immediate', 'lazy'):
+            raise ValueError("Immediacy must be one of 'immediate' or 'lazy'")
         if encap_type not in ('vlan', 'vxlan', 'nvgre'):
             raise ValueError("Encap type must be one of 'vlan', 'vxlan', or 'nvgre'")
         if encap_mode not in ('regular', 'untagged', 'native'):
