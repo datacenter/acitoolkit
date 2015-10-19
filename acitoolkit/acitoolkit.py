@@ -2116,13 +2116,18 @@ class Subnet(BaseACIObject):
         """
         Set the subnet address
 
-        :param scope: The subnet scope. It can be either "public" or "private".
-        :param scope may optionally contain ",shared" appended, to mark the
-        subnet as leakable to other VRFs within the fabric.
+        :param scope: The scope of the subnet. Use "public" when the subnet
+        needs to be advertised externally, "private" when no external routing
+        for the subnet is required (only internal), and "shared" when a route
+        for the subnet needs to be leaked to a different VRF within the fabric.
+        Note that "public" and "private" are mutually exclusive, but "shared"
+        can be appended to any of them ("e.g. set_scope("public,shared")).
         """
+        valid_scopes = ["public", "private", "shared", "public,shared",\
+                        "private,shared", "shared,public", "shared,private"]
         if scope is None:
             raise TypeError('Scope can not be set to None')
-        elif scope.lower() not in ["public", "private", "public,shared", "private,shared"]:
+        elif scope.lower() not in valid_scopes:
             raise ValueError('Scope must be one "public" or "private", and optionally include ",shared" appended.')
         self._scope = scope.lower()
 
