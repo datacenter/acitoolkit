@@ -2499,6 +2499,7 @@ class TestApic(TestLiveAPIC):
                     '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
                     '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"name": "bd1", '
                     '"unkMacUcastAct": "proxy", "arpFlood": "no", '
+                    '"multiDstPktAct": "bd-flood", '
                     '"mac": "00:22:BD:F8:19:FF", "unicastRoute": "yes", '
                     '"unkMcastAct": "flood"}, "children": []}}]}}')
         actual = json.dumps(tenant.get_json())
