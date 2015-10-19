@@ -2128,7 +2128,8 @@ class Subnet(BaseACIObject):
         if scope is None:
             raise TypeError('Scope can not be set to None')
         elif scope.lower() not in valid_scopes:
-            raise ValueError('Scope must be one "public" or "private", and optionally include ",shared" appended.')
+            raise ValueError('Invalid value for scope. It must be one of "%s".' \
+                             % '", "'.join(valid_scopes[:5]))
         self._scope = scope.lower()
 
     def get_json(self):
