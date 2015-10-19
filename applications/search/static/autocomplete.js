@@ -31,6 +31,7 @@ function autoComplete(keywords, values, callBack) {
         selectedCallBack = callBack;
     var searchTerms = [];
     var onSpaceDone = false;
+    var matches = [];
 
     var container = d3.select("body").select("#autoComplete");
     var enter = container.append("div")
@@ -46,7 +47,7 @@ function autoComplete(keywords, values, callBack) {
 
     var input = enter.append("input")
         .attr("class", "ac-form-control")
-        .attr("placeholder", "Search: enter object, attribute, or value")
+        .attr("placeholder", "Search: enter one of more objects, attributes, or values")
         .attr("type", "text")
         .on("keyup", onKeyUp);
 
@@ -56,13 +57,15 @@ function autoComplete(keywords, values, callBack) {
         .attr("value", "search")
         .on("click", sButtonSelect);
 
+    /*
     var reloadCheck = enter.append("input")
         .attr("type", "checkbox")
         .attr("class", "ac-submit-control")
         .attr("value", "reload");
+    */
 
     var searching = enter.append("div").attr("class", "ac-searching")
-        .text("Enter one or more objects, attributes or values");
+        .text("");
 
     var dropDown = enter.append("div").attr("class", "ac-dropdown")
                         .style("display", "none");
@@ -113,6 +116,7 @@ function autoComplete(keywords, values, callBack) {
                 console.log('Done');
                 hideDropDown();
                 showSearching("Searching...");
+                spinner.spin(target);
                 selectedCallBack(input.node().value);
                 searchTerms = [];
             }
@@ -131,8 +135,7 @@ function autoComplete(keywords, values, callBack) {
 
         var str = searchString;
         console.log("searching on " + searchString.split(' '));
-
-        var matches = [];
+        matches = [];
         var match=false;
         onSpaceDone = false;  // allow the matched item to be added with a <sp>
         for (var i = 0; i < keywords.length; i++) {
@@ -217,6 +220,7 @@ function autoComplete(keywords, values, callBack) {
         console.log("sButton selected");
         hideDropDown();
         showSearching("Searching...");
+        spinner.spin(target);
         selectedCallBack(input.node().value);
         searchTerms = [];
     }
