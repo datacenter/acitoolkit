@@ -20,7 +20,8 @@
 ################################################################################
 */
 function onClick_show_object(d) {
-    var uri = '/atk_object?dn='+d['path'];
+    // var uri = '/atk_object?dn='+d['path'];
+    var uri = '/selectswitchview?dn='+d['path'];
     window.location.assign(encodeURI(uri))
 }
 function searchResult(result) {
@@ -63,6 +64,7 @@ function searchResult(result) {
         .html(function (d) {return gen_summary(d);})
         .on("click", function (d) { onClick_show_object(d); });
 
+    spinner.stop();
 
     if (report.length==0) {
         d3.select('.ac-searching').text('No results').style("display", "block");
