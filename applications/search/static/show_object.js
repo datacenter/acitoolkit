@@ -20,15 +20,10 @@
 ################################################################################
 */
 function onClickGoToChild(d) {
-    var uri = '/atk_object?dn='+d['path'];
+    var uri = '/selectswitchview?dn='+d['path'];
     window.location.assign(encodeURI(uri))
 }
 function show_object(data) {
-    var attributes = data['attributes'];
-    var properties = data['properties'];
-    var children = data['children'];
-
-    var attr_key = d3.keys(attributes).sort();
 
     function buildChildInstanceSelect() {
         var d = childDropDown1.node().value;
@@ -51,7 +46,7 @@ function show_object(data) {
         selectWidget.selectAll('option')
             .data(childInstances).enter()
             .append('option')
-            .attr('value', function (d) {return encodeURI('/atk_object?dn=' + d['dn']);})
+            .attr('value', function (d) {return encodeURI('/selectswitchview?dn=' + d['dn']);})
             .text(function (d, i) {return (parseInt(i)+1)+'. '+d['name'];});
 
         if (childInstances.length > 1) {
@@ -86,36 +81,43 @@ function show_object(data) {
             .append('a')
             .text(function (d) {return capitalize(d['class']) + ': ' + d['name'];})
             .attr('href', function (d) {
-                return '/atk_object?dn=' + d['dn'];
+                return '/selectswitchview?dn=' + d['dn'];
             });
 
     }
+
+    var properties = data['properties'];
+    var children = data['children'];
+
     var view = d3.select(".atk_object_view");
-
     view.selectAll('div').remove();
-
     view.append('hr');
 
     var props = view.append('div')
         .attr('class', 'subspan11')
-        .attr('id','obj_properties');
+        .attr('id','obj_properties')
+        .append('h2')
+        .attr('align', 'center')
+        .text(function(d) {return capitalize(properties['class'])+': '+properties['name'];});
 
+    // Indicate what object this is
     var rel_parent = view.append('div')
         .attr('class', 'subspan12')
 
-    rel_parent.append('p')
-        .datum(properties)
-        .text('Current: ')
-        .append('a')
-        .text(function(d) {return capitalize(properties['class'])+': '+properties['name'];})
-        .attr('href',function(d) { return '/atk_object?dn='+properties['dn'];});
+    //// show this object
+    //rel_parent.append('p')
+    //    .datum(properties)
+    //    .text('Current: ')
+    //    .append('a')
+    //    .text(function(d) {return capitalize(properties['class'])+': '+properties['name'];})
+    //    .attr('href',function(d) { return '/selectswitchview?dn='+properties['dn'];});
 
+    // show parent object with link
     if (data['parent']) {
         simpleLink('Parent: ', [data['parent']], rel_parent);
     }
-    // rel_child = view.append('div')
-    //    .attr('class', 'subspan12')
 
+    // show children with links
     var children_classes = d3.keys(children);
     if (children_classes.length > 0) {
         var childLink = rel_parent.append('p')
@@ -186,7 +188,7 @@ function show_object(data) {
                 .data(rel_data).enter()
                 .append('option')
                 .attr('value', function (d) {
-                    return encodeURI('/atk_object?dn=' + d['dn']);
+                    return encodeURI('/selectswitchview?dn=' + d['dn']);
                 })
                 .text(function (d) {
                     return capitalize(d['class']) + ': ' + d['name'];
@@ -196,16 +198,21 @@ function show_object(data) {
                 .text('Select 1 of ' + rel_data.length);
         }
     }
+    var attributes = data['attributes'];
+    var attr_key = d3.keys(attributes).sort();
     var table = view.append('div')
         .attr("class", "attr-table")
         .attr('id','attr_table')
         .append('hr');
 
     table.append('div')
-        .html('Attributes');
+        .attr('align', 'center')
+        .append('h4')
+        .text('Attributes');
 
     table = table.append("table")
-        .attr('border', '1');
+        .attr('border', '1')
+        .attr('align','center');
 
     var table_row = table.selectAll('tr')
         .data(attr_key).enter()
