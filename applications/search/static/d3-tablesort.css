@@ -1,5 +1,6 @@
 .subspan11 {
-    float : left;
+    float : none;
+    margin-left: 0;
 }
 .subspan12 {
     float : left;
