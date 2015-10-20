@@ -2146,6 +2146,7 @@ class Subnet(BaseACIObject):
         Called from the base object when calling the classmethod get()
         """
         self.set_addr(str(attributes.get('ip')))
+        self.set_scope(str(attributes.get('scope')))
         self.dn = self.get_dn_from_attributes(attributes)
 
     @classmethod
@@ -2173,6 +2174,7 @@ class Subnet(BaseACIObject):
 
         result = super(Subnet, self).get_attributes(name)
         result['addr'] = self.get_addr()
+        result['scope'] = self.get_scope()
         return result
 
 
