@@ -707,7 +707,7 @@ class EPG(CommonEPG):
             if not isinstance(parent, AppProfile):
                 raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
-        self._leaf_bindings=[]
+        self._leaf_bindings = []
         self._deployment_immediacy = None
         self._dom_deployment_immediacy = None
         self._dom_resolution_immediacy = None
@@ -908,7 +908,6 @@ class EPG(CommonEPG):
                                     if isinstance(contract, Contract):
                                         self.consume(contract)
         super(EPG, self)._extract_relationships(data)
-
 
     def add_static_leaf_binding(self, leaf_id, encap_type, encap_id, encap_mode="regular", immediacy="lazy", pod=1):
         """
@@ -2148,12 +2147,14 @@ class Subnet(BaseACIObject):
         Note that "public" and "private" are mutually exclusive, but "shared"
         can be appended to any of them ("e.g. set_scope("public,shared")).
         """
-        valid_scopes = ["public", "private", "shared", "public,shared",\
+        valid_scopes = ["public", "private", "shared", "public,shared",
                         "private,shared", "shared,public", "shared,private"]
         if scope is None:
             raise TypeError('Scope can not be set to None')
+        elif len(scope) == 0:
+            self._scope = "private"
         elif scope.lower() not in valid_scopes:
-            raise ValueError('Invalid value for scope. It must be one of "%s".' \
+            raise ValueError('Invalid value for scope. It must be one of "%s".'
                              % '", "'.join(valid_scopes[:5]))
         self._scope = scope.lower()
 
@@ -2670,6 +2671,7 @@ class ContractSubject(BaseACIObject):
                                     for filt in objs:
                                         if isinstance(filt, Filter):
                                             self.add_filter(filt)
+                                    # TODO: need to check tenant common for filter if not found
                     except KeyError:
                         pass
 
@@ -4522,14 +4524,18 @@ class VMM(BaseACIObject):
                                                 self.network_pool.name,
                                                 self.network_pool.mode)
 
+        vmmDomP = {'vmmDomP': {'attributes': {'name': self.vswitch_info.vswitch_name},
+                               'children': [vmmUsrAccP, vmmCtrlrP]}}
         if self.network_pool.encap_type == 'vlan':
             infraNsType = 'infraRsVlanNs'
         elif self.network_pool.encap_type == 'vxlan':
             infraNsType = 'infraRsVxlanNs'
         infraRsNs = {infraNsType: {'attributes': {'tDn': infraNsDn},
                                    'children': []}}
-        vmmDomP = {'vmmDomP': {'attributes': {'name': self.vswitch_info.vswitch_name},
-                               'children': [vmmUsrAccP, vmmCtrlrP, infraRsNs]}}
+        if self.network_pool.encap_type == 'vlan':
+            vmmDomP['vmmDomP']['children'].append(infraRsNs)
+        else:
+            vmmCtrlrP['vmmCtrlrP']['children'].append(infraRsNs)
         vmmProvP = {'vmmProvP': {'attributes': {'vendor': self.vswitch_info.vendor},
                                  'children': [vmmDomP]}}
 
@@ -4537,14 +4543,26 @@ class VMM(BaseACIObject):
 
     @classmethod
     def get(cls, session):
-        query_url = '/api/node/class/vmmCtrlrP.json?query-target=subtree'
+        query_url = '/api/node/class/vmmDomP.json?query-target=subtree&rsp-subtree=full'
         ret = session.get(query_url)
         data = ret.json()['imdata']
+        new_vmms = []
         for item in data:
-            for key in item:
-                print(str(key))
-        print(str(data))
-        raise NotImplementedError
+            if 'vmmDomP' in item:
+                dn = item['vmmDomP']['attributes'].get('dn')
+                vendor = dn.rpartition('/vmmp-')[-1].partition('/')[0]
+                dvs_name = item['vmmDomP']['attributes'].get('name')
+                if 'children' in item['vmmDomP']:
+                    for vmm in item['vmmDomP']['children']:
+                        if 'vmmCtrlrP' in vmm:
+                            vmm_name = vmm['vmmCtrlrP']['attributes']['name']
+                            vmm_ip = vmm['vmmCtrlrP']['attributes'].get('hostOrIp')
+                            datacenter_name = vmm['vmmCtrlrP']['attributes'].get('rootContName')
+                            vswitch_info = VMMvSwitchInfo(vendor, datacenter_name, dvs_name)
+                            new_vmm = VMM(dvs_name, vmm_ip, None, vswitch_info, None)
+                            # TODO: need to fill in NetworkPool if possible
+                            new_vmms.append(new_vmm)
+        return new_vmms
 
 
 class Search(BaseACIObject):
