@@ -63,6 +63,7 @@ function show_object(data) {
     }
 
     function alphabetical(a, b) {
+        // case insensitive sort on the name field
          var A = a['name'].toLowerCase();
          var B = b['name'].toLowerCase();
          if (A < B){
