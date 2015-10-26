@@ -111,7 +111,7 @@ class SelectSwitchView(BaseView):
         apic_object_dn = str(request.args.get('dn'))
         if apic_object_dn is not None:
 
-            if sdb.by_key == {}:
+            if sdb.by_attr == {}:
                 apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
                 sdb = SearchDb.load_db(apic_args)
             if apic_object_dn != 'None':
@@ -122,7 +122,7 @@ class SelectSwitchView(BaseView):
             atk_object_info = 'None'
 
         # load data from file if it has not been otherwise loaded
-        if sdb.by_key == {}:
+        if sdb.by_attr == {}:
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
             sdb = SearchDb.load_db(apic_args)
         if form.validate_on_submit() and form.submit.data:
@@ -142,30 +142,22 @@ class SelectSwitchView(BaseView):
             except ConnectionError:
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
-        if report != {}:
-            if atk_object_info is not None:
-                return self.render('search_result.html',
-                                   form=form, report=report,
-                                   keys=sdb.keywords,
-                                   values=sdb.values,
-                                   result=atk_object_info)
-            else:
-                return self.render('search_result.html',
-                                   form=form, report=report,
-                                   keys=sdb.keywords,
-                                   values=sdb.values,
-                                   result=atk_object_info)
 
+        if report != {}:
+            return self.render('search_result.html',
+                               form=form,
+                               report=report,
+                               classes=sdb.classes,
+                               attrs=sdb.attrs,
+                               values=sdb.values,
+                               result=atk_object_info)
         else:
-            if atk_object_info is not None:
-                return self.render('search_result.html',
-                                   form=form,
-                                   keys=sdb.keywords,
-                                   values=sdb.values,
-                                   result=atk_object_info)
-            else:
-                return self.render('search_result.html', form=form, keys=sdb.keywords, values=sdb.values,
-                                   result=atk_object_info)
+            return self.render('search_result.html',
+                               form=form,
+                               classes=sdb.classes,
+                               attrs=sdb.attrs,
+                               values=sdb.values,
+                               result=atk_object_info)
 
 
 class About(BaseView):
@@ -195,7 +187,7 @@ class ShowObjectView(BaseView):
         """
         global sdb
         apic_object_dn = str(request.args.get('dn'))
-        if sdb.by_key == {}:
+        if sdb.by_attr == {}:
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
             sdb = SearchDb.load_db(apic_args)
         if apic_object_dn != 'None':
