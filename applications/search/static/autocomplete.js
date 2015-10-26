@@ -22,7 +22,7 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-function autoComplete(keywords, values, callBack) {
+function autoComplete(classes, attrs, values, callBack) {
     var margin = {top: 20, right: 10, bottom: 10, left: 10},
         width = 100 - margin.left - margin.right,
         height = 100 - margin.top - margin.bottom;
@@ -32,6 +32,19 @@ function autoComplete(keywords, values, callBack) {
     var searchTerms = [];
     var onSpaceDone = false;
     var matches = [];
+
+    function alphabetical(a, b) {
+        // case insensitive sort on the name field
+         var A = a.substring(1).toLowerCase();
+         var B = b.substring(1).toLowerCase();
+         if (A < B){
+            return -1;
+         }else if (A > B){
+           return  1;
+         }else{
+           return 0;
+         }
+    }
 
     var container = d3.select("body").select("#autoComplete");
     var enter = container.append("div")
@@ -131,6 +144,16 @@ function autoComplete(keywords, values, callBack) {
     // It will anchor the search at the beginning of the string
     // Changing the comparison to 'indexOf' from == 0 to >= 0 will
     // allow the search to match anywhere.
+    function loadTerms(terms, str, controlChar) {
+        for (var i = 0; i < terms.length; i++) {
+            var match = (terms[i].toLowerCase().indexOf(str.toLowerCase()) == 0);
+            if (match) {
+                matches.push(controlChar + terms[i]);
+                // console.log("matches " + classes[i]);
+            }
+        }
+
+    }
     function search(searchString) {
 
         var str = searchString;
@@ -138,33 +161,44 @@ function autoComplete(keywords, values, callBack) {
         matches = [];
         var match=false;
         onSpaceDone = false;  // allow the matched item to be added with a <sp>
-        for (var i = 0; i < keywords.length; i++) {
-            match = (keywords[i].toLowerCase().indexOf(str.toLowerCase()) == 0);
-            if (match) {
-                matches.push(keywords[i]);
-                // console.log("matches " + keywords[i]);
+
+        var re = new RegExp('^[#=:]');
+        var controlChar = str.match(re);
+
+        if (controlChar) {
+            controlChar = controlChar[0];
+            if (controlChar=='#'){
+                loadTerms(classes, str.substr(1), 'c');
             }
-        }
-        for (var j = 0; j < values.length; j++) {
-            match = (values[j].toLowerCase().indexOf(str.toLowerCase()) == 0);
-            if (match) {
-                matches.push(values[j]);
-                // console.log("matches " + values[i]);
+
+            if (controlChar==':'){
+                 loadTerms(attrs, str.substr(1), 'a');
             }
+            if (controlChar=='='){
+                 loadTerms(values, str.substr(1), 'v');
+            }
+
+
+        } else {
+            loadTerms(classes, str, 'c');
+            loadTerms(attrs, str, 'a');
+            loadTerms(values, str, 'v');
         }
     }
 
     function processResults(searchString) {
 
-        var results = dropDown.selectAll(".ac-row").data(matches, function (d) {return d;});
+        var results = dropDown.selectAll(".ac-row").data(matches.sort(alphabetical), function (d) {return d;});
         results.enter()
             .append("div").attr("class", "ac-row")
             .on("click", function (d) { row_onClick(d); })
             .append("div").attr("class", "ac-title")
             .html(function (d) {
                 var re = new RegExp(searchString, 'i');
-                var strPart = d.match(re)[0];
-                return d.replace(re, "<span class = 'ac-highlight'>" + strPart + "</span>");
+                var strPart = d.substring(1).match(re)[0];
+                var rowResult = "<span class= 'ac-hint'>" + d[0]+ " </span>" +
+                    d.substring(1).replace(re, "<span class = 'ac-highlight'>" + strPart + "</span>");
+                return rowResult;
             });
 
         results.exit().remove();
@@ -174,10 +208,11 @@ function autoComplete(keywords, values, callBack) {
         results.select(".ac-title")
             .html(function (d, i) {
                 var re = new RegExp(searchString, 'i');
-                var strPart = matches[i].match(re);
+                var strPart = matches[i].substring(1).match(re);
                 if (strPart) {
                     strPart = strPart[0];
-                    return matches[i].replace(re, "<span class = 'ac-highlight'>" + strPart + "</span>");
+                    return "<span class= 'ac-hint'>" + matches[i][0]+ " </span>" +
+                        matches[i].substring(1).replace(re, "<span class = 'ac-highlight'>" + strPart + "</span>");
                 }
 
             });
@@ -197,7 +232,7 @@ function autoComplete(keywords, values, callBack) {
         hideDropDown();
         searchTerms = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ');
         searchTerms.pop();
-        searchTerms.push(d);
+        searchTerms.push(d.substring(1));
         input.node().value = searchTerms.join(' ');
     }
 
@@ -207,7 +242,7 @@ function autoComplete(keywords, values, callBack) {
         if (onSpaceDone===false) {
             searchTerms.pop();
             lastSearchString = '';
-            searchTerms.push(matches[0]);
+            searchTerms.push(matches[0].substring(1));
         }
         onSpaceDone = true;
         input.node().value = searchTerms.join(' ') + ' ';
