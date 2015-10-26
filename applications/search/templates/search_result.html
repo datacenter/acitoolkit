@@ -77,14 +77,16 @@
         var spinner = new Spinner(opts);//.spin(target);
         var searchStatus = d3.select(".ac-searching");
 
-        var keys = {{ keys|safe }};
+        var attrs = {{ attrs|safe }};
         var values = {{ values|safe }};
+        var classes = {{ classes|safe }};
+
         var data = {{ result|safe }};
 
         function callBack(search_terms) {
             renderSearch($.param({'first':search_terms}));
         }
-        autoComplete(keys, values, callBack);
+        autoComplete(classes, attrs, values, callBack);
 
         if (data != 'None') {
             show_object(data);
