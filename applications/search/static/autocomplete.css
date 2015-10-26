@@ -49,8 +49,13 @@
 }
 
 .ac-searching {
-    color: #bp-acacac;
+    color: #acacac;
     font-size: 14px;
+}
+
+.ac-hint {
+    color: #acacac;
+    font-size: 10px;
 }
 .ac-row {
     padding: 5px;
