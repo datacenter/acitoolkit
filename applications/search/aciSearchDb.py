@@ -20,7 +20,7 @@
 """  ACISearch: Search application for ACI fabrics
 
     This file contains the main engine for the search tool that handles
-    getting the search keywords and value along with the associated objects.
+    getting the search attrs and value along with the associated objects.
     It can then return a list of objects that match either the keyword, the value
     or the keyword, value pair.
     It runs as a standalone tool in addition, it can be imported as a library
@@ -50,16 +50,21 @@ class SearchDb(object):
     def __init__(self, args=None):
         """
         Will load in all of the search objects and create
-        an index by keyword, value, and keyword value pair.
+        an index by attr, value, and class and all combinations.
         """
-        self.by_key = {}
+        self.by_attr = {}
         self.by_value = {}
-        self.by_key_value = {}
+        self.by_class = {}
+        self.by_attr_value = {}
+        self.by_class_value = {}
+        self.by_class_attr = {}
+        self.by_class_attr_value = {}
+
         self.save_file = 'search.p'
         self._session = None
         self.args = None
         self.timeout = None
-        self.keywords = []
+        self.attrs = []
         self.values = []
         self.ranked_items = {}
         self.map_class = {}  # index of objects by their class
@@ -68,14 +73,14 @@ class SearchDb(object):
         if args:
             self.set_login_credentials(args)
 
-    def get_keywords(self):
+    def get_attrs(self):
 
         """
         gets a sorted list of the key words
 
         :return:
         """
-        return sorted(self.by_key.keys())
+        return sorted(self.by_attr.keys())
 
     def get_values(self):
         """
@@ -84,6 +89,13 @@ class SearchDb(object):
         :return:
         """
         return sorted(self.by_value.keys())
+
+    def get_classes(self):
+        """
+        gets a sorted list of the classes
+        :return:
+        """
+        return sorted(self.by_class.keys())
 
     @staticmethod
     def load_db(args=None):
@@ -103,15 +115,16 @@ class SearchDb(object):
         searchables = fabric.get_searchable()
         sdb._index_searchables(searchables)
         sdb._create_object_directory(fabric)
-        sdb.keywords = sdb.get_keywords()
+        sdb.attrs = sdb.get_attrs()
         sdb.values = sdb.get_values()
+        sdb.classes = sdb.get_classes()
         sdb._cross_reference_objects()
         print '-done'
         return sdb
 
     def set_login_credentials(self, args, timeout=2):
         """
-        Login to the APIC
+        Sets the login credentials for the APIC
 
         :rtype : None
         :param args: An instance containing the APIC credentials.  Expected to
@@ -128,7 +141,9 @@ class SearchDb(object):
     def get_object_info(self, obj_dn):
         """
         Will return dictionary containing all of the information in the
-        object
+        object.  This information includes all the attributes as well as interesting relationships.
+        The relationships include those explicitly in the APIC as well as others that
+        are interesting from a model navigation perspective.
         :rtype : dict
         :param obj_dn:
         :return: result
@@ -177,16 +192,16 @@ class SearchDb(object):
                 (k, v) = term.split('::')
                 if k and v:
                     print 'kv match', term
-                    t_result = (term, self._lookup_keyword_value(k, v))
+                    t_result = (term, self._lookup_attr_value(k, v))
                 elif k:
                     print 'v match', term
                     t_result = (term, self._lookup_value(term))
                 elif v:
                     print 'k match', term
-                    t_result = (term, self._lookup_keyword(term))
-            elif term in self.keywords:
+                    t_result = (term, self._lookup_attr(term))
+            elif term in self.attrs:
                 print 'k match', term
-                t_result = (term, self._lookup_keyword(term))
+                t_result = (term, self._lookup_attr(term))
             elif term in self.values:
                 print 'v match', term
                 t_result = (term, self._lookup_value(term))
@@ -201,14 +216,14 @@ class SearchDb(object):
         print 'elapsed time', t2 - t1
         return results2
 
-    def _lookup_keyword(self, keyword):
+    def _lookup_attr(self, keyword):
         """
         This will return a list of searchable objects that
         are indexed to keyword
         :param keyword:
         :return: list of searchables
         """
-        return self.by_key.get(keyword)
+        return self.by_attr.get(keyword)
 
     def _lookup_value(self, value):
         """
@@ -224,28 +239,32 @@ class SearchDb(object):
 
         return self.by_value.get(value)
 
-    def _lookup_keyword_value(self, keyword, value):
+    def _lookup_attr_value(self, attr, value):
         """
         This will return a list of searchable objects that
-        are indexed to a (keyword, value) pair
+        are indexed to a (attr, value) pair
         :param value:
-        :param keyword:
+        :param attr:
         :return: list of searchables
         """
 
-        return self.by_key_value.get((keyword, value))
+        return self.by_attr_value.get((attr, value))
 
     def _index_searchables(self, searchables):
 
         """
-        index all the searchable items by key_value, key, and value
+        index all the searchable items by attr, value, and class
         :param searchables: List of searchable objects
         """
         t1 = datetime.datetime.now()
         count = 0
-        self.by_key = {}
+        self.by_attr = {}
         self.by_value = {}
-        self.by_key_value = {}
+        self.by_attr_value = {}
+        self.by_class = {}
+        self.by_class_value = {}
+        self.by_class_attr = {}
+        self.by_class_attr_value = {}
 
         # index searchables by keyword, value and keyword/value
         for searchable in searchables:
@@ -253,28 +272,69 @@ class SearchDb(object):
             if count % 1000 == 0:
                 print count
             atk_class = searchable.object_class
-            if atk_class not in self.by_key:
-                self.by_key[atk_class] = set([])
-            self.by_key[atk_class].add(searchable)
+            atk_attrs = searchable.attr
+            atk_values = searchable.value
+            atk_attr_values = searchable.attr_value
 
-            for term in searchable.terms:
+            # index by_class
+            if atk_class not in self.by_class:
+                self.by_class[atk_class] = set([])
+            self.by_class[atk_class].add(searchable)
 
-                (keyword, value, relation) = term
+            # index by attr and by attr, class
+            for atk_attr in atk_attrs:
+                if atk_attr not in self.by_attr:
+                    self.by_attr[atk_attr] = set([])
+                if (atk_class, atk_attr) not in self.by_class_attr:
+                    self.by_class_attr[(atk_class, atk_attr)] = set([])
 
-                if keyword not in self.by_key:
-                    self.by_key[keyword] = set([])
-                self.by_key[keyword].add(searchable)
+                self.by_attr[atk_attr].add(searchable)
+                self.by_class_attr[(atk_class, atk_attr)].add(searchable)
 
-                if value is not None:
-                    if value not in self.by_value:
-                        self.by_value[value] = set([])
+            # index by values and by value, class
+            for atk_value in atk_values:
+                if atk_value not in self.by_value:
+                    self.by_value[atk_value] = set([])
+                if (atk_class, atk_value) not in self.by_class_value:
+                    self.by_class_value[(atk_class, atk_value)] = set([])
 
-                    self.by_value[value].add(searchable)
+                self.by_value[atk_value].add(searchable)
+                self.by_class_value[(atk_class, atk_value)].add(searchable)
 
-                    if (keyword, value) not in self.by_key_value:
-                        self.by_key_value[(keyword, value)] = set([])
+            # index by attr & value and by class, attr, value
+            for atk_attr_value in atk_attr_values:
+                if atk_attr_value not in self.by_attr_value:
+                    self.by_attr_value[atk_attr_value] = set([])
 
-                    self.by_key_value[(keyword, value)].add(searchable)
+
+                if (atk_class, atk_attr, atk_value) not in self.by_class_attr_value:
+                    self.by_class_attr_value[(atk_class, atk_attr, atk_value)] = set([])
+
+                self.by_class_attr_value[(atk_class, atk_attr, atk_value)].add(searchable)
+
+            # index by class & value
+            # if atk_class not in self.by_attr:
+            #     self.by_attr[atk_class] = set([])
+            # self.by_attr[atk_class].add(searchable)
+            #
+            # for term in searchable.terms:
+            #
+            #     (keyword, value, relation) = term
+            #
+            #     if keyword not in self.by_attr:
+            #         self.by_attr[keyword] = set([])
+            #     self.by_attr[keyword].add(searchable)
+            #
+            #     if value is not None:
+            #         if value not in self.by_value:
+            #             self.by_value[value] = set([])
+            #
+            #         self.by_value[value].add(searchable)
+            #
+            #         if (keyword, value) not in self.by_attr_value:
+            #             self.by_attr_value[(keyword, value)] = set([])
+            #
+            #         self.by_attr_value[(keyword, value)].add(searchable)
 
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
