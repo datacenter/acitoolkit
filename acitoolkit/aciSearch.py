@@ -53,30 +53,36 @@ class Searchable(object):
         and the context of the item.
         """
         self.terms = set()
+        self.attr = set()
+        self.value = set()
+        self.attr_value = set()
         for term in dirty_terms:
             keyword, value = term[:2]
             relation = term[2] if len(term) == 3 else 'primary'
             self.add_term(keyword, value, relation)
         self.context = []
 
-    def add_term(self, keyword, value=None, relation='primary'):
+    def add_term(self, attr, value=None, relation='primary'):
         """
-        Will add a search keyword, value pair to the searchable item
+        Will add a search attr, value pair to the searchable item
         It will also add the relation.
-        :param keyword:
+        :param attr:
         :param value:
         :param relation:
         """
         if isinstance(value, unicode):
             value = str(value)
-        if isinstance(keyword, unicode):
-            keyword = str(keyword)
+        if isinstance(attr, unicode):
+            attr = str(attr)
 
         assert relation in ['primary', 'secondary']
         assert isinstance(value, str) or (value is None)
-        assert isinstance(keyword, str)
+        assert isinstance(attr, str)
 
-        self.terms.add((keyword, value, relation))
+        self.terms.add((attr, value, relation))
+        self.attr.add(attr)
+        self.value.add(value)
+        self.attr_value.add((attr, value))
 
     @property
     def primary(self):
