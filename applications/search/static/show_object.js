@@ -171,7 +171,7 @@ function show_object(data) {
 
     var rel_keys = d3.keys(relations).sort();
 
-    for (var index in rel_keys) {
+    for (var index=0, tot=rel_keys.length; index< tot; index++) {
         var rel_key = rel_keys[index];
         var rel_data = relations[rel_key].sort(alphabetical);
         if (rel_data.length == 1) {
