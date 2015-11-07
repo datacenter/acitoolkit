@@ -166,7 +166,7 @@ class ConcreteArp(CommonConcreteObject):
         for data in node_data:
             if 'arpInst' in data:
                 arp = cls()
-                arp.attr['adminSt'] = str(data['arpInst']['attributes']['adminSt'])
+                arp.attr['admin_state'] = str(data['arpInst']['attributes']['adminSt'])
                 arp.attr['dn'] = str(data['arpInst']['attributes']['dn'])
                 arp.get_arp_domain(top)
                 result.append(arp)
@@ -372,10 +372,10 @@ class ConcreteVpc(CommonConcreteObject):
         get info from the instance
         """
         inst_data = top.get_subtree('vpcInst', self.attr['dn'])
-        self.attr['admin_st'] = None
+        self.attr['admin_state'] = None
         for inst in inst_data:
             if 'vpcInst' in inst:
-                self.attr['admin_st'] = str(inst['vpcInst']['attributes']['adminSt'])
+                self.attr['admin_state'] = str(inst['vpcInst']['attributes']['adminSt'])
                 self._populate_from_dom(top, inst['vpcInst']['attributes']['dn'])
 
     def _populate_from_dom(self, top, dname):
@@ -390,7 +390,7 @@ class ConcreteVpc(CommonConcreteObject):
                 attr = dom['vpcDom']['attributes']
                 self.attr['compat_str'] = str(attr['compatQualStr'])
                 self.attr['compat_st'] = str(attr['compatSt'])
-                self.attr['dual_active_st'] = str(attr['dualActiveSt'])
+                self.attr['dual_active_st'] = str(attr['dualActiveSt']).capitalize()  # to make it consistent
                 self.attr['id'] = str(attr['id'])
                 self.attr['role'] = str(attr['lacpRole'])
                 self.attr['local_mac'] = str(attr['localMAC'])
@@ -416,7 +416,7 @@ class ConcreteVpc(CommonConcreteObject):
         """
         result = []
         for vpc in vpcs:
-            if vpc.attr['admin_st'] == 'enabled' and vpc.attr['dom_present']:
+            if vpc.attr['admin_state'] == 'enabled' and vpc.attr['dom_present']:
                 headers = ['Name',
                            'ID',
                            'Virtual MAC',
@@ -442,7 +442,7 @@ class ConcreteVpc(CommonConcreteObject):
                          vpc.attr.get('id', ''),
                          vpc.attr.get('virtual_mac', ''),
                          vpc.attr.get('virtual_ip', ''),
-                         vpc.attr.get('admin_st', ''),
+                         vpc.attr.get('admin_state', ''),
                          vpc.attr.get('oper_st', ''),
                          vpc.attr.get('dom_oper_st', ''),
                          vpc.attr.get('role', ''),
@@ -462,7 +462,7 @@ class ConcreteVpc(CommonConcreteObject):
                 result.append(table)
             else:
                 headers = ['Admin State', 'Oper State']
-                data = [[vpc.attr.get('admin_st', ''), vpc.attr.get('oper_st', '')]]
+                data = [[vpc.attr.get('admin_state', ''), vpc.attr.get('oper_st', '')]]
 
                 table = Table(data, headers, title=title + 'Virtual Port Channel (VPC)')
                 result.append(table)
@@ -702,7 +702,7 @@ class ConcreteContext(CommonConcreteObject):
         self.attr['dn'] = str(attr['dn'])
         self.attr['oper_st'] = str(attr['operState'])
         self.attr['create_time'] = str(attr['createTs'])
-        self.attr['admin_st'] = str(attr['adminState'])
+        self.attr['admin_state'] = str(attr['adminState'])
         self.attr['oper_st_qual'] = str(attr['operStQual'])
         self.attr['encap'] = str(attr['encap'])
         self.attr['modified_time'] = str(attr['lastChgdTs'])
@@ -750,7 +750,7 @@ class ConcreteContext(CommonConcreteObject):
                 context.attr.get('type', ''),
                 context.attr.get('vrf_id', ''),
                 context.attr.get('mcst_class_id', ''),
-                context.attr.get('admin_st', ''),
+                context.attr.get('admin_state', ''),
                 context.attr.get('oper_st', ''),
                 context.attr.get('modified_time', '')])
 
@@ -831,7 +831,7 @@ class ConcreteSVI(CommonConcreteObject):
        :param attr: Attributes of the APIC object
         """
         self.attr['bandwidth'] = str(attr['bw'])
-        self.attr['admin_st'] = str(attr['adminSt'])
+        self.attr['admin_state'] = str(attr['adminSt'])
         self.attr['oper_st_qual'] = str(attr['operStQual'])
         self.attr['oper_st'] = str(attr['operSt'])
         self.attr['modified_time'] = str(attr['modTs'])
@@ -864,7 +864,7 @@ class ConcreteSVI(CommonConcreteObject):
                 aci_object.attr.get('vlan_id', ''),
                 aci_object.attr.get('mac', ''),
                 aci_object.attr.get('bw', ''),
-                aci_object.attr.get('admin_st', ''),
+                aci_object.attr.get('admin_state', ''),
                 aci_object.attr.get('oper_st', ''),
                 aci_object.attr.get('oper_st_qual', '')
             ])
@@ -953,7 +953,7 @@ class ConcreteLoopback(CommonConcreteObject):
        :param attr: Attributes of the APIC object
         """
         self.attr['descr'] = str(attr['descr'])
-        self.attr['admin_st'] = str(attr['adminSt'])
+        self.attr['admin_state'] = str(attr['adminSt'])
         self.attr['id'] = str(attr['id'])
         self.attr['dn'] = str(attr['dn'])
         self.name = self.attr['id']
@@ -1056,7 +1056,7 @@ class ConcreteBD(CommonConcreteObject):
         self.attr['dn'] = str(attr['dn'])
         self.attr['oper_st'] = str(attr['operSt'])
         self.attr['create_time'] = str(attr['createTs'])
-        self.attr['admin_st'] = str(attr['adminSt'])
+        self.attr['admin_state'] = str(attr['adminSt'])
 
         self.attr['access_encap'] = str(attr['accEncap'])
         self.attr['bridge_mode'] = str(attr['bridgeMode'])
@@ -1164,7 +1164,7 @@ class ConcreteBD(CommonConcreteObject):
                 str(bdomain.attr.get('unknown_mcast', '')),
                 str(bdomain.attr.get('learn_disable', '')),
                 str(bdomain.attr.get('flood_gipo', '')),
-                str(bdomain.attr.get('admin_st', '')),
+                str(bdomain.attr.get('admin_state', '')),
                 str(bdomain.attr.get('oper_st', ''))])
 
         data = sorted(data)
@@ -2098,7 +2098,7 @@ class ConcretePortChannel(CommonConcreteObject):
         """
         self.attr['dn'] = str(attr['dn'])
         self.attr['active_ports'] = str(attr['activePorts'])
-        self.attr['admin_st'] = str(attr['adminSt'])
+        self.attr['admin_state'] = str(attr['adminSt'])
         self.attr['auto_neg'] = str(attr['autoNeg'])
         self.attr['bandwidth'] = str(attr['bw'])
         self.attr['dot1q_ether_type'] = str(attr['dot1qEtherType'])
@@ -2141,7 +2141,7 @@ class ConcretePortChannel(CommonConcreteObject):
             member['state'] = str(attr['state'])
             phys_if = top.get_object(attr['tDn'])['l1PhysIf']['attributes']
             member['id'] = str(phys_if['id'])
-            member['admin_st'] = str(phys_if['adminSt'])
+            member['admin_state'] = str(phys_if['adminSt'])
             member['usage'] = str(phys_if['usage'])
             eth_if = top.get_subtree('ethpmPhysIf',
                                      phys_if['dn'])[0]['ethpmPhysIf']['attributes']
@@ -2200,7 +2200,7 @@ class ConcretePortChannel(CommonConcreteObject):
                       pch.attr.get('min_links', ''),
                       pch.attr.get('auto_neg', ''),
                       pch.attr.get('flow_control', ''),
-                      pch.attr.get('admin_st', ''),
+                      pch.attr.get('admin_state', ''),
                       pch.attr.get('oper_st', ''),
                       pch.attr.get('oper_st_qual', ''),
                       pch.attr.get('switching_st', ''),
@@ -2223,7 +2223,7 @@ class ConcretePortChannel(CommonConcreteObject):
             for member in sorted(pch.members, key=itemgetter('id')):
                 table.append([member.get('id', ''),
                               member.get('state', ''),
-                              member.get('admin_st', ''),
+                              member.get('admin_state', ''),
                               member.get('oper_st', ''),
                               member.get('oper_st_qual', ''),
                               member.get('usage', '')])
