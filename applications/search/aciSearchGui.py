@@ -112,8 +112,22 @@ class SelectSwitchView(BaseView):
         if apic_object_dn is not None:
 
             if sdb.by_attr == {}:
-                apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-                sdb = SearchDb.load_db(apic_args)
+                try:
+                    apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
+                except KeyError:
+                    return redirect(url_for('credentialsview.index'))
+
+                try:
+                    sdb = SearchDb.load_db(apic_args)
+                except Timeout:
+                    flash('Connection timeout when trying to reach the APIC', 'error')
+                    return redirect(url_for('switchreportadmin.index_view'))
+                except LoginError:
+                    flash('Unable to login to the APIC', 'error')
+                    return redirect(url_for('credentialsview.index'))
+                except ConnectionError:
+                    flash('Connection failure.  Perhaps \'secure\' setting is wrong')
+                    return redirect(url_for('credentialsview.index'))
             if apic_object_dn != 'None':
                 atk_object_info = sdb.get_object_info(apic_object_dn)
             else:
@@ -124,13 +138,19 @@ class SelectSwitchView(BaseView):
         # load data from file if it has not been otherwise loaded
         if sdb.by_attr == {}:
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-            sdb = SearchDb.load_db(apic_args)
+            try:
+                sdb = SearchDb.load_db(apic_args)
+            except Timeout:
+                flash('Connection timeout when trying to reach the APIC', 'error')
+                return redirect(url_for('switchreportadmin.index_view'))
+            except LoginError:
+                flash('Unable to login to the APIC', 'error')
+                return redirect(url_for('credentialsview.index'))
+            except ConnectionError:
+                flash('Connection failure.  Perhaps \'secure\' setting is wrong')
+                return redirect(url_for('credentialsview.index'))
         if form.validate_on_submit() and form.submit.data:
 
-            if form.data['reload']:
-                print 'reload'
-                apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-                sdb = SearchDb.load_db(apic_args)
             try:
                 report = sdb.get_search_result(form.data['search_field'])
             except Timeout:
@@ -147,16 +167,12 @@ class SelectSwitchView(BaseView):
             return self.render('search_result.html',
                                form=form,
                                report=report,
-                               classes=sdb.classes,
-                               attrs=sdb.attrs,
-                               values=sdb.values,
+                               class_attr_values=[list(elem) for elem in sorted(sdb.by_class_attr_value.keys())],
                                result=atk_object_info)
         else:
             return self.render('search_result.html',
                                form=form,
-                               classes=sdb.classes,
-                               attrs=sdb.attrs,
-                               values=sdb.values,
+                               class_attr_values=[list(elem) for elem in sorted(sdb.by_class_attr_value.keys())],
                                result=atk_object_info)
 
 
