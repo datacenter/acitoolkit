@@ -28,6 +28,7 @@
 """
 import datetime
 import sys
+import re
 from acitoolkit import BridgeDomain, Context, Contract
 
 from acitoolkit.aciphysobject import Session, Fabric
@@ -40,6 +41,150 @@ class LoginError(Exception):
     Exception for login errors.
     """
     pass
+
+
+class Term(object):
+    """
+    class for the lookup term that contains the key to be looked up
+     which can be a class, attr, value, (class, attr), (class, value)
+     (attr, value), (class, attr, value)
+    And the kind of lookup it should be c, a, v, ca, cv, av, or cav
+    """
+
+    def __init__(self, key, term_type, points):
+        self.key = key
+        self.type = term_type
+        self.points = points
+
+    @classmethod
+    def parse_input(cls, strng):
+        """
+        This method will parse the strng and will create instances of
+        the Term object for each search that must occur.
+        It will return those Terms in a list
+
+        The assumption is that each strng will be a single fully contained user
+        search criteria, i.e. no spaces.
+        :param strng:
+        """
+        # look for #, :, =, and *.  First character is implied to be * if it is not
+        # any of the others
+        any_escape = '\\*'
+        class_escape = '#'
+        attr_escape = '@'
+        value_escape = '='
+
+        if strng[0] not in [any_escape, class_escape, attr_escape, value_escape]:
+            new_string = '*' + strng
+        else:
+            new_string = strng
+
+        (class_valid, class_str) = cls.build_search_term(class_escape, new_string)
+        (attr_valid, attr_str) = cls.build_search_term(attr_escape, new_string)
+        (value_valid, value_str) = cls.build_search_term(value_escape, new_string)
+        (any_valid, any_str) = cls.build_search_term(any_escape, new_string)
+
+        result = []
+        if class_valid and attr_valid and value_valid:
+            term = cls((class_str, attr_str, value_str), 'cav', 8)
+            result.append(term)
+            return result
+
+        if class_valid and attr_valid:
+            if any_valid:
+                term = cls((class_str, attr_str, any_str), 'cav', 6)
+                result.append(term)
+                return result
+            term = cls((class_str, attr_str), 'ca', 4)
+            result.append(term)
+            return result
+
+        if class_valid and value_valid:
+            if any_valid:
+                term = cls((class_str, any_str, value_str), 'cav', 6)
+                result.append(term)
+                return result
+            term = cls((class_str, value_str), 'cv', 4)
+            result.append(term)
+            return result
+
+        if class_valid and any_valid:
+            term = cls((class_str, any_str), 'ca', 3)
+            result.append(term)
+            term = cls((class_str, any_str), 'cv', 3)
+            result.append(term)
+            return result
+
+        if attr_valid and value_valid:
+            if any_valid:
+                term = cls((any_str, attr_str, value_str), 'cav', 6)
+                result.append(term)
+                return result
+            term = cls((attr_str, value_str), 'av', 4)
+            result.append(term)
+            return result
+
+        if attr_valid and any_valid:
+            term = cls((any_str, attr_str), 'ca', 3)
+            result.append(term)
+            term = cls((attr_str, any_str), 'av', 3)
+            result.append(term)
+            return result
+
+        if value_valid and any_valid:
+            term = cls((any_str, value_str), 'cv', 3)
+            result.append(term)
+            term = cls((any_str, value_str), 'av', 3)
+            result.append(term)
+            return result
+
+        if class_valid:
+            term = cls(class_str, 'c', 2)
+            result.append(term)
+            return result
+
+        if attr_valid:
+            term = cls(attr_str, 'a', 2)
+            result.append(term)
+            return result
+
+        if value_valid:
+            term = cls(value_str, 'v', 2)
+            result.append(term)
+            return result
+
+        if any_valid:
+            term = cls(any_str, 'c', 1)
+            result.append(term)
+            term = cls(any_str, 'a', 1)
+            result.append(term)
+            term = cls(any_str, 'v', 1)
+            result.append(term)
+            return result
+
+    @staticmethod
+    def build_search_term(escape_char, strng):
+        """
+        Given an escape_char character and a string, it will return
+        whether a string that starts with that escape_char is in the string
+        and will also return the value of the string after the escape_char.
+        :param strng:
+        :param escape_char:
+        """
+
+        mid = re.search(escape_char + '([^@=#*]+)[@=#\*]', strng)
+        end = re.search(escape_char + '([^@=#*]*)$', strng)
+
+        valid = False
+        term_string = ''
+        if mid:
+            term_string = mid.group(1)
+            valid = len(term_string) > 0
+        elif end:
+            term_string = end.group(1)
+            valid = len(term_string) > 0
+
+        return valid, term_string
 
 
 class SearchDb(object):
@@ -178,6 +323,14 @@ class SearchDb(object):
 
         return result
 
+    @staticmethod
+    def _get_terms(term_string):
+        terms = term_string.split(' ')
+        result = []
+        for term in terms:
+            result.extend(Term.parse_input(term))
+        return result
+
     def search(self, term_string):
         """
         This will do the actual search.  The data must already be loaded and indexed before this is invoked.
@@ -185,70 +338,133 @@ class SearchDb(object):
         """
         t1 = datetime.datetime.now()
         terms = self._get_terms(term_string)
+        # terms = ['#AppProfile:name=APP1', 'leaf']
         results = []
         for term in terms:
-            t_result = None
-            if '::' in term:
-                (k, v) = term.split('::')
-                if k and v:
-                    print 'kv match', term
-                    t_result = (term, self._lookup_attr_value(k, v))
-                elif k:
-                    print 'v match', term
-                    t_result = (term, self._lookup_value(term))
-                elif v:
-                    print 'k match', term
-                    t_result = (term, self._lookup_attr(term))
-            elif term in self.attrs:
-                print 'k match', term
-                t_result = (term, self._lookup_attr(term))
-            elif term in self.values:
-                print 'v match', term
-                t_result = (term, self._lookup_value(term))
-            else:
-                print 'no match', term
-            if t_result is not None:
-                if t_result[1] is not None:
-                    results.append({'result': t_result, 'primaries': set(elem.primary for elem in t_result[1])})
+            if term.type == 'cav':
+                results.append((term, self.by_class_attr_value.get(term.key)))
+
+            if term.type == 'ca':
+                results.append((term, self.by_class_attr.get(term.key)))
+            if term.type == 'cv':
+                results.append((term, self.by_class_value.get(term.key)))
+            if term.type == 'av':
+                results.append((term, self.by_attr_value.get(term.key)))
+
+            if term.type == 'c':
+                results.append((term, self.by_class.get(term.key)))
+            if term.type == 'a':
+                results.append((term, self.by_attr.get(term.key)))
+            if term.type == 'v':
+                results.append((term, self.by_value.get(term.key)))
 
         results2 = self._rank_results(results)
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
         return results2
 
-    def _lookup_attr(self, keyword):
+    def _rank_results(self, unranked_results):
         """
-        This will return a list of searchable objects that
-        are indexed to keyword
-        :param keyword:
-        :return: list of searchables
+        Will assign a score to each result item according to how relevant it is.  Higher numbers are more relevant.
+        unranked_results is a list of results.  Each of the results is a tuple of the matching term and a list of
+        items that have that term.
+        :param unranked_results:
         """
-        return self.by_attr.get(keyword)
+        master_items = set()
+        for results in unranked_results:
+            if results[1] is not None:
+                master_items = master_items | results[1]
 
-    def _lookup_value(self, value):
-        """
-        This will return a list of searchable objects that
-        are indexed to value.  If nothing is found, it will
-        return `None`
-        :param value: str value to search for
-        :return: list of searchables
-        """
+        self.ranked_items = {}
+        for item in master_items:
+            # self.ranked_items[item] = [0, 0, set()]  # score, sub-score, matching terms
+            self.ranked_items[item] = {'pscore': 0, 'sscore': 0, 'terms': set()}  # score, sub-score, matching terms
 
-        if value is None:
-            return None
+        # calculate score -
+        # primary score is based on the sum of the specificity of each match
+        #   cav == 4
+        #   ca, cv, av = 2
+        #   c, a, v = 1
+        #
+        # For example, if there was a 'cav' match and an 'av' match, then the score would be 4 + 2 = 6
+        #
+        for atk_obj in master_items:
+            for result in unranked_results:
+                if result[1] is not None:
+                    if atk_obj in result[1]:
+                        self.ranked_items[atk_obj]['pscore'] += result[0].points
+                        self.ranked_items[atk_obj]['terms'].add(str(result[0].key))
 
-        return self.by_value.get(value)
+        # now score
+        # sub-score is one point for any term that is not a primiary hit, but is a secondary hit
+        # a primary hit is one where the term directly found the item
+        # a secondary hit is one where the term found an item in the heirarchy of the primary item
+        #
+        # The max sub-score is cumulative, i.e. a sub-score can be greater than the number of terms
 
-    def _lookup_attr_value(self, attr, value):
+        print 'end ranking'
+        resp = []
+        count = 0
+        for result in sorted(self.ranked_items,
+                             key=lambda x: (self.ranked_items[x]['pscore'], self.ranked_items[x]['sscore']),
+                             reverse=True):
+
+            count += 1
+            record = {'pscore': self.ranked_items[result]['pscore'],
+                      'sscore': self.ranked_items[result]['sscore'],
+                      'name': str(result.primary.name),
+                      'path': result.path(),
+                      'terms': str('[' + ', '.join(self.ranked_items[result]['terms']) + ']'),
+                      'object_type': result.primary.__class__.__name__}
+            # record['primary'] = result.primary
+            tables = result.primary.get_table([result.primary])
+            record['report_table'] = []
+            for table in tables:
+                if table is not None:
+                    record['report_table'].append({'data': table.data,
+                                                   'headers': table.headers,
+                                                   'title_flask': table.title_flask})
+            resp.append(record)
+            if count > 100:
+                break
+
+        return resp, len(self.ranked_items)
+
+    @staticmethod
+    def _is_primary(item, p_set):
         """
-        This will return a list of searchable objects that
-        are indexed to a (attr, value) pair
-        :param value:
-        :param attr:
-        :return: list of searchables
+        will return true if the item is a primary item in the result set
+        :param item:
+        :param p_set:
+        :return:
         """
+        return item in p_set
 
-        return self.by_attr_value.get((attr, value))
+    @classmethod
+    def _is_secondary(cls, item, s_set):
+        """
+        Will return true if any item in the item context, excluding the first or primary one, is in s_set
+
+        :param item:
+        :param s_set:
+        :return:
+        """
+        return any(
+            cls._is_primary(item_context, s_set)
+            for item_context in item.context[1:])
+
+    @staticmethod
+    def _find_primary_in_path(searchable, primary):
+        """
+        Will go through the context stack and return true if 'primary' is found
+        :param searchable:
+        :param primary:
+        :return: boolean
+        """
+        if primary in searchable.context:
+            return True
+        else:
+            return False
 
     def _index_searchables(self, searchables):
 
@@ -305,36 +521,36 @@ class SearchDb(object):
             for atk_attr_value in atk_attr_values:
                 if atk_attr_value not in self.by_attr_value:
                     self.by_attr_value[atk_attr_value] = set([])
-
-
+                self.by_attr_value[atk_attr_value].add(searchable)
+                (atk_attr, atk_value) = atk_attr_value
                 if (atk_class, atk_attr, atk_value) not in self.by_class_attr_value:
                     self.by_class_attr_value[(atk_class, atk_attr, atk_value)] = set([])
 
                 self.by_class_attr_value[(atk_class, atk_attr, atk_value)].add(searchable)
 
-            # index by class & value
-            # if atk_class not in self.by_attr:
-            #     self.by_attr[atk_class] = set([])
-            # self.by_attr[atk_class].add(searchable)
-            #
-            # for term in searchable.terms:
-            #
-            #     (keyword, value, relation) = term
-            #
-            #     if keyword not in self.by_attr:
-            #         self.by_attr[keyword] = set([])
-            #     self.by_attr[keyword].add(searchable)
-            #
-            #     if value is not None:
-            #         if value not in self.by_value:
-            #             self.by_value[value] = set([])
-            #
-            #         self.by_value[value].add(searchable)
-            #
-            #         if (keyword, value) not in self.by_attr_value:
-            #             self.by_attr_value[(keyword, value)] = set([])
-            #
-            #         self.by_attr_value[(keyword, value)].add(searchable)
+                # index by class & value
+                # if atk_class not in self.by_attr:
+                #     self.by_attr[atk_class] = set([])
+                # self.by_attr[atk_class].add(searchable)
+                #
+                # for term in searchable.terms:
+                #
+                #     (keyword, value, relation) = term
+                #
+                #     if keyword not in self.by_attr:
+                #         self.by_attr[keyword] = set([])
+                #     self.by_attr[keyword].add(searchable)
+                #
+                #     if value is not None:
+                #         if value not in self.by_value:
+                #             self.by_value[value] = set([])
+                #
+                #         self.by_value[value].add(searchable)
+                #
+                #         if (keyword, value) not in self.by_attr_value:
+                #             self.by_attr_value[(keyword, value)] = set([])
+                #
+                #         self.by_attr_value[(keyword, value)].add(searchable)
 
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
@@ -493,120 +709,6 @@ class SearchDb(object):
         """
         self._session = None
 
-    def _rank_results(self, unranked_results):
-        """
-        Will assign a score to each result item according to how relevant it is.  Higher numbers are more relevant.
-        unranked_results is a list of results.  Each of the results is a tuple of the matching term and a list of
-        items that have that term.
-        :param unranked_results:
-        """
-        master_items = set()
-        for results in unranked_results:
-            if results['result'][1] is not None:
-                master_items = master_items | results['result'][1]
-
-        self.ranked_items = {}
-        for item in master_items:
-            # self.ranked_items[item] = [0, 0, set()]  # score, sub-score, matching terms
-            self.ranked_items[item] = {'pscore': 0, 'sscore': 0, 'terms': set()}  # score, sub-score, matching terms
-
-        # now calculate sub-score
-        # sub-score is one point for any term that is not a primiary hit, but is a secondary hit
-        # a primary hit is one where the term directly found the item
-        # a secondary hit is one where the term found an item in the heirarchy of the primary item
-        #
-        # The max sub-score is cumulative, i.e. a sub-score can be greater than the number of terms
-
-        # Check all permutations of term results and calculate score
-        print 'start ranking'
-        for p_results in unranked_results:
-            items = p_results['result'][1]
-            for s_results in unranked_results:
-                s_primaries = s_results['primaries']
-                for item in items:
-                    if self._is_primary(item.primary, s_primaries):
-                        self.ranked_items[item]['pscore'] += 1
-                        self.ranked_items[item]['terms'].add(s_results['result'][0])
-                    elif self._is_secondary(item, s_primaries):
-                        self.ranked_items[item]['sscore'] += 1
-                        self.ranked_items[item]['terms'].add(s_results['result'][0])
-        print 'end ranking'
-        resp = []
-        count = 0
-        for result in sorted(self.ranked_items,
-                             key=lambda x: (self.ranked_items[x]['pscore'], self.ranked_items[x]['sscore']),
-                             reverse=True):
-
-            count += 1
-            record = {'pscore': self.ranked_items[result]['pscore'],
-                      'sscore': self.ranked_items[result]['sscore'],
-                      'name': str(result.primary.name),
-                      'path': result.path(),
-                      'terms': str('[' + ', '.join(self.ranked_items[result]['terms']) + ']'),
-                      'object_type': result.primary.__class__.__name__}
-            # record['primary'] = result.primary
-            tables = result.primary.get_table([result.primary])
-            record['report_table'] = []
-            for table in tables:
-                if table is not None:
-                    record['report_table'].append({'data': table.data,
-                                                   'headers': table.headers,
-                                                   'title_flask': table.title_flask})
-            resp.append(record)
-            if count > 100:
-                break
-
-        return resp, len(self.ranked_items)
-
-    @staticmethod
-    def _is_primary(item, p_set):
-        """
-        will return true if the item is a primary item in the result set
-        :param item:
-        :param p_set:
-        :return:
-        """
-        return item in p_set
-
-    @classmethod
-    def _is_secondary(cls, item, s_set):
-        """
-        Will return true if any item in the item context, excluding the first or primary one, is in s_set
-
-        :param item:
-        :param s_set:
-        :return:
-        """
-        return any(
-            cls._is_primary(item_context, s_set)
-            for item_context in item.context[1:])
-
-    @staticmethod
-    def _find_primary_in_path(searchable, primary):
-        """
-        Will go through the context stack and return true if 'primary' is found
-        :param searchable:
-        :param primary:
-        :return: boolean
-        """
-        if primary in searchable.context:
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def _get_terms(strng):
-        """
-        Will return a list of the separate search terms
-        :param strng:
-        :return:
-        """
-        terms = strng.split()
-        clean_terms = []
-        for term in terms:
-            clean_terms.append(term.strip())
-        return clean_terms
-
 
 def main():
     """
@@ -640,6 +742,7 @@ def main():
     for res in results:
         count += 1
         print res
+
 
 if __name__ == '__main__':
     try:
