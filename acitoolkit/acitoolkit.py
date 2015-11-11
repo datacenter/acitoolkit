@@ -3165,6 +3165,10 @@ class PortChannel(BaseInterface):
         pod = self._interfaces[0].pod
         if self.is_vpc():
             (node1, node2) = self._get_nodes()
+            # Make sure the order of the nodes is the right one (lowest numbered
+            # first)
+            if int(node1)>int(node2):
+                node1, node2 = node2, node1
             path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (pod,
                                                                     node1,
                                                                     node2,
