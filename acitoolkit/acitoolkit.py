@@ -4429,12 +4429,13 @@ class NetworkPool(BaseACIObject):
                                                         'from': from_id,
                                                         'to': to_id},
                                          'children': []}}
+        pool_attributes = {'name': self.name}
         if self.encap_type == 'vlan':
             fvnsEncapInstP_string = 'fvnsVlanInstP'
+            pool_attributes['allocMode'] = self.mode
         elif self.encap_type == 'vxlan':
             fvnsEncapInstP_string = 'fvnsVxlanInstP'
-        fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': {'name': self.name,
-                                                                 'allocMode': self.mode},
+        fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': pool_attributes,
                                                   'children': [fvnsEncapBlk]}}
         if self.is_deleted():
             fvnsEncapInstP[fvnsEncapInstP_string]['attributes']['status'] = 'deleted'
