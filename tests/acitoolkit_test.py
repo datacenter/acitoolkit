@@ -3337,6 +3337,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
+    live.addTest(unittest.makeSuite(TestLiveOutsideL3))
 
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestBaseRelation))
@@ -3369,6 +3370,5 @@ if __name__ == '__main__':
     # Add tests to this suite while developing the tests
     # This allows only these tests to be run
     develop = unittest.TestSuite()
-    develop.addTest(unittest.makeSuite(TestLiveOutsideL3))
 
-    unittest.main(defaultTest='develop')
+    unittest.main(defaultTest='offline')
