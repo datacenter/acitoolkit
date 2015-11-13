@@ -2375,6 +2375,76 @@ class TestLiveL3ExtDomain(TestLiveAPIC):
             self.assertTrue(type(l3ext_domain_json) is dict)
 
 
+class TestLiveOutsideL3(TestLiveAPIC):
+    """
+    Test OutsideL3 class
+    """
+    def base_test_setup(self):
+        session = self.login_to_apic()
+
+        # Create the Tenant
+        tenant = Tenant('aci-toolkit-test')
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Create the BridgeDomain
+        bd = BridgeDomain('bd1', tenant)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Create the OutsideL3
+        l3_out = OutsideL3('l3_out', tenant)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        return (session, tenant, bd, l3_out)
+
+    def base_test_teardown(self, session, tenant):
+        # Delete the tenant
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_attach_l3_out_to_bd(self):
+        # Set up the tenant, bd, and l3_out
+        (session, tenant, bd, l3_out) = self.base_test_setup()
+
+        # Attach the OutsideL3 to the BridgeDomain
+        bd.add_l3out(l3_out)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+        self.assertTrue(bd.has_l3out)
+        self.assertTrue(l3_out in bd.get_l3out())
+
+        # Clean up
+        self.base_test_teardown(session, tenant)
+
+    def test_attach_l3_out_to_bd_and_retrive(self):
+        # Set up the tenant, bd, and l3_out
+        (session, tenant, bd, l3_out) = self.base_test_setup()
+
+        # Attach the OutsideL3 to the BridgeDomain
+        bd.add_l3out(l3_out)
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+        self.assertTrue(bd.has_l3out)
+        self.assertTrue(l3_out in bd.get_l3out())
+
+        # Retrive the configuration
+        t = Tenant.get_deep(session, names=('aci-toolkit-test',))[0]
+        bds_retrived = t.get_children(only_class=BridgeDomain)
+        l3_outs = t.get_children(only_class=OutsideL3)
+
+        # Make sure that the OutsideL3 are properly attached to the BDs
+        for bd_retrived in bds_retrived:
+            bd_retrived_attached_l3_outs = bd_retrived.get_l3out()
+            for bd_retrived_attached_l3_out in bd_retrived_attached_l3_outs:
+                self.assertTrue(bd_retrived_attached_l3_out in l3_outs)
+
+        # Clean up
+        self.base_test_teardown(session, tenant)
+
+
 class TestLiveEPGDomain(TestLiveAPIC):
     """
     Test live EPG Domain
@@ -3299,5 +3369,6 @@ if __name__ == '__main__':
     # Add tests to this suite while developing the tests
     # This allows only these tests to be run
     develop = unittest.TestSuite()
+    develop.addTest(unittest.makeSuite(TestLiveOutsideL3))
 
-    unittest.main(defaultTest='offline')
+    unittest.main(defaultTest='develop')
