@@ -52,12 +52,12 @@ try:
     from credentials import URL, LOGIN, PASSWORD
 except ImportError:
     print
-    print 'To run live tests, please create a credentials.py file with the following variables filled in:'
-    print """
+    print('To run live tests, please create a credentials.py file with the following variables filled in:')
+    print("""
     URL = ''
     LOGIN = ''
     PASSWORD = ''
-    """
+    """)
 
 MAX_RANDOM_STRING_SIZE = 20
 
