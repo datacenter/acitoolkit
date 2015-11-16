@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import acitoolkit.acitoolkit as aci
 
+
 def main():
     """
     Main show Subnets routine
@@ -23,14 +24,14 @@ def main():
     for tenant in tenants:
         apps = aci.AppProfile.get(session, tenant)
         for app in apps:
-           bds = aci.BridgeDomain.get(session, tenant)
-           for bd in bds:
-               subnets = aci.Subnet.get(session, bd, tenant)
-               if len(subnets) == 0:
-                   data.append((tenant.name, app.name, bd.name, "", ""))
-               else:
-                   for subnet in subnets:
-                       data.append((tenant.name, app.name, bd.name, subnet.addr, subnet.get_scope()))
+            bds = aci.BridgeDomain.get(session, tenant)
+            for bd in bds:
+                subnets = aci.Subnet.get(session, bd, tenant)
+                if len(subnets) == 0:
+                    data.append((tenant.name, app.name, bd.name, "", ""))
+                else:
+                    for subnet in subnets:
+                        data.append((tenant.name, app.name, bd.name, subnet.addr, subnet.get_scope()))
 
     # Display the data downloaded
     template = "{0:20} {1:20} {2:20} {3:18} {4:15}"
@@ -44,4 +45,3 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         pass
-
