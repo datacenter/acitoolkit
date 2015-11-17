@@ -1699,6 +1699,7 @@ class TestJson(unittest.TestCase):
                          " {'tDn': 'topology/pod-1/paths-1/pathep-[eth1/1]', '"
                          "encap': 'vlan-5'}}}, {'fvRsDomAtt': {'attributes': {"
                          "'tDn': 'uni/phys-allvlans'}}}]}}]}}]}}")
+        expected_json = str(expected_json)
         tenant = Tenant('cisco')
         app = AppProfile('ordersystem', tenant)
         web_epg = EPG('web', app)
@@ -1787,7 +1788,7 @@ class TestPortChannel(unittest.TestCase):
                          " {'lagT': 'link', 'name': 'pc1'}, 'children': []}}]}"
                          "}]}}")
 
-        self.assertEqual(str(infra), expected_resp)
+        self.assertEqual(str(infra), str(expected_resp))
 
         # Not a VPC, so fabric should be None
         self.assertIsNone(fabric)
