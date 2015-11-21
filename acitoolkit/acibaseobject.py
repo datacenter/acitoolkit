@@ -152,6 +152,9 @@ class BaseACIObject(AciSearch):
                 self._parent.remove_child(self)
             self._parent.add_child(self)
 
+    def __lt__(self, other):
+        return self.name < other.name
+
     @classmethod
     def _get_subscription_urls(cls):
         """

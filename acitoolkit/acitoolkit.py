@@ -145,7 +145,7 @@ class Tenant(BaseACIObject):
                 'vzBrCP': Contract,
                 'vzFilter': Filter,
                 'vzTaboo': Taboo,
-                'l3extOut': OutsideEPG}
+                'l3extOut': OutsideL3}
 
     @classmethod
     def get_deep(cls, session, names=(), limit_to=(), subtree='full', config_only=False, parent=None):
@@ -1890,6 +1890,15 @@ class BridgeDomain(BaseACIObject):
                             for context in objs:
                                 if isinstance(context, Context):
                                     self.add_context(context)
+                        elif 'fvRsBDToOut' in bd_child:
+                            l3_out_name = bd_child['fvRsBDToOut']['attributes']['tnL3extOutName']
+                            tenant = self.get_parent()
+                            l3_out_search = Search()
+                            l3_out_search.name = l3_out_name
+                            objs = tenant.find(l3_out_search)
+                            for l3_out in objs:
+                                if isinstance(l3_out, OutsideL3):
+                                    self.add_l3out(l3_out)
                     break
         super(BridgeDomain, self)._extract_relationships(data)
 
@@ -1930,21 +1939,21 @@ class BridgeDomain(BaseACIObject):
     def add_l3out(self, l3out):
         """
         Set the L3Out for this BD
-        :param l3out: OutsideEPG to assign this BridgeDomain
+        :param l3out: OutsideL3 to assign this BridgeDomain
 
         """
-        if not isinstance(l3out, OutsideEPG):
-            raise TypeError('add_l3out not called with OutsideEPG')
+        if not isinstance(l3out, OutsideL3):
+            raise TypeError('add_l3out not called with OutsideL3')
         self._add_relation(l3out)
 
     def has_l3out(self):
-        return len(self._get_all_relation(OutsideEPG)) > 0
+        return len(self._get_all_relation(OutsideL3)) > 0
 
     def get_l3out(self):
         """
-        :returns: List of OutsideEPG objects
+        :returns: List of OutsideL3 objects
         """
-        return self._get_all_relation(OutsideEPG)
+        return self._get_all_relation(OutsideL3)
 
     # Subnet
     def add_subnet(self, subnet):
@@ -3165,6 +3174,10 @@ class PortChannel(BaseInterface):
         pod = self._interfaces[0].pod
         if self.is_vpc():
             (node1, node2) = self._get_nodes()
+            # Make sure the order of the nodes is the right one (lowest numbered
+            # first)
+            if int(node1)>int(node2):
+                node1, node2 = node2, node1
             path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (pod,
                                                                     node1,
                                                                     node2,
@@ -4439,12 +4452,13 @@ class NetworkPool(BaseACIObject):
                                                         'from': from_id,
                                                         'to': to_id},
                                          'children': []}}
+        pool_attributes = {'name': self.name}
         if self.encap_type == 'vlan':
             fvnsEncapInstP_string = 'fvnsVlanInstP'
+            pool_attributes['allocMode'] = self.mode
         elif self.encap_type == 'vxlan':
             fvnsEncapInstP_string = 'fvnsVxlanInstP'
-        fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': {'name': self.name,
-                                                                 'allocMode': self.mode},
+        fvnsEncapInstP = {fvnsEncapInstP_string: {'attributes': pool_attributes,
                                                   'children': [fvnsEncapBlk]}}
         if self.is_deleted():
             fvnsEncapInstP[fvnsEncapInstP_string]['attributes']['status'] = 'deleted'
