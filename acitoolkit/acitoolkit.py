@@ -3528,6 +3528,16 @@ class Endpoint(BaseACIObject):
         result.append(Table(data, headers, title=title + 'Endpoints'))
         return result
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        results = super(Endpoint, self)._define_searchables()
+
+        results[0].add_term('ipv4', str(self.ip))
+        return results
 
 class IPEndpoint(BaseACIObject):
     """
