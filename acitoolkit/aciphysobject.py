@@ -1566,6 +1566,7 @@ class Node(BaseACIPhysObject):
 
         results[0].add_term('ipv4', self.inb_mgmt_ip)
         results[0].add_term('ipv4', self.oob_mgmt_ip)
+        results[0].add_term('ipv4', str(self.tep_ip))
         results[0].add_term('management', self.inb_mgmt_ip)
         results[0].add_term('management', self.oob_mgmt_ip)
 
