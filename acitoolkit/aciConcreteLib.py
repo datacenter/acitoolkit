@@ -2029,6 +2029,16 @@ class ConcreteEp(CommonConcreteObject):
         """
         return 'Concrete_Endpoint-' + 'MAC({0})_IP({1})'.format(self.attr.get('mac'), self.attr.get('ip'))
 
+    def _define_searchables(self):
+        """
+        Create all of the searchable terms
+
+        :rtype : list of Searchable
+        """
+        results = super(ConcreteEp, self)._define_searchables()
+
+        results[0].add_term('ipv4', str(self.attr.get('ip', '')))
+        return results
 
 class ConcretePortChannel(CommonConcreteObject):
     """
