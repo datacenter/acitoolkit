@@ -20,7 +20,7 @@
 ################################################################################
 */
 function onClickGoToChild(d) {
-    var uri = '/selectswitchview?dn='+d['path'];
+    var uri = '/selectswitchview?dn='+d['uid'];
     window.location.assign(encodeURI(uri))
 }
 function show_object(data) {
