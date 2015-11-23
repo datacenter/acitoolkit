@@ -21,7 +21,7 @@
 */
 function onClick_show_object(d) {
     // var uri = '/atk_object?dn='+d['path'];
-    var uri = '/selectswitchview?dn='+d['path'];
+    var uri = '/selectswitchview?dn='+d['uid'];
     window.location.assign(encodeURI(uri))
 }
 function searchResult(result) {
@@ -31,10 +31,10 @@ function searchResult(result) {
         var strng = "";
         strng += '<hr>';
         strng += "<h4>"+d.name+ "</h4>";
-        strng += 'Path:' + d.path + '<br>';
-        strng += "<p>Class:"+d.object_type+ ", ";
+        strng += 'Path:' + d.uid + '<br>';
+        strng += "<p>Class:"+d.class+ ", ";
         strng += 'Match score:' + d.pscore + '.' + d.sscore + ', ';
-        strng += 'Matching terms:' + d.terms + '</p>';
+        strng += 'Matching terms:(' + d.terms + ')</p>';
         return strng;
     }
     // determine where to place it and create place holder
