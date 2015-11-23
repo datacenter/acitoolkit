@@ -574,9 +574,13 @@ class Fantray(BaseACIPhysModule):
         self.name = str(attributes.get('fanName', 'None'))
         self.status = str(attributes['status'])
         self.modify_time = str(attributes['modTs'])
+        self.id = str(attributes['id'])
+        (pod, node, slot) = self._parse_dn(self.dn)
+        self.pod = pod
+        self.node = node
+        self.slot = slot
 
-    @staticmethod
-    def _get_firmware(dist_name):
+    def _get_firmware(self, dist_name):
         """ Returns None for firmware and bios revisions"""
         return None, None
 
@@ -738,7 +742,10 @@ class Fan(BaseACIPhysModule):
         self.model = str(attributes['model'])
         self.serial = str(attributes['ser'])
         self.name = 'fan-{0}'.format(self.id)
-
+        (pod, node, slot) = self._parse_dn(self.dn)
+        self.pod = pod
+        self.node = node
+        self.slot = slot
 
     def __eq__(self, other):
         """compares two fans and returns True if they are the same.
