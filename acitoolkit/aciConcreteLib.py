@@ -105,6 +105,19 @@ class CommonConcreteObject(BaseACIPhysObject):
             return self.attr.get('dn') == other.attr.get('dn')
         return NotImplemented
 
+    @staticmethod
+    def _parse_dn_pod_node(dn):
+        """Parses the pod, node, and slot from a
+           distinguished name of the node.
+
+           :param dn: str - distinguished name
+
+           :returns: pod, node, slot strings
+        """
+        name = dn.split('/')
+        pod = str(name[1].split('-')[1])
+        node = str(name[2].split('-')[1])
+        return pod, node
 
 class ConcreteArp(CommonConcreteObject):
     """
@@ -1864,6 +1877,9 @@ class ConcreteEp(CommonConcreteObject):
         self.attr['interface_id'] = str(attr['ifId'])
         self.attr['create_time'] = str(attr['createTs'])
         self.attr['dn'] = str(attr['dn'])
+        (pod, node) = self._parse_dn_pod_node(self.attr['dn'])
+        self.attr['pod'] = pod
+        self.attr['node'] = node
 
     @staticmethod
     def get_table(end_points, title=''):
