@@ -111,14 +111,14 @@ class SelectSwitchView(BaseView):
         apic_object_dn = str(request.args.get('dn'))
         if apic_object_dn is not None:
 
-            if sdb.by_attr == {}:
+            if not sdb.initialized:
                 try:
                     apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
                 except KeyError:
                     return redirect(url_for('credentialsview.index'))
 
                 try:
-                    sdb = SearchDb.load_db(apic_args)
+                    sdb.load_db(apic_args)
                 except Timeout:
                     flash('Connection timeout when trying to reach the APIC', 'error')
                     return redirect(url_for('switchreportadmin.index_view'))
@@ -129,17 +129,17 @@ class SelectSwitchView(BaseView):
                     flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                     return redirect(url_for('credentialsview.index'))
             if apic_object_dn != 'None':
-                atk_object_info = sdb.get_object_info(apic_object_dn)
+                atk_object_info = sdb.store.get_object_info(apic_object_dn)
             else:
-                atk_object_info = sdb.get_object_info('/')
+                atk_object_info = sdb.store.get_object_info('/')
         else:
             atk_object_info = 'None'
 
         # load data from file if it has not been otherwise loaded
-        if sdb.by_attr == {}:
+        if not sdb.initialized:
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
             try:
-                sdb = SearchDb.load_db(apic_args)
+                sdb.load_db(apic_args)
             except Timeout:
                 flash('Connection timeout when trying to reach the APIC', 'error')
                 return redirect(url_for('switchreportadmin.index_view'))
@@ -152,7 +152,7 @@ class SelectSwitchView(BaseView):
         if form.validate_on_submit() and form.submit.data:
 
             try:
-                report = sdb.get_search_result(form.data['search_field'])
+                report = sdb.index.get_search_result(form.data['search_field'])
             except Timeout:
                 flash('Connection timeout when trying to reach the APIC', 'error')
                 return redirect(url_for('switchreportadmin.index_view'))
@@ -167,12 +167,12 @@ class SelectSwitchView(BaseView):
             return self.render('search_result.html',
                                form=form,
                                report=report,
-                               class_attr_values=[list(elem) for elem in sorted(sdb.by_class_attr_value.keys())],
+                               class_attr_values=[list(elem) for elem in sorted(sdb.index.by_class_attr_value.keys())],
                                result=atk_object_info)
         else:
             return self.render('search_result.html',
                                form=form,
-                               class_attr_values=[list(elem) for elem in sorted(sdb.by_class_attr_value.keys())],
+                               class_attr_values=[list(elem) for elem in sorted(sdb.index.by_class_attr_value.keys())],
                                result=atk_object_info)
 
 
@@ -234,7 +234,7 @@ class CredentialsView(BaseView):
             session['password'] = None
 
         apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-        sdb.set_login_credentials(apic_args)
+        sdb.session.set_login_credentials(apic_args)
         if form.validate_on_submit() and form.submit.data:
             old_ipaddr = session.get('ipaddr')
             old_username = session.get('username')
@@ -252,7 +252,7 @@ class CredentialsView(BaseView):
             session['username'] = form.username.data
             session['password'] = form.password.data
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-            sdb.set_login_credentials(apic_args)
+            sdb.session.set_login_credentials(apic_args)
             return redirect(url_for('credentialsview.index'))
         elif reset_form.reset.data:
             session['ipaddr'] = None
@@ -260,7 +260,7 @@ class CredentialsView(BaseView):
             session['username'] = None
             session['password'] = None
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-            sdb.set_login_credentials(apic_args)
+            sdb.session.set_login_credentials(apic_args)
             return redirect(url_for('credentialsview.index'))
         return self.render('credentials.html', form=form,
                            reset_form=reset_form,
