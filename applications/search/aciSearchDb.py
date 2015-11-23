@@ -52,6 +52,8 @@ class Term(object):
     """
 
     def __init__(self, key, term_type, points):
+
+        # todo: make key be fully positional so that (x,,) is different from (,x,)
         self.key = key
         self.type = term_type
         self.points = points
@@ -160,7 +162,7 @@ class Term(object):
             result.append(term)
             term = cls(any_str, 'v', 1)
             result.append(term)
-            return result
+        return result
 
     @staticmethod
     def build_search_term(escape_char, strng):
@@ -187,16 +189,13 @@ class Term(object):
         return valid, term_string
 
 
-class SearchDb(object):
+class SearchIndexLookup(object):
     """
-    The primary search object that holds all the methods for building the search index as well as querying it.
+    This class contains will index objects by class, attr and value.  A unique ID is what is stored in the index.
+    return a list of unique IDs in response to a search string.
     """
 
-    def __init__(self, args=None):
-        """
-        Will load in all of the search objects and create
-        an index by attr, value, and class and all combinations.
-        """
+    def __init__(self):
         self.by_attr = {}
         self.by_value = {}
         self.by_class = {}
@@ -205,131 +204,78 @@ class SearchDb(object):
         self.by_class_attr = {}
         self.by_class_attr_value = {}
 
-        self.save_file = 'search.p'
-        self._session = None
-        self.args = None
-        self.timeout = None
-        self.attrs = []
-        self.values = []
-        self.ranked_items = {}
-        self.map_class = {}  # index of objects by their class
-        self.object_directory = {}
-
-        if args:
-            self.set_login_credentials(args)
-
-    def get_attrs(self):
+    def _index_searchables(self, searchables):
 
         """
-        gets a sorted list of the key words
-
-        :return:
+        index all the searchable items by attr, value, and class
+        :param searchables: List of searchable objects
         """
-        return sorted(self.by_attr.keys())
+        t1 = datetime.datetime.now()
+        count = 0
+        self.by_attr = {}
+        self.by_value = {}
+        self.by_attr_value = {}
+        self.by_class = {}
+        self.by_class_value = {}
+        self.by_class_attr = {}
+        self.by_class_attr_value = {}
 
-    def get_values(self):
+        # index searchables by keyword, value and keyword/value
+        for searchable in searchables:
+            count += 1
+            if count % 1000 == 0:
+                print count
+            atk_class = searchable.object_class
+            atk_attrs = searchable.attr
+            atk_values = searchable.value
+            atk_attr_values = searchable.attr_value
+            uid = searchable.primary.get_attributes()['dn']
+            # index by_class
+            if atk_class not in self.by_class:
+                self.by_class[atk_class] = set([])
+            self.by_class[atk_class].add(uid)
+
+            # index by attr and by attr, class
+            for atk_attr in atk_attrs:
+                if atk_attr not in self.by_attr:
+                    self.by_attr[atk_attr] = set([])
+                if (atk_class, atk_attr) not in self.by_class_attr:
+                    self.by_class_attr[(atk_class, atk_attr)] = set([])
+
+                self.by_attr[atk_attr].add(uid)
+                self.by_class_attr[(atk_class, atk_attr)].add(uid)
+
+            # index by values and by value, class
+            for atk_value in atk_values:
+                if atk_value not in self.by_value:
+                    self.by_value[atk_value] = set([])
+                if (atk_class, atk_value) not in self.by_class_value:
+                    self.by_class_value[(atk_class, atk_value)] = set([])
+
+                self.by_value[atk_value].add(uid)
+                self.by_class_value[(atk_class, atk_value)].add(uid)
+
+            # index by attr & value and by class, attr, value
+            for atk_attr_value in atk_attr_values:
+                if atk_attr_value not in self.by_attr_value:
+                    self.by_attr_value[atk_attr_value] = set([])
+                self.by_attr_value[atk_attr_value].add(uid)
+                (atk_attr, atk_value) = atk_attr_value
+                if (atk_class, atk_attr, atk_value) not in self.by_class_attr_value:
+                    self.by_class_attr_value[(atk_class, atk_attr, atk_value)] = set([])
+
+                self.by_class_attr_value[(atk_class, atk_attr, atk_value)].add(uid)
+
+        t2 = datetime.datetime.now()
+        print 'elapsed time', t2 - t1
+
+    def add_atk_objects(self, root):
         """
-        gets a sorted list of the values used in the index
-
-        :return:
+        Will add all the objects recursively from the root down into the index
+        :param root:
         """
-        return sorted(self.by_value.keys())
-
-    def get_classes(self):
-        """
-        gets a sorted list of the classes
-        :return:
-        """
-        return sorted(self.by_class.keys())
-
-    @staticmethod
-    def load_db(args=None):
-
-        """
-        Will load the data from the APIC and prepare the dB
-
-        :param args:
-        """
-        sdb = SearchDb(args)
-        print 'loading from APIC',
-        fabric = Fabric.get(sdb.session)[0]
-        fabric.populate_children(deep=True, include_concrete=True)
-        print '-done'
-
-        print 'Indexing',
-        searchables = fabric.get_searchable()
-        sdb._index_searchables(searchables)
-        sdb._create_object_directory(fabric)
-        sdb.attrs = sdb.get_attrs()
-        sdb.values = sdb.get_values()
-        sdb.classes = sdb.get_classes()
-        sdb._cross_reference_objects()
-        print '-done'
-        return sdb
-
-    def set_login_credentials(self, args, timeout=2):
-        """
-        Sets the login credentials for the APIC
-
-        :rtype : None
-        :param args: An instance containing the APIC credentials.  Expected to
-                     have the following instance variables; url, login, and
-                     password.
-        :param timeout:  Optional integer argument that indicates the timeout
-                         value in seconds to use for APIC communication.
-                         Default value is 2.
-        """
-        self.args = args
-        self.timeout = timeout
-        self._clear_switch_info()
-
-    def get_object_info(self, obj_dn):
-        """
-        Will return dictionary containing all of the information in the
-        object.  This information includes all the attributes as well as interesting relationships.
-        The relationships include those explicitly in the APIC as well as others that
-        are interesting from a model navigation perspective.
-        :rtype : dict
-        :param obj_dn:
-        :return: result
-        """
-        result = {}
-        atk_obj = self.object_directory[obj_dn]
-        attr = atk_obj.get_attributes()
-
-        result['properties'] = {'class': atk_obj.__class__.__name__, 'name': attr['name'], 'dn': obj_dn}
-
-        result['attributes'] = atk_obj.get_attributes()
-
-        if atk_obj.get_parent() is not None:
-            parent = atk_obj.get_parent().get_attributes()['name']
-            parent_dn = atk_obj.get_parent().get_attributes()['dn']
-            parent_class = atk_obj.get_parent().__class__.__name__
-            result['parent'] = {'class': parent_class, 'name': parent, 'dn': parent_dn}
-
-        children = atk_obj.get_children()
-        result['children'] = {}
-        for child in children:
-            child_class = child.__class__.__name__
-            if child_class not in result['children']:
-                result['children'][child_class] = []
-
-            result['children'][child_class].append({'class': child.__class__.__name__,
-                                                    'name': child.get_attributes()['name'],
-                                                    'dn': child.get_attributes()['dn']})
-
-        if 'gui_x_reference' in atk_obj.__dict__:
-            result['relations'] = atk_obj.gui_x_reference
-
-        return result
-
-    @staticmethod
-    def _get_terms(term_string):
-        terms = term_string.split(' ')
-        result = []
-        for term in terms:
-            result.extend(Term.parse_input(term))
-        return result
+        searchables = root.get_searchable()
+        self._index_searchables(searchables)
 
     def search(self, term_string):
         """
@@ -362,6 +308,14 @@ class SearchDb(object):
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
         return results2
+
+    @staticmethod
+    def _get_terms(term_string):
+        terms = term_string.strip().split(' ')
+        result = []
+        for term in terms:
+            result.extend(Term.parse_input(term))
+        return result
 
     def _rank_results(self, unranked_results):
         """
@@ -406,154 +360,43 @@ class SearchDb(object):
         resp = []
         count = 0
         for result in sorted(self.ranked_items,
-                             key=lambda x: (self.ranked_items[x]['pscore'], self.ranked_items[x]['sscore']),
-                             reverse=True):
+                             key=lambda x: (-self.ranked_items[x]['pscore'], -self.ranked_items[x]['sscore'], x)):
 
             count += 1
             record = {'pscore': self.ranked_items[result]['pscore'],
                       'sscore': self.ranked_items[result]['sscore'],
-                      'name': str(result.primary.name),
-                      'path': result.path(),
-                      'terms': str('[' + ', '.join(self.ranked_items[result]['terms']) + ']'),
-                      'object_type': result.primary.__class__.__name__}
-            # record['primary'] = result.primary
-            tables = result.primary.get_table([result.primary])
-            record['report_table'] = []
-            for table in tables:
-                if table is not None:
-                    record['report_table'].append({'data': table.data,
-                                                   'headers': table.headers,
-                                                   'title_flask': table.title_flask})
+                      'terms': list(self.ranked_items[result]['terms']),
+                      'uid': result}
             resp.append(record)
-            if count > 100:
+            if count >= 100:
                 break
 
         return resp, len(self.ranked_items)
 
-    @staticmethod
-    def _is_primary(item, p_set):
+
+class SearchObjectStore(object):
+    """
+    Will store the objects in a text format by unique ID.  They can then be retrieved by the same ID
+    in either a summary format or detailed format.
+
+    This class will also cross-reference the objects if possible.
+    """
+
+    def __init__(self):
+        self.attrs = []
+        self.values = []
+        self.ranked_items = {}
+        self.map_class = {}  # index of objects by their class
+        self.object_directory = {}
+
+    def add_atk_objects(self, root):
         """
-        will return true if the item is a primary item in the result set
-        :param item:
-        :param p_set:
+        Will add acitoolkit objects to object store and will cross-reference them
+        :param root:
         :return:
         """
-        return item in p_set
-
-    @classmethod
-    def _is_secondary(cls, item, s_set):
-        """
-        Will return true if any item in the item context, excluding the first or primary one, is in s_set
-
-        :param item:
-        :param s_set:
-        :return:
-        """
-        return any(
-            cls._is_primary(item_context, s_set)
-            for item_context in item.context[1:])
-
-    @staticmethod
-    def _find_primary_in_path(searchable, primary):
-        """
-        Will go through the context stack and return true if 'primary' is found
-        :param searchable:
-        :param primary:
-        :return: boolean
-        """
-        if primary in searchable.context:
-            return True
-        else:
-            return False
-
-    def _index_searchables(self, searchables):
-
-        """
-        index all the searchable items by attr, value, and class
-        :param searchables: List of searchable objects
-        """
-        t1 = datetime.datetime.now()
-        count = 0
-        self.by_attr = {}
-        self.by_value = {}
-        self.by_attr_value = {}
-        self.by_class = {}
-        self.by_class_value = {}
-        self.by_class_attr = {}
-        self.by_class_attr_value = {}
-
-        # index searchables by keyword, value and keyword/value
-        for searchable in searchables:
-            count += 1
-            if count % 1000 == 0:
-                print count
-            atk_class = searchable.object_class
-            atk_attrs = searchable.attr
-            atk_values = searchable.value
-            atk_attr_values = searchable.attr_value
-
-            # index by_class
-            if atk_class not in self.by_class:
-                self.by_class[atk_class] = set([])
-            self.by_class[atk_class].add(searchable)
-
-            # index by attr and by attr, class
-            for atk_attr in atk_attrs:
-                if atk_attr not in self.by_attr:
-                    self.by_attr[atk_attr] = set([])
-                if (atk_class, atk_attr) not in self.by_class_attr:
-                    self.by_class_attr[(atk_class, atk_attr)] = set([])
-
-                self.by_attr[atk_attr].add(searchable)
-                self.by_class_attr[(atk_class, atk_attr)].add(searchable)
-
-            # index by values and by value, class
-            for atk_value in atk_values:
-                if atk_value not in self.by_value:
-                    self.by_value[atk_value] = set([])
-                if (atk_class, atk_value) not in self.by_class_value:
-                    self.by_class_value[(atk_class, atk_value)] = set([])
-
-                self.by_value[atk_value].add(searchable)
-                self.by_class_value[(atk_class, atk_value)].add(searchable)
-
-            # index by attr & value and by class, attr, value
-            for atk_attr_value in atk_attr_values:
-                if atk_attr_value not in self.by_attr_value:
-                    self.by_attr_value[atk_attr_value] = set([])
-                self.by_attr_value[atk_attr_value].add(searchable)
-                (atk_attr, atk_value) = atk_attr_value
-                if (atk_class, atk_attr, atk_value) not in self.by_class_attr_value:
-                    self.by_class_attr_value[(atk_class, atk_attr, atk_value)] = set([])
-
-                self.by_class_attr_value[(atk_class, atk_attr, atk_value)].add(searchable)
-
-                # index by class & value
-                # if atk_class not in self.by_attr:
-                #     self.by_attr[atk_class] = set([])
-                # self.by_attr[atk_class].add(searchable)
-                #
-                # for term in searchable.terms:
-                #
-                #     (keyword, value, relation) = term
-                #
-                #     if keyword not in self.by_attr:
-                #         self.by_attr[keyword] = set([])
-                #     self.by_attr[keyword].add(searchable)
-                #
-                #     if value is not None:
-                #         if value not in self.by_value:
-                #             self.by_value[value] = set([])
-                #
-                #         self.by_value[value].add(searchable)
-                #
-                #         if (keyword, value) not in self.by_attr_value:
-                #             self.by_attr_value[(keyword, value)] = set([])
-                #
-                #         self.by_attr_value[(keyword, value)].add(searchable)
-
-        t2 = datetime.datetime.now()
-        print 'elapsed time', t2 - t1
+        self._create_object_directory(root)
+        self._cross_reference_objects()
 
     def _create_object_directory(self, root):
         """
@@ -595,16 +438,16 @@ class SearchDb(object):
         """
 
         # map tenants to switches
-        for tenant in self.map_class['Tenant']:
-            for concrete_bd in self.map_class['ConcreteBD']:
+        for tenant in self.map_class.get('Tenant', {}):
+            for concrete_bd in self.map_class.get('ConcreteBD', {}):
                 ctenant_name = concrete_bd.attr['tenant']
                 if ctenant_name == tenant.name:
                     switch = concrete_bd.get_parent()
                     self._add_relation('switches', switch, tenant)
                     self._add_relation('tenants', tenant, switch)
 
-        for bridge_domain in self.map_class['BridgeDomain']:
-            for concrete_bd in self.map_class['ConcreteBD']:
+        for bridge_domain in self.map_class.get('BridgeDomain'):
+            for concrete_bd in self.map_class.get('ConcreteBD',{}):
                 if ':' in concrete_bd.attr['name']:
                     cbd_name = concrete_bd.attr['name'].split(':')[-1]
                 else:
@@ -625,14 +468,14 @@ class SearchDb(object):
                     self._add_relation('bridge domains', bridge_domain, relation.item)
 
         for context in self.map_class['Context']:
-            for concrete_bd in self.map_class['ConcreteBD']:
+            for concrete_bd in self.map_class.get('ConcreteBD', {}):
                 ccontext_name = concrete_bd.attr['context']
                 if ccontext_name == context.name and concrete_bd.attr['tenant'] == context.get_parent().name:
                     switch = concrete_bd.get_parent()
                     self._add_relation('switches', switch, context)
                     self._add_relation('contexts', context, switch)
 
-        for ep in self.map_class['Endpoint']:
+        for ep in self.map_class.get('Endpoint', {}):
             epg = ep.get_parent()
             app_profile = epg.get_parent()
             tenant = app_profile.get_parent()
@@ -682,6 +525,96 @@ class SearchDb(object):
                 return
         parent_obj.gui_x_reference[relationship_type].append(record)
 
+    def get_object_info(self, obj_dn):
+        """
+        Will return dictionary containing all of the information in the
+        object.  This information includes all the attributes as well as interesting relationships.
+        The relationships include those explicitly in the APIC as well as others that
+        are interesting from a model navigation perspective.
+        :rtype : dict
+        :param obj_dn:
+        :return: result
+        """
+        result = {}
+        atk_obj = self.object_directory[obj_dn]
+        attr = atk_obj.get_attributes()
+
+        result['properties'] = {'class': atk_obj.__class__.__name__, 'name': attr['name'], 'dn': obj_dn}
+
+        result['attributes'] = atk_obj.get_attributes()
+
+        if atk_obj.get_parent() is not None:
+            parent = atk_obj.get_parent().get_attributes()['name']
+            parent_dn = atk_obj.get_parent().get_attributes()['dn']
+            parent_class = atk_obj.get_parent().__class__.__name__
+            result['parent'] = {'class': parent_class, 'name': parent, 'dn': parent_dn}
+
+        children = atk_obj.get_children()
+        result['children'] = {}
+        for child in children:
+            child_class = child.__class__.__name__
+            if child_class not in result['children']:
+                result['children'][child_class] = []
+
+            result['children'][child_class].append({'class': child.__class__.__name__,
+                                                    'name': child.get_attributes()['name'],
+                                                    'dn': child.get_attributes()['dn']})
+
+        if 'gui_x_reference' in atk_obj.__dict__:
+            result['relations'] = atk_obj.gui_x_reference
+
+        return result
+
+    def get_by_uids_short(self, uids):
+        """
+        Will return a dictionary indexed by uid, where each entry is a dictionary holding the class and name
+        of the object refereced by the uid.
+        :param uids: list of UIDs
+        """
+        result = {}
+        for uid in uids:
+            atk_obj = self.object_directory[uid]
+            record = {'class': atk_obj.__class__.__name__,
+                      'name': atk_obj.get_attributes()['name'],
+                      'dn': atk_obj.get_attributes()['dn']}
+            result[uid] = record
+
+        return result
+
+
+class SearchSession(object):
+    """
+    The primary search object that holds all the methods for building the search index as well as querying it.
+    """
+
+    def __init__(self, args=None):
+        """
+        Will load in all of the search objects and create
+        an index by attr, value, and class and all combinations.
+        """
+        self._session = None
+        self.args = None
+        self.timeout = None
+
+        if args:
+            self.set_login_credentials(args)
+
+    def set_login_credentials(self, args, timeout=2):
+        """
+        Sets the login credentials for the APIC
+
+        :rtype : None
+        :param args: An instance containing the APIC credentials.  Expected to
+                     have the following instance variables; url, login, and
+                     password.
+        :param timeout:  Optional integer argument that indicates the timeout
+                         value in seconds to use for APIC communication.
+                         Default value is 2.
+        """
+        self.args = args
+        self.timeout = timeout
+        self._clear_switch_info()
+
     @property
     def session(self):
         """
@@ -710,6 +643,34 @@ class SearchDb(object):
         self._session = None
 
 
+class SearchDb(object):
+    """
+    This class will pull it all together for the search GUI
+    """
+    def __init__(self):
+        self.initialized = False
+        self.session = SearchSession()
+        self.index = SearchIndexLookup()
+        self.store = SearchObjectStore()
+
+    def load_db(self, args):
+        self.session.set_login_credentials(args)
+        fabric = Fabric.get(self.session.session)[0]
+        fabric.populate_children(deep=True, include_concrete=True)
+
+        self.index.add_atk_objects(fabric)
+        self.store.add_atk_objects(fabric)
+        self.initialized = True
+
+    def search(self, terms):
+        (results, total) = self.index.search(terms)
+        for result in results:
+            short_record = self.store.get_by_uids_short([result['uid']])
+            result['name'] = short_record[result['uid']]['name']
+            result['class'] = short_record[result['uid']]['class']
+        return results, total
+
+
 def main():
     """
     Main execution path when run from the command line
@@ -717,13 +678,6 @@ def main():
     # Get all the arguments
     description = 'Search tool for APIC.'
     creds = Credentials('apic', description)
-    creds.add_argument('-s', '--switch',
-                       type=str,
-                       default=None,
-                       help='Specify a particular switch id to perform search on, e.g. "102"')
-    creds.add_argument('-f', '--find',
-                       type=str,
-                       help='search string')
     creds.add_argument('--force',
                        action="store_true",
                        default=False,
@@ -731,15 +685,27 @@ def main():
 
     args = creds.get()
     print args
+    # load all objects
+    session = SearchSession(args)
     try:
-        sdb = SearchDb.load_db(args)
+        fabric = Fabric.get(session.session)[0]
     except (LoginError, Timeout, ConnectionError):
         print '%% Could not login to APIC'
         sys.exit(0)
 
-    results = sdb.search(args.find)
+    fabric.populate_children(deep=True, include_concrete=True)
+
+    index = SearchIndexLookup()
+    store = SearchObjectStore()
+
+    index.add_atk_objects(fabric)
+    store.add_atk_objects(fabric)
+
+    uids = index.search(args.find)
+    result = store.get_by_uids_short(uids)
+
     count = 0
-    for res in results:
+    for res in result:
         count += 1
         print res
 
