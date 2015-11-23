@@ -27,12 +27,446 @@ Array.prototype.extend = function (other_array) {
     other_array.forEach(function(v) {this.push(v)}, this);
 };
 
-function SubTerm(term_state, term_string){
-    this.state = term_state;
-    this.string = term_string;
-}
+function AutoCompleteTerms(class_attr_values) {
+    this.class_attr_values = class_attr_values;
 
-function autoComplete(class_attr_values, callBack) {
+    this.SubTerm = function SubTerm(term_state, term_string) {
+        this.state = term_state;
+        this.string = term_string;
+    };
+
+
+    this.buildSearchTerm = function buildSearchTerm(escapeChar, str) {
+        var re = new RegExp(escapeChar + '([^@=#*]+)[@=#\*]');
+        var re_end = new RegExp(escapeChar + '([^@=#*]*)$');
+        var term = new this.SubTerm('empty', '');
+        if (re.test(str)) {
+            term.state = 'complete';
+            term.string = str.match(re)[1];
+        } else if (re_end.test(str)) {
+            term.state = 'incomplete';
+            term.string = str.match(re_end)[1];
+        }
+        return term;
+    };
+
+    this.buildLastSearchTerm = function buildLastSearchTerm(str) {
+        var re_end = new RegExp('([^@=#*]*)$');
+        var term = new this.SubTerm('empty', '');
+        if (re_end.test(str)) {
+            term.state = 'incomplete';
+            term.string = str.match(re_end)[1];
+        }
+        return term;
+    };
+
+    this.buildSearch = function buildSearch(str) {
+
+        // a string with no escape character at the start implies * at start
+        var re = new RegExp('^[#@=\*]');
+        var class_term, value_term, attr_term, star_term, last_term;
+        var searchStr;
+        if (!re.test(str)) {
+            str = '*' + str;
+        }
+        // begins with escape character
+        class_term = this.buildSearchTerm('#', str);
+        attr_term = this.buildSearchTerm('@', str);
+        value_term = this.buildSearchTerm('=', str);
+        star_term = this.buildSearchTerm('\\\*', str);
+        last_term = this.buildLastSearchTerm(str);
+
+        var complete = [];
+        var terms = [];
+        var term;
+        //todo: need to complete this section
+        if ((class_term.state == 'complete') && (attr_term.state == 'complete') && (value_term.state == 'complete')) {
+            term = new this.Term(3, '', '');
+            terms.push(term);
+        } else if ((class_term.state == 'complete') && (attr_term.state == 'complete')) {
+            term = new this.Term(2, last_term.string, 'value');
+            term.string1 = class_term.string;
+            term.type1 = 'class';
+            term.string2 = attr_term.string;
+            term.type2 = 'attr';
+            terms.push(term);
+        } else if ((class_term.state == 'complete') && (value_term.state == 'complete')) {
+            term = new this.Term(2, last_term.string, 'attr');
+            term.string1 = class_term.string;
+            term.type1 = 'class';
+            term.string2 = value_term.string;
+            term.type2 = 'value';
+            terms.push(term);
+        } else if ((attr_term.state == 'complete') && (value_term.state == 'complete')) {
+            term = new this.Term(2, last_term.string, 'class');
+            term.string1 = attr_term.string;
+            term.type1 = 'attr';
+            term.string2 = value_term.string;
+            term.type2 = 'value';
+            terms.push(term);
+        } else if ((class_term.state == 'complete') && (star_term.state == 'complete')) {
+
+            if (value_term.state == 'incomplete') {
+                term = new this.Term(2, last_term.string, 'value');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+            } else if (attr_term.state == 'incomplete') {
+                term = new this.Term(2, last_term.string, 'attr');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+            } else {
+                term = new this.Term(2, last_term.string, 'value');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+
+                term = new this.Term(2, last_term.string, 'attr');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+            }
+        } else if ((attr_term.state == 'complete') && (star_term.state == 'complete')) {
+            term = new this.Term(2, last_term.string, 'value');
+            term.string1 = star_term.string;
+            term.type1 = 'class';
+            term.string2 = attr_term.string;
+            term.type2 = 'attr';
+            terms.push(term);
+
+            term = new this.Term(2, last_term.string, 'class');
+            term.string1 = attr_term.string;
+            term.type1 = 'attr';
+            term.string2 = star_term.string;
+            term.type2 = 'value';
+            terms.push(term);
+        } else if ((value_term.state == 'complete') && (star_term.state == 'complete')) {
+            term = new this.Term(2, last_term.string, 'attr');
+            term.string1 = star_term.string;
+            term.type1 = 'class';
+            term.string2 = value_term.string;
+            term.type2 = 'value';
+            terms.push(term);
+
+            term = new this.Term(2, last_term.string, 'class');
+            term.string1 = star_term.string;
+            term.type1 = 'attr';
+            term.string2 = value_term.string;
+            term.type2 = 'value';
+            terms.push(term);
+        } else if (class_term.state == 'complete') {
+            if (attr_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = class_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+            } else if (value_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = class_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+            } else if (star_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = class_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = class_term.string;
+                term.type1 = 'class';
+                term.string2 = class_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+            }
+        } else if (attr_term.state == 'complete') {
+            if (class_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = attr_term.string;
+                term.type1 = 'attr';
+                term.string2 = attr_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+            } else if (value_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = attr_term.string;
+                term.type1 = 'attr';
+                term.string2 = attr_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+            } else if (star_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = attr_term.string;
+                term.type1 = 'attr';
+                term.string2 = attr_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = attr_term.string;
+                term.type1 = 'attr';
+                term.string2 = attr_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+            }
+        } else if (value_term.state == 'complete') {
+            if (class_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = value_term.string;
+                term.type1 = 'value';
+                term.string2 = value_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+            } else if (attr_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = value_term.string;
+                term.type1 = 'value';
+                term.string2 = value_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+            } else if (star_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = value_term.string;
+                term.type1 = 'value';
+                term.string2 = value_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = value_term.string;
+                term.type1 = 'value';
+                term.string2 = value_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+            }
+        } else if (star_term.state == 'complete') {
+            if (class_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = star_term.string;
+                term.type1 = 'value';
+                term.string2 = star_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = star_term.string;
+                term.type1 = 'attr';
+                term.string2 = star_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+
+            } else if (attr_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = star_term.string;
+                term.type1 = 'value';
+                term.string2 = star_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = star_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+
+            } else if (value_term.state == 'incomplete') {
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = star_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = star_term.string;
+                term.type1 = 'attr';
+                term.string2 = star_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+            } else {
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = star_term.string;
+                term.type1 = 'value';
+                term.string2 = star_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'class');
+                term.string1 = star_term.string;
+                term.type1 = 'attr';
+                term.string2 = star_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = star_term.string;
+                term.type1 = 'value';
+                term.string2 = star_term.string;
+                term.type2 = 'value';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'attr');
+                term.string1 = star_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = star_term.string;
+                term.type1 = 'attr';
+                term.string2 = star_term.string;
+                term.type2 = 'attr';
+                terms.push(term);
+
+                term = new this.Term(1, last_term.string, 'value');
+                term.string1 = star_term.string;
+                term.type1 = 'class';
+                term.string2 = star_term.string;
+                term.type2 = 'class';
+                terms.push(term);
+
+            }
+        } else if (class_term.state == 'incomplete') {
+            term = new this.Term(0, last_term.string, 'class');
+            terms.push(term);
+        } else if (attr_term.state == 'incomplete') {
+            term = new this.Term(0, last_term.string, 'attr');
+            terms.push(term);
+        } else if (value_term.state == 'incomplete') {
+            term = new this.Term(0, last_term.string, 'value');
+            terms.push(term);
+        } else if (star_term.state == 'incomplete') {
+            term = new this.Term(0, last_term.string, 'class');
+            terms.push(term);
+            term = new this.Term(0, last_term.string, 'attr');
+            terms.push(term);
+            term = new this.Term(0, last_term.string, 'value');
+            terms.push(term);
+        }
+
+        if (class_term.state == 'incomplete') {
+            searchStr = class_term.string;
+        } else if (value_term.state == 'incomplete') {
+            searchStr = value_term.string;
+        } else if (attr_term.state == 'incomplete') {
+            searchStr = attr_term.string;
+        } else if (star_term.state == 'incomplete') {
+            searchStr = star_term.string;
+        } else {
+            searchStr = '';
+        }
+
+        return {'terms': terms, searchString: searchStr};
+    };
+
+    function loadMatch2(type1, type2, incompleteType, string1, string2, incompleteString) {
+        var firstString, secondString, thirdString;
+        var match_set = [];
+        var type_map = {'class': 0, 'attr': 1, 'value': 2};
+        var prefix_map = {'class': 'c', 'attr': 'a', 'value': 'v'};
+        var prefix = prefix_map[incompleteType];
+        var s1 = type_map[type1];
+        var s2 = type_map[type2];
+        var s3 = type_map[incompleteType];
+
+        for (var i = 0, tot = this.class_attr_values.length; i < tot; i++) {
+            firstString = this.class_attr_values[i][s1];
+            secondString = this.class_attr_values[i][s2];
+            thirdString = this.class_attr_values[i][s3];
+            if ((firstString == string1) && (secondString == string2)) {
+                if (thirdString.toLowerCase().indexOf(incompleteString.toLowerCase()) == 0) {
+                    match_set.push(prefix + thirdString);
+                }
+            }
+        }
+        return match_set;
+    }
+
+    function loadMatch1(incompleteType, incompleteString) {
+        var firstString;
+        var match_set = [];
+        var type_map = {'class': 0, 'attr': 1, 'value': 2};
+        var prefix_map = {'class': 'c', 'attr': 'a', 'value': 'v'};
+        var prefix = prefix_map[incompleteType];
+        var s1 = type_map[incompleteType];
+
+        for (var i = 0, tot = this.class_attr_values.length; i < tot; i++) {
+            firstString = this.class_attr_values[i][s1];
+            if (firstString.toLowerCase().indexOf(incompleteString.toLowerCase()) == 0) {
+                match_set.push(prefix + firstString);
+            }
+        }
+        return match_set;
+    }
+
+    this.search = function search(terms) {
+
+        var matches;
+        //
+        // what search terms to load depends upon
+        // what the total search is
+        //
+        // if cv complete search in cav
+        // if ca complete search in cav
+        // if va complete search in cav
+        // if c complete search in ca, cv
+        // if a complete search in ca, av
+        // if v complete search in cv, av
+        // if none complete search in c, a, v
+        //
+        function onlyUnique(value, index, self) {
+            return self.indexOf(value) === index;
+        }
+
+        // usage example:
+        var match_set = [];
+
+        for (var i = 0, tot = terms['terms'].length; i < tot; i++) {
+            var term = terms['terms'][i];
+
+            if ((term.complete == 2) || (term.complete == 1)) {
+                match_set.extend(loadMatch2(term.type1,
+                    term.type2,
+                    term.incomplete_type,
+                    term.string1,
+                    term.string2,
+                    term.incomplete_str));
+            }
+            if (term.complete == 0) {
+                match_set.extend(loadMatch1(term.incomplete_type, term.incomplete_str));
+            }
+
+        }
+        matches = match_set.filter(onlyUnique);
+        return matches;
+    }
+} //end AutoCompleteTerms
+
+AutoCompleteTerms.prototype.Term = function (complete, incomplete_str, incomplete_type) {
+    this.complete = complete;
+    this.type1 = '';
+    this.type2 = '';
+    this.incomplete_type = incomplete_type;
+    this.string1 = '';
+    this.string2 = '';
+    this.incomplete_str = incomplete_str;
+};
+
+function autoComplete(autoCompleteTerms, callBack) {
     var margin = {top: 20, right: 10, bottom: 10, left: 10};
     this.width = 100 - margin.left - margin.right;
     var height = 100 - margin.top - margin.bottom;
@@ -40,7 +474,7 @@ function autoComplete(class_attr_values, callBack) {
         selectedCallBack = callBack;
     var searchTerms = [];
     var onSpaceDone = false;
-    var matches = new Array;
+    var matches = [];
 
     function alphabetical(a, b) {
         // name field
@@ -105,9 +539,10 @@ function autoComplete(class_attr_values, callBack) {
             } else if (isNewSearchNeeded(subSearchString, lastSearchString)) {
                 lastSearchString = subSearchString;
                 showSearching();
-                var terms = buildSearch(subSearchString);
+                var terms = autoCompleteTerms.buildSearch(subSearchString);
                 console.log(terms);
-                search(terms);
+                onSpaceDone = false;  // allow the matched item to be added with a <sp>
+                matches = autoCompleteTerms.search(terms);
                 processResults(terms);
                 if (matches.length === 0) {
                     showSearching("No results");
@@ -151,435 +586,6 @@ function autoComplete(class_attr_values, callBack) {
     // and it is different from the oldTerm
     function isNewSearchNeeded(newTerm, oldTerm) {
         return newTerm.length >= 1 && newTerm != oldTerm;
-    }
-
-    function Term(complete, incomplete_str, incomplete_type) {
-        this.complete = complete;
-        this.type1 = '';
-        this.type2 = '';
-        this.incomplete_type = incomplete_type;
-        this.string1 = '';
-        this.string2 = '';
-        this.incomplete_str = incomplete_str;
-    }
-
-    function buildSearchTerm(escapeChar, str) {
-        var re =  new RegExp(escapeChar + '([^@=#*]+)[@=#\*]');
-        var re_end = new RegExp(escapeChar +  '([^@=#*]*)$');
-        var term = new SubTerm('empty', '');
-        if (re.test(str)) {
-            term.state='complete';
-            term.string = str.match(re)[1];
-        } else if (re_end.test(str)) {
-            term.state='incomplete';
-            term.string = str.match(re_end)[1];
-        }
-        return term;
-    }
-
-    function buildLastSearchTerm(str) {
-        var re_end = new RegExp('([^@=#*]*)$');
-        var term = new SubTerm('empty','');
-        if (re_end.test(str)) {
-            term.state = 'incomplete';
-            term.string = str.match(re_end)[1];
-        }
-        return term;
-    }
-
-    function buildSearch(str) {
-
-        // a string with no escape character at the start implies * at start
-        var re = new RegExp('^[#@=\*]');
-        var class_term, value_term, attr_term, star_term, last_term;
-        var searchStr;
-        if (!re.test(str)) {
-            str = '*'+str;
-        }
-            // begins with escape character
-        class_term = buildSearchTerm('#', str);
-        attr_term = buildSearchTerm('@', str);
-        value_term = buildSearchTerm('=', str);
-        star_term = buildSearchTerm('\\\*', str);
-        last_term = buildLastSearchTerm(str);
-
-        var complete = [];
-        var terms = [];
-        var term;
-        //todo: need to complete this section
-        if ((class_term.state == 'complete') && (attr_term.state=='complete') && (value_term.state=='complete')) {
-            term = new Term(3,'','');
-            terms.push(term);
-        } else if ((class_term.state == 'complete') && (attr_term.state=='complete')) {
-            term = new Term(2, last_term.string, 'value');
-            term.string1 = class_term.string;
-            term.type1 = 'class';
-            term.string2 = attr_term.string;
-            term.type2 = 'attr';
-            terms.push(term);
-        } else if ((class_term.state == 'complete') && (value_term.state=='complete')) {
-            term = new Term(2, last_term.string, 'attr');
-            term.string1 = class_term.string;
-            term.type1 = 'class';
-            term.string2 = value_term.string;
-            term.type2 = 'value';
-            terms.push(term);
-        } else if ((attr_term.state=='complete') && (value_term.state=='complete')) {
-            term = new Term(2, last_term.string, 'class');
-            term.string1 = attr_term.string;
-            term.type1 = 'attr';
-            term.string2 = value_term.string;
-            term.type2 = 'value';
-            terms.push(term);
-        } else if ((class_term.state == 'complete') && (star_term.state=='complete')) {
-
-            if (value_term.state=='incomplete') {
-                term = new Term(2, last_term.string, 'value');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-            } else if (attr_term.state=='incomplete') {
-                term = new Term(2, last_term.string, 'attr');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-            } else {
-                term = new Term(2, last_term.string, 'value');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-
-                term = new Term(2, last_term.string, 'attr');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-            }
-        } else if ((attr_term.state == 'complete') && (star_term.state=='complete')) {
-            term = new Term(2, last_term.string, 'value');
-            term.string1 = star_term.string;
-            term.type1 = 'class';
-            term.string2 = attr_term.string;
-            term.type2 = 'attr';
-            terms.push(term);
-
-            term = new Term(2, last_term.string, 'class');
-            term.string1 = attr_term.string;
-            term.type1 = 'attr';
-            term.string2 = star_term.string;
-            term.type2 = 'value';
-            terms.push(term);
-        } else if ((value_term.state == 'complete') && (star_term.state=='complete')) {
-            term = new Term(2, last_term.string, 'attr');
-            term.string1 = star_term.string;
-            term.type1 = 'class';
-            term.string2 = value_term.string;
-            term.type2 = 'value';
-            terms.push(term);
-
-            term = new Term(2, last_term.string, 'class');
-            term.string1 = star_term.string;
-            term.type1 = 'attr';
-            term.string2 = value_term.string;
-            term.type2 = 'value';
-            terms.push(term);
-        } else if (class_term.state == 'complete') {
-            if (attr_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = class_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-            } else if (value_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = class_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-            } else if (star_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = class_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = class_term.string;
-                term.type1 = 'class';
-                term.string2 = class_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-            }
-        } else if (attr_term.state == 'complete') {
-            if (class_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = attr_term.string;
-                term.type1 = 'attr';
-                term.string2 = attr_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-            } else if (value_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = attr_term.string;
-                term.type1 = 'attr';
-                term.string2 = attr_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-            } else if (star_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = attr_term.string;
-                term.type1 = 'attr';
-                term.string2 = attr_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = attr_term.string;
-                term.type1 = 'attr';
-                term.string2 = attr_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-            }
-        } else if (value_term.state == 'complete') {
-            if (class_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = value_term.string;
-                term.type1 = 'value';
-                term.string2 = value_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-            } else if (attr_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = value_term.string;
-                term.type1 = 'value';
-                term.string2 = value_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-            } else if (star_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = value_term.string;
-                term.type1 = 'value';
-                term.string2 = value_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = value_term.string;
-                term.type1 = 'value';
-                term.string2 = value_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-            }
-        } else if (star_term.state == 'complete') {
-            if (class_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = star_term.string;
-                term.type1 = 'value';
-                term.string2 = star_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = star_term.string;
-                term.type1 = 'attr';
-                term.string2 = star_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-
-            } else if (attr_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = star_term.string;
-                term.type1 = 'value';
-                term.string2 = star_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = star_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-
-            } else if (value_term.state == 'incomplete') {
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = star_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = star_term.string;
-                term.type1 = 'attr';
-                term.string2 = star_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-            } else {
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = star_term.string;
-                term.type1 = 'value';
-                term.string2 = star_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'class');
-                term.string1 = star_term.string;
-                term.type1 = 'attr';
-                term.string2 = star_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = star_term.string;
-                term.type1 = 'value';
-                term.string2 = star_term.string;
-                term.type2 = 'value';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'attr');
-                term.string1 = star_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = star_term.string;
-                term.type1 = 'attr';
-                term.string2 = star_term.string;
-                term.type2 = 'attr';
-                terms.push(term);
-
-                term = new Term(1, last_term.string, 'value');
-                term.string1 = star_term.string;
-                term.type1 = 'class';
-                term.string2 = star_term.string;
-                term.type2 = 'class';
-                terms.push(term);
-
-            }
-        } else if (class_term.state=='incomplete') {
-            term = new Term(0, last_term.string, 'class');
-            terms.push(term);
-        } else if (attr_term.state=='incomplete') {
-            term = new Term(0, last_term.string, 'attr');
-            terms.push(term);
-        } else if (value_term.state=='incomplete') {
-            term = new Term(0, last_term.string, 'value');
-            terms.push(term);
-        } else if (star_term.state=='incomplete') {
-            term = new Term(0, last_term.string, 'class');
-            terms.push(term);
-            term = new Term(0, last_term.string, 'attr');
-            terms.push(term);
-            term = new Term(0, last_term.string, 'value');
-            terms.push(term);
-        }
-
-        if (class_term.state=='incomplete') {
-            searchStr = class_term.string;
-        } else if (value_term.state=='incomplete') {
-            searchStr = value_term.string;
-        } else if (attr_term.state=='incomplete') {
-            searchStr = attr_term.string;
-        } else if (star_term.state=='incomplete') {
-            searchStr = star_term.string;
-        } else {
-            searchStr = '';
-        }
-
-        return {'terms':terms,searchString:searchStr};
-    }
-
-    function loadMatch2(type1, type2, incompleteType, string1, string2, incompleteString){
-        var firstString, secondString, thirdString;
-        var match_set = [];
-        var type_map = {'class': 0, 'attr': 1, 'value': 2};
-        var prefix_map = {'class': 'c', 'attr':'a', 'value':'v'};
-        var prefix = prefix_map[incompleteType];
-        var s1 = type_map[type1];
-        var s2 = type_map[type2];
-        var s3 = type_map[incompleteType];
-
-        for (var i = 0, tot = class_attr_values.length; i < tot; i++) {
-            firstString = class_attr_values[i][s1];
-            secondString = class_attr_values[i][s2];
-            thirdString = class_attr_values[i][s3];
-            if ((firstString==string1) && (secondString==string2)){
-                if (thirdString.toLowerCase().indexOf(incompleteString.toLowerCase()) == 0) {
-                    match_set.push(prefix + thirdString);
-                }
-            }
-        }
-        return match_set;
-    }
-
-    function loadMatch1(incompleteType, incompleteString){
-        var firstString;
-        var match_set = [];
-        var type_map = {'class': 0,'attr': 1,'value': 2};
-        var prefix_map = {'class': 'c', 'attr':'a', 'value':'v'};
-        var prefix = prefix_map[incompleteType];
-        var s1 = type_map[incompleteType];
-
-        for (var i = 0, tot = class_attr_values.length; i < tot; i++) {
-            firstString = class_attr_values[i][s1];
-            if (firstString.toLowerCase().indexOf(incompleteString.toLowerCase()) == 0) {
-                    match_set.push(prefix + firstString);
-            }
-        }
-        return match_set;
-    }
-
-    function search(terms) {
-
-        onSpaceDone = false;  // allow the matched item to be added with a <sp>
-
-        //
-        // what search terms to load depends upon
-        // what the total search is
-        //
-        // if cv complete search in cav
-        // if ca complete search in cav
-        // if va complete search in cav
-        // if c complete search in ca, cv
-        // if a complete search in ca, av
-        // if v complete search in cv, av
-        // if none complete search in c, a, v
-        //
-        function onlyUnique(value, index, self) { 
-            return self.indexOf(value) === index;
-        }
-        
-        // usage example:
-        var match_set = [];
-
-        for (var i =0, tot=terms['terms'].length; i < tot; i++) {
-            var term = terms['terms'][i];
-
-            if ((term.complete == 2) || (term.complete==1)) {
-                match_set.extend(loadMatch2(term.type1,
-                    term.type2,
-                    term.incomplete_type,
-                    term.string1,
-                    term.string2,
-                    term.incomplete_str));
-            }
-            if (term.complete == 0) {
-                match_set.extend(loadMatch1(term.incomplete_type, term.incomplete_str));
-            }
-
-        }
-        matches = match_set.filter( onlyUnique );
     }
 
     function processResults(terms) {
@@ -680,8 +686,8 @@ function autoComplete(class_attr_values, callBack) {
         selectedCallBack(input.node().value);
         searchTerms = [];
     }
-    var FunctionObj = new Object();
-    FunctionObj.buildSearch = buildSearch
-    return FunctionObj;
+    //var FunctionObj = new Object();
+    //FunctionObj.buildSearch = buildSearch
+    //return FunctionObj;
 }
 
