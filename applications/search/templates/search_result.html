@@ -84,7 +84,8 @@
         function callBack(search_terms) {
             renderSearch($.param({'first':search_terms}));
         }
-        autoComplete(class_attr_values, callBack);
+        autoCompleteTerms = new AutoCompleteTerms(class_attr_values);
+        autoComplete(autoCompleteTerms, callBack);
 
         if (data != 'None') {
             show_object(data);
