@@ -54,7 +54,7 @@ def main():
         sys.exit(0)
 
     
-    cluster = ACI.Cluster('Cluster')
+    cluster = ACI_PHYS.Cluster('Cluster')
     cluster_info = cluster.get(session)
 
     if (cluster.config_size != cluster.cluster_size):
