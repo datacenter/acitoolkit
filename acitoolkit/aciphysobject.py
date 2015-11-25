@@ -217,7 +217,7 @@ class Cluster(BaseACIObject):
         """
         return self.cluster_size
 
-    def get_apics(self)
+    def get_apics(self):
         return self.apics
 
 
