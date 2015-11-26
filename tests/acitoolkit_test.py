@@ -1496,6 +1496,28 @@ class TestEPG(unittest.TestCase):
         output = str(tenant.get_json())
         self.assertTrue(all(x in output for x in ('fvRsPathAtt', 'deleted')))
 
+    def test_set_dom_deployment_immediacy(self):
+        """
+        Test detaching an EPG from an L2Interface
+        """
+        tenant, app, epg = self.create_epg()
+        domain = EPGDomain('test_epg_domain', tenant)
+        epg.add_infradomain(domain)
+        epg.set_dom_deployment_immediacy('immediate')
+        output = str(tenant.get_json())
+        self.assertTrue("'instrImedcy': 'immediate'" in output)
+
+    def test_set_dom_resolution_immediacy(self):
+        """
+        Test detaching an EPG from an L2Interface
+        """
+        tenant, app, epg = self.create_epg()
+        domain = EPGDomain('test_epg_domain', tenant)
+        epg.add_infradomain(domain)
+        epg.set_dom_resolution_immediacy('immediate')
+        output = str(tenant.get_json())
+        self.assertTrue("'resImedcy': 'immediate'" in output)
+
 
 class TestOutsideEPG(unittest.TestCase):
     """
@@ -1724,7 +1746,7 @@ class TestEPGDomain(unittest.TestCase):
 
     def test_get_parent(self):
         epg_domain = EPGDomain('test_epg_domain', None)
-        self.assertEquals(epg_domain.get_parent(), epg_domain._parent)
+        self.assertEqual(epg_domain.get_parent(), epg_domain._parent)
 
     def test_get_json(self):
         epg_domain = EPGDomain('test_epg_domain', None)
