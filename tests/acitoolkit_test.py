@@ -1693,13 +1693,13 @@ class TestJson(unittest.TestCase):
         """
         Test attaching an EPG to a L2Interface
         """
-        expected_json = ("{'fvTenant': {'attributes': {'name': 'cisco'}, 'chil"
-                         "dren': [{'fvAp': {'attributes': {'name': 'ordersyste"
-                         "m'}, 'children': [{'fvAEPg': {'attributes': {'name':"
-                         " 'web'}, 'children': [{'fvRsPathAtt': {'attributes':"
-                         " {'tDn': 'topology/pod-1/paths-1/pathep-[eth1/1]', '"
-                         "encap': 'vlan-5'}}}, {'fvRsDomAtt': {'attributes': {"
-                         "'tDn': 'uni/phys-allvlans'}}}]}}]}}]}}")
+        expected_json = ('{"fvTenant": {"attributes": {"name": "cisco"}, "child'
+                         'ren": [{"fvAp": {"attributes": {"name": "ordersystem"'
+                         '}, "children": [{"fvAEPg": {"attributes": {"name": "w'
+                         'eb"}, "children": [{"fvRsPathAtt": {"attributes": {"e'
+                         'ncap": "vlan-5", "tDn": "topology/pod-1/paths-1/pathe'
+                         'p-[eth1/1]"}}}, {"fvRsDomAtt": {"attributes": {"tDn":'
+                         ' "uni/phys-allvlans"}}}]}}]}}]}}')
         expected_json = str(expected_json)
         tenant = Tenant('cisco')
         app = AppProfile('ordersystem', tenant)
@@ -1708,7 +1708,7 @@ class TestJson(unittest.TestCase):
         vlan_intf = L2Interface('v5', 'vlan', '5')
         vlan_intf.attach(intf)
         web_epg.attach(vlan_intf)
-        output = str(tenant.get_json())
+        output = json.dumps(tenant.get_json(), sort_keys=True)
 
         self.assertTrue(output == expected_json,
                         'Did not see expected JSON returned')
