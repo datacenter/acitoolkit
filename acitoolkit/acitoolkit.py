@@ -431,6 +431,18 @@ class L2Interface(BaseACIObject):
             if relation.item.is_interface():
                 return relation.item._get_path()
 
+    @staticmethod
+    def parse_encap(encap):
+        """
+        Parses the encap_type and encap_id from a json encap string
+        Examples: vlan-515 / vxlan-5000
+
+        :param encap: String containing the json encap format
+        :returns: encap_type, encap_id
+        """
+        encap_type, encap_id = encap.split('-')
+
+        return encap_type, encap_id
 
 class CommonEPG(BaseACIObject):
     """
@@ -862,7 +874,19 @@ class EPG(CommonEPG):
                     if isinstance(bd, BridgeDomain):
                         self.add_bd(bd)
             elif 'fvRsPathAtt' in child:
-                pass
+                int_attributes = child['fvRsPathAtt']['attributes']
+                int_dn = int_attributes['tDn']
+                int_type, pod, node, module, port = Interface.parse_dn(int_dn)
+                inter = Interface(int_type, pod, node, module, port)
+                encap = int_attributes['encap']
+                encap_type, encap_id = L2Interface.parse_encap(encap)
+                encap_mode = int_attributes['mode']
+                l2int = L2Interface('l2_int_{}-{}'.format(encap_type, encap_id),
+                                           encap_type, 
+                                           encap_id,
+                                           encap_mode)
+                l2int.attach(inter)
+                self.attach(l2int)
             elif 'fvRsProv' in child:
                 contract_name = child['fvRsProv']['attributes']['tnVzBrCPName']
                 contract_search = Search()
