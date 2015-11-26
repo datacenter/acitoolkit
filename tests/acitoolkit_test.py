@@ -2567,16 +2567,16 @@ class TestApic(TestLiveAPIC):
         BridgeDomain.get(session, tenant)
 
         # Check the JSON that was sent
-        expected = ('{"fvTenant": {"attributes": {"name": "aci-toolkit-test"},'
-                    ' "children": [{"fvAp": {"attributes": {"name": "app1"}, '
-                    '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
-                    '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
-                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"name": "bd1", '
-                    '"unkMacUcastAct": "proxy", "arpFlood": "no", '
-                    '"multiDstPktAct": "bd-flood", '
-                    '"mac": "00:22:BD:F8:19:FF", "unicastRoute": "yes", '
+        expected = ('{"fvTenant": {"attributes": {"name": "aci-toolkit-test"}, '
+                    '"children": [{"fvAp": {"attributes": {"name": "app1"}, "ch'
+                    'ildren": [{"fvAEPg": {"attributes": {"name": "epg1"}, "chi'
+                    'ldren": [{"fvRsBd": {"attributes": {"tnFvBDName": "bd1"}}}'
+                    ']}}]}}, {"fvBD": {"attributes": {"arpFlood": "no", "mac": '
+                    '"00:22:BD:F8:19:FF", "multiDstPktAct": "bd-flood", "name":'
+                    ' "bd1", "unicastRoute": "yes", "unkMacUcastAct": "proxy", '
                     '"unkMcastAct": "flood"}, "children": []}}]}}')
-        actual = json.dumps(tenant.get_json())
+
+        actual = json.dumps(tenant.get_json(), sort_keys=True)
         self.assertTrue(actual == expected)
 
         # Remove the bridgedomain from the EPG
@@ -2623,10 +2623,10 @@ class TestApic(TestLiveAPIC):
         (fabric, infra) = pc.get_json()
         expected = ('{"fabricProtPol": {"attributes": {"name": "vpc105"}, '
                     '"children": [{"fabricExplicitGEp": {"attributes": '
-                    '{"name": "vpc105", "id": "105"}, "children": [{'
+                    '{"id": "105", "name": "vpc105"}, "children": [{'
                     '"fabricNodePEp": {"attributes": {"id": "105"}}}, '
                     '{"fabricNodePEp": {"attributes": {"id": "106"}}}]}}]}}')
-        self.assertTrue(json.dumps(fabric) == expected)
+        self.assertTrue(json.dumps(fabric, sort_keys=True) == expected)
         if fabric is not None:
             resp = session.push_to_apic('/api/mo/uni/fabric.json', data=fabric)
             self.assertTrue(resp.ok)
@@ -3290,7 +3290,7 @@ class TestLiveHealthScores(TestLiveAPIC):
         session = self.login_to_apic()
         scores = HealthScore.get_all(session)
         scores = HealthScore.get_all(session)
-        test = scores > 1
+        test = len(scores) > 1
         self.assertTrue(test)
         self.base_test_teardown(session, tenant)
 
@@ -3308,7 +3308,11 @@ class TestLiveHealthScores(TestLiveAPIC):
     def test_get_healthscore_by_dn(self):
         (session, tenant, app, epg) = self.base_test_setup()
         ts = HealthScore.get_by_dn(session, 'uni/tn-aci-toolkit-test')
-        self.assertIsInstance(ts.cur, unicode)
+        try:
+            self.assertIsInstance(ts.cur, unicode)
+        # NameError is risen when code is run with Python3
+        except NameError:
+            self.assertIsInstance(ts.cur, str)
         self.assertEqual(ts.cur, '100')
         self.assertEqual(ts.__str__(), '100')
         self.base_test_teardown(session, tenant)
