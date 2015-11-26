@@ -786,6 +786,7 @@ class EPG(CommonEPG):
         if self.has_child(infradomain):
             return
         self.add_child(infradomain)
+        infradomain._add_relation(self)
 
     # Bridge Domain references
     def add_bd(self, bridgedomain):
@@ -931,6 +932,11 @@ class EPG(CommonEPG):
                                 for contract in objs:
                                     if isinstance(contract, Contract):
                                         self.consume(contract)
+            elif 'fvRsDomAtt' in child:
+                dom_attributes = child['fvRsDomAtt']['attributes']
+                self._dom_deployment_immediacy = dom_attributes['instrImedcy']
+                self._dom_resolution_immediacy = dom_attributes['resImedcy']
+
         super(EPG, self)._extract_relationships(data)
 
     def add_static_leaf_binding(self, leaf_id, encap_type, encap_id, encap_mode="regular", immediacy="lazy", pod=1):
@@ -1017,10 +1023,6 @@ class EPG(CommonEPG):
             if len(self.get_children(only_class=EPGDomain)) == 0:
                 text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
-            if self._dom_deployment_immediacy:
-                text['fvRsDomAtt']['attributes']['instrImedcy'] = self._dom_deployment_immediacy
-            if self._dom_resolution_immediacy:
-                text['fvRsDomAtt']['attributes']['resImedcy'] = self._dom_resolution_immediacy
 
         is_vmms = False
         for vmm in self.get_all_attached(VmmDomain):
@@ -4294,6 +4296,12 @@ class EPGDomain(BaseACIObject):
         :returns: A json dictionary of fvTenant
         """
         attr = self._generate_attributes()
+        for relation in self._relations:
+            if isinstance(relation.item, EPG):
+                if relation.item._dom_deployment_immediacy:
+                    attr['instrImedcy'] = relation.item._dom_deployment_immediacy
+                if relation.item._dom_resolution_immediacy:
+                    attr['resImedcy'] = relation.item._dom_resolution_immediacy
         return super(EPGDomain, self).get_json(self._get_apic_classes()[0],
                                                attributes=attr)
 
