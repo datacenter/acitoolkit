@@ -31,12 +31,11 @@
 """
 Simple application that shows all of the processes running on a switch
 """
-import json
 import sys
-
-import acitoolkit as ACI
+import acitoolkit.acitoolkit as ACI
+import acitoolkit.aciphysobject as ACI_PHYS
+import json
 from acitoolkit.acitoolkitlib import Credentials
-
 
 def main():
     """
@@ -54,25 +53,23 @@ def main():
         print '%% Could not login to APIC'
         sys.exit(0)
 
-    cluster = ACI.Cluster('Cluster')
-    configured_size = cluster.get_config_size(session)
-    cluster_size = cluster.get_cluster_size(session)
-    cluster_info = cluster.get_cluster_info(session)
+    
+    cluster = ACI_PHYS.Cluster('Cluster')
+    cluster_info = cluster.get(session)
 
-    if configured_size != cluster_size:
+    if (cluster.config_size != cluster.cluster_size):
         print("*******************************************************")
-        sys.stdout.write("WARNING, configured cluster size ")
-        sys.stdout.write(configured_size)
-        sys.stdout.write(" :not equal to the actual size ")
-        print cluster_size
+        print ("WARNING, configured cluster size "), cluster.config_size
+        print (":   not equal to the actual size "), cluster.cluster_size
         print "WARNING, desired stats collection might be lost"
         print("*******************************************************")
-        print("APICs in the cluster are:")
-        for apic in cluster_info:
-            print json.dumps(apic['infraCont']['attributes']['dn'], indent=4, sort_keys=True)
+        print("APICs in the cluster"), cluster.name, (":")
+        for apic in cluster.apics:
+            print json.dumps(apic,indent=4, sort_keys = True)
     else:
         print("PASS")
-
+    
+        
 
 if __name__ == '__main__':
     try:

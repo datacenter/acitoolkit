@@ -173,7 +173,33 @@ class Cluster(BaseACIObject):
         self.name = name
         self.config_size = None
         self.cluster_size = None
-        self.cluster_info = None
+        self.apics = []
+
+    def get(self, session, parent=None):
+        """Gets all of the Clusters from the APIC.                                                                                       
+                                                                                                                                         
+        :returns: list of Clusterss.                                                                                                     
+        """
+        # start at top                                                                                                                   
+        infra_query_url = '/api/node/class/infraCont.json'
+        ret = session.get(infra_query_url)
+        cluster_info = ret.json()['imdata']
+        infra_cluster_url = '/api/node/class/infraClusterPol.json'
+        ret = session.get(infra_cluster_url)
+        ret_cluster= ret.json()['imdata']
+        self.config_size=ret_cluster[0]['infraClusterPol']['attributes']['size']
+        for apic in cluster_info:
+            self.apics.append(apic['infraCont']['attributes']['dn'])
+        self._populate_from_attributes(cluster_info[0]['infraCont']['attributes'])
+        return cluster_info
+
+    def _populate_from_attributes(self, attributes):
+        """"Fills in an object with desired attributes.                                                                                  
+        """
+        self.cluster_size=str(attributes['size'])
+        self.name=str(attributes['fbDmNm'])
+
+
 
     def get_config_size(self, session):
         """
@@ -181,11 +207,6 @@ class Cluster(BaseACIObject):
         :param session:
         :returns: configured size of the cluster, i.e. # of APICs
         """
-        if self.config_size is None:
-            infra_cluster_url = '/api/node/class/infraClusterPol.json'
-            ret = session.get(infra_cluster_url)
-            ret_cluster = ret.json()['imdata']
-            self.config_size = ret_cluster[0]['infraClusterPol']['attributes']['size']
         return self.config_size
 
     def get_cluster_size(self, session):
@@ -194,25 +215,10 @@ class Cluster(BaseACIObject):
         :param session:
         :return:
         """
-        if self.cluster_size is None:
-            infra_query_url = '/api/node/class/infraCont.json'
-            ret = session.get(infra_query_url)
-            self.cluster_info = ret.json()['imdata']
-            self.cluster_size = self.cluster_info[0]['infraCont']['attributes']['size']
         return self.cluster_size
 
-    def get_cluster_info(self, session):
-        """
-        reads information about the APIC cluster
-        :param session:
-        :return:
-        """
-        if self.cluster_info is None:
-            infra_query_url = '/api/node/class/infraCont.json'
-            ret = session.get(infra_query_url)
-            self.cluster_info = ret.json()['imdata']
-            self.cluster_size = self.cluster_info[0]['infraCont']['attributes']['size']
-        return self.cluster_info
+    def get_apics(self):
+        return self.apics
 
 
 class Linecard(BaseACIPhysModule):
