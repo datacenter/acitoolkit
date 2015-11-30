@@ -162,10 +162,14 @@ class Tenant(BaseACIObject):
         :returns: Requests Response code
         """
         resp = []
-        if isinstance(names, str) or not isinstance(names, Sequence) or not all(isinstance(name, str) for name in names):
+        if isinstance(names, str) or \
+                not isinstance(names, Sequence) or \
+                not all(isinstance(name, str) for name in names):
             raise TypeError('names should be a Sequence of strings')
         names = list(names) or [tenant.name for tenant in Tenant.get(session)]
-        if isinstance(limit_to, str) or not isinstance(limit_to, Sequence) or not all(isinstance(class_name, str) for class_name in limit_to):
+        if isinstance(limit_to, str) or \
+                not isinstance(limit_to, Sequence) or \
+                not all(isinstance(class_name, str) for class_name in limit_to):
             raise TypeError('limit_to should be a Sequence of strings')
         limit_to = list(limit_to)
         if 'common' in names:
@@ -355,7 +359,6 @@ class AppProfile(BaseACIObject):
         headers = ['Tenant', 'App Profile', 'Description',
                    'EPGs']
 
-        data = []
         by_name = attrgetter('name')
         for app_profile in sorted(app_profiles, key=by_name):
             data = []
@@ -483,6 +486,8 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the Contracts provided by this EPG
 
+        :param deleted:
+        :param deleted:
         :returns: List of Contract objects that are provided by the EPG.
         """
         if deleted:
@@ -529,6 +534,7 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the Contracts consumed by this EPG
 
+        :param deleted:
         :returns: List of Contract objects that are consumed by the EPG.
         """
         if deleted:
@@ -553,8 +559,7 @@ class CommonEPG(BaseACIObject):
         """
         Check if this EPG consumes a specific Contract
 
-        :param contract: Instance of ContractInterface class to check if it is\
-                         consumed by this EPG.
+        :param contract_interface:
         :returns: True or False.  True if the EPG does consume the ContractInterface.
         """
         return self._has_relation(contract_interface, 'consumed')
@@ -564,8 +569,7 @@ class CommonEPG(BaseACIObject):
         Make this EPG not consume a ContractInterface.  It does not check to see
         if the ContractInterface was already consumed
 
-        :param contract: Instance of ContractInterface class to be no longer consumed\
-                         by this EPG.
+        :param contract_interface:
         :returns: True
         """
         self._remove_relation(contract_interface, 'consumed')
@@ -575,6 +579,7 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the ContractInterfaces consumed by this EPG
 
+        :param deleted:
         :returns: List of ContractInterface objects that are consumed by the EPG.
         """
         if deleted:
@@ -618,6 +623,7 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the Taboos protecting this EPG
 
+        :param deleted:
         :returns: List of Taboo objects that are protecting the EPG.
         """
         if deleted:
@@ -998,9 +1004,7 @@ class EPG(CommonEPG):
             if self._dom_resolution_immediacy:
                 text['fvRsDomAtt']['attributes']['resImedcy'] = self._dom_resolution_immediacy
 
-        is_vmms = False
         for vmm in self.get_all_attached(VmmDomain):
-            is_vmms = True
             text = {'fvRsDomAtt': {'attributes': {'tDn': vmm._get_path(),
                                                   'resImedcy': 'immediate'}}}
 
@@ -1023,8 +1027,8 @@ class EPG(CommonEPG):
     def get_table(epgs, title=''):
         """
         Will create table of EPG information for a given tenant
+        :param epgs:
         :param title:
-        :param app_profiles:
         """
 
         headers = ['Tenant', 'App Profile', 'EPG',
@@ -1172,8 +1176,6 @@ class OutsideL3(BaseACIObject):
         """
         Remove the context from the EPG
 
-        :param context: Instance of Context class to remove from this
-                        OutsideL3.
         """
         self._remove_all_relation(Context)
 
@@ -1218,8 +1220,7 @@ class OutsideL3(BaseACIObject):
     def add_l3extdom(self, extdom):
         """
         Set the L3ExternalDomain for this BD
-        :param l3out: OutsideL3 to assign this BridgeDomain
-
+        :param extdom:
         """
         if not isinstance(extdom, L3ExtDomain):
             raise TypeError('add_extdom not called with L3ExtDom')
@@ -1259,7 +1260,7 @@ class OutsideL3(BaseACIObject):
                 children.append(text)
 
             elif hasattr(interface, 'is_bgp'):
-                bgp_if = interface
+                # bgp_if = interface
                 text = {"bgpExtP": {"attributes": {}}}
                 children.append(text)
 
@@ -1655,7 +1656,7 @@ class BGPSession(BaseACIObject):
         :returns: json dictionary of BGP Session
         """
 
-        bgpextp = {'bgpExtP': {'attributes': {}}}
+        # bgpextp = {'bgpExtP': {'attributes': {}}}
         bgpPeerP = {'bgpPeerP': {'attributes': {'addr': self.peer_ip,
                                                 'ctrl': self.options,
                                                 'descr': '',
@@ -1998,6 +1999,7 @@ class BridgeDomain(BaseACIObject):
         """
         Check if the BD has this particular subnet.
 
+        :param subnet:
         :returns: True or False.  True if this BridgeDomain has this\
                   particular Subnet.
         """
@@ -2039,7 +2041,7 @@ class BridgeDomain(BaseACIObject):
         self.unknown_mac_unicast = attributes.get('unkMacUcastAct')
         self.unknown_multicast = attributes.get('unkMcastAct')
         self.modified_time = attributes.get('modTs')
-        dn = attributes.get('dn')
+        # dn = attributes.get('dn')
         self.dn = self.get_dn_from_attributes(attributes)
 
     @staticmethod
@@ -2530,6 +2532,7 @@ class BaseContract(BaseACIObject):
         """Set the scope of this contract.
            Valid values are 'context', 'global', 'tenant', and
            'application-profile'
+           :param scope:
         """
         if scope not in ('context', 'global', 'tenant', 'application-profile'):
             raise ValueError
@@ -2618,13 +2621,15 @@ class Contract(BaseContract):
         contract._populate_from_attributes(contract_data['attributes'])
         for child in contract_data.get('children', ()):
             if 'vzSubj' in child:
-                subject = child['vzSubj']
+                # subject = child['vzSubj']
                 subj = ContractSubject(child['vzSubj']['attributes']['name'], contract)
                 subj._populate_from_attributes(child['vzSubj']['attributes'])
 
     @classmethod
     def get(cls, session, tenant):
         """Gets all of the Contracts from the APIC for a particular tenant.
+        :param tenant:
+        :param session:
         """
         return BaseACIObject.get(session, cls, cls._get_contract_code(),
                                  tenant, tenant)
@@ -2677,9 +2682,9 @@ class ContractSubject(BaseACIObject):
                                     filt_search = Search()
                                     filt_search.name = filt_name
                                     objs = tenant.find(filt_search)
-                                    for filt in objs:
-                                        if isinstance(filt, Filter):
-                                            self.add_filter(filt)
+                                    for specific_filt in objs:
+                                        if isinstance(specific_filt, Filter):
+                                            self.add_filter(specific_filt)
                                     # TODO: need to check tenant common for filter if not found
                     except KeyError:
                         pass
@@ -2806,7 +2811,6 @@ class Filter(BaseACIObject):
         for entry in self.get_children():
             filter_entries.append(entry.get_json())
         resp_json['vzFilter']['children'] = filter_entries
-        resp_json
         return resp_json
 
 
@@ -2943,7 +2947,7 @@ class FilterEntry(BaseACIObject):
         attr = self._generate_attributes()
         text = super(FilterEntry, self).get_json('vzEntry',
                                                  attributes=attr)
-        filter_name = self.get_parent().name + self.name
+        # filter_name = self.get_parent().name + self.name
         # text = {'vzFilter': {'attributes': {'name': filter_name},
         #                      'children': [text]}}
         return text
@@ -3134,13 +3138,17 @@ class PortChannel(BaseInterface):
         self._nodes = []
 
     def attach(self, interface):
-        """Attach an interface to this PortChannel"""
+        """Attach an interface to this PortChannel
+        :param interface:
+        """
         if interface not in self._interfaces:
             self._interfaces.append(interface)
         self._update_nodes()
 
     def detach(self, interface):
-        """Detach an interface from this PortChannel"""
+        """Detach an interface from this PortChannel
+        :param interface:
+        """
         if interface in self._interfaces:
             self._interfaces.remove(interface)
         self._update_nodes()
@@ -3176,7 +3184,7 @@ class PortChannel(BaseInterface):
             (node1, node2) = self._get_nodes()
             # Make sure the order of the nodes is the right one (lowest numbered
             # first)
-            if int(node1)>int(node2):
+            if int(node1) > int(node2):
                 node1, node2 = node2, node1
             path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (pod,
                                                                     node1,
@@ -3258,6 +3266,7 @@ class PortChannel(BaseInterface):
     @staticmethod
     def get(session):
         """Gets all of the port channel interfaces from the APIC
+        :param session:
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
@@ -3451,6 +3460,8 @@ class Endpoint(BaseACIObject):
     @staticmethod
     def get(session, endpoint_name=None):
         """Gets all of the endpoints connected to the fabric from the APIC
+        :param endpoint_name:
+        :param session:
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
@@ -3552,6 +3563,7 @@ class Endpoint(BaseACIObject):
         results[0].add_term('ipv4', str(self.ip))
         return results
 
+
 class IPEndpoint(BaseACIObject):
     """
     Endpoint class
@@ -3651,6 +3663,7 @@ class IPEndpoint(BaseACIObject):
     @staticmethod
     def get(session):
         """Gets all of the IP endpoints connected to the fabric from the APIC
+        :param session:
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
@@ -3811,6 +3824,7 @@ class PhysDomain(BaseACIObject):
         """
         Gets all of the Physical Domains from the APIC
 
+        :param infra_name:
         :param session: the instance of Session used for APIC communication
         :returns: List of PhysDomain objects
         """
@@ -3935,6 +3949,7 @@ class VmmDomain(BaseACIObject):
         """
         Gets all of the VMM Domains from the APIC
 
+        :param infra_name:
         :param session: the instance of Session used for APIC communication
         :returns: List of VMM Domain objects
 
@@ -4056,6 +4071,7 @@ class L2ExtDomain(BaseACIObject):
         """
         Gets all of the Physical Domainss from the APIC
 
+        :param infra_name:
         :param session: the instance of Session used for APIC communication
         :returns: List of L2ExtDomain objects
 
@@ -4178,6 +4194,7 @@ class L3ExtDomain(BaseACIObject):
         """
         Gets all of the L3Ext Domains from the APIC
 
+        :param infra_name:
         :param session: the instance of Session used for APIC communication
         :returns: List of L3Ext Domain objects
 
@@ -4337,6 +4354,7 @@ class EPGDomain(BaseACIObject):
         """
         Gets all of the Physical Domains from the APIC
 
+        :param infra_name:
         :param session: the instance of Session used for APIC communication
         :returns: List of Switch Profile objects
 
@@ -4356,7 +4374,7 @@ class EPGDomain(BaseACIObject):
         toolkit_class = cls
         parent = None
         obj = toolkit_class(domain.name, parent)
-        apic_class = cls._get_apic_classes()[0]
+        # apic_class = cls._get_apic_classes()[0]
 
         obj.tDn = domain.dn
         obj.lcOwn = domain.lcOwn
@@ -4579,7 +4597,7 @@ class VMM(BaseACIObject):
                 if 'children' in item['vmmDomP']:
                     for vmm in item['vmmDomP']['children']:
                         if 'vmmCtrlrP' in vmm:
-                            vmm_name = vmm['vmmCtrlrP']['attributes']['name']
+                            # vmm_name = vmm['vmmCtrlrP']['attributes']['name']
                             vmm_ip = vmm['vmmCtrlrP']['attributes'].get('hostOrIp')
                             datacenter_name = vmm['vmmCtrlrP']['attributes'].get('rootContName')
                             vswitch_info = VMMvSwitchInfo(vendor, datacenter_name, dvs_name)
