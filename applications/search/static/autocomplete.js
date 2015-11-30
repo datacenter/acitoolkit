@@ -374,6 +374,14 @@ function AutoCompleteTerms(class_attr_values) {
     };
 
     function loadMatch2(type1, type2, incompleteType, string1, string2, incompleteString) {
+        /* ************************************************************************************
+        * This will create a list of terms that meet the criteria of matching two completed
+        * terms and a partial match of the third term.  The terms are class, attr, and value.
+        * It does not matter which two are complete and which one is partial.
+        *
+        * Creating a list that matches one complete and one partial is accomplished by specifying
+        * the same type for type1 and type2 thus effectively matching only one completed word
+        * *************************************************************************************/
         var firstString, secondString, thirdString;
         var match_set = [];
         var type_map = {'class': 0, 'attr': 1, 'value': 2};
@@ -397,6 +405,10 @@ function AutoCompleteTerms(class_attr_values) {
     }
 
     function loadMatch1(incompleteType, incompleteString) {
+        /* ************************************************************************************
+         * This will create a list of terms that meet the criteria of a partial match of one item.
+         * It will match only those terms of the specified type.
+         * *************************************************************************************/
         var firstString;
         var match_set = [];
         var type_map = {'class': 0, 'attr': 1, 'value': 2};
@@ -475,7 +487,8 @@ function autoComplete(autoCompleteTerms, callBack) {
     var searchTerms = [];
     var onSpaceDone = false;
     var matches = [];
-
+    var validTerms = []; // will track terms that are known to match actual valid terms
+    var re_end = new RegExp('([^@=#*]*)$');
     function alphabetical(a, b) {
         // name field
          var A = a.substring(1);
@@ -503,7 +516,7 @@ function autoComplete(autoCompleteTerms, callBack) {
 
     var input = enter.append("input")
         .attr("class", "ac-form-control")
-        .attr("placeholder", "Search: enter one of more objects, attributes, or values")
+        .attr("placeholder", "Search: enter one of more #<class>, @<attributes>, or =<values>")
         .attr("type", "text")
         .on("keyup", onKeyUp);
 
@@ -519,18 +532,20 @@ function autoComplete(autoCompleteTerms, callBack) {
     var dropDown = enter.append("div").attr("class", "ac-dropdown")
                         .style("display", "none");
 
-
     function onKeyUp() {
         var searchString = input.node().value.trim().replace(/\s\s+/g, ' ');
+        //var searchString = document.getElementById("new_search").value.trim().replace(/\s\s+/g, ' ');
         var subSearchString = searchString.split(' ').pop();
         var e = d3.event;
         const ASCII_SPACE = 32;
         const ASCII_CR = 13;
         const ASCII_AMP = 38;
         const ASCII_LEFTPAR = 40;
-
+        const ASCII_TAB = 9;
+        const ASCII_RIGHT = 39;
+        //console.log('new search: '+document.getElementById("new_search").value);
         console.log('key is '+e.which);
-        if (!(e.which === ASCII_AMP || e.which === ASCII_LEFTPAR || e.which === ASCII_CR || e.which===ASCII_SPACE)) {
+        if (!(e.which === ASCII_AMP || e.which === ASCII_RIGHT || e.which === ASCII_CR || e.which===ASCII_SPACE)) {
             // is up/down arrow or enter
             if (!subSearchString || subSearchString === "") {
                 showSearching("No results");
@@ -543,6 +558,10 @@ function autoComplete(autoCompleteTerms, callBack) {
                 console.log(terms);
                 onSpaceDone = false;  // allow the matched item to be added with a <sp>
                 matches = autoCompleteTerms.search(terms);
+                var lastTerm = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ').pop();
+                if (re_end.test(lastTerm))    {
+                    lastTerm = lastTerm.match(re_end)[1];
+                }
                 processResults(terms);
                 if (matches.length === 0) {
                     showSearching("No results");
@@ -556,7 +575,7 @@ function autoComplete(autoCompleteTerms, callBack) {
         } else {
             if (e.which===ASCII_SPACE) {
                 console.log('Space');
-                onSpace();
+                //onSpace();
             }
             if (e.which===ASCII_CR) {
                 console.log('Done');
@@ -564,9 +583,12 @@ function autoComplete(autoCompleteTerms, callBack) {
                 showSearching("Searching...");
                 spinner.spin(target);
                 selectedCallBack(input.node().value);
-                searchTerms = [];
+                //searchTerms = [];
             }
-
+            if (e.which===ASCII_RIGHT) {
+                console.log('Right Arrow');
+                onRIGHT();
+            }
         }
 
     }
@@ -638,7 +660,7 @@ function autoComplete(autoCompleteTerms, callBack) {
 
         // now need to fix-up the last term
         var pattern = lastTerm.replace(/[^#@=*]*$/, d.substring(1));
-
+        addValidatedTerm(d.substring(1));
         searchTerms.push(pattern);
         input.node().value = searchTerms.join(' ');
         onSpaceDone = true;
@@ -648,7 +670,7 @@ function autoComplete(autoCompleteTerms, callBack) {
         //input.node().value = searchTerms.join(' ');
     }
 
-    function onSpace() {
+    function onRIGHT() {
         // need to complete word if not already complete
         // if already complete, then add space
         // if there is already a space, don't add a second space
@@ -662,18 +684,20 @@ function autoComplete(autoCompleteTerms, callBack) {
 
         // this will remove double spaces and create list of terms - removing trailing spaces
         searchTerms = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ');
+        if (matches.length > 0) {
+            if (onSpaceDone === false) {
+                var lastTerm = searchTerms.pop();
 
-        if (onSpaceDone===false) {
-            var lastTerm = searchTerms.pop();
+                // now need to fix-up the last term
+                var patt = lastTerm.replace(/[^#@=*]+$/, matches[0].substring(1));
+                addValidatedTerm(matches[0].substring(1));
 
-            // now need to fix-up the last term
-            var patt = lastTerm.replace(/[^#@=*]+$/, matches[0].substring(1));
-
-            searchTerms.push(patt);
-            onSpaceDone = true;
-            input.node().value = searchTerms.join(' ');
-        } else {
-            input.node().value = searchTerms.join(' ')+' ';
+                searchTerms.push(patt);
+                onSpaceDone = true;
+                input.node().value = searchTerms.join(' ');
+            } else {
+                input.node().value = searchTerms.join(' ') + ' ';
+            }
         }
 
     }
@@ -684,7 +708,7 @@ function autoComplete(autoCompleteTerms, callBack) {
         showSearching("Searching...");
         spinner.spin(target);
         selectedCallBack(input.node().value);
-        searchTerms = [];
+        //searchTerms = [];
     }
     //var FunctionObj = new Object();
     //FunctionObj.buildSearch = buildSearch
