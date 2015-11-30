@@ -30,11 +30,12 @@ function searchResult(result) {
     function gen_summary(d) {
         var strng = "";
         strng += '<hr>';
-        strng += "<h4>"+d.name+ "</h4>";
-        strng += 'Path:' + d.uid + '<br>';
-        strng += "<p>Class:"+d.class+ ", ";
+        strng += '<p class="record_title"><a href="/selectswitchview?dn='+ d.uid+'">'+d.class+': '+ d.name+'</a></p>';
+        //strng += "<p>"+d.class+': '+d.name+ "</p>";
+        strng += '<p style="color:green">' + d.uid + '</p>';
+        strng += "<p>";
         strng += 'Match score:' + d.pscore + '.' + d.sscore + ', ';
-        strng += 'Matching terms:(' + d.terms + ')</p>';
+        strng += 'Matching terms:[' + d.terms + ']</p>';
         return strng;
     }
     // determine where to place it and create place holder
