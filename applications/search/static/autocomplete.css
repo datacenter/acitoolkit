@@ -4,7 +4,13 @@
 .ac-holder {
     position: relative;
 }
+.record_summary {
+    line-height: 0.7;
+}
 
+.record_title {
+    font-size:larger;
+}
 .ac-dropdown {
     border-color: #ececec;
     border-width: 1px;
