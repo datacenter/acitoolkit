@@ -500,6 +500,13 @@ class SearchObjectStore(object):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
 
+        for outsideL3 in self.map_class['OutsideL3']:
+            relations = outsideL3._relations
+            for relation in relations:
+                if isinstance(relation.item, Context):
+                    self._add_relation('attached to', relation.item, outsideL3)
+                    self._add_relation('attached from', outsideL3, relation.item)
+
     @staticmethod
     def _add_relation(relationship_type, child_obj, parent_obj):
         """
@@ -655,9 +662,10 @@ class SearchDb(object):
 
     def load_db(self, args):
         self.session.set_login_credentials(args)
-        fabric = Fabric.get(self.session.session)[0]
-        fabric.populate_children(deep=True, include_concrete=True)
+        # fabric = Fabric.get_deep(self.session.session)[0]
+        # fabric.populate_children(deep=True, include_concrete=True)
 
+        fabric = Fabric.get_deep(self.session.session, include_concrete=True)[0]
         self.index.add_atk_objects(fabric)
         self.store.add_atk_objects(fabric)
         self.initialized = True
