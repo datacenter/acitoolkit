@@ -1,5 +1,7 @@
 # acitoolkit [![Documentation Status](https://readthedocs.org/projects/acitoolkit/badge/?version=latest)](https://readthedocs.org/projects/acitoolkit/?badge=latest) [![Build Status](https://api.shippable.com/projects/54ea96315ab6cc13528d52ad/badge?branchName=master)](https://app.shippable.com/projects/54ea96315ab6cc13528d52ad/builds/latest) [![Code Health](https://landscape.io/github/datacenter/acitoolkit/master/landscape.svg?style=flat)](https://landscape.io/github/datacenter/acitoolkit/master)
 
+[![Join the chat at https://gitter.im/datacenter/acitoolkit](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/datacenter/acitoolkit?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 
 # Description
 
