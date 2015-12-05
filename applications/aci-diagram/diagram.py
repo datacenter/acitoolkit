@@ -3,6 +3,7 @@
 from acitoolkit.acitoolkit import *
 import pygraphviz as pgv
 import sys
+import logging
 
 creds = Credentials('apic',
                     "Generate logical diagrams of a running Cisco ACI Application Policy Infrastructure Controller")
@@ -15,8 +16,13 @@ creds.add_argument('-t', '--tenants',
                    nargs='*')
 creds.add_argument('-v', '--verbose', help='show verbose logging information',
                    action='store_true')
+creds.add_argument('-d', '--debug', help='enable acitoolkit debug loggin information',
+                   action='store_true')
 
 args = creds.get()
+
+if args.debug:
+    logging.basicConfig(level=logging.DEBUG)
 
 session = Session(args.url, args.login, args.password)
 try:
