@@ -1211,7 +1211,7 @@ class OutsideL3(BaseACIObject):
         Gets the APIC class to an acitoolkit class mapping dictionary
         :returns: dict of APIC class names to acitoolkit classes
         """
-        return {}
+        return {'l3extInstP': OutsideEPG}
 
     @classmethod
     def _get_apic_classes(cls):

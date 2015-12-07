@@ -2471,6 +2471,65 @@ class TestLiveOutsideL3(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
 
+class TestLiveOutsideEPG(TestLiveAPIC):
+    """
+    Test OutsideEPG class
+    """
+    def base_test_setup(self):
+        session = self.login_to_apic()
+
+        # Create the Tenant
+        tenant = Tenant('aci-toolkit-test')
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Create the OutsideL3
+        l3_out = OutsideL3('l3_out', tenant)
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Create the OutsideEPG
+        epg_out = OutsideEPG('epg_out')
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        return (session, tenant, epg_out, l3_out)
+
+    def base_test_teardown(self, session, tenant):
+        # Delete the tenant
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+    def getObject(self, obj_name):
+        obj_search = Search()
+        obj_search.name = obj_name
+        return t.find(obj_search)[0]
+
+    def test_attach_outside_epg_to_outside_l3(self):
+        # Set up the tenant, epg_out and l3_out
+        (session, tenant, epg_out, l3_out) = self.base_test_setup()
+
+        # Attach the OutsideEPG to the OutsideL3
+        l3_out.add_child(epg_out)
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+        self.assertTrue(epg_out in l3_out.get_children())
+
+        # Retrive the configuration
+        t = Tenant.get_deep(session, names=('aci-toolkit-test',))[0]
+        l3_out_ret = t.get_children(only_class=OutsideL3)[0]
+
+        # Make sure that the OutsideL3 has a OutsideEPG attached
+        l3_out_childrens = l3_out_ret.get_children()
+        self.assertTrue(l3_out_childrens)
+        for l3_out_child in l3_out_childrens:
+            self.assertTrue(isinstance(l3_out_child, OutsideEPG))
+
+        # Clean up
+        self.base_test_teardown(session, tenant)
+
+
 class TestLiveEPGDomain(TestLiveAPIC):
     """
     Test live EPG Domain
