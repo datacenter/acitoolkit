@@ -29,7 +29,6 @@ setup(
                       "flask-wtf",
                       "flask",
                       "pymysql",
-                      "tabulate",
-                      "paramiko"],
+                      "tabulate"],
     description="This library allows basic Cisco ACI APIC configuration.",
 )
