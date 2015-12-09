@@ -3296,6 +3296,7 @@ class Endpoint(BaseACIObject):
         self.encap = None
         self.if_name = None
         self.if_dn = []
+        self.secondary_ip = []
 
     @classmethod
     def _get_apic_classes(cls):
@@ -3350,6 +3351,65 @@ class Endpoint(BaseACIObject):
         self.encap = str(attributes.get('encap'))
         self.dn = self.get_dn_from_attributes(attributes)
         self.life_cycle = str(attributes.get('lcC'))
+
+    def _populate_interface_info(self, working_data):
+        for item in working_data[0]:
+            if 'children' in working_data[0][item]:
+                children = working_data[0][item]['children']
+                for child in children:
+                    for child_item in child:
+                        if child_item in ['fvRsCEpToPathEp','fvRsStCEpToPathEp' ]:
+                            if_dn = str(child[child_item]['attributes']['tDn'])
+                            if 'protpaths' in if_dn:
+                                regex = re.search(r'pathep-\[(.+)\]$', if_dn)
+                                self.if_name = regex.group(1)
+                            else :
+                                name = if_dn.split('/')
+                                pod = str(name[1].split('-')[1])
+                                node = str(name[2].split('-')[1])
+                                port = re.search(r'pathep-\[eth(.+)\]$', if_dn).group(1)
+                                self.if_name = 'eth {0}/{1}/{2}'.format(pod, node, port)
+                        if child_item == 'fvIp':
+                            ip_address = str(child[child_item]['attributes']['addr'])
+                            self.secondary_ip.append(ip_address)
+
+    @classmethod
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
+        """
+        Gets all instances of this class from the APIC and gets all of the
+        children as well.
+
+        :param full_data:
+        :param working_data:
+        :param parent:
+        :param limit_to:
+        :param subtree:
+        :param config_only:
+        """
+        obj = None
+        for item in working_data:
+            for key in item:
+                if key in cls._get_apic_classes():
+                    attribute_data = item[key]['attributes']
+                    obj = cls(str(attribute_data['name']), parent)
+                    obj._populate_from_attributes(attribute_data)
+                    obj._populate_interface_info(working_data)
+                    if 'children' in item[key]:
+                        for child in item[key]['children']:
+                            for apic_class in child:
+                                class_map = cls._get_toolkit_to_apic_classmap()
+                                if apic_class not in class_map:
+                                    if apic_class == 'tagInst':
+                                        obj._tags.append(Tag(str(child[apic_class]['attributes']['name'])))
+                                    continue
+                                else:
+                                    class_map[apic_class].get_deep(full_data=full_data,
+                                                                   working_data=[child],
+                                                                   parent=obj,
+                                                                   limit_to=limit_to,
+                                                                   subtree=subtree,
+                                                                   config_only=config_only)
+        return obj
 
     @classmethod
     def get_event(cls, session, with_relations=True):
@@ -3561,6 +3621,9 @@ class Endpoint(BaseACIObject):
         results = super(Endpoint, self)._define_searchables()
 
         results[0].add_term('ipv4', str(self.ip))
+        for secondary_ip in self.secondary_ip:
+            results[0].add_term('secondary_ip', secondary_ip)
+            results[0].add_term('ipv4', secondary_ip)
         return results
 
 
