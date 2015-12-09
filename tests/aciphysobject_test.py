@@ -45,6 +45,7 @@ from acitoolkit.aciphysobject import (
     ExternalSwitch, Fantray, Interface, Linecard, Link, Node, PhysicalModel,
     Pod, Powersupply, Supervisorcard, Systemcontroller
 )
+import json
 import unittest
 
 
@@ -763,7 +764,7 @@ class TestLivePod(TestLiveAPIC):
         attributes = branch.get_attributes()
         for attr in attributes:
             if not isinstance(attributes[attr], str) :
-                print 'Attribute '+str(attr)+' of '+ branch.__class__.__name__ + ' should be str'
+                print('Attribute '+str(attr)+' of '+ branch.__class__.__name__ + ' should be str')
                 self.assertTrue(False)
         children = branch.get_children()
         for child in children:
@@ -1123,128 +1124,130 @@ class TestInterface(unittest.TestCase):
     def test_create_valid_phydomain(self):
         intf = Interface('eth', '1', '1', '1', '1')
         (phydomain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'physDomP': {'attributes': {'name': 'allvlans'}, 'c"
-                         "hildren': [{'infraRsVlanNs': {'attributes': {'tDn': "
-                         "'uni/infra/vlanns-allvlans-static'}, 'children': []}"
-                         "}]}}")
-        self.assertEqual(str(phydomain_json), expected_json)
+        expected_json = ('{"physDomP": {"attributes": {"name": "allvlans"}, "ch'
+                         'ildren": [{"infraRsVlanNs": {"attributes": {"tDn": "u'
+                         'ni/infra/vlanns-allvlans-static"}, "children": []}}]}'
+                         '}')
+        self.assertEqual(json.dumps(phydomain_json, sort_keys=True), 
+                                                                  expected_json)
 
     def test_create_valid(self):
         intf = Interface('eth', '1', '1', '1', '1')
         (phydomain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
-                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
-                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
-                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
-                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
-                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
-                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
-                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
-                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
-                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
-                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
-                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
-                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
-                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
-                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
-                         "0G', 'autoNeg': 'on', 'speed': '10G', 'name': 'speed"
-                         "10G'}, 'children': []}}, {'infraFuncP': {'attributes"
-                         "': {}, 'children': [{'infraAccPortGrp': {'attributes"
-                         "': {'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', '"
-                         "name': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'"
-                         "attributes': {'tnFabricHIfPolName': 'speed10G'}, 'ch"
-                         "ildren': []}}, {'infraRsAttEntP': {'attributes': {'t"
-                         "Dn': 'uni/infra/attentp-allvlans'}, 'children': []}}"
-                         "]}}]}}, {'infraAttEntityP': {'attributes': {'name': "
-                         "'allvlans'}, 'children': [{'infraRsDomP': {'attribut"
-                         "es': {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanIn"
-                         "stP': {'attributes': {'name': 'allvlans', 'allocMode"
-                         "': 'static'}, 'children': [{'fvnsEncapBlk': {'attrib"
-                         "utes': {'to': 'vlan-4092', 'from': 'vlan-1', 'name':"
-                         " 'encap'}}}]}}]}}")
+        expected_json = ('{"infraInfra": {"attributes": {}, "children": [{"infr'
+                         'aNodeP": {"attributes": {"name": "1-1-1-1"}, "childre'
+                         'n": [{"infraLeafS": {"attributes": {"name": "1-1-1-1"'
+                         ', "type": "range"}, "children": [{"infraNodeBlk": {"a'
+                         'ttributes": {"from_": "1", "name": "1-1-1-1", "to_": '
+                         '"1"}, "children": []}}]}}, {"infraRsAccPortP": {"attr'
+                         'ibutes": {"tDn": "uni/infra/accportprof-1-1-1-1"}, "c'
+                         'hildren": []}}]}}, {"infraAccPortP": {"attributes": {'
+                         '"name": "1-1-1-1"}, "children": [{"infraHPortS": {"at'
+                         'tributes": {"name": "1-1-1-1", "type": "range"}, "chi'
+                         'ldren": [{"infraPortBlk": {"attributes": {"fromCard":'
+                         ' "1", "fromPort": "1", "name": "1-1-1-1", "toCard": "'
+                         '1", "toPort": "1"}, "children": []}}, {"infraRsAccBas'
+                         'eGrp": {"attributes": {"tDn": "uni/infra/funcprof/acc'
+                         'portgrp-1-1-1-1"}, "children": []}}]}}]}}, {"fabricHI'
+                         'fPol": {"attributes": {"autoNeg": "on", "dn": "uni/in'
+                         'fra/hintfpol-speed10G", "name": "speed10G", "speed": '
+                         '"10G"}, "children": []}}, {"infraFuncP": {"attributes'
+                         '": {}, "children": [{"infraAccPortGrp": {"attributes"'
+                         ': {"dn": "uni/infra/funcprof/accportgrp-1-1-1-1", "na'
+                         'me": "1-1-1-1"}, "children": [{"infraRsHIfPol": {"att'
+                         'ributes": {"tnFabricHIfPolName": "speed10G"}, "childr'
+                         'en": []}}, {"infraRsAttEntP": {"attributes": {"tDn": '
+                         '"uni/infra/attentp-allvlans"}, "children": []}}]}}]}}'
+                         ', {"infraAttEntityP": {"attributes": {"name": "allvla'
+                         'ns"}, "children": [{"infraRsDomP": {"attributes": {"t'
+                         'Dn": "uni/phys-allvlans"}}}]}}, {"fvnsVlanInstP": {"a'
+                         'ttributes": {"allocMode": "static", "name": "allvlans'
+                         '"}, "children": [{"fvnsEncapBlk": {"attributes": {"fr'
+                         'om": "vlan-1", "name": "encap", "to": "vlan-4092"}}}]'
+                         '}}]}}')
         self.assertTrue(intf is not None)
-        self.assertEqual(str(infra_json), expected_json)
+        self.maxDiff = None
+        self.assertEqual(json.dumps(infra_json, sort_keys=True), expected_json)
 
     def test_set_speed_10G(self):
         intf = Interface('eth', '1', '101', '1', '5')
         intf.speed = '10G'
         (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-101-1-5'}, 'children': [{'infraLe"
-                         "afS': {'attributes': {'type': 'range', 'name': '1-10"
-                         "1-1-5'}, 'children': [{'infraNodeBlk': {'attributes'"
-                         ": {'from_': '101', 'name': '1-101-1-5', 'to_': '101'"
-                         "}, 'children': []}}]}}, {'infraRsAccPortP': {'attrib"
-                         "utes': {'tDn': 'uni/infra/accportprof-1-101-1-5'}, '"
-                         "children': []}}]}}, {'infraAccPortP': {'attributes':"
-                         " {'name': '1-101-1-5'}, 'children': [{'infraHPortS':"
-                         " {'attributes': {'type': 'range', 'name': '1-101-1-5"
-                         "'}, 'children': [{'infraPortBlk': {'attributes': {'t"
-                         "oPort': '5', 'fromPort': '5', 'fromCard': '1', 'name"
-                         "': '1-101-1-5', 'toCard': '1'}, 'children': []}}, {'"
-                         "infraRsAccBaseGrp': {'attributes': {'tDn': 'uni/infr"
-                         "a/funcprof/accportgrp-1-101-1-5'}, 'children': []}}]"
-                         "}}]}}, {'fabricHIfPol': {'attributes': {'dn': 'uni/i"
-                         "nfra/hintfpol-speed10G', 'autoNeg': 'on', 'speed': '"
-                         "10G', 'name': 'speed10G'}, 'children': []}}, {'infra"
-                         "FuncP': {'attributes': {}, 'children': [{'infraAccPo"
-                         "rtGrp': {'attributes': {'dn': 'uni/infra/funcprof/ac"
-                         "cportgrp-1-101-1-5', 'name': '1-101-1-5'}, 'children"
-                         "': [{'infraRsHIfPol': {'attributes': {'tnFabricHIfPo"
-                         "lName': 'speed10G'}, 'children': []}}, {'infraRsAttE"
-                         "ntP': {'attributes': {'tDn': 'uni/infra/attentp-allv"
-                         "lans'}, 'children': []}}]}}]}}, {'infraAttEntityP': "
-                         "{'attributes': {'name': 'allvlans'}, 'children': [{'"
-                         "infraRsDomP': {'attributes': {'tDn': 'uni/phys-allvl"
-                         "ans'}}}]}}, {'fvnsVlanInstP': {'attributes': {'name'"
-                         ": 'allvlans', 'allocMode': 'static'}, 'children': [{"
-                         "'fvnsEncapBlk': {'attributes': {'to': 'vlan-4092', '"
-                         "from': 'vlan-1', 'name': 'encap'}}}]}}]}}")
-        self.assertEqual(str(infra_json), expected_json)
+        expected_json = ('{"infraInfra": {"attributes": {}, "children": [{"infr'
+                         'aNodeP": {"attributes": {"name": "1-101-1-5"}, "child'
+                         'ren": [{"infraLeafS": {"attributes": {"name": "1-101-'
+                         '1-5", "type": "range"}, "children": [{"infraNodeBlk":'
+                         ' {"attributes": {"from_": "101", "name": "1-101-1-5",'
+                         ' "to_": "101"}, "children": []}}]}}, {"infraRsAccPort'
+                         'P": {"attributes": {"tDn": "uni/infra/accportprof-1-1'
+                         '01-1-5"}, "children": []}}]}}, {"infraAccPortP": {"at'
+                         'tributes": {"name": "1-101-1-5"}, "children": [{"infr'
+                         'aHPortS": {"attributes": {"name": "1-101-1-5", "type"'
+                         ': "range"}, "children": [{"infraPortBlk": {"attribute'
+                         's": {"fromCard": "1", "fromPort": "5", "name": "1-101'
+                         '-1-5", "toCard": "1", "toPort": "5"}, "children": []}'
+                         '}, {"infraRsAccBaseGrp": {"attributes": {"tDn": "uni/'
+                         'infra/funcprof/accportgrp-1-101-1-5"}, "children": []'
+                         '}}]}}]}}, {"fabricHIfPol": {"attributes": {"autoNeg":'
+                         ' "on", "dn": "uni/infra/hintfpol-speed10G", "name": "'
+                         'speed10G", "speed": "10G"}, "children": []}}, {"infra'
+                         'FuncP": {"attributes": {}, "children": [{"infraAccPor'
+                         'tGrp": {"attributes": {"dn": "uni/infra/funcprof/accp'
+                         'ortgrp-1-101-1-5", "name": "1-101-1-5"}, "children": '
+                         '[{"infraRsHIfPol": {"attributes": {"tnFabricHIfPolNam'
+                         'e": "speed10G"}, "children": []}}, {"infraRsAttEntP":'
+                         ' {"attributes": {"tDn": "uni/infra/attentp-allvlans"}'
+                         ', "children": []}}]}}]}}, {"infraAttEntityP": {"attri'
+                         'butes": {"name": "allvlans"}, "children": [{"infraRsD'
+                         'omP": {"attributes": {"tDn": "uni/phys-allvlans"}}}]}'
+                         '}, {"fvnsVlanInstP": {"attributes": {"allocMode": "st'
+                         'atic", "name": "allvlans"}, "children": [{"fvnsEncapB'
+                         'lk": {"attributes": {"from": "vlan-1", "name": "encap'
+                         '", "to": "vlan-4092"}}}]}}]}}')
+        self.maxDiff = None
+        self.assertEqual(json.dumps(infra_json, sort_keys=True), expected_json)
 
     def test_set_speed_1G(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.speed = '1G'
         (phys_domain_json, fabric_json, infra_json) = intf.get_json()
-        expected_json = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-1-1-1'}, 'children': [{'infraLeaf"
-                         "S': {'attributes': {'type': 'range', 'name': '1-1-1-"
-                         "1'}, 'children': [{'infraNodeBlk': {'attributes': {'"
-                         "from_': '1', 'name': '1-1-1-1', 'to_': '1'}, 'childr"
-                         "en': []}}]}}, {'infraRsAccPortP': {'attributes': {'t"
-                         "Dn': 'uni/infra/accportprof-1-1-1-1'}, 'children': ["
-                         "]}}]}}, {'infraAccPortP': {'attributes': {'name': '1"
-                         "-1-1-1'}, 'children': [{'infraHPortS': {'attributes'"
-                         ": {'type': 'range', 'name': '1-1-1-1'}, 'children': "
-                         "[{'infraPortBlk': {'attributes': {'toPort': '1', 'fr"
-                         "omPort': '1', 'fromCard': '1', 'name': '1-1-1-1', 't"
-                         "oCard': '1'}, 'children': []}}, {'infraRsAccBaseGrp'"
-                         ": {'attributes': {'tDn': 'uni/infra/funcprof/accport"
-                         "grp-1-1-1-1'}, 'children': []}}]}}]}}, {'fabricHIfPo"
-                         "l': {'attributes': {'dn': 'uni/infra/hintfpol-speed1"
-                         "G', 'autoNeg': 'on', 'speed': '1G', 'name': 'speed1G"
-                         "'}, 'children': []}}, {'infraFuncP': {'attributes': "
-                         "{}, 'children': [{'infraAccPortGrp': {'attributes': "
-                         "{'dn': 'uni/infra/funcprof/accportgrp-1-1-1-1', 'nam"
-                         "e': '1-1-1-1'}, 'children': [{'infraRsHIfPol': {'att"
-                         "ributes': {'tnFabricHIfPolName': 'speed1G'}, 'childr"
-                         "en': []}}, {'infraRsAttEntP': {'attributes': {'tDn':"
-                         " 'uni/infra/attentp-allvlans'}, 'children': []}}]}}]"
-                         "}}, {'infraAttEntityP': {'attributes': {'name': 'all"
-                         "vlans'}, 'children': [{'infraRsDomP': {'attributes':"
-                         " {'tDn': 'uni/phys-allvlans'}}}]}}, {'fvnsVlanInstP'"
-                         ": {'attributes': {'name': 'allvlans', 'allocMode': '"
-                         "static'}, 'children': [{'fvnsEncapBlk': {'attributes"
-                         "': {'to': 'vlan-4092', 'from': 'vlan-1', 'name': 'en"
-                         "cap'}}}]}}]}}")
-
-        self.assertEqual(str(infra_json), expected_json)
+        expected_json = ('{"infraInfra": {"attributes": {}, "children": [{"infr'
+                         'aNodeP": {"attributes": {"name": "1-1-1-1"}, "childre'
+                         'n": [{"infraLeafS": {"attributes": {"name": "1-1-1-1"'
+                         ', "type": "range"}, "children": [{"infraNodeBlk": {"a'
+                         'ttributes": {"from_": "1", "name": "1-1-1-1", "to_": '
+                         '"1"}, "children": []}}]}}, {"infraRsAccPortP": {"attr'
+                         'ibutes": {"tDn": "uni/infra/accportprof-1-1-1-1"}, "c'
+                         'hildren": []}}]}}, {"infraAccPortP": {"attributes": {'
+                         '"name": "1-1-1-1"}, "children": [{"infraHPortS": {"at'
+                         'tributes": {"name": "1-1-1-1", "type": "range"}, "chi'
+                         'ldren": [{"infraPortBlk": {"attributes": {"fromCard":'
+                         ' "1", "fromPort": "1", "name": "1-1-1-1", "toCard": "'
+                         '1", "toPort": "1"}, "children": []}}, {"infraRsAccBas'
+                         'eGrp": {"attributes": {"tDn": "uni/infra/funcprof/acc'
+                         'portgrp-1-1-1-1"}, "children": []}}]}}]}}, {"fabricHI'
+                         'fPol": {"attributes": {"autoNeg": "on", "dn": "uni/in'
+                         'fra/hintfpol-speed1G", "name": "speed1G", "speed": "1'
+                         'G"}, "children": []}}, {"infraFuncP": {"attributes": '
+                         '{}, "children": [{"infraAccPortGrp": {"attributes": {'
+                         '"dn": "uni/infra/funcprof/accportgrp-1-1-1-1", "name"'
+                         ': "1-1-1-1"}, "children": [{"infraRsHIfPol": {"attrib'
+                         'utes": {"tnFabricHIfPolName": "speed1G"}, "children":'
+                         ' []}}, {"infraRsAttEntP": {"attributes": {"tDn": "uni'
+                         '/infra/attentp-allvlans"}, "children": []}}]}}]}}, {"'
+                         'infraAttEntityP": {"attributes": {"name": "allvlans"}'
+                         ', "children": [{"infraRsDomP": {"attributes": {"tDn":'
+                         ' "uni/phys-allvlans"}}}]}}, {"fvnsVlanInstP": {"attri'
+                         'butes": {"allocMode": "static", "name": "allvlans"}, '
+                         '"children": [{"fvnsEncapBlk": {"attributes": {"from":'
+                         ' "vlan-1", "name": "encap", "to": "vlan-4092"}}}]}}]}'
+                         '}')
+        self.maxDiff = None
+        self.assertEqual(json.dumps(infra_json, sort_keys=True), expected_json)
 
     def test_adminstate_not_set(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstate = ''
-        # phys_domain_url, fabric_url, infra_url = intf.get_url()
         phys_domain_json, fabric_json, infra_json = intf.get_json()
         self.assertIsNone(fabric_json)
 
@@ -1252,22 +1255,22 @@ class TestInterface(unittest.TestCase):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstatus = 'up'
         phys_domain_json, fabric_json, infra_json = intf.get_json()
-        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
-                         "th': {'attributes': {'dn': 'uni/fabric/outofsvc/rsoo"
-                         "sPath-[topology/pod-1/paths-1/pathep-[eth1/1]]', 'st"
-                         "atus': 'deleted', 'tDn': 'topology/pod-1/paths-1/pat"
-                         "hep-[eth1/1]'}, 'children': []}}]}}")
-        self.assertEqual(str(fabric_json), expected_json)
+        expected_json = ('{"fabricOOServicePol": {"children": [{"fabricRsOosPat'
+                         'h": {"attributes": {"dn": "uni/fabric/outofsvc/rsoosP'
+                         'ath-[topology/pod-1/paths-1/pathep-[eth1/1]]", "statu'
+                         's": "deleted", "tDn": "topology/pod-1/paths-1/pathep-'
+                         '[eth1/1]"}, "children": []}}]}}')
+        self.assertEqual(json.dumps(fabric_json, sort_keys=True), expected_json)
 
     def test_adminstate_down(self):
         intf = Interface('eth', '1', '1', '1', '1')
         intf.adminstatus = 'down'
         phys_domain_json, fabric_json, infra_json = intf.get_json()
-        expected_json = ("{'fabricOOServicePol': {'children': [{'fabricRsOosPa"
-                         "th': {'attributes': {'tDn': 'topology/pod-1/paths-1/"
-                         "pathep-[eth1/1]', 'lc': 'blacklist'}, 'children': []"
-                         "}}]}}")
-        self.assertEqual(str(fabric_json), expected_json)
+        expected_json = ('{"fabricOOServicePol": {"children": [{"fabricRsOosPat'
+                         'h": {"attributes": {"lc": "blacklist", "tDn": "topolo'
+                         'gy/pod-1/paths-1/pathep-[eth1/1]"}, "children": []}}]'
+                         '}}')
+        self.assertEqual(json.dumps(fabric_json, sort_keys=True), expected_json)
 
     def test_cdp_not_enabled(self):
         intf = Interface('eth', '1', '1', '1', '1')
