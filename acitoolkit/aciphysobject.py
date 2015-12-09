@@ -1179,8 +1179,13 @@ class Node(BaseACIPhysObject):
         else:
             pod_id = '1'
 
-        if isinstance(node_id, unicode):
-            node_id = str(node_id)
+        try:
+            if isinstance(node_id, unicode):
+                node_id = str(node_id)
+        # In Python3 there is no unicode type
+        except NameError:
+            if isinstance(node_id, str):
+                node_id = str(node_id)
 
         if node_id:
             if not isinstance(node_id, str):
@@ -1194,7 +1199,7 @@ class Node(BaseACIPhysObject):
         else:
             class_url = '/api/node/class/fabricNode.json?'
             ret = session.get(class_url)
-            ret._content = ret._content.replace('\n', '')
+            ret._content = ret._content.decode().replace('\n', '').encode()
             data = ret.json()['imdata']
             working_data = WorkingData()
             for item in data:
@@ -2714,7 +2719,7 @@ class WorkingData(object):
         query_url = url + 'query-target=subtree&target-subtree-class=' + ','.join(apic_classes)
 
         ret = session.get(query_url)
-        ret._content = ret._content.replace('\n', '')
+        ret._content = ret._content.decode().replace('\n', '').encode()
         data = ret.json()['imdata']
 
         if data:
