@@ -1496,6 +1496,28 @@ class TestEPG(unittest.TestCase):
         output = str(tenant.get_json())
         self.assertTrue(all(x in output for x in ('fvRsPathAtt', 'deleted')))
 
+    def test_set_dom_deployment_immediacy(self):
+        """
+        Test detaching an EPG from an L2Interface
+        """
+        tenant, app, epg = self.create_epg()
+        domain = EPGDomain('test_epg_domain', tenant)
+        epg.add_infradomain(domain)
+        epg.set_dom_deployment_immediacy('immediate')
+        output = str(tenant.get_json())
+        self.assertTrue("'instrImedcy': 'immediate'" in output)
+
+    def test_set_dom_resolution_immediacy(self):
+        """
+        Test detaching an EPG from an L2Interface
+        """
+        tenant, app, epg = self.create_epg()
+        domain = EPGDomain('test_epg_domain', tenant)
+        epg.add_infradomain(domain)
+        epg.set_dom_resolution_immediacy('immediate')
+        output = str(tenant.get_json())
+        self.assertTrue("'resImedcy': 'immediate'" in output)
+
 
 class TestOutsideEPG(unittest.TestCase):
     """
@@ -1693,13 +1715,13 @@ class TestJson(unittest.TestCase):
         """
         Test attaching an EPG to a L2Interface
         """
-        expected_json = ("{'fvTenant': {'attributes': {'name': 'cisco'}, 'chil"
-                         "dren': [{'fvAp': {'attributes': {'name': 'ordersyste"
-                         "m'}, 'children': [{'fvAEPg': {'attributes': {'name':"
-                         " 'web'}, 'children': [{'fvRsPathAtt': {'attributes':"
-                         " {'tDn': 'topology/pod-1/paths-1/pathep-[eth1/1]', '"
-                         "encap': 'vlan-5'}}}, {'fvRsDomAtt': {'attributes': {"
-                         "'tDn': 'uni/phys-allvlans'}}}]}}]}}]}}")
+        expected_json = ('{"fvTenant": {"attributes": {"name": "cisco"}, "child'
+                         'ren": [{"fvAp": {"attributes": {"name": "ordersystem"'
+                         '}, "children": [{"fvAEPg": {"attributes": {"name": "w'
+                         'eb"}, "children": [{"fvRsPathAtt": {"attributes": {"e'
+                         'ncap": "vlan-5", "tDn": "topology/pod-1/paths-1/pathe'
+                         'p-[eth1/1]"}}}, {"fvRsDomAtt": {"attributes": {"tDn":'
+                         ' "uni/phys-allvlans"}}}]}}]}}]}}')
         expected_json = str(expected_json)
         tenant = Tenant('cisco')
         app = AppProfile('ordersystem', tenant)
@@ -1708,7 +1730,7 @@ class TestJson(unittest.TestCase):
         vlan_intf = L2Interface('v5', 'vlan', '5')
         vlan_intf.attach(intf)
         web_epg.attach(vlan_intf)
-        output = str(tenant.get_json())
+        output = json.dumps(tenant.get_json(), sort_keys=True)
 
         self.assertTrue(output == expected_json,
                         'Did not see expected JSON returned')
@@ -1724,7 +1746,7 @@ class TestEPGDomain(unittest.TestCase):
 
     def test_get_parent(self):
         epg_domain = EPGDomain('test_epg_domain', None)
-        self.assertEquals(epg_domain.get_parent(), epg_domain._parent)
+        self.assertEqual(epg_domain.get_parent(), epg_domain._parent)
 
     def test_get_json(self):
         epg_domain = EPGDomain('test_epg_domain', None)
@@ -2449,6 +2471,65 @@ class TestLiveOutsideL3(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
 
+class TestLiveOutsideEPG(TestLiveAPIC):
+    """
+    Test OutsideEPG class
+    """
+    def base_test_setup(self):
+        session = self.login_to_apic()
+
+        # Create the Tenant
+        tenant = Tenant('aci-toolkit-test')
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Create the OutsideL3
+        l3_out = OutsideL3('l3_out', tenant)
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        # Create the OutsideEPG
+        epg_out = OutsideEPG('epg_out')
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+        return (session, tenant, epg_out, l3_out)
+
+    def base_test_teardown(self, session, tenant):
+        # Delete the tenant
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+    def getObject(self, obj_name):
+        obj_search = Search()
+        obj_search.name = obj_name
+        return t.find(obj_search)[0]
+
+    def test_attach_outside_epg_to_outside_l3(self):
+        # Set up the tenant, epg_out and l3_out
+        (session, tenant, epg_out, l3_out) = self.base_test_setup()
+
+        # Attach the OutsideEPG to the OutsideL3
+        l3_out.add_child(epg_out)
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+        self.assertTrue(epg_out in l3_out.get_children())
+
+        # Retrive the configuration
+        t = Tenant.get_deep(session, names=('aci-toolkit-test',))[0]
+        l3_out_ret = t.get_children(only_class=OutsideL3)[0]
+
+        # Make sure that the OutsideL3 has a OutsideEPG attached
+        l3_out_childrens = l3_out_ret.get_children()
+        self.assertTrue(l3_out_childrens)
+        for l3_out_child in l3_out_childrens:
+            self.assertTrue(isinstance(l3_out_child, OutsideEPG))
+
+        # Clean up
+        self.base_test_teardown(session, tenant)
+
+
 class TestLiveEPGDomain(TestLiveAPIC):
     """
     Test live EPG Domain
@@ -2567,16 +2648,16 @@ class TestApic(TestLiveAPIC):
         BridgeDomain.get(session, tenant)
 
         # Check the JSON that was sent
-        expected = ('{"fvTenant": {"attributes": {"name": "aci-toolkit-test"},'
-                    ' "children": [{"fvAp": {"attributes": {"name": "app1"}, '
-                    '"children": [{"fvAEPg": {"attributes": {"name": "epg1"}, '
-                    '"children": [{"fvRsBd": {"attributes": {"tnFvBDName": '
-                    '"bd1"}}}]}}]}}, {"fvBD": {"attributes": {"name": "bd1", '
-                    '"unkMacUcastAct": "proxy", "arpFlood": "no", '
-                    '"multiDstPktAct": "bd-flood", '
-                    '"mac": "00:22:BD:F8:19:FF", "unicastRoute": "yes", '
+        expected = ('{"fvTenant": {"attributes": {"name": "aci-toolkit-test"}, '
+                    '"children": [{"fvAp": {"attributes": {"name": "app1"}, "ch'
+                    'ildren": [{"fvAEPg": {"attributes": {"name": "epg1"}, "chi'
+                    'ldren": [{"fvRsBd": {"attributes": {"tnFvBDName": "bd1"}}}'
+                    ']}}]}}, {"fvBD": {"attributes": {"arpFlood": "no", "mac": '
+                    '"00:22:BD:F8:19:FF", "multiDstPktAct": "bd-flood", "name":'
+                    ' "bd1", "unicastRoute": "yes", "unkMacUcastAct": "proxy", '
                     '"unkMcastAct": "flood"}, "children": []}}]}}')
-        actual = json.dumps(tenant.get_json())
+
+        actual = json.dumps(tenant.get_json(), sort_keys=True)
         self.assertTrue(actual == expected)
 
         # Remove the bridgedomain from the EPG
@@ -2623,10 +2704,10 @@ class TestApic(TestLiveAPIC):
         (fabric, infra) = pc.get_json()
         expected = ('{"fabricProtPol": {"attributes": {"name": "vpc105"}, '
                     '"children": [{"fabricExplicitGEp": {"attributes": '
-                    '{"name": "vpc105", "id": "105"}, "children": [{'
+                    '{"id": "105", "name": "vpc105"}, "children": [{'
                     '"fabricNodePEp": {"attributes": {"id": "105"}}}, '
                     '{"fabricNodePEp": {"attributes": {"id": "106"}}}]}}]}}')
-        self.assertTrue(json.dumps(fabric) == expected)
+        self.assertTrue(json.dumps(fabric, sort_keys=True) == expected)
         if fabric is not None:
             resp = session.push_to_apic('/api/mo/uni/fabric.json', data=fabric)
             self.assertTrue(resp.ok)
@@ -3290,7 +3371,7 @@ class TestLiveHealthScores(TestLiveAPIC):
         session = self.login_to_apic()
         scores = HealthScore.get_all(session)
         scores = HealthScore.get_all(session)
-        test = scores > 1
+        test = len(scores) > 1
         self.assertTrue(test)
         self.base_test_teardown(session, tenant)
 
@@ -3308,7 +3389,11 @@ class TestLiveHealthScores(TestLiveAPIC):
     def test_get_healthscore_by_dn(self):
         (session, tenant, app, epg) = self.base_test_setup()
         ts = HealthScore.get_by_dn(session, 'uni/tn-aci-toolkit-test')
-        self.assertIsInstance(ts.cur, unicode)
+        try:
+            self.assertIsInstance(ts.cur, unicode)
+        # NameError is risen when code is run with Python3
+        except NameError:
+            self.assertIsInstance(ts.cur, str)
         self.assertEqual(ts.cur, '100')
         self.assertEqual(ts.__str__(), '100')
         self.base_test_teardown(session, tenant)

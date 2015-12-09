@@ -434,6 +434,18 @@ class L2Interface(BaseACIObject):
             if relation.item.is_interface():
                 return relation.item._get_path()
 
+    @staticmethod
+    def parse_encap(encap):
+        """
+        Parses the encap_type and encap_id from a json encap string
+        Examples: vlan-515 / vxlan-5000
+
+        :param encap: String containing the json encap format
+        :returns: encap_type, encap_id
+        """
+        encap_type, encap_id = encap.split('-')
+
+        return encap_type, encap_id
 
 class CommonEPG(BaseACIObject):
     """
@@ -780,6 +792,7 @@ class EPG(CommonEPG):
         if self.has_child(infradomain):
             return
         self.add_child(infradomain)
+        infradomain._add_relation(self)
 
     # Bridge Domain references
     def add_bd(self, bridgedomain):
@@ -868,7 +881,19 @@ class EPG(CommonEPG):
                     if isinstance(bd, BridgeDomain):
                         self.add_bd(bd)
             elif 'fvRsPathAtt' in child:
-                pass
+                int_attributes = child['fvRsPathAtt']['attributes']
+                int_dn = int_attributes['tDn']
+                int_type, pod, node, module, port = Interface.parse_dn(int_dn)
+                inter = Interface(int_type, pod, node, module, port)
+                encap = int_attributes['encap']
+                encap_type, encap_id = L2Interface.parse_encap(encap)
+                encap_mode = int_attributes['mode']
+                l2int = L2Interface('l2_int_{}-{}'.format(encap_type, encap_id),
+                                           encap_type, 
+                                           encap_id,
+                                           encap_mode)
+                l2int.attach(inter)
+                self.attach(l2int)
             elif 'fvRsProv' in child:
                 contract_name = child['fvRsProv']['attributes']['tnVzBrCPName']
                 contract_search = Search()
@@ -913,6 +938,11 @@ class EPG(CommonEPG):
                                 for contract in objs:
                                     if isinstance(contract, Contract):
                                         self.consume(contract)
+            elif 'fvRsDomAtt' in child:
+                dom_attributes = child['fvRsDomAtt']['attributes']
+                self._dom_deployment_immediacy = dom_attributes['instrImedcy']
+                self._dom_resolution_immediacy = dom_attributes['resImedcy']
+
         super(EPG, self)._extract_relationships(data)
 
     def add_static_leaf_binding(self, leaf_id, encap_type, encap_id, encap_mode="regular", immediacy="lazy", pod=1):
@@ -999,10 +1029,6 @@ class EPG(CommonEPG):
             if len(self.get_children(only_class=EPGDomain)) == 0:
                 text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
-            if self._dom_deployment_immediacy:
-                text['fvRsDomAtt']['attributes']['instrImedcy'] = self._dom_deployment_immediacy
-            if self._dom_resolution_immediacy:
-                text['fvRsDomAtt']['attributes']['resImedcy'] = self._dom_resolution_immediacy
 
         for vmm in self.get_all_attached(VmmDomain):
             text = {'fvRsDomAtt': {'attributes': {'tDn': vmm._get_path(),
@@ -1185,7 +1211,7 @@ class OutsideL3(BaseACIObject):
         Gets the APIC class to an acitoolkit class mapping dictionary
         :returns: dict of APIC class names to acitoolkit classes
         """
-        return {}
+        return {'l3extInstP': OutsideEPG}
 
     @classmethod
     def _get_apic_classes(cls):
@@ -4350,6 +4376,12 @@ class EPGDomain(BaseACIObject):
         :returns: A json dictionary of fvTenant
         """
         attr = self._generate_attributes()
+        for relation in self._relations:
+            if isinstance(relation.item, EPG):
+                if relation.item._dom_deployment_immediacy:
+                    attr['instrImedcy'] = relation.item._dom_deployment_immediacy
+                if relation.item._dom_resolution_immediacy:
+                    attr['resImedcy'] = relation.item._dom_resolution_immediacy
         return super(EPGDomain, self).get_json(self._get_apic_classes()[0],
                                                attributes=attr)
 
