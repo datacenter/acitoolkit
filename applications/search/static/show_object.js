@@ -105,14 +105,6 @@ function show_object(data) {
     var rel_parent = view.append('div')
         .attr('class', 'subspan12')
 
-    //// show this object
-    //rel_parent.append('p')
-    //    .datum(properties)
-    //    .text('Current: ')
-    //    .append('a')
-    //    .text(function(d) {return capitalize(properties['class'])+': '+properties['name'];})
-    //    .attr('href',function(d) { return '/selectswitchview?dn='+properties['dn'];});
-
     // show parent object with link
     if (data['parent']) {
         simpleLink('Parent: ', [data['parent']], rel_parent);
@@ -199,6 +191,8 @@ function show_object(data) {
                 .text('Select 1 of ' + rel_data.length);
         }
     }
+
+    // show all the attributes
     var attributes = data['attributes'];
     var attr_key = d3.keys(attributes).sort();
     var table = view.append('div')
@@ -224,5 +218,7 @@ function show_object(data) {
         .text(function (d) { return d; });
 
     table_row.append("td")
-        .text(function (d) {return ' ' + attributes[d];});
+        .text(function (d) {if (typeof attributes[d] == 'string')
+                                {return ' ' + attributes[d];}
+                            else {return ' '+attributes[d].join(", ")}});
 }
