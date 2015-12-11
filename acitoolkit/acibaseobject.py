@@ -1120,6 +1120,11 @@ class BaseACIObject(AciSearch):
                 value = getattr(self, attrib)
                 if isinstance(value, str) or isinstance(value, int) or isinstance(value, unicode):
                     result[attrib] = str(getattr(self, attrib))
+                elif isinstance(value, list):
+                    if len(value) > 0:
+                        result[attrib] = value
+                    # print attrib
+
         return result
 
 
@@ -1299,6 +1304,19 @@ class BaseACIPhysObject(BaseACIObject):
         if parent:
             if not isinstance(parent, cls._get_parent_class()):
                 raise TypeError('The parent of this object must be of class {0}'.format(cls._get_parent_class()))
+
+    @classmethod
+    def get_deep(cls, session, include_concrete=False):
+        """
+        Will return the atk object and the entire tree under it.
+        :param session: APIC session to use
+        :param include_concrete: flag to indicate that concrete objects should also be included
+        :return:
+        """
+        atk_objects = cls.get(session)
+        for atk_object in atk_objects:
+            atk_object.populate_children(deep=True, include_concrete=include_concrete)
+        return atk_objects
 
 
 class BaseACIPhysModule(BaseACIPhysObject):
