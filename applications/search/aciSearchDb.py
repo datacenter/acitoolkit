@@ -30,7 +30,6 @@ import datetime
 import sys
 import re
 from acitoolkit import BridgeDomain, Context, Contract
-
 from acitoolkit.aciphysobject import Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
@@ -180,10 +179,10 @@ class Term(object):
         valid = False
         term_string = ''
         if mid:
-            term_string = mid.group(1)
+            term_string = re.sub('"', '',mid.group(1))
             valid = len(term_string) > 0
         elif end:
-            term_string = end.group(1)
+            term_string = re.sub('"', '',end.group(1))
             valid = len(term_string) > 0
 
         return valid, term_string
@@ -247,24 +246,27 @@ class SearchIndexLookup(object):
 
             # index by values and by value, class
             for atk_value in atk_values:
+                atk_value_clean = atk_value.replace('\n',' ').replace('\r','')
                 if atk_value not in self.by_value:
-                    self.by_value[atk_value] = set([])
-                if (atk_class, atk_value) not in self.by_class_value:
-                    self.by_class_value[(atk_class, atk_value)] = set([])
+                    self.by_value[atk_value_clean] = set([])
+                if (atk_class, atk_value_clean) not in self.by_class_value:
+                    self.by_class_value[(atk_class, atk_value_clean)] = set([])
 
-                self.by_value[atk_value].add(uid)
-                self.by_class_value[(atk_class, atk_value)].add(uid)
-
+                self.by_value[atk_value_clean].add(uid)
+                self.by_class_value[(atk_class, atk_value_clean)].add(uid)
+                if 'Cisco Nexus Operating System' in atk_value:
+                    print uid, atk_value
             # index by attr & value and by class, attr, value
             for atk_attr_value in atk_attr_values:
-                if atk_attr_value not in self.by_attr_value:
-                    self.by_attr_value[atk_attr_value] = set([])
-                self.by_attr_value[atk_attr_value].add(uid)
-                (atk_attr, atk_value) = atk_attr_value
-                if (atk_class, atk_attr, atk_value) not in self.by_class_attr_value:
-                    self.by_class_attr_value[(atk_class, atk_attr, atk_value)] = set([])
+                (a, v) = atk_attr_value
+                v = v.replace('\n',' ').replace('\r','')
+                if (a, v) not in self.by_attr_value:
+                    self.by_attr_value[(a, v)] = set([])
+                self.by_attr_value[(a, v)].add(uid)
+                if (atk_class, a, v) not in self.by_class_attr_value:
+                    self.by_class_attr_value[(atk_class, a, v)] = set([])
 
-                self.by_class_attr_value[(atk_class, atk_attr, atk_value)].add(uid)
+                self.by_class_attr_value[(atk_class, a, v)].add(uid)
 
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
@@ -311,11 +313,42 @@ class SearchIndexLookup(object):
 
     @staticmethod
     def _get_terms(term_string):
-        terms = term_string.strip().split(' ')
+        terms = SearchIndexLookup._custom_split(term_string)
         result = []
         for term in terms:
             result.extend(Term.parse_input(term))
         return result
+
+    @staticmethod
+    def _custom_split(in_string):
+        # will split instring into a list of words using spaces to
+        # see word boundaries unless the space is inside quotes
+        words = []
+        not_inside_quote = True
+        start = 0
+        in_string = re.sub("^ ", "", in_string)
+        # in_string = in_string.replace(/^ /g,"")  #remove leading spaces
+        for i in range(len(in_string) - 1):
+
+            if in_string[i] == " " and not_inside_quote:
+
+                word = in_string[start: i].strip()
+                word = re.sub('^"|"$', "", word)
+                words.append(word)
+                # words.append(in_string.substring(start,i).trim().replace(/^\"|\"$/g, ""));
+                start = i + 1
+
+            elif in_string[i] == '"':
+                not_inside_quote = not not_inside_quote
+
+        word = in_string[start:]
+        word = re.sub('^"|"$', "", word)
+        if not_inside_quote:
+            words.append(word.strip())
+        else:
+            words.append(word)
+
+        return words
 
     def _rank_results(self, unranked_results):
         """
@@ -447,7 +480,7 @@ class SearchObjectStore(object):
                     self._add_relation('tenants', tenant, switch)
 
         for bridge_domain in self.map_class.get('BridgeDomain'):
-            for concrete_bd in self.map_class.get('ConcreteBD',{}):
+            for concrete_bd in self.map_class.get('ConcreteBD', {}):
                 if ':' in concrete_bd.attr['name']:
                     cbd_name = concrete_bd.attr['name'].split(':')[-1]
                 else:
@@ -654,6 +687,7 @@ class SearchDb(object):
     """
     This class will pull it all together for the search GUI
     """
+
     def __init__(self):
         self.initialized = False
         self.session = SearchSession()
