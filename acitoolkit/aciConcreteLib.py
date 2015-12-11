@@ -153,6 +153,16 @@ class ConcreteArp(CommonConcreteObject):
         """
         return Node
 
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteArpDomain]
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -160,7 +170,7 @@ class ConcreteArp(CommonConcreteObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = ['arpInst', 'arpDomStatsAdj', 'arpDomStatsRx', 'arpDomStatsTx', 'arpDom', 'arpDb', 'arpAdjEp']
+        resp = ['arpInst']
 
         return resp
 
@@ -179,45 +189,159 @@ class ConcreteArp(CommonConcreteObject):
         for data in node_data:
             if 'arpInst' in data:
                 arp = cls()
+                arp._top = top
                 arp.attr['admin_state'] = str(data['arpInst']['attributes']['adminSt'])
                 arp.attr['dn'] = str(data['arpInst']['attributes']['dn'])
-                arp.get_arp_domain(top)
+                ConcreteArpDomain.get(top, arp)
+                # arp.get_arp_domain(top)
                 result.append(arp)
             if parent:
                 arp._parent = parent
                 arp._parent.add_child(arp)
         return result
 
-    def get_arp_domain(self, working_data):
+    @staticmethod
+    def get_table(arps, title=''):
+        """
+        Returns arp information in a displayable format.
+        :param title:
+        :param arps:
+        """
+        result = []
+        headers = ['Tenant', 'Context', 'Add', 'Delete', 'Timeout',
+                   'Resolved', 'Incomplete', 'Total', 'Rx Pkts',
+                   'Rx Drop', 'Tx Pkts', 'Tx Drop', 'Tx Req',
+                   'Tx Grat Req', 'Tx Resp']
+        data = []
+        for arp in arps:
+            for domain in arp.get_children(ConcreteArpDomain):
+                data.append([
+                    domain.tenant,
+                    domain.context,
+                    domain._stats.get('adjAdd', ''),
+                    domain._stats.get('adjDel', ''),
+                    domain._stats.get('adjTimeout', ''),
+                    domain._stats.get('resolved', ''),
+                    domain._stats.get('incomplete', ''),
+                    domain._stats.get('total', ''),
+                    domain._stats.get('pktRcvd', ''),
+                    domain._stats.get('pktRcvdDrp', ''),
+                    domain._stats.get('pktSent', ''),
+                    domain._stats.get('pktSentDrop', ''),
+                    domain._stats.get('pktSentReq', ''),
+                    domain._stats.get('pktSentGratReq', ''),
+                    domain._stats.get('pktSentRsp', '')
+                ])
+
+            data = sorted(data)
+            result.append(Table(data, headers, title=title + 'ARP Stats'))
+
+            headers = ['Tenant', 'Context', 'MAC Address', 'IP Address',
+                       'Physical I/F', 'Interface ID', 'Oper Status']
+            data = []
+            for domain in arp.get_children(ConcreteArpDomain):
+                for entry in domain.get_children(ConcreteArpEntry):
+                    data.append([
+                        str(domain.tenant),
+                        str(domain.context),
+                        entry.mac,
+                        entry.ip,
+                        entry.physical_interface,
+                        entry.interface_id,
+                        entry.oper_st
+                    ])
+            result.append(Table(data, headers, title=title + 'ARP Entries'))
+
+        return result
+
+    def __str__(self):
+        return 'ARP'
+
+
+class ConcreteArpDomain(CommonConcreteObject):
+
+    def __init__(self, parent=None):
+        """
+        VPC info for a switch
+        """
+        super(ConcreteArpDomain, self).__init__(parent=parent)
+        self._stats = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteArp
+
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteArpEntry]
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['arpDom','arpDomStatsAdj', 'arpDomStatsRx', 'arpDomStatsTx',]
+
+        return resp
+
+    @classmethod
+    def get(cls, working_data, parent):
         """
         Get various attributes from the arp domain
         :param working_data:
         """
+        cls.check_parent(parent)
 
-        data = working_data.get_subtree('arpDom', self.attr['dn'])
-        for domain in data:
-            result = {'stats': {},
-                      'entry': [],
-                      'name': str(domain['arpDom']['attributes']['name']),
-                      'encap': str(domain['arpDom']['attributes']['encap'])}
+        resp = []
+        node_data = working_data.get_subtree('arpDom',parent.dn)
+        for domain in node_data:
+            concrete_arp_domain = cls()
+            concrete_arp_domain._top = working_data
+            concrete_arp_domain._populate_from_attributes(domain['arpDom']['attributes'])
             arpdom_dn = str(domain['arpDom']['attributes']['dn'])
-            result['stats'].update(self.get_stats('arpDomStatsAdj', arpdom_dn, working_data))
-            result['stats'].update(self.get_stats('arpDomStatsRx', arpdom_dn, working_data))
-            result['stats'].update(self.get_stats('arpDomStatsTx', arpdom_dn, working_data))
+            concrete_arp_domain._stats.update(cls.get_stats('arpDomStatsAdj', arpdom_dn, working_data))
+            concrete_arp_domain._stats.update(cls.get_stats('arpDomStatsRx', arpdom_dn, working_data))
+            concrete_arp_domain._stats.update(cls.get_stats('arpDomStatsTx', arpdom_dn, working_data))
 
-            arpdb_data = working_data.get_subtree('arpDb', arpdom_dn)
-            for arpdb_datum in arpdb_data:
-                entry = self.get_arp_entry(arpdb_datum['arpDb']['attributes']['dn'], working_data)
-                result['entry'].append(entry)
+            ConcreteArpEntry.get(working_data, concrete_arp_domain)
 
-            if ':' in result['name']:
-                result['tenant'] = result['name'].split(':')[0]
-                result['context'] = result['name'].split(':')[1]
-            else:
-                result['tenant'] = ''
-                result['context'] = result['name']
+            concrete_arp_domain._parent = parent
+            concrete_arp_domain._parent.add_child(concrete_arp_domain)
 
-            self.domain.append(result)
+            resp.append(concrete_arp_domain)
+
+        return resp
+
+    def _populate_from_attributes(self, attributes):
+        """
+        Populate attributes
+        :param attributes:
+        :return:
+        """
+        self.name = str(attributes['name'])
+        self.encap = str(attributes['encap'])
+        self.dn = str(attributes['dn'])
+        if ':' in self.name:
+            self.tenant = self.name.split(':')[0]
+            self.context = self.name.split(':')[1]
+        else:
+            self.tenant = ''
+            self.context = self.name
 
     @staticmethod
     def get_stats(apic_class, dn, working_data):
@@ -233,80 +357,60 @@ class ConcreteArp(CommonConcreteObject):
             return stat_data[0][apic_class]['attributes']
         return {}
 
+
+class ConcreteArpEntry(CommonConcreteObject) :
+
     @staticmethod
-    def get_arp_entry(dn, working_data):
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteArpDomain
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['arpAdjEp','arpDb']
+
+        return resp
+
+    @classmethod
+    def get(cls, working_data, parent):
         """
         parses arpAdjEp
+        :param parent:
         :param working_data:
         :param dn:
         """
-        data = working_data.get_subtree('arpAdjEp', dn)
-        entry = {}
-        for datum in data:
+        resp = []
+        cls.check_parent(parent)
+        arpdb_data = working_data.get_subtree('arpDb', parent.dn)
+        for datum1 in arpdb_data:
+            arp_db_dn = datum1['arpDb']['attributes']['dn']
+            data = working_data.get_subtree('arpAdjEp', arp_db_dn)
+            for datum in data:
+                entry = cls()
+                entry._populate_from_attributes(datum['arpAdjEp']['attributes'])
+                entry._parent = parent
+                entry._parent.add_child(entry)
+                resp.append(entry)
+        return resp
 
-            entry = {'interface_id': str(datum['arpAdjEp']['attributes']['ifId']),
-                     'ip': str(datum['arpAdjEp']['attributes']['ip']),
-                     'mac': str(datum['arpAdjEp']['attributes']['mac']),
-                     'physical_interface': str(datum['arpAdjEp']['attributes']['physIfId']),
-                     'oper_st': str(datum['arpAdjEp']['attributes']['operSt'])}
-        return entry
-
-    @staticmethod
-    def get_table(arps, title=''):
-        """
-        Returns arp information in a displayable format.
-        :param title:
-        :param arps:
-        """
-        result = []
-        headers = ['Tenant', 'Context', 'Add', 'Delete', 'Timeout.',
-                   'Resolved', 'Incomplete', 'Total', 'Rx Pkts',
-                   'Rx Drop', 'Tx Pkts', 'Tx Drop', 'Tx Req',
-                   'Tx Grat Req', 'Tx Resp']
-        data = []
-        for arp in arps:
-            for domain in arp.domain:
-                data.append([
-                    domain.get('tenant', ''),
-                    domain.get('context', ''),
-                    domain['stats'].get('adjAdd', ''),
-                    domain['stats'].get('adjDel', ''),
-                    domain['stats'].get('adjTimeout', ''),
-                    domain['stats'].get('resolved', ''),
-                    domain['stats'].get('incomplete', ''),
-                    domain['stats'].get('total', ''),
-                    domain['stats'].get('pktRcvd', ''),
-                    domain['stats'].get('pktRcvdDrp', ''),
-                    domain['stats'].get('pktSent', ''),
-                    domain['stats'].get('pktSentDrop', ''),
-                    domain['stats'].get('pktSentReq', ''),
-                    domain['stats'].get('pktSentGratReq', ''),
-                    domain['stats'].get('pktSentRsp', '')
-                ])
-
-            data = sorted(data)
-            result.append(Table(data, headers, title=title + 'ARP Stats'))
-
-            headers = ['Tenant', 'Context', 'MAC Address', 'IP Address',
-                       'Physical I/F', 'Interface ID', 'Oper Status']
-            data = []
-            for domain in arp.domain:
-                for entry in domain['entry']:
-                    data.append([
-                        str(domain.get('tenant', '')),
-                        str(domain.get('context', '')),
-                        str(entry.get('mac', '')),
-                        str(entry.get('ip', '')),
-                        str(entry.get('physical_interface', '')),
-                        str(entry.get('interface_id', '')),
-                        str(entry.get('oper_st', ''))
-                    ])
-            result.append(Table(data, headers, title=title + 'ARP Entries'))
-
-        return result
-
-    def __str__(self):
-        return 'ARP'
+    def _populate_from_attributes(self, attributes):
+        self.interface_id= str(attributes['ifId'])
+        self.ip= str(attributes['ip'])
+        self.mac= str(attributes['mac'])
+        self.physical_interface = str(attributes['physIfId'])
+        self.oper_st = str(attributes['operSt'])
+        self.dn = str(attributes['dn'])
 
 
 class ConcreteVpc(CommonConcreteObject):
