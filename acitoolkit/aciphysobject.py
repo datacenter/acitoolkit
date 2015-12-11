@@ -2144,15 +2144,9 @@ class Interface(BaseInterface):
         self.node = str(node)
         self.module = str(module)
         self.port = str(port)
-        self.attributes['interface_type'] = str(interface_type)
-        self.attributes['pod'] = str(pod)
-        self.attributes['node'] = str(node)
-        self.attributes['module'] = str(module)
-        self.attributes['port'] = str(port)
 
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.module + '/' + self.port
-        self.attributes['if_name'] = self.if_name
         super(Interface, self).__init__(self.if_name, None)
         self.porttype = ''
         self.adminstatus = ''  # up or down
@@ -2168,6 +2162,13 @@ class Interface(BaseInterface):
         if parent:
             self._parent.add_child(self)
         self.stats = InterfaceStats(self, self.attributes.get('dn'))
+
+        self.attributes['interface_type'] = str(interface_type)
+        self.attributes['pod'] = str(pod)
+        self.attributes['node'] = str(node)
+        self.attributes['module'] = str(module)
+        self.attributes['port'] = str(port)
+        self.attributes['if_name'] = self.if_name
 
     def is_interface(self):
         """
@@ -2603,11 +2604,6 @@ class Interface(BaseInterface):
                 attributes['usage'] = str(interface['l1PhysIf']['attributes']['usage'])
                 (interface_type, pod, node,
                  module, port) = Interface.parse_dn(dist_name)
-                attributes['interface_type'] = interface_type
-                attributes['pod'] = pod
-                attributes['node'] = node
-                attributes['module'] = module
-                attributes['port'] = port
                 attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
                 interface_obj = Interface(interface_type, pod, node, module, port,
                                           parent=None, session=session,
@@ -2639,11 +2635,11 @@ class Interface(BaseInterface):
         # TODO: simplify and isinstance
         if type(self) != type(other):
             return False
-        if (self.attributes['interface_type'] == other.attributes.get('interface_type') and
-                self.attributes['pod'] == other.attributes.get('pod') and
-                self.attributes['node'] == other.attributes.get('node') and
-                self.attributes['module'] == other.attributes.get('module') and
-                self.attributes['port'] == other.attributes.get('port')):
+        if (self.interface_type == other.interface_type and
+                self.pod == other.pod and
+                self.node == other.node and
+                self.module == other.module and
+                self.port == other.port):
             return True
         return False
 
@@ -2661,9 +2657,9 @@ class Interface(BaseInterface):
         """
         result = None
 
-        links = Link.get(self._session, '1', self.attributes['node'])
+        links = Link.get(self._session, '1', self.node)
         for link in links:
-            if link.port1 == self.attributes['port']:
+            if link.port1 == self.port:
                 return link.get_port_id2()
         return result
 
@@ -2786,7 +2782,7 @@ class WorkingData(object):
             for class_record in classes:
                 for class_id in class_record:
                     obj_dn = class_record[class_id]['attributes']['dn']
-                    if obj_dn.startswith(dname):
+                    if obj_dn.startswith(dname+'/'):
                         result.append(class_record)
         return result
 
@@ -3036,6 +3032,19 @@ class PhysicalModel(BaseACIObject):
         physical_model = PhysicalModel(session=session, parent=parent)
         return [physical_model]
 
+    @classmethod
+    def get_deep(cls, session, include_concrete=False):
+        """
+        Will return the atk object and the entire tree under it.
+        :param session: APIC session to use
+        :param include_concrete: flag to indicate that concrete objects should also be included
+        :return:
+        """
+        atk_objects = cls(session)
+        for atk_object in atk_objects:
+            atk_object.populate_children(deep=True, include_concrete=include_concrete)
+        return atk_objects
+
 
 class Fabric(BaseACIObject):
     """
@@ -3068,6 +3077,18 @@ class Fabric(BaseACIObject):
         fabric = Fabric(session)
         fabric.name = 'Fabric'
         return [fabric]
+
+    @classmethod
+    def get_deep(cls, session, include_concrete=False):
+        """
+        Will return the entire tree of the fabric.
+        :param session: APIC session to use
+        :param include_concrete: flag to indicate that concrete objects should also be included
+        :return:
+        """
+        fabrics = cls.get(session)
+        fabrics[0].populate_children(deep=True, include_concrete=include_concrete)
+        return fabrics
 
     @staticmethod
     def _get_children_classes():
