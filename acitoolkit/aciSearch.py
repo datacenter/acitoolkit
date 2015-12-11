@@ -166,9 +166,18 @@ class AciSearch(object):
         atk_attrs = self.get_attributes()
         for atk_attr in atk_attrs:
             if atk_attrs[atk_attr] is not None:
-                if not isinstance(atk_attrs[atk_attr], str) and not isinstance(atk_attrs[atk_attr], bool):
+                if isinstance(atk_attrs[atk_attr], list):
+                    attr_list = atk_attrs[atk_attr]
+                    for attr in attr_list:
+                        if isinstance(atk_attrs[atk_attr], str) or isinstance(atk_attrs[atk_attr], bool):
+                            result.add_term(atk_attr, str(attr))
+                            print atk_attr, str(attr)
+                        else:
+                            print("wrong type %s" % str(atk_attr))
+                elif not isinstance(atk_attrs[atk_attr], str) and not isinstance(atk_attrs[atk_attr], bool):
                     print("wrong type %s" % str(atk_attr))
-                result.add_term(atk_attr, str(atk_attrs[atk_attr]))
+                else:
+                    result.add_term(atk_attr, str(atk_attrs[atk_attr]))
         return [result]
 
     @staticmethod
