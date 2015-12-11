@@ -1460,6 +1460,12 @@ class BaseInterface(BaseACIObject):
        classes.
     """
 
+    @staticmethod
+    def is_dn_vpc(dn):
+        if '/protpaths' in dn:
+            return True
+        return False
+
     def _get_port_selector_json(self, port_type, port_name):
         """Returns the json used for selecting the specified interfaces
         """

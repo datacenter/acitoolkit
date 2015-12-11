@@ -447,6 +447,7 @@ class L2Interface(BaseACIObject):
 
         return encap_type, encap_id
 
+
 class CommonEPG(BaseACIObject):
     """
     Base class for EPG and OutsideEPG.
@@ -883,15 +884,18 @@ class EPG(CommonEPG):
             elif 'fvRsPathAtt' in child:
                 int_attributes = child['fvRsPathAtt']['attributes']
                 int_dn = int_attributes['tDn']
-                int_type, pod, node, module, port = Interface.parse_dn(int_dn)
-                inter = Interface(int_type, pod, node, module, port)
+                if Interface.is_dn_vpc(int_dn):
+                    inter = PortChannel.create_from_dn(int_dn)
+                else:
+                    int_type, pod, node, module, port = Interface.parse_dn(int_dn)
+                    inter = Interface(int_type, pod, node, module, port)
                 encap = int_attributes['encap']
                 encap_type, encap_id = L2Interface.parse_encap(encap)
                 encap_mode = int_attributes['mode']
                 l2int = L2Interface('l2_int_{}-{}'.format(encap_type, encap_id),
-                                           encap_type, 
-                                           encap_id,
-                                           encap_mode)
+                                    encap_type,
+                                    encap_id,
+                                    encap_mode)
                 l2int.attach(inter)
                 self.attach(l2int)
             elif 'fvRsProv' in child:
@@ -3162,6 +3166,12 @@ class PortChannel(BaseInterface):
         super(PortChannel, self).__init__(name)
         self._interfaces = []
         self._nodes = []
+
+    @classmethod
+    def create_from_dn(cls, dn):
+        nodes = dn.partition('/protpaths-')[-1].partition('/')[0].split('-')
+        name = dn.partition('/pathep-[')[-1].partition(']')[0]
+        return cls(name)
 
     def attach(self, interface):
         """Attach an interface to this PortChannel
