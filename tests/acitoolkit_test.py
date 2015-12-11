@@ -2306,10 +2306,11 @@ class TestLiveInterface(TestLiveAPIC):
         for interface in interfaces:
             if interface.porttype == 'fab' and interface.attributes['operSt'] == 'up':
                 adj = interface.get_adjacent_port()
-                fields = adj.split('/')
-                self.assertEqual(len(fields), 4)
-                for field in fields:
-                    self.assertIsInstance(int(field), int)
+                if adj is not None:
+                    fields = adj.split('/')
+                    self.assertEqual(len(fields), 4)
+                    for field in fields:
+                        self.assertIsInstance(int(field), int)
 
 
 class TestLivePortChannel(TestLiveAPIC):
