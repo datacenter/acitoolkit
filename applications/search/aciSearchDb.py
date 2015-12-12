@@ -533,12 +533,13 @@ class SearchObjectStore(object):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
 
-        for outsideL3 in self.map_class['OutsideL3']:
-            relations = outsideL3._relations
-            for relation in relations:
-                if isinstance(relation.item, Context):
-                    self._add_relation('attached to', relation.item, outsideL3)
-                    self._add_relation('attached from', outsideL3, relation.item)
+        if 'OutsideL3' in self.map_class:
+            for outsideL3 in self.map_class['OutsideL3']:
+                relations = outsideL3._relations
+                for relation in relations:
+                    if isinstance(relation.item, Context):
+                        self._add_relation('attached to', relation.item, outsideL3)
+                        self._add_relation('attached from', outsideL3, relation.item)
 
     @staticmethod
     def _add_relation(relationship_type, child_obj, parent_obj):
@@ -576,32 +577,33 @@ class SearchObjectStore(object):
         :return: result
         """
         result = {}
-        atk_obj = self.object_directory[obj_dn]
-        attr = atk_obj.get_attributes()
+        atk_obj = self.object_directory.get(obj_dn)
+        if atk_obj is not None:
+            attr = atk_obj.get_attributes()
 
-        result['properties'] = {'class': atk_obj.__class__.__name__, 'name': attr['name'], 'dn': obj_dn}
+            result['properties'] = {'class': atk_obj.__class__.__name__, 'name': attr['name'], 'dn': obj_dn}
 
-        result['attributes'] = atk_obj.get_attributes()
+            result['attributes'] = atk_obj.get_attributes()
 
-        if atk_obj.get_parent() is not None:
-            parent = atk_obj.get_parent().get_attributes()['name']
-            parent_dn = atk_obj.get_parent().get_attributes()['dn']
-            parent_class = atk_obj.get_parent().__class__.__name__
-            result['parent'] = {'class': parent_class, 'name': parent, 'dn': parent_dn}
+            if atk_obj.get_parent() is not None:
+                parent = atk_obj.get_parent().get_attributes()['name']
+                parent_dn = atk_obj.get_parent().get_attributes()['dn']
+                parent_class = atk_obj.get_parent().__class__.__name__
+                result['parent'] = {'class': parent_class, 'name': parent, 'dn': parent_dn}
 
-        children = atk_obj.get_children()
-        result['children'] = {}
-        for child in children:
-            child_class = child.__class__.__name__
-            if child_class not in result['children']:
-                result['children'][child_class] = []
+            children = atk_obj.get_children()
+            result['children'] = {}
+            for child in children:
+                child_class = child.__class__.__name__
+                if child_class not in result['children']:
+                    result['children'][child_class] = []
 
-            result['children'][child_class].append({'class': child.__class__.__name__,
-                                                    'name': child.get_attributes()['name'],
-                                                    'dn': child.get_attributes()['dn']})
+                result['children'][child_class].append({'class': child.__class__.__name__,
+                                                        'name': child.get_attributes()['name'],
+                                                        'dn': child.get_attributes()['dn']})
 
-        if 'gui_x_reference' in atk_obj.__dict__:
-            result['relations'] = atk_obj.gui_x_reference
+            if 'gui_x_reference' in atk_obj.__dict__:
+                result['relations'] = atk_obj.gui_x_reference
 
         return result
 
