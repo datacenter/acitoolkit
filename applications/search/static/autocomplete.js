@@ -694,30 +694,34 @@ function autoComplete(autoCompleteTerms, callBack) {
     }
 
     function row_onClick(d) {
+        var selectedTerm = d;
+        autoFill(selectedTerm);
+    }
+
+    function autoFill(selectedTerm) {
         hideDropDown();
-        //searchTerms = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ');
         searchTerms = SearchSplit(input.node().value);
         var lastTerm = searchTerms.pop();
 
         // now need to fix-up the last term
         var pattern;
-        if (d.indexOf(" ") > -1) {
-            pattern = lastTerm.replace(/[^#@=*]*$/, "\""+d.substring(1)+"\"");
+        if (selectedTerm.indexOf(" ") > -1) {
+            pattern = lastTerm.replace(/[^#@=*]*$/, "\""+selectedTerm.substring(1)+"\"");
         } else {
-            pattern = lastTerm.replace(/[^#@=*]*$/, d.substring(1));
+            pattern = lastTerm.replace(/[^#@=*]*$/, selectedTerm.substring(1));
         }
-        //addValidatedTerm(d.substring(1));
         searchTerms.push(pattern);
         input.node().value = searchTerms.join(' ');
         onSpaceDone = true;
 
-        //searchTerms.pop();
-        //searchTerms.push(d.substring(1));
-        //input.node().value = searchTerms.join(' ');
-    }
 
+    }
     function onRIGHT() {
-        // need to complete word if not already complete
+        if (matches.length > 0) {
+            var selectedTerm = matches[0];
+            autoFill(selectedTerm);
+        }
+ /*       // need to complete word if not already complete
         // if already complete, then add space
         // if there is already a space, don't add a second space
         //
@@ -745,7 +749,7 @@ function autoComplete(autoCompleteTerms, callBack) {
                 input.node().value = searchTerms.join(' ') + ' ';
             }
         }
-
+*/
     }
 
     function sButtonSelect() {
