@@ -763,8 +763,8 @@ class TestLivePod(TestLiveAPIC):
         """
         attributes = branch.get_attributes()
         for attr in attributes:
-            if not isinstance(attributes[attr], str) :
-                print('Attribute '+str(attr)+' of '+ branch.__class__.__name__ + ' should be str')
+            if not isinstance(attributes[attr], str) and not isinstance(attributes[attr], list) :
+                print('Attribute '+str(attr)+' of '+ branch.__class__.__name__ + ' should be str or list')
                 self.assertTrue(False)
         children = branch.get_children()
         for child in children:

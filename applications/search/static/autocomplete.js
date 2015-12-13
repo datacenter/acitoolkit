@@ -27,8 +27,37 @@ Array.prototype.extend = function (other_array) {
     other_array.forEach(function(v) {this.push(v)}, this);
 };
 
+function SearchSplit(searchString) {
+    // This will split the searchString at space boundaries
+    // while respecting quotes
+    words = [];
+    var notInsideQuote = true;
+    var start =0, end=0;
+    searchString = searchString.replace(/^ /g,"");  //remove leading spaces
+    for(var i=0; i<searchString.length-1; i++)
+    {
+        if(searchString.charAt(i)==" " && notInsideQuote)
+        {
+            words.push(searchString.substring(start,i).trim().replace(/^\"|\"$/g, ""));
+            start = i+1;
+        }
+        else if(searchString.charAt(i)=='"')
+            notInsideQuote=!notInsideQuote;
+    }
+    //todo: should preserve space at end if in the middle of a quote
+    word = searchString.substring(start, searchString.length).replace(/^\"|\"$/g, "")
+    if (notInsideQuote) {
+        words.push(word.trim());
+    } else {
+        words.push(word);
+    }
+    //words.push(searchString.substring(start, searchString.length).replace(/^\"|\"$/g, ""));
+    return words;
+
+}
+
 function AutoCompleteTerms(class_attr_values) {
-    this.class_attr_values = class_attr_values;
+    var class_attr_values = class_attr_values;
 
     this.SubTerm = function SubTerm(term_state, term_string) {
         this.state = term_state;
@@ -42,10 +71,10 @@ function AutoCompleteTerms(class_attr_values) {
         var term = new this.SubTerm('empty', '');
         if (re.test(str)) {
             term.state = 'complete';
-            term.string = str.match(re)[1];
+            term.string = str.match(re)[1].replace(/"/g,'');
         } else if (re_end.test(str)) {
             term.state = 'incomplete';
-            term.string = str.match(re_end)[1];
+            term.string = str.match(re_end)[1].replace(/"/g,'');
         }
         return term;
     };
@@ -55,7 +84,7 @@ function AutoCompleteTerms(class_attr_values) {
         var term = new this.SubTerm('empty', '');
         if (re_end.test(str)) {
             term.state = 'incomplete';
-            term.string = str.match(re_end)[1];
+            term.string = str.match(re_end)[1].replace(/"/g,'');
         }
         return term;
     };
@@ -391,10 +420,10 @@ function AutoCompleteTerms(class_attr_values) {
         var s2 = type_map[type2];
         var s3 = type_map[incompleteType];
 
-        for (var i = 0, tot = this.class_attr_values.length; i < tot; i++) {
-            firstString = this.class_attr_values[i][s1];
-            secondString = this.class_attr_values[i][s2];
-            thirdString = this.class_attr_values[i][s3];
+        for (var i = 0, tot = class_attr_values.length; i < tot; i++) {
+            firstString = class_attr_values[i][s1];
+            secondString = class_attr_values[i][s2];
+            thirdString = class_attr_values[i][s3];
             if ((firstString == string1) && (secondString == string2)) {
                 if (thirdString.toLowerCase().indexOf(incompleteString.toLowerCase()) == 0) {
                     match_set.push(prefix + thirdString);
@@ -416,8 +445,8 @@ function AutoCompleteTerms(class_attr_values) {
         var prefix = prefix_map[incompleteType];
         var s1 = type_map[incompleteType];
 
-        for (var i = 0, tot = this.class_attr_values.length; i < tot; i++) {
-            firstString = this.class_attr_values[i][s1];
+        for (var i = 0, tot = class_attr_values.length; i < tot; i++) {
+            firstString = class_attr_values[i][s1];
             if (firstString.toLowerCase().indexOf(incompleteString.toLowerCase()) == 0) {
                 match_set.push(prefix + firstString);
             }
@@ -535,7 +564,8 @@ function autoComplete(autoCompleteTerms, callBack) {
     function onKeyUp() {
         var searchString = input.node().value.trim().replace(/\s\s+/g, ' ');
         //var searchString = document.getElementById("new_search").value.trim().replace(/\s\s+/g, ' ');
-        var subSearchString = searchString.split(' ').pop();
+        //var subSearchString = searchString.split(' ').pop();
+        var subSearchString = SearchSplit(searchString).pop();
         var e = d3.event;
         const ASCII_SPACE = 32;
         const ASCII_CR = 13;
@@ -558,10 +588,6 @@ function autoComplete(autoCompleteTerms, callBack) {
                 console.log(terms);
                 onSpaceDone = false;  // allow the matched item to be added with a <sp>
                 matches = autoCompleteTerms.search(terms);
-                var lastTerm = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ').pop();
-                if (re_end.test(lastTerm))    {
-                    lastTerm = lastTerm.match(re_end)[1];
-                }
                 processResults(terms);
                 if (matches.length === 0) {
                     showSearching("No results");
@@ -621,6 +647,7 @@ function autoComplete(autoCompleteTerms, callBack) {
             .html(function (d) {
                 var re = new RegExp(searchString, 'i');
                 var strPart = d.substring(1).match(re)[0];
+
                 return "<span class= 'ac-hint'>" + d[0]+ " </span>" +
                     d.substring(1).replace(re, "<span class = 'ac-highlight'>" + strPart + "</span>");
 
@@ -634,10 +661,23 @@ function autoComplete(autoCompleteTerms, callBack) {
             .html(function (d, i) {
                 var re = new RegExp(searchString, 'i');
                 var strPart = matches[i].substring(1).match(re);
+                var strng = matches[i];
+                var offset = 1;
+                if (strng.indexOf(" ")> 0) {
+                    strng = strng[0]+"\""+strng.substring(1)+"\"";
+                    offset = 2;
+                }
+                console.log(strng);
+
                 if (strPart) {
                     strPart = strPart[0];
-                    return "<span class= 'ac-hint'>" + matches[i][0]+ " </span>" +
-                        matches[i].substring(1).replace(re, "<span class = 'ac-highlight'>" + strPart + "</span>");
+                    var response = "<span class= 'ac-hint'>" + strng[0]+ " </span>";
+                    if (offset==2) {
+                        response += strng[1];
+                    }
+                    response += strng.substring(offset)
+                        .replace(re, "<span class = 'ac-highlight'>" + strPart + "</span>");
+                    return response;
                 }
 
             });
@@ -654,24 +694,34 @@ function autoComplete(autoCompleteTerms, callBack) {
     }
 
     function row_onClick(d) {
+        var selectedTerm = d;
+        autoFill(selectedTerm);
+    }
+
+    function autoFill(selectedTerm) {
         hideDropDown();
-        searchTerms = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ');
+        searchTerms = SearchSplit(input.node().value);
         var lastTerm = searchTerms.pop();
 
         // now need to fix-up the last term
-        var pattern = lastTerm.replace(/[^#@=*]*$/, d.substring(1));
-        addValidatedTerm(d.substring(1));
+        var pattern;
+        if (selectedTerm.indexOf(" ") > -1) {
+            pattern = lastTerm.replace(/[^#@=*]*$/, "\""+selectedTerm.substring(1)+"\"");
+        } else {
+            pattern = lastTerm.replace(/[^#@=*]*$/, selectedTerm.substring(1));
+        }
         searchTerms.push(pattern);
         input.node().value = searchTerms.join(' ');
         onSpaceDone = true;
 
-        //searchTerms.pop();
-        //searchTerms.push(d.substring(1));
-        //input.node().value = searchTerms.join(' ');
-    }
 
+    }
     function onRIGHT() {
-        // need to complete word if not already complete
+        if (matches.length > 0) {
+            var selectedTerm = matches[0];
+            autoFill(selectedTerm);
+        }
+ /*       // need to complete word if not already complete
         // if already complete, then add space
         // if there is already a space, don't add a second space
         //
@@ -690,7 +740,7 @@ function autoComplete(autoCompleteTerms, callBack) {
 
                 // now need to fix-up the last term
                 var patt = lastTerm.replace(/[^#@=*]+$/, matches[0].substring(1));
-                addValidatedTerm(matches[0].substring(1));
+                //addValidatedTerm(matches[0].substring(1));
 
                 searchTerms.push(patt);
                 onSpaceDone = true;
@@ -699,7 +749,7 @@ function autoComplete(autoCompleteTerms, callBack) {
                 input.node().value = searchTerms.join(' ') + ' ';
             }
         }
-
+*/
     }
 
     function sButtonSelect() {

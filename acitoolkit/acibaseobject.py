@@ -1121,9 +1121,15 @@ class BaseACIObject(AciSearch):
                 try:
                     if isinstance(value, str) or isinstance(value, int) or isinstance(value, unicode):
                         result[attrib] = str(getattr(self, attrib))
+                    elif isinstance(value, list):
+                        if len(value) > 0:
+                            result[attrib] = value
                 except NameError:
                     if isinstance(value, str) or isinstance(value, int):
                         result[attrib] = str(getattr(self, attrib))
+                    elif isinstance(value, list):
+                        if len(value) > 0:
+                            result[attrib] = value
         return result
 
 
@@ -1304,6 +1310,19 @@ class BaseACIPhysObject(BaseACIObject):
             if not isinstance(parent, cls._get_parent_class()):
                 raise TypeError('The parent of this object must be of class {0}'.format(cls._get_parent_class()))
 
+    @classmethod
+    def get_deep(cls, session, include_concrete=False):
+        """
+        Will return the atk object and the entire tree under it.
+        :param session: APIC session to use
+        :param include_concrete: flag to indicate that concrete objects should also be included
+        :return:
+        """
+        atk_objects = cls.get(session)
+        for atk_object in atk_objects:
+            atk_object.populate_children(deep=True, include_concrete=include_concrete)
+        return atk_objects
+
 
 class BaseACIPhysModule(BaseACIPhysObject):
     """BaseACIPhysModule: base class for modules  """
@@ -1463,6 +1482,12 @@ class BaseInterface(BaseACIObject):
     """Abstract class used to provide base functionality to other Interface
        classes.
     """
+
+    @staticmethod
+    def is_dn_vpc(dn):
+        if '/protpaths' in dn:
+            return True
+        return False
 
     def _get_port_selector_json(self, port_type, port_name):
         """Returns the json used for selecting the specified interfaces

@@ -367,6 +367,12 @@ class TestTerm(unittest.TestCase):
         self.assertTrue(terms[0].type == 'c')
         self.assertTrue(terms[0].points == 2)
 
+        terms = aciSearchDb.Term.parse_input('#class#')
+        self.assertTrue(len(terms) == 1)
+        self.assertTrue(terms[0].key == 'class')
+        self.assertTrue(terms[0].type == 'c')
+        self.assertTrue(terms[0].points == 2)
+
 
     def test_parse_attr(self):
         """
@@ -570,6 +576,29 @@ class TestTerm(unittest.TestCase):
         self.assertTrue(terms[2].key == 'search_term')
         self.assertTrue(terms[2].type == 'v')
         self.assertTrue(terms[2].points == 1)
+
+class TestCustomSplit(unittest.TestCase):
+    def test_simple_split(self):
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split("aaa bbb"),
+                         ['aaa', 'bbb'])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split("aaa bbb ccc ddd eee"),
+                         ['aaa', 'bbb', "ccc", "ddd", "eee"])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split("aaa bbb "),
+                         ['aaa', 'bbb'])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split(" aaa bbb"),
+                         ['aaa', 'bbb'])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split(" aaa bbb "),
+                         ['aaa', 'bbb'])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split('"aaa bbb" "ccc ddd" eee'),
+                         ['aaa bbb', "ccc ddd", "eee"])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split('"aaa bbb" ccc "ddd efg"'),
+                         ['aaa bbb', "ccc", "ddd efg"])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split('"aaa bbb" "ccc ddd" "eee'),
+                         ['aaa bbb', "ccc ddd", "eee"])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split('"aaa bbb" ccc "ddd efg'),
+                         ['aaa bbb', "ccc", "ddd efg"])
+        self.assertEqual(aciSearchDb.SearchIndexLookup._custom_split('"aaa bbb" ccc "ddd efg '),
+                         ['aaa bbb', "ccc", "ddd efg "])
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
