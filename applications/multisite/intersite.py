@@ -1465,7 +1465,12 @@ class CommandLine(cmd.Cmd):
         show stats - show some basic event statistics
         '''
         if keyword == 'debug':
-            print 'Debug level currently set to:', logging.getLevelName(logging.getLogger().getEffectiveLevel())
+            current_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
+            if current_level == 'DEBUG':
+                current_level = 'VERBOSE'
+            elif current_level == 'WARNING':
+                current_level = 'WARNINGS'
+            print 'Debug level currently set to:', current_level
         elif keyword == 'configfile':
             print 'Configuration file is set to:', self.collector.config_filename
         elif keyword == 'config':
