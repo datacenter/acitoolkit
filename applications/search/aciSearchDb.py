@@ -500,7 +500,7 @@ class SearchObjectStore(object):
                     self._add_relation('context', relation.item, bridge_domain)
                     self._add_relation('bridge domains', bridge_domain, relation.item)
 
-        for context in self.map_class['Context']:
+        for context in self.map_class.get('Context', {}):
             for concrete_bd in self.map_class.get('ConcreteBD', {}):
                 ccontext_name = concrete_bd.attr['context']
                 if ccontext_name == context.name and concrete_bd.attr['tenant'] == context.get_parent().name:
@@ -517,7 +517,7 @@ class SearchObjectStore(object):
             self._add_relation('tenant', tenant, ep)
             self._add_relation('app profile', app_profile, ep)
 
-        for epg in self.map_class['EPG']:
+        for epg in self.map_class.get('EPG',{}):
             relations = epg._relations
             for relation in relations:
                 if isinstance(relation.item, Contract):
@@ -533,13 +533,12 @@ class SearchObjectStore(object):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
 
-        if 'OutsideL3' in self.map_class:
-            for outsideL3 in self.map_class['OutsideL3']:
-                relations = outsideL3._relations
-                for relation in relations:
-                    if isinstance(relation.item, Context):
-                        self._add_relation('attached to', relation.item, outsideL3)
-                        self._add_relation('attached from', outsideL3, relation.item)
+        for outsideL3 in self.map_class['OutsideL3']:
+            relations = outsideL3._relations
+            for relation in relations:
+                if isinstance(relation.item, Context):
+                    self._add_relation('attached to', relation.item, outsideL3)
+                    self._add_relation('attached from', outsideL3, relation.item)
 
     @staticmethod
     def _add_relation(relationship_type, child_obj, parent_obj):
