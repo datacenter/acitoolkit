@@ -2249,6 +2249,19 @@ class Subnet(BaseACIObject):
         result['addr'] = self.get_addr()
         result['scope'] = self.get_scope()
         return result
+        
+    def __eq__(self, other):
+        if not isinstance(self, Subnet) or not isinstance(other, Subnet):
+            return NotImplemented
+        
+        # Neither object has "addr" attribute - use the parent class
+        if not hasattr(self, 'addr') and not hasattr(other, 'addr'):
+            return super(Subnet, self).__eq__(other)
+        
+        if not hasattr(self, 'addr') or not hasattr(other, 'addr'):
+            return False
+        
+        return super(Subnet, self).__eq__(other) and self._addr == other._addr
 
 
 class Context(BaseACIObject):
