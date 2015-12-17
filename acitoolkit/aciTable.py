@@ -146,7 +146,8 @@ class Table(object):
             result += tabulate(table_data, header_data, tablefmt=tablefmt, floatfmt=floatfmt,
                                numalign=numalign, stralign=stralign, missingval=missingval) + '\n'
         else:
-            table1_len = (len(table_data) + 1) / 2
+            # Integer required for Python3
+            table1_len = int((len(table_data) + 1) / 2)
             table2_len = len(table_data) - table1_len
 
             data1 = table_data[0:table1_len]
