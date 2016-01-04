@@ -2780,6 +2780,8 @@ class TestApic(TestLiveAPIC):
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
+        tenant = Tenant(tenant.name)
+        bd = BridgeDomain('bd1', tenant)
         subnets = Subnet.get(session, bd, tenant)
         self.assertNotEqual(len(subnets), 0)
 

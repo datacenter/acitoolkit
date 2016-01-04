@@ -41,7 +41,10 @@ import sys
 
 import acitoolkit as ACI
 from requests import Timeout, ConnectionError
-from paramiko import SSHClient, AutoAddPolicy
+try:
+    from paramiko import SSHClient, AutoAddPolicy
+except ImportError:
+    raise ImportError("Paramiko is required to run snapback, please install it.")
 import tarfile
 import StringIO
 

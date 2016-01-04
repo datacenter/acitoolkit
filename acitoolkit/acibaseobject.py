@@ -1118,13 +1118,18 @@ class BaseACIObject(AciSearch):
         for attrib in self.__dict__:
             if attrib[0] != '_':
                 value = getattr(self, attrib)
-                if isinstance(value, str) or isinstance(value, int) or isinstance(value, unicode):
-                    result[attrib] = str(getattr(self, attrib))
-                elif isinstance(value, list):
-                    if len(value) > 0:
-                        result[attrib] = value
-                    # print attrib
-
+                try:
+                    if isinstance(value, str) or isinstance(value, int) or isinstance(value, unicode):
+                        result[attrib] = str(getattr(self, attrib))
+                    elif isinstance(value, list):
+                        if len(value) > 0:
+                            result[attrib] = value
+                except NameError:
+                    if isinstance(value, str) or isinstance(value, int):
+                        result[attrib] = str(getattr(self, attrib))
+                    elif isinstance(value, list):
+                        if len(value) > 0:
+                            result[attrib] = value
         return result
 
 
