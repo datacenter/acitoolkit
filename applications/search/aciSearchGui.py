@@ -109,31 +109,6 @@ class SelectSwitchView(BaseView):
 
         # object view data
         apic_object_dn = str(request.args.get('dn'))
-        if apic_object_dn is not None:
-
-            if not sdb.initialized:
-                try:
-                    apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-                except KeyError:
-                    return redirect(url_for('credentialsview.index'))
-
-                try:
-                    sdb.load_db(apic_args)
-                except Timeout:
-                    flash('Connection timeout when trying to reach the APIC', 'error')
-                    return redirect(url_for('switchreportadmin.index_view'))
-                except LoginError:
-                    flash('Unable to login to the APIC', 'error')
-                    return redirect(url_for('credentialsview.index'))
-                except ConnectionError:
-                    flash('Connection failure.  Perhaps \'secure\' setting is wrong')
-                    return redirect(url_for('credentialsview.index'))
-            if apic_object_dn != 'None':
-                atk_object_info = sdb.store.get_object_info(apic_object_dn)
-            else:
-                atk_object_info = sdb.store.get_object_info('/')
-        else:
-            atk_object_info = 'None'
 
         # load data from file if it has not been otherwise loaded
         if not sdb.initialized:
@@ -149,6 +124,16 @@ class SelectSwitchView(BaseView):
             except ConnectionError:
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
+
+        if apic_object_dn is not None:
+
+            if apic_object_dn != 'None':
+                atk_object_info = sdb.store.get_object_info(apic_object_dn)
+            else:
+                atk_object_info = sdb.store.get_object_info('/')
+        else:
+            atk_object_info = 'None'
+
         if form.validate_on_submit() and form.submit.data:
 
             try:
