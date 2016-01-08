@@ -2568,7 +2568,7 @@ class Interface(BaseInterface):
                                  'must be identified by a string'))
         else:
             if pod_parent:
-                if not isinstance(pod_parent, str):
+                if not isinstance(pod_parent,  cls._get_parent_class()):
                     raise TypeError('Interface parent must be a {0} object'.format(cls._get_parent_class()))
 
         cdp_policies = Interface._get_discoveryprot_policies(session, 'cdp')
