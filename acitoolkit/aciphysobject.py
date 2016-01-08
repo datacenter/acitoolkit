@@ -2531,6 +2531,9 @@ class Interface(BaseInterface):
         If the pod, node, module and port are specified, then only that
         specific interface is read.
 
+        If the pod and node are specified, then only those interfaces are
+        read
+
         :param session: the instance of Session used for APIC communication
         :param pod_parent: Linecard instance to limit interfaces or pod\
                            number (optional)
@@ -2558,9 +2561,14 @@ class Interface(BaseInterface):
             if not isinstance(pod_parent, str):
                 raise TypeError(('When specifying a specific port, the pod '
                                  'must be identified by a string'))
+        # Handle case where only node is specified
+        elif node:
+            if not isinstance(pod_parent, str):
+                raise TypeError(('When specifying a specific node, the pod '
+                                 'must be identified by a string'))
         else:
             if pod_parent:
-                if not isinstance(pod_parent, cls._get_parent_class()):
+                if not isinstance(pod_parent, str):
                     raise TypeError('Interface parent must be a {0} object'.format(cls._get_parent_class()))
 
         cdp_policies = Interface._get_discoveryprot_policies(session, 'cdp')
@@ -2570,6 +2578,12 @@ class Interface(BaseInterface):
             dist_name = 'topology/pod-{0}/node-{1}/sys/phys-[eth{2}/{3}]'.format(pod_parent, node, module, port)
             interface_query_url = ('/api/mo/' + dist_name + '.json?query-target=self')
             eth_query_url = ('/api/mo/' + dist_name + '/phys.json?query-target=self')
+        # add the case where we return all of the ports of a given node
+        elif node:
+            dist_name = 'topology/pod-1/node-{0}/sys'.format(node)
+            interface_query_url = ('/api/mo/' + dist_name + '.json?query-target=children&target-subtree-class=l1PhysIf')
+            eth_query_url = ('/api/mo/' + dist_name + '.json?query-target=subtree&target-subtree-class=ethpmPhysIf')
+
         else:
             interface_query_url = '/api/node/class/l1PhysIf.json?query-target=self'
             eth_query_url = '/api/node/class/ethpmPhysIf.json?query-target=self'
