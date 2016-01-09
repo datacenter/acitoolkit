@@ -92,7 +92,7 @@ class SearchBar(Form):
     pass
 
 
-class SelectSwitchView(BaseView):
+class AciToolkitSearchView(BaseView):
     """
     The actual select switch page generator.
     """
@@ -114,7 +114,9 @@ class SelectSwitchView(BaseView):
         if not sdb.initialized:
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
             try:
-                sdb.load_db(apic_args)
+                # sdb.load_db(apic_args)
+                sdb.check_login(apic_args)
+
             except Timeout:
                 flash('Connection timeout when trying to reach the APIC', 'error')
                 return redirect(url_for('switchreportadmin.index_view'))
@@ -124,6 +126,7 @@ class SelectSwitchView(BaseView):
             except ConnectionError:
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
+            sdb.load_db(apic_args)
 
         if apic_object_dn is not None:
 
@@ -152,12 +155,12 @@ class SelectSwitchView(BaseView):
             return self.render('search_result.html',
                                form=form,
                                report=report,
-                               class_attr_values=[list(elem) for elem in sorted(sdb.index.by_class_attr_value.keys())],
+                               class_attr_values=[list(elem) for elem in sorted(sdb.index.get_keys())],
                                result=atk_object_info)
         else:
             return self.render('search_result.html',
                                form=form,
-                               class_attr_values=[list(elem) for elem in sorted(sdb.index.by_class_attr_value.keys())],
+                               class_attr_values=[list(elem) for elem in sorted(sdb.index.get_keys())],
                                result=atk_object_info)
 
 
@@ -175,28 +178,28 @@ class About(BaseView):
         return self.render('about.html')
 
 
-class ShowObjectView(BaseView):
-    """
-    Displays the about information
-    """
-    @expose('/')
-    def index(self):
-        """
-        Show about information
-
-        :return:
-        """
-        global sdb
-        apic_object_dn = str(request.args.get('dn'))
-        if sdb.by_attr == {}:
-            apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
-            sdb = SearchDb.load_db(apic_args)
-        if apic_object_dn != 'None':
-            atk_object_info = sdb.get_object_info(apic_object_dn)
-        else:
-            atk_object_info = sdb.get_object_info('/')
-
-        return self.render('atk_object_view.html', result=atk_object_info)
+# class ShowObjectView(BaseView):
+#     """
+#     Displays the about information
+#     """
+#     @expose('/')
+#     def index(self):
+#         """
+#         Show about information
+#
+#         :return:
+#         """
+#         global sdb
+#         apic_object_dn = str(request.args.get('dn'))
+#         if sdb.by_attr == {}:
+#             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
+#             sdb = SearchDb.load_db(apic_args)
+#         if apic_object_dn != 'None':
+#             atk_object_info = sdb.get_object_info(apic_object_dn)
+#         else:
+#             atk_object_info = sdb.get_object_info('/')
+#
+#         return self.render('atk_object_view.html', result=atk_object_info)
 
 
 class CredentialsView(BaseView):
@@ -266,7 +269,7 @@ admin = admin.Admin(app,
 admin.add_view(CredentialsView(name='Credentials'))
 admin.add_view(About(name='About', endpoint='about'))
 admin.add_view(Feedback(name='Feedback'))
-admin.add_view(SelectSwitchView(name='Search'))
+admin.add_view(AciToolkitSearchView(name='Search'))
 # admin.add_view(ShowObjectView(name='Object View', endpoint='atk_object'))
 
 
