@@ -20,7 +20,7 @@
 ################################################################################
 */
 function onClickGoToChild(d) {
-    var uri = '/selectswitchview?dn='+d['uid'];
+    var uri = '/acitoolkitsearchview?dn='+d['uid'];
     window.location.assign(encodeURI(uri))
 }
 function show_object(data) {
@@ -46,7 +46,7 @@ function show_object(data) {
         selectWidget.selectAll('option')
             .data(childInstances).enter()
             .append('option')
-            .attr('value', function (d) {return encodeURI('/selectswitchview?dn=' + d['dn']);})
+            .attr('value', function (d) {return encodeURI('/acitoolkitsearchview?dn=' + d['dn']);})
             .text(function (d, i) {return (parseInt(i)+1)+'. '+d['name'];});
 
         if (childInstances.length > 1) {
@@ -82,7 +82,7 @@ function show_object(data) {
             .append('a')
             .text(function (d) {return capitalize(d['class']) + ': ' + d['name'];})
             .attr('href', function (d) {
-                return '/selectswitchview?dn=' + d['dn'];
+                return '/acitoolkitsearchview?dn=' + d['dn'];
             });
 
     }
@@ -181,7 +181,7 @@ function show_object(data) {
                 .data(rel_data).enter()
                 .append('option')
                 .attr('value', function (d) {
-                    return encodeURI('/selectswitchview?dn=' + d['dn']);
+                    return encodeURI('/acitoolkitsearchview?dn=' + d['dn']);
                 })
                 .text(function (d) {
                     return capitalize(d['class']) + ': ' + d['name'];
