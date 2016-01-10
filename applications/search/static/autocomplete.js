@@ -574,7 +574,7 @@ function autoComplete(autoCompleteTerms, callBack) {
         const ASCII_TAB = 9;
         const ASCII_RIGHT = 39;
         //console.log('new search: '+document.getElementById("new_search").value);
-        console.log('key is '+e.which);
+        //console.log('key is '+e.which);
         if (!(e.which === ASCII_AMP || e.which === ASCII_RIGHT || e.which === ASCII_CR || e.which===ASCII_SPACE)) {
             // is up/down arrow or enter
             if (!subSearchString || subSearchString === "") {
@@ -585,7 +585,7 @@ function autoComplete(autoCompleteTerms, callBack) {
                 lastSearchString = subSearchString;
                 showSearching();
                 var terms = autoCompleteTerms.buildSearch(subSearchString);
-                console.log(terms);
+                //console.log(terms);
                 onSpaceDone = false;  // allow the matched item to be added with a <sp>
                 matches = autoCompleteTerms.search(terms);
                 processResults(terms);
@@ -600,11 +600,11 @@ function autoComplete(autoCompleteTerms, callBack) {
 
         } else {
             if (e.which===ASCII_SPACE) {
-                console.log('Space');
+                //console.log('Space');
                 //onSpace();
             }
             if (e.which===ASCII_CR) {
-                console.log('Done');
+                //console.log('Done');
                 hideDropDown();
                 showSearching("Searching...");
                 spinner.spin(target);
@@ -612,7 +612,7 @@ function autoComplete(autoCompleteTerms, callBack) {
                 //searchTerms = [];
             }
             if (e.which===ASCII_RIGHT) {
-                console.log('Right Arrow');
+                //console.log('Right Arrow');
                 onRIGHT();
             }
         }
@@ -667,7 +667,7 @@ function autoComplete(autoCompleteTerms, callBack) {
                     strng = strng[0]+"\""+strng.substring(1)+"\"";
                     offset = 2;
                 }
-                console.log(strng);
+                //console.log(strng);
 
                 if (strPart) {
                     strPart = strPart[0];
@@ -753,7 +753,7 @@ function autoComplete(autoCompleteTerms, callBack) {
     }
 
     function sButtonSelect() {
-        console.log("sButton selected");
+        //console.log("sButton selected");
         hideDropDown();
         showSearching("Searching...");
         spinner.spin(target);
