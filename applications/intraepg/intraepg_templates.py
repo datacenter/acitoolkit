@@ -39,6 +39,10 @@ MY_PLAYBOOK = """
       apt: name=ebtables
            state=present
 
+    - name: install conntrack
+      apt: name=conntrack
+           state=present
+
     - name: add /etc/ferm directory
       file: path=/etc/ferm
             mode=0700
