@@ -2916,7 +2916,7 @@ class FilterEntry(BaseACIObject):
 
     def __init__(self, name, parent, applyToFrag='0', arpOpc='0',
                  dFromPort='0', dToPort='0', etherT='0', prot='0',
-                 sFromPort='0', sToPort='0', tcpRules='0'):
+                 sFromPort='0', sToPort='0', tcpRules='0', stateful='0'):
         """
         :param name: String containing the name of this FilterEntry instance.
         :param applyToFrag: True or False.  True indicates that this\
@@ -2937,6 +2937,8 @@ class FilterEntry(BaseACIObject):
                         number of the L4 source port number range.
         :param tcpRules: Bit mask consisting of the TCP flags to be matched\
                          by this FilterEntry.
+        :param stateful: True or False.  True indicates that this\
+                         FilterEntry should monitor the TCP ACK bit.
         """
         self.applyToFrag = applyToFrag
         self.arpOpc = arpOpc
@@ -2947,6 +2949,7 @@ class FilterEntry(BaseACIObject):
         self.sFromPort = sFromPort
         self.sToPort = sToPort
         self.tcpRules = tcpRules
+        self.stateful = stateful
         # Backward compatibility for old calls that reference a Contract instead
         # of a Filter Object
         if isinstance(parent, Contract):
@@ -2967,6 +2970,7 @@ class FilterEntry(BaseACIObject):
         attributes['sFromPort'] = self.sFromPort
         attributes['sToPort'] = self.sToPort
         attributes['tcpRules'] = self.tcpRules
+        attributes['stateful'] = self.stateful
         return attributes
 
     def _populate_from_attributes(self, attributes):
@@ -2979,6 +2983,7 @@ class FilterEntry(BaseACIObject):
         self.sFromPort = str(attributes['sFromPort'])
         self.sToPort = str(attributes['sToPort'])
         self.tcpRules = str(attributes['tcpRules'])
+        self.stateful = str(attributes['stateful'])
         self.dn = self.get_dn_from_attributes(attributes)
 
     def get_json(self):
@@ -3084,6 +3089,7 @@ class FilterEntry(BaseACIObject):
                 FilterEntry._get_port(filter.dFromPort, filter.dToPort),
                 FilterEntry._get_port(filter.sFromPort, filter.sToPort),
                 filter.tcpRules,
+                filter.stateful,
                 filter.applyToFrag,
             ])
         data = sorted(data)
@@ -3104,7 +3110,7 @@ class FilterEntry(BaseACIObject):
         if isinstance(other, self.__class__):
             key_attrs = attrgetter(
                 'applyToFrag', 'arpOpc', 'dFromPort', 'dToPort', 'etherT',
-                'prot', 'sFromPort', 'sToPort', 'tcpRules')
+                'prot', 'sFromPort', 'sToPort', 'tcpRules', 'stateful')
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
 
