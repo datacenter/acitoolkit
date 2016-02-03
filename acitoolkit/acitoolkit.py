@@ -3412,6 +3412,8 @@ class Endpoint(BaseACIObject):
                             if 'protpaths' in if_dn:
                                 regex = re.search(r'pathep-\[(.+)\]$', if_dn)
                                 self.if_name = regex.group(1)
+                            elif 'tunnel' in if_dn:
+                                self.if_name = if_dn
                             else :
                                 name = if_dn.split('/')
                                 pod = str(name[1].split('-')[1])
