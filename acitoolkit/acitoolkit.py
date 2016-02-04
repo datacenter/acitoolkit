@@ -2070,6 +2070,7 @@ class BridgeDomain(BaseACIObject):
         self.unicast_route = attributes.get('unicastRoute')
         self.unknown_mac_unicast = attributes.get('unkMacUcastAct')
         self.unknown_multicast = attributes.get('unkMcastAct')
+        self.multidestination = attributes.get('multiDstPktAct')
         self.modified_time = attributes.get('modTs')
         # dn = attributes.get('dn')
         self.dn = self.get_dn_from_attributes(attributes)
