@@ -2070,6 +2070,7 @@ class BridgeDomain(BaseACIObject):
         self.unicast_route = attributes.get('unicastRoute')
         self.unknown_mac_unicast = attributes.get('unkMacUcastAct')
         self.unknown_multicast = attributes.get('unkMcastAct')
+        self.multidestination = attributes.get('multiDstPktAct')
         self.modified_time = attributes.get('modTs')
         # dn = attributes.get('dn')
         self.dn = self.get_dn_from_attributes(attributes)
@@ -3418,6 +3419,8 @@ class Endpoint(BaseACIObject):
                             if 'protpaths' in if_dn:
                                 regex = re.search(r'pathep-\[(.+)\]$', if_dn)
                                 self.if_name = regex.group(1)
+                            elif 'tunnel' in if_dn:
+                                self.if_name = if_dn
                             else :
                                 name = if_dn.split('/')
                                 pod = str(name[1].split('-')[1])
