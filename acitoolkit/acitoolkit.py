@@ -1162,6 +1162,66 @@ class OutsideEPG(CommonEPG):
                                                attributes=attr,
                                                children=children)
 
+    def _extract_relationships(self, data):
+        l3out = self.get_parent()
+        tenant = l3out.get_parent()
+        tenant_children = data[0]['fvTenant']['children']
+        epg_children = []
+        for l3out_child in tenant_children:
+            if 'l3extOut' in l3out_child:
+                if l3out_child['l3extOut']['attributes']['name'] == l3out.name:
+                    for l3epg in l3out_child['l3extOut']['children']:
+                        if 'l3extInstP' in l3epg:
+                            if l3epg['l3extInstP']['attributes']['name'] == self.name:
+                                epg_children = l3epg['l3extInstP']['children']
+        for child in epg_children:
+            if 'fvRsProv' in child:
+                contract_name = child['fvRsProv']['attributes']['tnVzBrCPName']
+                contract_search = Search()
+                contract_search.name = contract_name
+                objs = tenant.find(contract_search)
+                if len(objs):
+                    for contract in objs:
+                        if isinstance(contract, Contract):
+                            self.provide(contract)
+                else:
+                    # Need to check tenant common (if available)
+                    fabric = tenant.get_parent()
+                    if fabric is not None:
+                        tenant_search = Search()
+                        tenant_search.name = 'common'
+                        tenant_common = fabric.find(tenant_search)
+                        if len(tenant_common):
+                            objs = tenant_common[0].find(contract_search)
+                            if len(objs):
+                                for contract in objs:
+                                    if isinstance(contract, Contract):
+                                        self.provide(contract)
+            elif 'fvRsCons' in child:
+                contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
+                contract_search = Search()
+                contract_search.name = contract_name
+                objs = tenant.find(contract_search)
+                if len(objs):
+                    for contract in objs:
+                        if isinstance(contract, Contract):
+                            self.consume(contract)
+                else:
+                    # Need to check tenant common (if available)
+                    fabric = tenant.get_parent()
+                    if fabric is not None:
+                        tenant_search = Search()
+                        tenant_search.name = 'common'
+                        tenant_common = fabric.find(tenant_search)
+                        if len(tenant_common):
+                            objs = tenant_common[0].find(contract_search)
+                            if len(objs):
+                                for contract in objs:
+                                    if isinstance(contract, Contract):
+                                        self.consume(contract)
+
+        super(OutsideEPG, self)._extract_relationships(data)
+
 
 class OutsideL3(BaseACIObject):
     """Represents the L3Out for external connectivity
