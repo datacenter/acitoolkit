@@ -614,11 +614,18 @@ class EndpointMonitor(threading.Thread):
             print 'Has EPG policy', (tenant.name, app.name, epg.name), (tenant.name, app.name, epg.name) in self._endpoint_db
             if (tenant.name, app.name, epg.name) in self._endpoint_db:
                 # Store the Endpoint in our Endpoint DB
-                self._endpoint_db[(tenant.name, app.name, epg.name)].append(ep)
+                if ep.is_deleted():
+                    try:
+                        self._endpoint_db[(tenant.name, app.name, epg.name)].remove(ep)
+                    except ValueError:
+                        logging.error('Tried to delete endpoint that was not in database.')
+                else:
+                    self._endpoint_db[(tenant.name, app.name, epg.name)].append(ep)
                 # Mark the EPG as dirty (we need to push to the hosts)
                 if (tenant.name, app.name, epg.name) not in dirty_epgs:
                     dirty_epgs[(tenant.name, app.name, epg.name)] = []
-                dirty_epgs[(tenant.name, app.name, epg.name)].append(ep)
+                if not ep.is_deleted():
+                    dirty_epgs[(tenant.name, app.name, epg.name)].append(ep)
             num_eps -= 1
         start_time = time.time()
         for epg in dirty_epgs:
@@ -632,6 +639,7 @@ class EndpointMonitor(threading.Thread):
             for ep in self._endpoint_db[epg]:
                 host_ips += ep.name + '\n'
             for ep in dirty_epgs[epg]:
+                assert not ep.is_deleted()
                 new_host_ips += ep.name + '\n'
 
             self.process_policy(contract_policy, epg, host_ips, new_host_ips)

@@ -228,4 +228,5 @@ def get_objects(aci_class):
 
 if __name__ == '__main__':
     login(session)
+    print "point your browswer to http://127.0.0.1:5000"
     app.run()

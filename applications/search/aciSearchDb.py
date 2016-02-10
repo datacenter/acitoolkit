@@ -33,14 +33,15 @@ from acitoolkit import BridgeDomain, Context, Contract
 from acitoolkit.aciphysobject import Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
+import sqlite3
 
+SQL = True
 
 class LoginError(Exception):
     """
     Exception for login errors.
     """
     pass
-
 
 class Term(object):
     """
@@ -179,10 +180,10 @@ class Term(object):
         valid = False
         term_string = ''
         if mid:
-            term_string = re.sub('"', '',mid.group(1))
+            term_string = re.sub('"', '', mid.group(1))
             valid = len(term_string) > 0
         elif end:
-            term_string = re.sub('"', '',end.group(1))
+            term_string = re.sub('"', '', end.group(1))
             valid = len(term_string) > 0
 
         return valid, term_string
@@ -202,6 +203,18 @@ class SearchIndexLookup(object):
         self.by_class_value = {}
         self.by_class_attr = {}
         self.by_class_attr_value = {}
+        if SQL:
+            self.init_sql()
+
+    def init_sql(self):
+        conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
+
+        self.cursor = conn.cursor()
+
+        # create a table
+        self.cursor.execute("DROP TABLE IF EXISTS avc")
+        self.cursor.execute("CREATE TABLE avc "
+                            "(attribute TEXT, value TEXT, class TEXT,uid TEXT)")
 
     def _index_searchables(self, searchables):
 
@@ -209,6 +222,10 @@ class SearchIndexLookup(object):
         index all the searchable items by attr, value, and class
         :param searchables: List of searchable objects
         """
+        if SQL:
+            self._index_searchables_sql(searchables)
+            return
+
         t1 = datetime.datetime.now()
         count = 0
         self.by_attr = {}
@@ -246,7 +263,7 @@ class SearchIndexLookup(object):
 
             # index by values and by value, class
             for atk_value in atk_values:
-                atk_value_clean = atk_value.replace('\n',' ').replace('\r','')
+                atk_value_clean = atk_value.replace('\n', ' ').replace('\r', '')
                 if atk_value not in self.by_value:
                     self.by_value[atk_value_clean] = set([])
                 if (atk_class, atk_value_clean) not in self.by_class_value:
@@ -259,7 +276,7 @@ class SearchIndexLookup(object):
             # index by attr & value and by class, attr, value
             for atk_attr_value in atk_attr_values:
                 (a, v) = atk_attr_value
-                v = v.replace('\n',' ').replace('\r','')
+                v = v.replace('\n', ' ').replace('\r', '')
                 if (a, v) not in self.by_attr_value:
                     self.by_attr_value[(a, v)] = set([])
                 self.by_attr_value[(a, v)].add(uid)
@@ -271,6 +288,41 @@ class SearchIndexLookup(object):
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
 
+    def _index_searchables_sql(self, searchables):
+
+        """
+        index all the searchable items by attr, value, and class
+        :param searchables: List of searchable objects
+        """
+        t1 = datetime.datetime.now()
+        count = 0
+        conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
+
+        self.cursor = conn.cursor()
+
+        # index searchables by keyword, value and keyword/value
+        for searchable in searchables:
+            count += 1
+            if count % 1000 == 0:
+                print count
+            atk_class = searchable.object_class
+            atk_attr_values = searchable.attr_value
+            uid = searchable.primary.get_attributes()['dn']
+
+            # index by attr & value and by class, attr, value
+            for atk_attr_value in atk_attr_values:
+                (a, v) = atk_attr_value
+                v = v.replace('\n', ' ').replace('\r', '')
+
+                # add sql entry
+
+                sql_command = "INSERT INTO avc VALUES ('{0}', '{1}', '{2}', '{3}')".format(a, v, atk_class, uid)
+
+                self.cursor.execute(sql_command)
+        conn.commit()
+        t2 = datetime.datetime.now()
+        print 'elapsed time', t2 - t1
+
     def add_atk_objects(self, root):
         """
         Will add all the objects recursively from the root down into the index
@@ -278,12 +330,16 @@ class SearchIndexLookup(object):
         """
         searchables = root.get_searchable()
         self._index_searchables(searchables)
+        pass
 
     def search(self, term_string):
         """
         This will do the actual search.  The data must already be loaded and indexed before this is invoked.
         :param term_string: string that contains all the terms.
         """
+        if SQL:
+            return self.search_sql(term_string)
+
         t1 = datetime.datetime.now()
         terms = self._get_terms(term_string)
         # terms = ['#AppProfile:name=APP1', 'leaf']
@@ -310,6 +366,57 @@ class SearchIndexLookup(object):
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
         return results2
+
+    def search_sql(self, term_string):
+        """
+        This will do the actual search.  The data must already be loaded and indexed before this is invoked.
+        :param term_string: string that contains all the terms.
+        """
+        t1 = datetime.datetime.now()
+        terms = self._get_terms(term_string)
+        # terms = ['#AppProfile:name=APP1', 'leaf']
+        results = []
+        for term in terms:
+            if term.type == 'cav':
+                sql_command = "SELECT uid FROM avc WHERE class='{0}' and attribute='{1}' and value='{2}'".format(*term.key)
+
+            if term.type == 'ca':
+                sql_command = "SELECT uid FROM avc WHERE class='{0}' and attribute='{1}'".format(*term.key)
+            if term.type == 'cv':
+                sql_command = "SELECT uid FROM avc WHERE class='{0}' and value='{1}'".format(*term.key)
+            if term.type == 'av':
+                sql_command = "SELECT uid FROM avc WHERE attribute='{0}' and value='{1}'".format(*term.key)
+
+            if term.type == 'c':
+                sql_command = "SELECT uid FROM avc WHERE class='{0}'".format(term.key)
+            if term.type == 'a':
+                sql_command = "SELECT uid FROM avc WHERE attribute='{0}'".format(term.key)
+            if term.type == 'v':
+                sql_command = "SELECT uid FROM avc WHERE value='{0}'".format(term.key)
+
+            self.cursor.execute(sql_command)
+            results.append((term, set([str(x[0]) for x in self.cursor.fetchall()])))
+
+        results2 = self._rank_results(results)
+        t2 = datetime.datetime.now()
+        print 'elapsed time', t2 - t1
+        return results2
+
+    def get_keys(self):
+        """
+        returns a list of all the class, attribute, value keys
+        :return:
+        """
+        if not SQL:
+            return self.by_class_attr_value.keys()
+        else:
+
+            conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
+
+            self.cursor = conn.cursor()
+            self.cursor.execute("SELECT class, attribute, value FROM avc")
+            return [(str(x[0]), str(x[1]), str(x[2])) for x in self.cursor.fetchall()]
+
 
     @staticmethod
     def _get_terms(term_string):
@@ -500,7 +607,7 @@ class SearchObjectStore(object):
                     self._add_relation('context', relation.item, bridge_domain)
                     self._add_relation('bridge domains', bridge_domain, relation.item)
 
-        for context in self.map_class['Context']:
+        for context in self.map_class.get('Context', {}):
             for concrete_bd in self.map_class.get('ConcreteBD', {}):
                 ccontext_name = concrete_bd.attr['context']
                 if ccontext_name == context.name and concrete_bd.attr['tenant'] == context.get_parent().name:
@@ -517,7 +624,7 @@ class SearchObjectStore(object):
             self._add_relation('tenant', tenant, ep)
             self._add_relation('app profile', app_profile, ep)
 
-        for epg in self.map_class['EPG']:
+        for epg in self.map_class.get('EPG', {}):
             relations = epg._relations
             for relation in relations:
                 if isinstance(relation.item, Contract):
@@ -533,13 +640,12 @@ class SearchObjectStore(object):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
 
-        if 'OutsideL3' in self.map_class:
-            for outsideL3 in self.map_class['OutsideL3']:
-                relations = outsideL3._relations
-                for relation in relations:
-                    if isinstance(relation.item, Context):
-                        self._add_relation('attached to', relation.item, outsideL3)
-                        self._add_relation('attached from', outsideL3, relation.item)
+        for outsideL3 in self.map_class.get('OutsideL3', {}):
+            relations = outsideL3._relations
+            for relation in relations:
+                if isinstance(relation.item, Context):
+                    self._add_relation('attached to', relation.item, outsideL3)
+                    self._add_relation('attached from', outsideL3, relation.item)
 
     @staticmethod
     def _add_relation(relationship_type, child_obj, parent_obj):
@@ -695,6 +801,16 @@ class SearchDb(object):
         self.session = SearchSession()
         self.index = SearchIndexLookup()
         self.store = SearchObjectStore()
+
+    def check_login(self, args):
+        """
+        This will set the session credentials and do a log-in.
+
+        :param args:
+        :return:
+        """
+        self.session.set_login_credentials(args)
+        return self.session.session
 
     def load_db(self, args):
         self.session.set_login_credentials(args)

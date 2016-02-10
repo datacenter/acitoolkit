@@ -171,11 +171,12 @@ class AciSearch(object):
                     for attr in attr_list:
                         if isinstance(atk_attrs[atk_attr], str) or isinstance(atk_attrs[atk_attr], bool):
                             result.add_term(atk_attr, str(attr))
-                            print(atk_attr, str(attr))
-                        else:
-                            print("wrong type %s" % str(atk_attr))
+                        #     print(atk_attr, str(attr))
+                        # else:
+                        #     print("wrong type %s" % str(atk_attr))
                 elif not isinstance(atk_attrs[atk_attr], str) and not isinstance(atk_attrs[atk_attr], bool):
-                    print("wrong type %s" % str(atk_attr))
+                    # print("wrong type %s" % str(atk_attr))
+                    pass
                 else:
                     result.add_term(atk_attr, str(atk_attrs[atk_attr]))
         return [result]

@@ -21,7 +21,7 @@
 */
 function onClick_show_object(d) {
     // var uri = '/atk_object?dn='+d['path'];
-    var uri = '/selectswitchview?dn='+d['uid'];
+    var uri = '/acitookkitselectsearchview?dn='+d['uid'];
     window.location.assign(encodeURI(uri))
 }
 function searchResult(result) {
@@ -30,7 +30,7 @@ function searchResult(result) {
     function gen_summary(d) {
         var strng = "";
         strng += '<hr>';
-        strng += '<p class="record_title"><a href="/selectswitchview?dn='+ d.uid+'">'+d.class+': '+ d.name+'</a></p>';
+        strng += '<p class="record_title"><a href="/acitoolkitsearchview?dn='+ d.uid+'">'+d.class+': '+ d.name+'</a></p>';
         //strng += "<p>"+d.class+': '+d.name+ "</p>";
         strng += '<p style="color:green">' + d.uid + '</p>';
         strng += "<p>";
