@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "/",
+  "type": "object",
+  "title": "Inheritance schema.",
+  "description": "Top-level object contains the set of all inheritance policies and the APIC policy.",
+  "definitions": {
+    "epg": {
+      "type": "object",
+      "properties": {
+        "tenant": {
+          "id": "tenant",
+          "type": "string",
+          "title": "Tenant name"
+        },
+        "epg_container": {
+          "id": "epg_container",
+          "type": "object",
+          "title": "EPG Container",
+          "properties": {
+            "name": { "type": "string" },
+            "container_type": { "type": "string",
+                                "enum": ["app", "l3out"]}
+          },
+          "required": ["name", "container_type"]
+        },
+        "name": {
+          "id": "name",
+          "type": "string",
+          "title": "EPG name"
+        }
+      },
+      "required": ["tenant", "epg_container", "name"]
+    }
+  },
+  "properties": {
+    "apic": {
+      "id": "apic",
+      "type": "object",
+      "title": "APIC schema.",
+      "description": "Credentials used to login to APIC",
+      "properties": {
+        "user_name": {
+          "id": "user_name",
+          "type": "string",
+          "title": "APIC user name"
+        },
+        "password": {
+          "id": "user_name",
+          "type": "string",
+          "title": "APIC user name"
+        },
+        "ip_address": {
+          "id": "ip_address",
+          "type": "string",
+          "format": "ipv4",
+          "description": "APIC IP address",
+          "title": "APIC IP address"
+        },
+        "use_https": {
+          "id": "use_https",
+          "type": "boolean",
+          "description": "Use HTTPS to communicate with APIC",
+          "title": "Use HTTPS to communicate with APIC"
+        }
+      },
+      "required": ["user_name", "ip_address", "password", "use_https"]
+    },
+    "inheritance_policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "Inheritance Policy schema.",
+        "description": "Inheritance Policy",
+        "properties": {
+          "epg": {
+            "$ref": "#/definitions/epg"
+          },
+          "allowed": {
+            "id": "allowed",
+            "type": "boolean",
+            "description": "Allow inheritance of this EPG",
+            "title": "allowed"
+          },
+          "enabled": {
+            "id": "enabled",
+            "type": "boolean",
+            "description": "Enable inheritance on this EPG",
+            "title": "enabled"
+          },
+          "inherit_from": {
+            "$ref": "#/definitions/epg"
+          }
+        },
+        "required": [
+          "epg",
+          "allowed",
+          "enabled"
+        ]
+      }
+    }
+  }
+}
