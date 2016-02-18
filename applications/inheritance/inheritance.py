@@ -231,24 +231,6 @@ class SubnetDB(BaseDB):
                 subnets.append(node.prefix)
         return subnets
 
-    def get_all_covered_epgs(self, epg, subnet):
-        logging.debug('get_all_covered_epgs for l3out: %s subnet: %s', epg.l3out_name, subnet)
-        subnets = self.db[epg.tenant][epg.l3out_name].search_covered(subnet)
-        epg_names = []
-        for subnet in subnets:
-            if subnet.data['l3instp'] not in epg_names and subnet.data['l3instp'] != epg.name:
-                epg_names.append(subnet.data['l3instp'])
-        epgs = []
-        for epg_name in epg_names:
-            epg_policy = {"tenant": epg.tenant,
-                          "epg_container": {"name": epg.epg_container_name,
-                                            "container_type": epg.epg_container_type},
-                          "name": epg_name}
-            epg_policy = EPGPolicy(epg_policy)
-            epgs.append(epg_policy)
-            logging.debug('Found covered epg: %s', epg_name)
-        return epgs
-
     def get_all_covering_epgs_for_subnet(self, epg, subnet):
         """
         Get all of the EPGs with subnets covering the specified subnet.
@@ -633,41 +615,6 @@ class Monitor(threading.Thread):
                 self._calculate_relations_for_app_policy(inheritance_policy)
             relations[inheritance_policy.epg.get_json()] = epg_relations
         return relations
-
-    def push_relation_to_apic(self, epg_policy, event_type, relation_name, delete=False):
-        # Relation needs to be inherited by the EPG
-        tenant = Tenant(epg_policy.tenant)
-        if epg_policy.epg_container_type == 'app':
-            app = AppProfile(epg_policy.epg_container_name, tenant)
-            epg = EPG(epg_policy.name, app)
-        else:
-            l3out = OutsideL3(epg_policy.l3out_name, tenant)
-            epg = OutsideEPG(epg_policy.name, l3out)
-        if event_type == 'fvRsProv':
-            epg.provide(Contract(relation_name, tenant))
-            if delete:
-                epg.dont_provide(Contract(relation_name, tenant))
-        elif event_type == 'fvRsCons':
-            epg.consume(Contract(relation_name, tenant))
-            if delete:
-                epg.dont_consume(Contract(relation_name, tenant))
-        elif event_type == 'fvRsConsIf':
-            epg.consume_cif(ContractInterface(relation_name, tenant))
-            if delete:
-                epg.dont_consume_cif(ContractInterface(relation_name, tenant))
-        elif event_type == 'fvRsProtBy':
-            epg.protect(Taboo(relation_name, tenant))
-            if delete:
-                epg.dont_protect(Taboo(relation_name, tenant))
-        epg.add_tag('inherited:%s:%s' % (event_type, relation_name))
-        if delete:
-            epg.delete_tag('inherited:%s:%s' % (event_type, relation_name))
-        resp = tenant.push_to_apic(self.apic)
-        if delete:
-            logging.debug("Pushed an inherited relation deletion to the APIC")
-        else:
-            logging.debug("Pushed an inherited relation to the APIC")
-        return resp
 
     def process_relation_event(self, event):
         logging.debug('process_event EVENT: %s', event.event)
