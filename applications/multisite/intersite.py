@@ -295,7 +295,7 @@ class EndpointHandler(object):
         Check for duplicate entry error response message
         If present, delete the offending subnet from the APIC
         """
-        logging.debug()
+        logging.debug('')
         if 'imdata' not in response or len(response['imdata']) == 0:
             return False
         response = response['imdata'][0]
