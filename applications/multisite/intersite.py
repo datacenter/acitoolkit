@@ -290,11 +290,12 @@ class EndpointHandler(object):
                 # Add to the database
                 self._merge_tenant_json(remote_site_policy.name, tenant_json)
 
-    def check_and_remove_duplicate(self, session, tenant_name, response):
+    def check_and_remove_duplicate(self, session, tenant_json, response):
         """
         Check for duplicate entry error response message
         If present, delete the offending subnet from the APIC
         """
+        logging.debug()
         if 'imdata' not in response or len(response['imdata']) == 0:
             return False
         response = response['imdata'][0]
@@ -304,36 +305,90 @@ class EndpointHandler(object):
         if 'text' not in response or 'Invalid Configuration - External Subnet:' not in response['text']:
             return False
         response = response['text']
-        if ' already defined in L3 Outside: ' not in response:
+        if ' already defined in L3 Outside: ' not in response and ' already present at : ' not in response:
             return False
-        l3out_name = response.rpartition('already defined in L3 Outside: ')[2]
-        ip_addr = response.split('Invalid Configuration - External Subnet: ')[1].split(' already defined in L3 Outside')[0]
 
-        # Find the InstP that has the duplicate entry
-        query_url = ('/api/mo/uni/tn-%s/out-%s.json?rsp-subtree=full&rsp-subtree-class=l3extSubnet'
-                     '&rsp-subtree-filter=eq(l3extSubnet.ip,"%s")&rsp-subtree-include=no-scoped' % (tenant_name, l3out_name, ip_addr))
-        resp = session.get(query_url)
-        if resp.ok and 'totalCount' in resp.text:
-            if resp.json()['totalCount'] == '0':
-                logging.warning('Could not find duplicate entry')
-                return False
-            dn = resp.json()['imdata'][0]['l3extSubnet']['attributes']['dn']
-            outside_epg_name = dn.partition('/instP-')[2].partition('/')[0]
-            logging.warning('Duplicate entry found for IP: %s on tenant: %s l3out: %s remote_epg: %s', ip_addr, tenant_name, l3out_name, outside_epg_name)
+        tenant_name = tenant_json['fvTenant']['attributes']['name']
 
-            # Delete the old duplicate from the APIC
-            query_url = '/api/mo/' + dn + '.json'
-            data = {'l3extSubnet': {'attributes': {'ip': ip_addr, 'status': 'deleted'}}}
-            resp = session.push_to_apic(query_url, data)
-            if resp.ok:
-                logging.warning('Deleted duplicate entry for ip %s', ip_addr)
-                return True
-            else:
-                logging.error('Could not delete duplicate entry %s %s', resp, resp.text)
-                return False
+        # Find all of the OutsideL3s, OutsideEPGs, and the OutsideNetworks defined in the JSON being pushed
+        pushed_db = {}
+        for child in tenant_json['fvTenant']['children']:
+            if 'l3extOut' in child:
+                if 'status' in child['l3extOut']['attributes'] and child['l3extOut']['attributes']['status'] == 'deleted':
+                    continue
+                l3out_name = child['l3extOut']['attributes']['name']
+                if l3out_name not in pushed_db:
+                    pushed_db[l3out_name] = {}
+                for l3out_child in child['l3extOut']['children']:
+                    if 'l3extInstP' in l3out_child:
+                        if 'status' in l3out_child['l3extInstP']['attributes'] and l3out_child['l3extInstP']['attributes']['status'] == 'deleted':
+                            continue
+                        l3epg_name = l3out_child['l3extInstP']['attributes']['name']
+                        if l3epg_name not in pushed_db[l3out_name]:
+                            pushed_db[l3out_name][l3epg_name] = []
+                        for epg_child in l3out_child['l3extInstP']['children']:
+                            if 'l3extSubnet' in epg_child:
+                                if 'status' in epg_child['l3extSubnet']['attributes'] and epg_child['l3extSubnet']['attributes']['status'] == 'deleted':
+                                    continue
+                                network_name = epg_child['l3extSubnet']['attributes']['ip']
+                                if network_name not in pushed_db[l3out_name][l3epg_name]:
+                                    pushed_db[l3out_name][l3epg_name].append(network_name)
+
+        # Find all of the OutsideL3s, OutsideEPGs, and the OutsideNetworks defined in the remote APIC
+        remote_db = {}
+        for l3out_name in pushed_db:
+            # Find the InstP that has the duplicate entry
+            query_url = ('/api/mo/uni/tn-%s/out-%s.json?rsp-subtree=full&rsp-subtree-class=l3extSubnet'
+                         '&rsp-subtree-include=no-scoped' % (tenant_name, l3out_name))
+            resp = session.get(query_url)
+            if resp.ok and 'totalCount' in resp.text:
+                if l3out_name not in remote_db:
+                    remote_db[l3out_name] = {}
+                if resp.json()['totalCount'] == '0':
+                    continue
+                for subnet in resp.json()['imdata']:
+                    dn = subnet['l3extSubnet']['attributes']['dn']
+                    outside_epg_name = dn.partition('/instP-')[2].partition('/')[0]
+                    if outside_epg_name not in remote_db[l3out_name]:
+                        remote_db[l3out_name][outside_epg_name] = []
+                    subnet_name = dn.partition('/extsubnet-[')[-1].partition(']')[0]
+                    if subnet_name not in remote_db[l3out_name][outside_epg_name]:
+                        remote_db[l3out_name][outside_epg_name].append(subnet_name)
+
+        # Compare the 2 DBs for duplicates and generate the JSON to delete them
+        found_duplicates = False
+        tenant = Tenant(tenant_name)
+        for pushed_l3out in pushed_db:
+            if pushed_l3out not in remote_db:
+                continue
+            l3out = None
+            for pushed_l3epg in pushed_db[pushed_l3out]:
+                l3epg = None
+                for subnet in pushed_db[pushed_l3out][pushed_l3epg]:
+                    for remote_epg in remote_db[pushed_l3out]:
+                        if remote_epg == pushed_l3epg:
+                            continue
+                        if subnet in remote_db[pushed_l3out][remote_epg]:
+                            # Found duplicate
+                            found_duplicates = True
+                            if l3out is None:
+                                l3out = OutsideL3(pushed_l3out, tenant)
+                            if l3epg is None:
+                                l3epg = OutsideEPG(remote_epg, l3out)
+                            outside_network = OutsideNetwork(subnet.partition('/')[0], l3epg)
+                            outside_network.ip = subnet
+                            outside_network.mark_as_deleted()
+
+        # Push the completed JSON to the remote site
+        if not found_duplicates:
+            return False
+        resp = tenant.push_to_apic(session)
+        if resp.ok:
+            logging.warning('Deleted duplicate entries: %s', tenant.get_json())
         else:
-            logging.error('Could not get duplicate entry %s %s', resp, resp.text)
+            logging.error('Could not get delete duplicate entries: %s %s', resp, resp.text)
             return False
+        return found_duplicates
 
     def push_to_remote_sites(self, collector):
         """
@@ -354,11 +409,11 @@ class EndpointHandler(object):
                         return
                     keep_trying = False
                     if not resp.ok:
+                        logging.warning('Could not push to remote site: %s %s', resp, resp.text)
                         if resp.status_code == 400:
                             keep_trying = self.check_and_remove_duplicate(remote_session,
-                                                                          tenant_json['fvTenant']['attributes']['name'],
+                                                                          tenant_json,
                                                                           resp.json())
-                        logging.warning('Could not push to remote site: %s %s', resp, resp.text)
         self.db = {}
         self.addresses = {}
 

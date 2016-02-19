@@ -1622,6 +1622,165 @@ class TestChangeL3Out(BaseTestCase):
 # test remove EPG from policy and that
 
 
+class TestDuplicates(BaseTestCase):
+    def create_config_file(self):
+        config = self.create_site_config()
+        export_policy = {
+                    "export": {
+                        "tenant": "intersite-testsuite-local",
+                        "app": "app",
+                        "epg": "epg",
+                        "remote_epg": "intersite-testsuite-app-epg",
+                        "remote_sites": [
+                            {
+                                "site": {
+                                    "name": "Site2",
+                                    "interfaces": [
+                                        {
+                                            "l3out": {
+                                                "name": "l3out",
+                                                "tenant": "intersite-testsuite-remote"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+        config['config'].append(export_policy)
+        return config
+
+    def setup_local_site(self):
+        site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        resp = site1.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-local')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+
+        resp = tenant.push_to_apic(site1)
+        self.assertTrue(resp.ok)
+
+    def setup_remote_site(self):
+        # Create tenant, L3out with contract on site 2
+        site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-remote')
+        l3out = OutsideL3('l3out', tenant)
+        epg = OutsideEPG('intersite-testsuite-app-epg', l3out)
+        other_epg = OutsideEPG('other', l3out)
+
+        resp = tenant.push_to_apic(site2)
+        self.assertTrue(resp.ok)
+
+    def teardown_local_site(self):
+        site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+        resp = site1.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-local')
+        tenant.mark_as_deleted()
+
+        resp = tenant.push_to_apic(site1)
+        self.assertTrue(resp.ok)
+
+    def teardown_remote_site(self):
+        site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-remote')
+        tenant.mark_as_deleted()
+
+        resp = tenant.push_to_apic(site2)
+        self.assertTrue(resp.ok)
+
+    def add_remote_duplicate_entry(self, ip):
+        site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-remote')
+        l3out = OutsideL3('l3out', tenant)
+        other_epg = OutsideEPG('other', l3out)
+        subnet = OutsideNetwork(ip, other_epg)
+        subnet.ip = ip + '/32'
+
+        resp = tenant.push_to_apic(site2)
+        self.assertTrue(resp.ok)
+
+    def test_basic_duplicate(self):
+        args = self.get_args()
+        config = self.create_config_file()
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            execute_tool(args, test_mode=True)
+
+        mac = '00:11:22:33:33:33'
+        ip = '3.4.3.4'
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+        self.add_remote_duplicate_entry(ip)
+
+        time.sleep(2)
+        self.add_endpoint(mac, ip, 'intersite-testsuite-local', 'app', 'epg')
+
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+
+    def test_basic_multiple_duplicate(self):
+        args = self.get_args()
+        config = self.create_config_file()
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            execute_tool(args, test_mode=True)
+
+        for i in range(0, 5):
+            mac = '00:11:22:33:33:3' + str(i)
+            ip = '3.4.3.' + str(i)
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+            self.add_remote_duplicate_entry(ip)
+
+        time.sleep(2)
+
+        for i in range(0, 5):
+            mac = '00:11:22:33:33:3' + str(i)
+            ip = '3.4.3.' + str(i)
+            self.add_endpoint(mac, ip, 'intersite-testsuite-local', 'app', 'epg')
+
+        time.sleep(2)
+        for i in range(0, 5):
+            mac = '00:11:22:33:33:3' + str(i)
+            ip = '3.4.3.' + str(i)
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+
+    def test_basic_partial_duplicate(self):
+        args = self.get_args()
+        config = self.create_config_file()
+        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
+            execute_tool(args, test_mode=True)
+
+        for i in range(0, 7):
+            mac = '00:11:22:33:33:3' + str(i)
+            ip = '3.4.3.' + str(i)
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+            self.add_remote_duplicate_entry(ip)
+
+        time.sleep(2)
+
+        for i in range(4, 9):
+            mac = '00:11:22:33:33:3' + str(i)
+            ip = '3.4.3.' + str(i)
+            self.add_endpoint(mac, ip, 'intersite-testsuite-local', 'app', 'epg')
+
+        time.sleep(2)
+        for i in range(4, 9):
+            mac = '00:11:22:33:33:3' + str(i)
+            ip = '3.4.3.' + str(i)
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+
+
 def main_test():
     full = unittest.TestSuite()
     full.addTest(unittest.makeSuite(TestToolOptions))
