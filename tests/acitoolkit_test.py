@@ -34,7 +34,7 @@ from acitoolkit.aciHealthScore import HealthScore
 from acitoolkit.acisession import Session
 from acitoolkit.aciTable import Table
 from acitoolkit.acitoolkit import (
-    AppProfile, BaseContract, BGPSession, BridgeDomain, Context, Contract,
+    AppProfile, BaseContract, BGPSession, BridgeDomain, Context, Contract, ContractInterface,
     ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
@@ -1407,6 +1407,34 @@ class TestEPG(unittest.TestCase):
         output = tenant.get_json()
         self.assertTrue('fvRsProv' in str(output))
 
+    def test_epg_does_provide(self):
+        """
+        Test does_provide method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.provide(contract1)
+        self.assertTrue(epg.does_provide(contract1))
+
+    def test_epg_dont_provide(self):
+        """
+        Test dont_provide method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.provide(contract1)
+        output = tenant.get_json()
+        self.assertIn('fvRsProv', str(output))
+        self.assertNotIn('deleted', str(output))
+        epg.dont_provide(contract1)
+        output = tenant.get_json()
+        self.assertIn('fvRsProv', str(output))
+        self.assertIn('deleted', str(output))
+
     def test_epg_consume(self):
         """
         Test consume method
@@ -1418,6 +1446,91 @@ class TestEPG(unittest.TestCase):
         epg.consume(contract1)
         output = tenant.get_json()
         self.assertTrue('fvRsCons' in str(output))
+
+    def test_epg_does_consume(self):
+        """
+        Test does_consume method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.consume(contract1)
+        self.assertTrue(epg.does_consume(contract1))
+
+    def test_epg_dont_consume(self):
+        """
+        Test dont_consume method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        contract1 = Contract('contract-1', tenant)
+        epg.consume(contract1)
+        output = tenant.get_json()
+        self.assertIn('fvRsCons', str(output))
+        self.assertNotIn('deleted', str(output))
+        epg.dont_consume(contract1)
+        output = tenant.get_json()
+        self.assertIn('fvRsCons', str(output))
+        self.assertIn('deleted', str(output))
+
+    def test_epg_consume_cif(self):
+        """
+        Test consume method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        cif = ContractInterface('cif-1', tenant)
+        epg.consume(cif)
+        output = tenant.get_json()
+        self.assertTrue('fvRsConsIf' in str(output))
+
+    def test_epg_does_consume_cif(self):
+        """
+        Test does_consume_cif method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        cif = ContractInterface('cif-1', tenant)
+        epg.consume_cif(cif)
+        self.assertTrue(epg.does_consume_cif(cif))
+
+    def test_epg_does_already_consume_cif(self):
+        """
+        Test does_consume_cif method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        cif = ContractInterface('cif-1', tenant)
+        epg.consume_cif(cif)
+        self.assertTrue(epg.does_consume_cif(cif))
+        epg.consume_cif(cif)
+        self.assertTrue(epg.does_consume_cif(cif))
+        epg.dont_consume_cif(cif)
+        self.assertFalse(epg.does_consume_cif(cif))
+        epg.consume_cif(cif)
+        self.assertTrue(epg.does_consume_cif(cif))
+
+    def test_epg_dont_consume_cif(self):
+        """
+        Test dont_consume_cif method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        cif = ContractInterface('cif-1', tenant)
+        epg.consume_cif(cif)
+        output = tenant.get_json()
+        self.assertIn('fvRsConsIf', str(output))
+        self.assertNotIn('deleted', str(output))
+        epg.dont_consume_cif(cif)
+        output = tenant.get_json()
+        self.assertIn('fvRsConsIf', str(output))
+        self.assertIn('deleted', str(output))
 
     def test_epg_provide_consume(self):
         """
@@ -1471,6 +1584,48 @@ class TestEPG(unittest.TestCase):
         epg.dont_consume(contract2)
         epg.dont_consume(contract3)
         self.assertTrue(epg.get_all_consumed() == [])
+
+    def test_protect(self):
+        """
+        Test protect method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        taboo = Taboo('taboo1', tenant)
+        epg.protect(taboo)
+        output = tenant.get_json()
+        self.assertIn('fvRsProtBy', str(output))
+
+    def test_does_protect(self):
+        """
+        Test protect method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        taboo = Taboo('taboo1', tenant)
+        epg.protect(taboo)
+        self.assertTrue(epg.does_protect(taboo))
+        epg.dont_protect(taboo)
+        self.assertFalse(epg.does_protect(taboo))
+
+    def test_dont_protect(self):
+        """
+        Test dont_protect method
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        taboo = Taboo('taboo1', tenant)
+        epg.protect(taboo)
+        output = tenant.get_json()
+        self.assertIn('fvRsProtBy', str(output))
+        self.assertNotIn('deleted', str(output))
+        epg.dont_protect(taboo)
+        output = tenant.get_json()
+        self.assertIn('fvRsProtBy', str(output))
+        self.assertIn('deleted', str(output))
 
     def test_attach_epg(self):
         """
@@ -2073,7 +2228,7 @@ class TestLiveTenant(TestLiveAPIC):
         Test Tenant.get_deep
         """
         session = self.login_to_apic()
-        self.assertRaises(TypeError, Tenant.get_deep, session, names=[4,5])
+        self.assertRaises(TypeError, Tenant.get_deep, session, names=[4, 5])
 
     def test_get_deep_tenants_limit_to_as_string(self):
         """
