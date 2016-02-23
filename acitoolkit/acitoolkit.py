@@ -2778,7 +2778,7 @@ class BaseContract(BaseACIObject):
     def _populate_from_attributes(self, attributes):
         super(BaseContract, self)._populate_from_attributes(attributes)
         if 'scope' in attributes:
-            self.set_scope(attributes['scope'])
+            self.set_scope(str(attributes['scope']))
 
     @staticmethod
     def _get_contract_code():
