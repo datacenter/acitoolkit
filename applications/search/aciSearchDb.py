@@ -29,7 +29,7 @@
 import datetime
 import sys
 import re
-from acitoolkit import BridgeDomain, Context, Contract
+from acitoolkit import BridgeDomain, Context, Contract, Filter
 from acitoolkit.aciphysobject import Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
@@ -733,12 +733,35 @@ class SearchObjectStore(object):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
 
+        for epg in self.map_class.get('OutsideEPG', {}):
+            relations = epg._relations
+            for relation in relations:
+                if isinstance(relation.item, Contract):
+                    if relation.relation_type == 'consumed':
+                        self._add_relation('consumes', relation.item, epg)
+                        self._add_relation('consumed by', epg, relation.item)
+                    elif relation.relation_type == 'provided':
+                        self._add_relation('provides', relation.item, epg)
+                        self._add_relation('provided by', epg, relation.item)
+                    else:
+                        print 'unexpected relation type', relation.relation_type
+                if isinstance(relation.item, BridgeDomain):
+                    self._add_relation('bridge domain', relation.item, epg)
+                    self._add_relation('epgs', epg, relation.item)
+
         for outsideL3 in self.map_class.get('OutsideL3', {}):
             relations = outsideL3._relations
             for relation in relations:
                 if isinstance(relation.item, Context):
                     self._add_relation('attached to', relation.item, outsideL3)
                     self._add_relation('attached from', outsideL3, relation.item)
+
+        for contract_subject in self.map_class.get('ContractSubject', {}):
+            relations = contract_subject._relations
+            for relation in relations:
+                if isinstance(relation.item, Filter):
+                    self._add_relation('attached to', relation.item, contract_subject)
+                    self._add_relation('attached from', contract_subject, relation.item)
 
     @staticmethod
     def _add_relation(relationship_type, child_obj, parent_obj):
