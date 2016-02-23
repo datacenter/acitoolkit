@@ -469,11 +469,18 @@ function AutoCompleteTerms(class_attr_values) {
         // if v complete search in cv, av
         // if none complete search in c, a, v
         //
-        function onlyUnique(value, index, self) {
-            return self.indexOf(value) === index;
+        function onlyUnique(match_set) {
+           var u = {}, a = [];
+           for(var i = 0, l = match_set.length; i < l; ++i){
+              if(u.hasOwnProperty(match_set[i])) {
+                 continue;
+              }
+              a.push(match_set[i]);
+              u[match_set[i]] = 1;
+           }
+           return a;
         }
 
-        // usage example:
         var match_set = [];
 
         for (var i = 0, tot = terms['terms'].length; i < tot; i++) {
@@ -492,7 +499,7 @@ function AutoCompleteTerms(class_attr_values) {
             }
 
         }
-        matches = match_set.filter(onlyUnique);
+        matches = onlyUnique(match_set);
         return matches;
     }
 } //end AutoCompleteTerms
@@ -587,15 +594,17 @@ function autoComplete(autoCompleteTerms, callBack) {
                 var terms = autoCompleteTerms.buildSearch(subSearchString);
                 //console.log(terms);
                 onSpaceDone = false;  // allow the matched item to be added with a <sp>
-                matches = autoCompleteTerms.search(terms);
-                processResults(terms);
-                if (matches.length === 0) {
-                    showSearching("No results");
-                }
-                else {
-                    hideSearching();
-                    showDropDown();
-                }
+                getMatchResult(searchString, terms);
+                //console.log(matches);
+                //matches = autoCompleteTerms.search(terms);
+                //processResults(matches, terms);
+                //if (matches.length === 0) {
+                //    showSearching("No results");
+                //}
+                //else {
+                //    hideSearching();
+                //    showDropDown();
+                //}
             }
 
         } else {
@@ -636,7 +645,7 @@ function autoComplete(autoCompleteTerms, callBack) {
         return newTerm.length >= 1 && newTerm != oldTerm;
     }
 
-    function processResults(terms) {
+    function processResults(matches, terms) {
 
         var searchString = terms.searchString;
         var results = dropDown.selectAll(".ac-row").data(matches.sort(alphabetical), function (d) {return d;});
@@ -721,35 +730,6 @@ function autoComplete(autoCompleteTerms, callBack) {
             var selectedTerm = matches[0];
             autoFill(selectedTerm);
         }
- /*       // need to complete word if not already complete
-        // if already complete, then add space
-        // if there is already a space, don't add a second space
-        //
-        // know we are complete if length of matches is 1
-        //
-        hideDropDown();
-        //
-        // replace last word with completion item
-        //
-
-        // this will remove double spaces and create list of terms - removing trailing spaces
-        searchTerms = input.node().value.replace(/\s\s+/g, ' ').trim().split(' ');
-        if (matches.length > 0) {
-            if (onSpaceDone === false) {
-                var lastTerm = searchTerms.pop();
-
-                // now need to fix-up the last term
-                var patt = lastTerm.replace(/[^#@=*]+$/, matches[0].substring(1));
-                //addValidatedTerm(matches[0].substring(1));
-
-                searchTerms.push(patt);
-                onSpaceDone = true;
-                input.node().value = searchTerms.join(' ');
-            } else {
-                input.node().value = searchTerms.join(' ') + ' ';
-            }
-        }
-*/
     }
 
     function sButtonSelect() {
@@ -760,8 +740,21 @@ function autoComplete(autoCompleteTerms, callBack) {
         selectedCallBack(input.node().value);
         //searchTerms = [];
     }
-    //var FunctionObj = new Object();
-    //FunctionObj.buildSearch = buildSearch
-    //return FunctionObj;
+
+    function getMatchResult(searchString, terms) {
+        d3.json("/term_complete/terms?" + $.param({searchString}), function (error, term_string) {
+            matches = term_string['result'];
+            processResults(matches, terms);
+            if (matches.length === 0) {
+                showSearching("No results");
+            }
+            else {
+                hideSearching();
+                showDropDown();
+            }
+
+        })
+    }
+
 }
 
