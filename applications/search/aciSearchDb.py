@@ -29,13 +29,14 @@
 import datetime
 import sys
 import re
-from acitoolkit import BridgeDomain, Context, Contract
+from acitoolkit import BridgeDomain, Context, Contract, Filter
 from acitoolkit.aciphysobject import Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 import sqlite3
 
 SQL = True
+APIC = False  # opposite of toolkit
 
 class LoginError(Exception):
     """
@@ -51,12 +52,67 @@ class Term(object):
     And the kind of lookup it should be c, a, v, ca, cv, av, or cav
     """
 
-    def __init__(self, key, term_type, points):
+    def __init__(self, keys, term_type, points, flags):
 
         # todo: make key be fully positional so that (x,,) is different from (,x,)
-        self.key = key
+        c = 0
+        a = 1
+        v = 2
+        self.key = None
+        if term_type == 'cav':
+            self.key = keys
+        elif term_type == 'ca':
+            self.key = (keys[c], keys[a])
+        elif term_type == 'cv':
+            self.key = (keys[c], keys[v])
+        elif term_type == 'av':
+            self.key = (keys[a], keys[v])
+        elif term_type == 'c':
+            self.key = keys[c]
+        elif term_type == 'a':
+            self.key = keys[a]
+        elif term_type == 'v':
+            self.key = keys[v]
+
         self.type = term_type
         self.points = points
+        self.prefix = ''
+
+        (self.class_last, self.attr_last, self.value_last) = flags
+        self.sql = ''
+        if self.class_last :
+            self.sql = "SELECT class FROM avc WHERE {0} class LIKE '{1}%'"\
+                .format(self._get_known_keys(term_type, 'c', keys), keys[c])
+            self.prefix = '#'
+        if self.attr_last :
+            self.sql = "SELECT attribute FROM avc WHERE {0} attribute LIKE '{1}%'"\
+                .format(self._get_known_keys(term_type, 'a', keys), keys[a])
+            self.prefix = '@'
+        if self.value_last :
+            self.sql = "SELECT value FROM avc WHERE {0} value LIKE '{1}%'"\
+                .format(self._get_known_keys(term_type, 'v', keys), keys[v])
+            self.prefix = '='
+
+    @staticmethod
+    def _get_known_keys(term_type, exclude_type, keys):
+        """
+        Will build an SQL sub-string to look for the keys that are known
+        :param term_type:
+        :param exclude_type:
+        :param keys:
+        :return:
+        """
+        result = ''
+        for key_type in term_type:
+            if key_type == exclude_type:
+                continue
+            if key_type=='c':
+                result += "class = '{0}' AND ".format(keys[0])
+            if key_type=='a':
+                result += "attribute = '{0}' AND ".format(keys[1])
+            if key_type=='v':
+                result += "value = '{0}' AND ".format(keys[2])
+        return result
 
     @classmethod
     def parse_input(cls, strng):
@@ -81,86 +137,89 @@ class Term(object):
         else:
             new_string = strng
 
-        (class_valid, class_str) = cls.build_search_term(class_escape, new_string)
-        (attr_valid, attr_str) = cls.build_search_term(attr_escape, new_string)
-        (value_valid, value_str) = cls.build_search_term(value_escape, new_string)
-        (any_valid, any_str) = cls.build_search_term(any_escape, new_string)
+        (class_valid, class_str, class_last) = cls.build_search_term(class_escape, new_string)
+        (attr_valid, attr_str, attr_last) = cls.build_search_term(attr_escape, new_string)
+        (value_valid, value_str, value_last) = cls.build_search_term(value_escape, new_string)
+        (any_valid, any_str, any_last) = cls.build_search_term(any_escape, new_string)
 
         result = []
         if class_valid and attr_valid and value_valid:
-            term = cls((class_str, attr_str, value_str), 'cav', 8)
+            term = cls((class_str, attr_str, value_str), 'cav', 8, (class_last, attr_last, value_last))
+
             result.append(term)
             return result
 
         if class_valid and attr_valid:
             if any_valid:
-                term = cls((class_str, attr_str, any_str), 'cav', 6)
+                term = cls((class_str, attr_str, any_str), 'cav', 6, (class_last, attr_last, any_last))
                 result.append(term)
                 return result
-            term = cls((class_str, attr_str), 'ca', 4)
+            term = cls((class_str, attr_str), 'ca', 4, (class_last, attr_last, value_last))
             result.append(term)
             return result
 
         if class_valid and value_valid:
             if any_valid:
-                term = cls((class_str, any_str, value_str), 'cav', 6)
+                term = cls((class_str, any_str, value_str), 'cav', 6, (class_last, any_last, value_last))
                 result.append(term)
                 return result
-            term = cls((class_str, value_str), 'cv', 4)
+            term = cls((class_str, attr_str, value_str), 'cv', 4, (class_last, attr_last, value_last))
             result.append(term)
             return result
 
         if class_valid and any_valid:
-            term = cls((class_str, any_str), 'ca', 3)
+            term = cls((class_str, any_str, value_str), 'ca', 3, (class_last, any_last, value_last))
+            term.class_last = class_last
+            term.attr_last = any_last
             result.append(term)
-            term = cls((class_str, any_str), 'cv', 3)
+            term = cls((class_str, attr_str, any_str), 'cv', 3, (class_last, attr_last, any_last))
             result.append(term)
             return result
 
         if attr_valid and value_valid:
             if any_valid:
-                term = cls((any_str, attr_str, value_str), 'cav', 6)
+                term = cls((any_str, attr_str, value_str), 'cav', 6, (any_last, attr_last, value_last))
                 result.append(term)
                 return result
-            term = cls((attr_str, value_str), 'av', 4)
+            term = cls((attr_str, attr_str, value_str), 'av', 4, (class_last, attr_last, value_last))
             result.append(term)
             return result
 
         if attr_valid and any_valid:
-            term = cls((any_str, attr_str), 'ca', 3)
+            term = cls((any_str, attr_str, value_str), 'ca', 3, (any_last, attr_last, value_last))
             result.append(term)
-            term = cls((attr_str, any_str), 'av', 3)
+            term = cls((class_str, attr_str, any_str), 'av', 3, (class_last, attr_last, any_last))
             result.append(term)
             return result
 
         if value_valid and any_valid:
-            term = cls((any_str, value_str), 'cv', 3)
+            term = cls((any_str, attr_str, value_str), 'cv', 3, (any_last, attr_last, value_last))
             result.append(term)
-            term = cls((any_str, value_str), 'av', 3)
+            term = cls((class_str, any_str, value_str), 'av', 3, (class_last, any_last, value_last))
             result.append(term)
             return result
 
         if class_valid:
-            term = cls(class_str, 'c', 2)
+            term = cls((class_str, attr_str, value_str), 'c', 2, (class_last, attr_last, value_last))
             result.append(term)
             return result
 
         if attr_valid:
-            term = cls(attr_str, 'a', 2)
+            term = cls((class_str, attr_str, value_str), 'a', 2, (class_last, attr_last, value_last))
             result.append(term)
             return result
 
         if value_valid:
-            term = cls(value_str, 'v', 2)
+            term = cls((class_str, attr_str, value_str), 'v', 2, (class_last, attr_last, value_last))
             result.append(term)
             return result
 
         if any_valid:
-            term = cls(any_str, 'c', 1)
+            term = cls((any_str, attr_str, value_str), 'c', 1, (any_last, attr_last, value_last))
             result.append(term)
-            term = cls(any_str, 'a', 1)
+            term = cls((class_str, any_str, value_str), 'a', 1, (class_last, any_last, value_last))
             result.append(term)
-            term = cls(any_str, 'v', 1)
+            term = cls((class_str, attr_str, any_str), 'v', 1, (class_last, attr_last, any_last))
             result.append(term)
         return result
 
@@ -179,14 +238,18 @@ class Term(object):
 
         valid = False
         term_string = ''
+        last = False
         if mid:
             term_string = re.sub('"', '', mid.group(1))
             valid = len(term_string) > 0
+            valid = True
         elif end:
             term_string = re.sub('"', '', end.group(1))
             valid = len(term_string) > 0
+            valid = True
+            last = valid
 
-        return valid, term_string
+        return valid, term_string, last
 
 
 class SearchIndexLookup(object):
@@ -215,6 +278,10 @@ class SearchIndexLookup(object):
         self.cursor.execute("DROP TABLE IF EXISTS avc")
         self.cursor.execute("CREATE TABLE avc "
                             "(attribute TEXT, value TEXT, class TEXT,uid TEXT)")
+        self.cursor.execute("DROP TABLE IF EXISTS cnu")
+        self.cursor.execute("CREATE TABLE cnu "
+                            "(class TEXT, name TEXT, uid TEXT)")
+
 
     def _index_searchables(self, searchables):
 
@@ -271,8 +338,6 @@ class SearchIndexLookup(object):
 
                 self.by_value[atk_value_clean].add(uid)
                 self.by_class_value[(atk_class, atk_value_clean)].add(uid)
-                if 'Cisco Nexus Operating System' in atk_value:
-                    print uid, atk_value
             # index by attr & value and by class, attr, value
             for atk_attr_value in atk_attr_values:
                 (a, v) = atk_attr_value
@@ -372,6 +437,7 @@ class SearchIndexLookup(object):
         This will do the actual search.  The data must already be loaded and indexed before this is invoked.
         :param term_string: string that contains all the terms.
         """
+        print "start search sql ",
         t1 = datetime.datetime.now()
         terms = self._get_terms(term_string)
         # terms = ['#AppProfile:name=APP1', 'leaf']
@@ -402,6 +468,32 @@ class SearchIndexLookup(object):
         print 'elapsed time', t2 - t1
         return results2
 
+    def term_complete(self, term_string):
+        """
+        Will return a list of strings that can complete the last of the terms
+        :param term_string:
+        :return:
+        """
+        print "start term complete ",
+        t1 = datetime.datetime.now()
+        terms = SearchIndexLookup._custom_split(term_string)
+        last_term = terms.pop()
+        terms = self._get_terms(term_string)
+        result = set()
+        if APIC:
+            conn = sqlite3.connect("apicsearchdatabase.db")  # or use :memory: to put it in RAM
+        else:
+            conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
+        cursor = conn.cursor()
+        for term in terms:
+            if term.sql is not None:
+                cursor.execute(term.sql)
+                [result.add(term.prefix+str(x[0])) for x in cursor.fetchall()]
+
+        t2 = datetime.datetime.now()
+        print 'elapsed time', t2 - t1
+        return list(result), len(result)
+
     def get_keys(self):
         """
         returns a list of all the class, attribute, value keys
@@ -410,8 +502,10 @@ class SearchIndexLookup(object):
         if not SQL:
             return self.by_class_attr_value.keys()
         else:
-
-            conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
+            if APIC:
+                conn = sqlite3.connect("apicsearchdatabase.db")  # or use :memory: to put it in RAM
+            else:
+                conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
 
             self.cursor = conn.cursor()
             self.cursor.execute("SELECT class, attribute, value FROM avc")
@@ -496,7 +590,6 @@ class SearchIndexLookup(object):
         #
         # The max sub-score is cumulative, i.e. a sub-score can be greater than the number of terms
 
-        print 'end ranking'
         resp = []
         count = 0
         for result in sorted(self.ranked_items,
@@ -640,12 +733,35 @@ class SearchObjectStore(object):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
 
+        for epg in self.map_class.get('OutsideEPG', {}):
+            relations = epg._relations
+            for relation in relations:
+                if isinstance(relation.item, Contract):
+                    if relation.relation_type == 'consumed':
+                        self._add_relation('consumes', relation.item, epg)
+                        self._add_relation('consumed by', epg, relation.item)
+                    elif relation.relation_type == 'provided':
+                        self._add_relation('provides', relation.item, epg)
+                        self._add_relation('provided by', epg, relation.item)
+                    else:
+                        print 'unexpected relation type', relation.relation_type
+                if isinstance(relation.item, BridgeDomain):
+                    self._add_relation('bridge domain', relation.item, epg)
+                    self._add_relation('epgs', epg, relation.item)
+
         for outsideL3 in self.map_class.get('OutsideL3', {}):
             relations = outsideL3._relations
             for relation in relations:
                 if isinstance(relation.item, Context):
                     self._add_relation('attached to', relation.item, outsideL3)
                     self._add_relation('attached from', outsideL3, relation.item)
+
+        for contract_subject in self.map_class.get('ContractSubject', {}):
+            relations = contract_subject._relations
+            for relation in relations:
+                if isinstance(relation.item, Filter):
+                    self._add_relation('attached to', relation.item, contract_subject)
+                    self._add_relation('attached from', contract_subject, relation.item)
 
     @staticmethod
     def _add_relation(relationship_type, child_obj, parent_obj):
@@ -682,36 +798,59 @@ class SearchObjectStore(object):
         :param obj_dn:
         :return: result
         """
-        result = {}
-        atk_obj = self.object_directory.get(obj_dn)
-        if atk_obj is not None:
-            attr = atk_obj.get_attributes()
+        if not APIC:
+            result = {}
+            atk_obj = self.object_directory.get(obj_dn)
+            if atk_obj is not None:
+                attr = atk_obj.get_attributes()
 
-            result['properties'] = {'class': atk_obj.__class__.__name__, 'name': attr['name'], 'dn': obj_dn}
+                result['properties'] = {'class': atk_obj.__class__.__name__, 'name': attr['name'], 'dn': obj_dn}
 
-            result['attributes'] = atk_obj.get_attributes()
+                result['attributes'] = atk_obj.get_attributes()
 
-            if atk_obj.get_parent() is not None:
-                parent = atk_obj.get_parent().get_attributes()['name']
-                parent_dn = atk_obj.get_parent().get_attributes()['dn']
-                parent_class = atk_obj.get_parent().__class__.__name__
-                result['parent'] = {'class': parent_class, 'name': parent, 'dn': parent_dn}
+                if atk_obj.get_parent() is not None:
+                    parent = atk_obj.get_parent().get_attributes()['name']
+                    parent_dn = atk_obj.get_parent().get_attributes()['dn']
+                    parent_class = atk_obj.get_parent().__class__.__name__
+                    result['parent'] = {'class': parent_class, 'name': parent, 'dn': parent_dn}
 
-            children = atk_obj.get_children()
-            result['children'] = {}
-            for child in children:
-                child_class = child.__class__.__name__
-                if child_class not in result['children']:
-                    result['children'][child_class] = []
+                children = atk_obj.get_children()
+                result['children'] = {}
+                for child in children:
+                    child_class = child.__class__.__name__
+                    if child_class not in result['children']:
+                        result['children'][child_class] = []
 
-                result['children'][child_class].append({'class': child.__class__.__name__,
-                                                        'name': child.get_attributes()['name'],
-                                                        'dn': child.get_attributes()['dn']})
+                    result['children'][child_class].append({'class': child.__class__.__name__,
+                                                            'name': child.get_attributes()['name'],
+                                                            'dn': child.get_attributes()['dn']})
 
-            if 'gui_x_reference' in atk_obj.__dict__:
-                result['relations'] = atk_obj.gui_x_reference
+                if 'gui_x_reference' in atk_obj.__dict__:
+                    result['relations'] = atk_obj.gui_x_reference
+        else:
+            # pull object directly from APIC
+            if obj_dn == '/':
+                obj_dn = 'topology/pod-1/node-101/sys'
+            result={}
+            mo_query_url = '/api/mo/' + obj_dn + '.json?query-target=self'
+            ret = self.session.get(mo_query_url)
+            node_data = ret.json()['imdata']
+            for apic_object in node_data[0]:
 
+                result['attributes'] = self._unicode_2_str_dict(node_data[0][apic_object]['attributes'])
+                conn = sqlite3.connect("apicsearchdatabase.db")  # or use :memory: to put it in RAM
+                self.cursor = conn.cursor()
+
+                result['properties'] = self._get_info_from_sql(obj_dn)
         return result
+
+    @staticmethod
+    def _unicode_2_str_dict(unicode_dict):
+        result = {}
+        for x in unicode_dict:
+            result[str(x)] = str(unicode_dict[x])
+        return result
+
 
     def get_by_uids_short(self, uids):
         """
@@ -720,14 +859,50 @@ class SearchObjectStore(object):
         :param uids: list of UIDs
         """
         result = {}
-        for uid in uids:
-            atk_obj = self.object_directory[uid]
-            record = {'class': atk_obj.__class__.__name__,
-                      'name': atk_obj.get_attributes()['name'],
-                      'dn': atk_obj.get_attributes()['dn']}
-            result[uid] = record
+        if not APIC:
+            for uid in uids:
+                atk_obj = self.object_directory[uid]
+                record = {'class': atk_obj.__class__.__name__,
+                          'name': atk_obj.get_attributes()['name'],
+                          'dn': atk_obj.get_attributes()['dn']}
+                result[uid] = record
+        else:
+            # need to read from dB
+            # read one record where uid is uid and attribue is name, get name value and class
+
+            for uid in uids:
+                result[uid] = self._get_info_from_sql(uid)
 
         return result
+
+    def _get_info_from_sql(self, uid):
+        """
+        Will build a record of class, name and dn for the uid given.  The name will be an empty string if a specific
+        name field does not exist
+        :param uid:
+        :return:
+        """
+        t1 = datetime.datetime.now()
+
+        sql_command = "SELECT class, name FROM cnu WHERE uid='{0}' LIMIT 1".format(uid)
+        self.cursor.execute(sql_command)
+
+        # apic_class = None
+        # for apic_class in self.cursor.fetchall():
+        #     apic_class = str(apic_class[0])
+        #     break
+        # sql_command = "SELECT value FROM avc WHERE uid='{0}' and attribute='name' LIMIT 1".format(uid)
+        # self.cursor.execute(sql_command)
+        # apic_name = ''
+        for record in self.cursor.fetchall():
+            apic_class = str(record[0])
+            apic_name = str(record[1])
+            break
+
+        record = {'class': apic_class,
+                  'name': apic_name,
+                  'dn': uid}
+        return record
 
 
 class SearchSession(object):
@@ -817,10 +992,14 @@ class SearchDb(object):
         # fabric = Fabric.get_deep(self.session.session)[0]
         # fabric.populate_children(deep=True, include_concrete=True)
 
-        fabric = Fabric.get_deep(self.session.session, include_concrete=True)[0]
-        self.index.add_atk_objects(fabric)
-        self.store.add_atk_objects(fabric)
-        self.initialized = True
+        if not APIC:
+            fabric = Fabric.get_deep(self.session.session, include_concrete=True)[0]
+            self.index.add_atk_objects(fabric)
+            self.store.add_atk_objects(fabric)
+            self.initialized = True
+        else:
+            self.index.session = self.session.session
+            self.store.session = self.session.session
 
     def search(self, terms):
         (results, total) = self.index.search(terms)
@@ -829,6 +1008,14 @@ class SearchDb(object):
             result['name'] = short_record[result['uid']]['name']
             result['class'] = short_record[result['uid']]['class']
         return results, total
+
+    def term_complete(self, terms):
+        """
+        Will return a list of terms that are potential completions for terms
+        :param terms:
+        :return:
+        """
+        return self.index.term_complete(terms)
 
 
 def main():

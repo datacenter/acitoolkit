@@ -80,7 +80,7 @@ function show_object(data) {
             .data(linkdata)
             .text(label)
             .append('a')
-            .text(function (d) {return capitalize(d['class']) + ': ' + d['name'];})
+            .text(function (d) {return d['class'] + ': ' + d['name'];})
             .attr('href', function (d) {
                 return '/acitoolkitsearchview?dn=' + d['dn'];
             });
@@ -99,7 +99,7 @@ function show_object(data) {
         .attr('id','obj_properties')
         .append('h2')
         .attr('align', 'center')
-        .text(function(d) {return capitalize(properties['class'])+': '+properties['name'];});
+        .text(function(d) {return properties['class']+': '+properties['name'];});
 
     // Indicate what object this is
     var rel_parent = view.append('div')
@@ -167,10 +167,10 @@ function show_object(data) {
         var rel_key = rel_keys[index];
         var rel_data = relations[rel_key].sort(alphabetical);
         if (rel_data.length == 1) {
-            simpleLink(capitalize(rel_key)+': ', rel_data,relation_view );
+            simpleLink(rel_key+': ', rel_data,relation_view );
         } else {
             var relDropDown = relation_view.append('p')
-                .text(capitalize(rel_key) + ': ')
+                .text(rel_key + ': ')
                 .append('select')
                 .attr('class', 'atk-select')
                 .attr('id', 'children_dropdown')
@@ -184,7 +184,7 @@ function show_object(data) {
                     return encodeURI('/acitoolkitsearchview?dn=' + d['dn']);
                 })
                 .text(function (d) {
-                    return capitalize(d['class']) + ': ' + d['name'];
+                    return d['class'] + ': ' + d['name'];
                 });
 
             relDropDown.insert("option", ":first-child")

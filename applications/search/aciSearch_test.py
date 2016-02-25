@@ -339,21 +339,21 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('#cl_ass@')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'cl_ass')
-        self.assertTrue(terms[0].type == 'c')
-        self.assertTrue(terms[0].points == 2)
+        self.assertTrue(terms[0].key == ('cl_ass',''))
+        self.assertTrue(terms[0].type == 'ca')
+        self.assertTrue(terms[0].points == 4)
 
         terms = aciSearchDb.Term.parse_input('#cl-ass=')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'cl-ass')
-        self.assertTrue(terms[0].type == 'c')
-        self.assertTrue(terms[0].points == 2)
+        self.assertTrue(terms[0].key == ('cl-ass',''))
+        self.assertTrue(terms[0].type == 'cv')
+        self.assertTrue(terms[0].points == 4)
 
         terms = aciSearchDb.Term.parse_input('#cl[ass*')
-        self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'cl[ass')
-        self.assertTrue(terms[0].type == 'c')
-        self.assertTrue(terms[0].points == 2)
+        self.assertTrue(len(terms) == 2)
+        self.assertTrue(terms[0].key == ('cl[ass',''))
+        self.assertTrue(terms[0].type == 'ca')
+        self.assertTrue(terms[0].points == 3)
 
         terms = aciSearchDb.Term.parse_input('#class#another_class')
         self.assertTrue(len(terms) == 1)
@@ -416,13 +416,13 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('@at-tr=')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'at-tr')
-        self.assertTrue(terms[0].type == 'a')
+        self.assertTrue(terms[0].key == ('at-tr',''))
+        self.assertTrue(terms[0].type == 'av')
 
         terms = aciSearchDb.Term.parse_input('@at[tr*')
-        self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'at[tr')
-        self.assertTrue(terms[0].type == 'a')
+        self.assertTrue(len(terms) == 2)
+        self.assertTrue(terms[0].key == ('','at[tr'))
+        self.assertTrue(terms[0].type == 'ca')
 
         terms = aciSearchDb.Term.parse_input('@attr@another_attr')
         self.assertTrue(len(terms) == 1)
@@ -471,18 +471,18 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('=va_lue#')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'va_lue')
-        self.assertTrue(terms[0].type == 'v')
+        self.assertTrue(terms[0].key == ('','va_lue'))
+        self.assertTrue(terms[0].type == 'cv')
 
         terms = aciSearchDb.Term.parse_input('=va-lue@')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'va-lue')
-        self.assertTrue(terms[0].type == 'v')
+        self.assertTrue(terms[0].key == ('','va-lue'))
+        self.assertTrue(terms[0].type == 'av')
 
         terms = aciSearchDb.Term.parse_input('=va[lue*')
-        self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == 'va[lue')
-        self.assertTrue(terms[0].type == 'v')
+        self.assertTrue(len(terms) == 2)
+        self.assertTrue(terms[0].key == ('','va[lue'))
+        self.assertTrue(terms[0].type == 'cv')
 
         terms = aciSearchDb.Term.parse_input('=value=another_value')
         self.assertTrue(len(terms) == 1)
@@ -505,18 +505,24 @@ class TestTerm(unittest.TestCase):
         self.assertTrue(terms[0].key == ('class', 'attr', 'value'))
         self.assertTrue(terms[0].type == 'cav')
         self.assertTrue(terms[0].points == 8)
+        self.assertTrue(terms[0].sql ==
+                        "SELECT value FROM avc WHERE class = 'class' AND attribute = 'attr' AND  value LIKE 'value%'")
 
         terms = aciSearchDb.Term.parse_input('@attr#class=value')
         self.assertTrue(len(terms) == 1)
         self.assertTrue(terms[0].key == ('class', 'attr', 'value'))
         self.assertTrue(terms[0].type == 'cav')
         self.assertTrue(terms[0].points == 8)
+        self.assertTrue(terms[0].sql ==
+                        "SELECT value FROM avc WHERE class = 'class' AND attribute = 'attr' AND  value LIKE 'value%'")
 
         terms = aciSearchDb.Term.parse_input('@attr=value#class')
         self.assertTrue(len(terms) == 1)
         self.assertTrue(terms[0].key == ('class', 'attr', 'value'))
         self.assertTrue(terms[0].type == 'cav')
         self.assertTrue(terms[0].points == 8)
+        self.assertTrue(terms[0].sql ==
+                        "SELECT class FROM avc WHERE attribute = 'attr' AND value = 'value' AND  class LIKE 'class%'")
 
         terms = aciSearchDb.Term.parse_input('=value@attr#class')
         self.assertTrue(len(terms) == 1)

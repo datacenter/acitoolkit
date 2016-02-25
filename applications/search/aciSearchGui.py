@@ -20,6 +20,7 @@
 """
 Reports: ACI Toolkit report GUI.
 """
+import datetime
 from flask import Flask, session, redirect, url_for, jsonify
 from flask import flash, request
 from flask.ext import admin
@@ -281,8 +282,22 @@ def search_result_page(search_terms='1/101/1/49'):
     """
     terms = str(request.args['first'])
     print 'search terms', terms
-
+    t1 = datetime.datetime.now()
     result, total_hits = sdb.search(terms)
+    t2 = datetime.datetime.now()
+    print "SearchGui time:", t2-t1
+    return jsonify(result=result, total_hits=total_hits)
+
+@app.route("/term_complete/<terms>")
+def presearch_result_page(terms='1/101/1/49'):
+    """
+    URL to request information about a specific port
+    :param search_terms:
+    """
+    terms = str(request.args['searchString'])
+    print 'search terms', terms
+
+    result, total_hits = sdb.term_complete(terms)
     return jsonify(result=result, total_hits=total_hits)
 
 if __name__ == '__main__':
