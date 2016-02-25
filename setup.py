@@ -29,7 +29,7 @@ setup(
                       "flask-wtf",
                       "flask",
                       "pymysql",
-                      "mock",
                       "tabulate"],
+    tests_requires=["mock"],
     description="This library allows basic Cisco ACI APIC configuration.",
 )
