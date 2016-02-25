@@ -774,11 +774,11 @@ class EPG(CommonEPG):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
+        super(EPG, self)._populate_from_attributes(attributes)
         self.match_type = str(attributes.get('matchT'))
         self.class_id = str(attributes.get('pcTag'))
         self.scope = str(attributes.get('scope'))
         self.name = str(attributes.get('name'))
-        self.dn = self.get_dn_from_attributes(attributes)
 
     # Infrastructure Domain references
     def add_infradomain(self, infradomain):
@@ -2308,6 +2308,7 @@ class BridgeDomain(BaseACIObject):
         :param attributes:
         :return:
         """
+        super(BridgeDomain, self)._populate_from_attributes(attributes)
         self.class_id = attributes.get('pcTag')
         self.scope = attributes.get('scope')
         self.vnid = attributes.get('seg')
@@ -2319,8 +2320,6 @@ class BridgeDomain(BaseACIObject):
         self.unknown_multicast = attributes.get('unkMcastAct')
         self.multidestination = attributes.get('multiDstPktAct')
         self.modified_time = attributes.get('modTs')
-        # dn = attributes.get('dn')
-        self.dn = self.get_dn_from_attributes(attributes)
 
     @staticmethod
     def get_table(bridge_domains, title=''):
@@ -2466,9 +2465,9 @@ class Subnet(BaseACIObject):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
+        super(Subnet, self)._populate_from_attributes(attributes)
         self.set_addr(str(attributes.get('ip')))
         self.set_scope(str(attributes.get('scope')))
-        self.dn = self.get_dn_from_attributes(attributes)
 
     @classmethod
     def get(cls, session, bridgedomain, tenant):
@@ -2575,14 +2574,13 @@ class Context(BaseACIObject):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.descr = str(attributes.get('descr'))
+        super(Context, self)._populate_from_attributes(attributes)
         self.known_mcast = str(attributes.get('knwMcastAct'))
         self.modified_time = str(attributes.get('modTs'))
         self.name = str(attributes.get('name'))
         self.class_id = str(attributes.get('pcTag'))
         self.scope = str(attributes.get('scope'))
         self.vnid = str(attributes.get('seg'))
-        self.dn = self.get_dn_from_attributes(attributes)
         dn = attributes.get('dn')
         if dn is not None:
             self.tenant = str(self._get_tenant_from_dn(dn))
@@ -2734,10 +2732,9 @@ class ContractInterface(BaseACIObject):
         Sets the attributes when creating objects from the APIC.
         Called from the base object when calling the classmethod get()
         """
-        self.descr = attributes.get('descr')
+        super(ContractInterface, self)._populate_from_attributes(attributes)
         self.modified_time = attributes.get('modTs')
         self.name = attributes.get('name')
-        self.dn = self.get_dn_from_attributes(attributes)
         dn = attributes.get('dn')
         if dn is not None:
             self.tenant = self._get_tenant_from_dn(dn)
@@ -3227,6 +3224,7 @@ class FilterEntry(BaseACIObject):
         return attributes
 
     def _populate_from_attributes(self, attributes):
+        super(FilterEntry, self)._populate_from_attributes(attributes)
         self.applyToFrag = str(attributes['applyToFrag'])
         self.arpOpc = str(attributes['arpOpc'])
         self.dFromPort = str(attributes['dFromPort'])
@@ -3237,7 +3235,6 @@ class FilterEntry(BaseACIObject):
         self.sToPort = str(attributes['sToPort'])
         self.tcpRules = str(attributes['tcpRules'])
         self.stateful = str(attributes['stateful'])
-        self.dn = self.get_dn_from_attributes(attributes)
 
     def get_json(self):
         """
@@ -3654,10 +3651,10 @@ class Endpoint(BaseACIObject):
     def _populate_from_attributes(self, attributes):
         if 'mac' not in attributes:
             return
+        super(Endpoint, self)._populate_from_attributes(attributes)
         self.mac = str(attributes.get('mac'))
         self.ip = str(attributes.get('ip'))
         self.encap = str(attributes.get('encap'))
-        self.dn = self.get_dn_from_attributes(attributes)
         self.life_cycle = str(attributes.get('lcC'))
 
     def _populate_interface_info(self, working_data):
@@ -3992,7 +3989,7 @@ class IPEndpoint(BaseACIObject):
         return None
 
     def _populate_from_attributes(self, attributes):
-        self.dn = self.get_dn_from_attributes(attributes)
+        super(IPEndpoint, self)._populate_from_attributes(attributes)
         if 'addr' not in attributes:
             return
         self.ip = str(attributes.get('addr'))
