@@ -1049,8 +1049,10 @@ class LocalSite(Site):
                     for item in resp.json()['imdata']:
                         ip_addr = item['l3extSubnet']['attributes']['ip'].rpartition('-')[-1]
                         if '/32' in ip_addr:
-                            ip_addr = ip_addr.rpartition('/32')[0]
-                        if ip_addr not in local_endpoints:
+                            search_ip_addr = ip_addr.rpartition('/32')[0]
+                        else:
+                            search_ip_addr = ip_addr
+                        if search_ip_addr not in local_endpoints:
                             # Delete this L3out entry
                             data = {'l3extSubnet': {'attributes': {'ip': ip_addr,
                                                                    'status': 'deleted'}}}

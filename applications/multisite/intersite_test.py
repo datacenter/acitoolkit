@@ -333,8 +333,7 @@ class BaseTestCase(unittest.TestCase):
         resp = tenant.push_to_apic(site1)
         self.assertTrue(resp.ok)
 
-
-class TestBasicEndpoints(BaseTestCase):
+class BaseEndpointTestCase(BaseTestCase):
     def setup_local_site(self):
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
@@ -402,6 +401,8 @@ class TestBasicEndpoints(BaseTestCase):
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         return mac, ip
 
+
+class TestBasicEndpoints(BaseEndpointTestCase):
     def test_basic_add_endpoint(self):
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
@@ -1780,7 +1781,7 @@ class TestDuplicates(BaseTestCase):
             ip = '3.4.3.' + str(i)
             self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
 
-class TestDuplicatesTwoL3Outs(BaseTestCase):
+class SetupDuplicateTests(BaseTestCase):
     def create_config_file(self):
         config = self.create_site_config()
         export_policy = {
@@ -1866,6 +1867,8 @@ class TestDuplicatesTwoL3Outs(BaseTestCase):
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
 
+
+class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
     def add_remote_duplicate_entry(self, ip):
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -1956,6 +1959,41 @@ class TestDuplicatesTwoL3Outs(BaseTestCase):
             ip = '3.4.3.' + str(i)
             self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
             self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
+
+
+class TestDeletions(BaseEndpointTestCase):
+    def test_basic_deletion(self):
+        args = self.get_args()
+        args.debug = 'verbose'
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config = self.create_config_file()
+
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        config_file.close()
+
+        # Create the "stale" entry on the remote site
+        mac = '00:11:22:33:33:33'
+        ip = '3.4.3.4'
+        site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+        tag = IntersiteTag('intersite-testsuite', 'app', 'epg', 'Site1')
+        remote_tenant = Tenant('intersite-testsuite')
+        remote_l3out = OutsideL3('l3out', remote_tenant)
+        remote_epg = OutsideEPG('intersite-testsuite-app-epg', remote_l3out)
+        remote_ep = OutsideNetwork(ip, remote_epg)
+        remote_ep.ip = ip + '/32'
+        remote_tenant.push_to_apic(site2)
+
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+
+        execute_tool(args, test_mode=True)
+
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
 
 def main_test():
