@@ -765,8 +765,10 @@ class EPG(CommonEPG):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        if '/LDevInst-' in dn:
+        if '/LDevInst-' in dn or '/lDev-' in dn:
             return 'ServiceGraph'
+        elif '/epg-' not in dn:
+            return 'Unknown'
         return dn.split('/epg-')[1].split('/')[0]
 
     def _populate_from_attributes(self, attributes):
