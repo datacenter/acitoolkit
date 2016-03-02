@@ -2498,18 +2498,18 @@ class Subnet(BaseACIObject):
         result['addr'] = self.get_addr()
         result['scope'] = self.get_scope()
         return result
-        
+
     def __eq__(self, other):
         if not isinstance(self, Subnet) or not isinstance(other, Subnet):
             return NotImplemented
-        
+
         # Neither object has "addr" attribute - use the parent class
         if not hasattr(self, 'addr') and not hasattr(other, 'addr'):
             return super(Subnet, self).__eq__(other)
-        
+
         if not hasattr(self, 'addr') or not hasattr(other, 'addr'):
             return False
-        
+
         return super(Subnet, self).__eq__(other) and self._addr == other._addr
 
 
@@ -3029,7 +3029,6 @@ class ContractSubject(BaseACIObject):
 
         :returns: List of Filter objects
         """
-
         resp = []
         for relation in self._relations:
             if isinstance(relation.item, Filter):
@@ -3205,7 +3204,17 @@ class FilterEntry(BaseACIObject):
         # Backward compatibility for old calls that reference a Contract instead
         # of a Filter Object
         if isinstance(parent, Contract):
-            contract_subject = ContractSubject(parent.name + "_Subject", parent)
+            contract_subject_name = parent.name + "_Subject"
+            # Look for an existing ContractSubject
+            found = False
+            for child in parent.get_children():
+                if isinstance(child, ContractSubject) and child.name == contract_subject_name:
+                    contract_subject = child
+                    found = True
+                    break
+            if not found:
+                # Create the ContractSubject if not existing
+                contract_subject = ContractSubject(parent.name + "_Subject", parent)
             filt = Filter(name + "_Filter", parent.get_parent())
             contract_subject.add_filter(filt)
             parent = filt
@@ -3665,14 +3674,14 @@ class Endpoint(BaseACIObject):
                 children = working_data[0][item]['children']
                 for child in children:
                     for child_item in child:
-                        if child_item in ['fvRsCEpToPathEp','fvRsStCEpToPathEp' ]:
+                        if child_item in ['fvRsCEpToPathEp', 'fvRsStCEpToPathEp']:
                             if_dn = str(child[child_item]['attributes']['tDn'])
                             if 'protpaths' in if_dn:
                                 regex = re.search(r'pathep-\[(.+)\]$', if_dn)
                                 self.if_name = regex.group(1)
                             elif 'tunnel' in if_dn:
                                 self.if_name = if_dn
-                            else :
+                            else:
                                 name = if_dn.split('/')
                                 pod = str(name[1].split('-')[1])
                                 node = str(name[2].split('-')[1])
