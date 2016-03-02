@@ -46,6 +46,11 @@ from .acitoolkitlib import Credentials
 
 
 def cmdline_login_to_apic(description=''):
+    """
+    Get credentials to login to APIC
+    :param description: String containing description
+    :return: Session instance
+    """
     # Take login credentials from the command line if provided
     # Otherwise, take them from your environment variables file ~/.profile
     creds = Credentials('apic', description)
@@ -318,8 +323,10 @@ class AppProfile(BaseACIObject):
 
     @staticmethod
     def _get_name_from_dn(dn):
-        if '/LDevInst-' in dn:
+        if '/LDevInst-' in dn or '/lDev-' in dn:
             return 'ServiceGraph'
+        elif '/ap-' not in dn:
+            return 'Unknown'
         name = dn.split('/ap-')[1].split('/')[0]
         return name
 
@@ -1111,6 +1118,9 @@ class EPG(CommonEPG):
 
 
 class OutsideNetwork(CommonEPG):
+    """
+    OutsideNetwork class, roughly equivalent to l3extSubnet in the APIC model
+    """
     def __init__(self, name, parent):
         super(OutsideNetwork, self).__init__(name, parent)
         self.ip = None
@@ -1143,6 +1153,9 @@ class OutsideNetwork(CommonEPG):
 
 
 class OutsideEPG(CommonEPG):
+    """
+    OutsideEPG class, roughly equivalent to l3ext:InstP
+    """
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -1228,6 +1241,9 @@ class OutsideEPG(CommonEPG):
 
 
 class OutsideL2EPG(CommonEPG):
+    """
+    OutsideL2EPG class, roughly equivalent to l2ext:InstP
+    """
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2227,6 +2243,10 @@ class BridgeDomain(BaseACIObject):
         self._add_relation(l3out)
 
     def has_l3out(self):
+        """
+        Check if this BD has an OutsideL3
+        :return: True if the BD has an OutsideL3 configured. False, otherwise.
+        """
         return len(self._get_all_relation(OutsideL3)) > 0
 
     def get_l3out(self):
@@ -2490,6 +2510,10 @@ class Subnet(BaseACIObject):
 
     @property
     def addr(self):
+        """
+        Subnet address
+        :return: String containing the Subnet address
+        """
         return self._addr
 
     def get_attributes(self, name=None):
@@ -3449,6 +3473,11 @@ class PortChannel(BaseInterface):
 
     @classmethod
     def create_from_dn(cls, dn):
+        """
+        Create a PortChannel instance based on the specified DN
+        :param dn: String containing the DN
+        :return: Instance of PortChannel class
+        """
         nodes = dn.partition('/protpaths-')[-1].partition('/')[0].split('-')
         name = dn.partition('/pathep-[')[-1].partition(']')[0]
         return cls(name)
@@ -3839,7 +3868,7 @@ class Endpoint(BaseACIObject):
     def get(session, endpoint_name=None):
         """Gets all of the endpoints connected to the fabric from the APIC
         :param endpoint_name:
-        :param session:
+        :param session: Session instance used to communicate with the APIC. Assumed to be logged in
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
@@ -3860,6 +3889,16 @@ class Endpoint(BaseACIObject):
 
     @classmethod
     def get_all_by_epg(cls, session, tenant_name, app_name, epg_name, with_interface_attachments=True):
+        """
+        Get all of the Endpoints for a specified EPG
+
+        :param session: Session instance used to communicate with the APIC. Assumed to be logged in
+        :param tenant_name: String containing the tenant name
+        :param app_name: String containing the app name
+        :param epg_name: String containing the epg name
+        :param with_interface_attachments: Boolean indicating whether interfaces should be attached or not. True is default.
+        :return: List of Endpoint instances
+        """
         if with_interface_attachments:
             raise NotImplementedError
         query_url = ('/api/mo/uni/tn-%s/ap-%s/epg-%s.json?'
