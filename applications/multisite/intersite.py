@@ -1468,6 +1468,7 @@ def initialize_tool(config):
     except ValueError as e:
         print 'Could not load improperly formatted configuration file'
         print e
+        raise
         sys.exit(0)
     collector = MultisiteCollector()
     collector.config = IntersiteConfiguration(config)

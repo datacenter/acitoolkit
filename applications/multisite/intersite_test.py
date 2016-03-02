@@ -31,7 +31,6 @@ except ImportError:
             '''
     sys.exit(0)
 
-
 class FakeStdio(object):
     def __init__(self):
         self.output = []
@@ -123,26 +122,44 @@ class TestBadConfiguration(unittest.TestCase):
         fake_out = FakeStdio()
         sys.stdout = fake_out
 
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        config_file.close()
+
+        execute_tool(args, test_mode=True)
         sys.stdout = temp
         self.assertTrue(fake_out.verify_output(['%% Invalid configuration file', '\n']))
 
     def test_site_with_bad_ipaddress(self):
         args = self.get_args()
         config = self.create_empty_config_file()
-        config['config'][0]['site']['ipaddress'] = 'bogu$'
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+        config['config'][0]['site']['ip_address'] = 'bogu$'
+
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        config_file.close()
+
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
     def test_site_with_good_ipaddress_and_bad_userid(self):
         args = self.get_args()
         config = self.create_empty_config_file()
+        config['config'][0]['site']['username'] = ''
         config['config'][0]['site']['ip_address'] = '172.31.216.100'
         config['config'][0]['site']['local'] = 'True'
         config['config'][0]['site']['use_https'] = 'True'
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            self.assertRaises(ConnectionError, execute_tool, args, test_mode=True)
+
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        config_file.close()
+
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
     def rtest_debug_no_level(self):
         args = mock.Mock()
@@ -190,6 +207,13 @@ class BaseTestCase(unittest.TestCase):
             ]
         }
         return config
+
+    def write_config_file(self, config, args):
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        config_file.close()
 
     def verify_remote_site_has_entry(self, mac, ip, tenant_name, l3out_name, remote_epg_name):
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
@@ -262,6 +286,8 @@ class BaseTestCase(unittest.TestCase):
     def teardown_local_site(self):
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
+        if not resp.ok:
+            print resp, resp.text
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')
@@ -389,9 +415,9 @@ class BaseEndpointTestCase(BaseTestCase):
 
     def setup_with_endpoint(self):
         args = self.get_args()
-        config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(self.create_config_file(), args)
+
+        execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -524,8 +550,14 @@ class TestMultipleEPG(BaseTestCase):
     def test_basic_add_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        config_file.close()
+
+        execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -540,8 +572,14 @@ class TestMultipleEPG(BaseTestCase):
     def test_basic_add_multiple_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        config_file.close()
+
+        execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac1 = '00:11:22:33:33:34'
@@ -562,8 +600,8 @@ class TestMultipleEPG(BaseTestCase):
     def test_basic_remove_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac = '00:11:22:33:33:33'
@@ -579,8 +617,8 @@ class TestMultipleEPG(BaseTestCase):
     def test_basic_remove_one_of_multiple_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac1 = '00:11:22:33:33:34'
@@ -661,8 +699,8 @@ class TestBasicExistingEndpoints(BaseTestCase):
     def test_basic_add_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
         time.sleep(2)
 
         mac = '00:11:22:33:33:33'
@@ -672,8 +710,8 @@ class TestBasicExistingEndpoints(BaseTestCase):
     def test_basic_remove_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac = '00:11:22:33:33:33'
@@ -748,13 +786,13 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
     def test_basic_add_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
         time.sleep(2)
 
         config['config'].append(self.create_export_policy())
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
         time.sleep(2)
 
         mac = '00:11:22:33:33:33'
@@ -765,9 +803,9 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         args = self.get_args()
         config = self.create_config_file()
         config['config'].append(self.create_export_policy())
+        self.write_config_file(config, args)
 
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        collector = execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac = '00:11:22:33:33:33'
@@ -775,8 +813,8 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
         time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
@@ -910,8 +948,8 @@ class TestExportPolicyRemoval(BaseTestCase):
     def test_basic_remove_policy(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
         time.sleep(4)
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -920,8 +958,8 @@ class TestExportPolicyRemoval(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg2'))
 
         config = self.create_site_config()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
 
         time.sleep(4)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
@@ -933,15 +971,15 @@ class TestExportPolicyRemoval(BaseTestCase):
         config = self.create_config_file()
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
         time.sleep(4)
         self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
         config = self.create_diff_epg_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
 
         time.sleep(4)
 
@@ -1015,8 +1053,8 @@ class TestBasicEndpointsWithContract(BaseTestCase):
     def test_basic_add_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -1033,8 +1071,8 @@ class TestBasicEndpointsWithContract(BaseTestCase):
     def test_basic_add_multiple_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac1 = '00:11:22:33:33:34'
@@ -1053,8 +1091,8 @@ class TestBasicEndpointsWithContract(BaseTestCase):
     def test_basic_remove_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac = '00:11:22:33:33:33'
@@ -1071,8 +1109,8 @@ class TestBasicEndpointsWithContract(BaseTestCase):
     def test_basic_remove_one_of_multiple_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac1 = '00:11:22:33:33:34'
@@ -1182,8 +1220,8 @@ class TestBasicEndpointMove(BaseTestCase):
     def setup_with_endpoint(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -1426,8 +1464,8 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
     def test_basic_add_endpoint(self):
         args = self.get_args()
         config = self.create_config_file_before()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -1440,16 +1478,16 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
 
         self.assertTrue(self.verify_remote_site_has_entry_before(mac, ip))
         config = self.create_config_file_after()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
         time.sleep(4)
         self.assertTrue(self.verify_remote_site_has_entry_after(mac, ip))
 
     def test_basic_add_multiple_endpoint(self):
         args = self.get_args()
         config = self.create_config_file_before()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac1 = '00:11:22:33:33:34'
@@ -1464,8 +1502,8 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry_before(mac2, ip2))
 
         config = self.create_config_file_after()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
         time.sleep(2)
         self.assertTrue(self.verify_remote_site_has_entry_after(mac1, ip1))
         self.assertTrue(self.verify_remote_site_has_entry_after(mac2, ip2))
@@ -1533,8 +1571,8 @@ class TestChangeL3Out(BaseTestCase):
     def test_basic_add_endpoint(self):
         args = self.get_args()
         config = self.create_config_file('l3out1')
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -1548,8 +1586,8 @@ class TestChangeL3Out(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
         config = self.create_config_file('l3out2')
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
         time.sleep(4)
 
         self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
@@ -1567,8 +1605,8 @@ class TestChangeL3Out(BaseTestCase):
                                                   "tenant": "intersite-testsuite"}}
                     site_policy['site']['interfaces'].append(interface_policy)
                 policy['export']['remote_sites'].append(site_policy)
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -1585,8 +1623,8 @@ class TestChangeL3Out(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
         config = self.create_config_file('l3out2')
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
         time.sleep(4)
 
         self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
@@ -1597,8 +1635,8 @@ class TestChangeL3Out(BaseTestCase):
     def test_basic_add_multiple_endpoint(self):
         args = self.get_args()
         config = self.create_config_file('l3out1')
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector = execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        collector = execute_tool(args, test_mode=True)
 
         time.sleep(2)
         mac1 = '00:11:22:33:33:34'
@@ -1613,8 +1651,8 @@ class TestChangeL3Out(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
 
         config = self.create_config_file('l3out2')
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            collector.reload_config()
+        self.write_config_file(config, args)
+        collector.reload_config()
         time.sleep(2)
         self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
@@ -1717,8 +1755,8 @@ class TestDuplicates(BaseTestCase):
     def test_basic_duplicate(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -1734,8 +1772,8 @@ class TestDuplicates(BaseTestCase):
     def test_basic_multiple_duplicate(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         for i in range(0, 5):
             mac = '00:11:22:33:33:3' + str(i)
@@ -1759,8 +1797,8 @@ class TestDuplicates(BaseTestCase):
     def test_basic_partial_duplicate(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         for i in range(0, 7):
             mac = '00:11:22:33:33:3' + str(i)
@@ -1886,8 +1924,8 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
     def test_basic_duplicate(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
@@ -1909,8 +1947,8 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
     def test_basic_multiple_duplicate(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         for i in range(0, 5):
             mac = '00:11:22:33:33:3' + str(i)
@@ -1936,8 +1974,8 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
     def test_basic_partial_duplicate(self):
         args = self.get_args()
         config = self.create_config_file()
-        with mock.patch.object(builtins, 'open', mock.mock_open(read_data=str(json.dumps(config)))):
-            execute_tool(args, test_mode=True)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
 
         for i in range(0, 7):
             mac = '00:11:22:33:33:3' + str(i)
@@ -1964,7 +2002,6 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
 class TestDeletions(BaseEndpointTestCase):
     def test_basic_deletion(self):
         args = self.get_args()
-        args.debug = 'verbose'
         config_filename = 'testsuite_cfg.json'
         args.config = config_filename
         config = self.create_config_file()
@@ -1999,6 +2036,19 @@ class TestDeletions(BaseEndpointTestCase):
 def main_test():
     full = unittest.TestSuite()
     full.addTest(unittest.makeSuite(TestToolOptions))
+    full.addTest(unittest.makeSuite(TestBadConfiguration))
+    full.addTest(unittest.makeSuite(TestBasicEndpoints))
+    full.addTest(unittest.makeSuite(TestMultipleEPG))
+    full.addTest(unittest.makeSuite(TestBasicExistingEndpoints))
+    full.addTest(unittest.makeSuite(TestBasicExistingEndpointsAddPolicyLater))
+    full.addTest(unittest.makeSuite(TestExportPolicyRemoval))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithContract))
+    full.addTest(unittest.makeSuite(TestBasicEndpointMove))
+    full.addTest(unittest.makeSuite(TestPolicyChangeProvidedContract))
+    full.addTest(unittest.makeSuite(TestChangeL3Out))
+    full.addTest(unittest.makeSuite(TestDuplicates))
+    full.addTest(unittest.makeSuite(TestDuplicatesTwoL3Outs))
+    full.addTest(unittest.makeSuite(TestDeletions))
 
     unittest.main()
 
