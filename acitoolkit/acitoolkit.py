@@ -2595,7 +2595,7 @@ class Subnet(BaseSubnet):
 
     def set_scope(self, scope):
         """
-        Set the subnet address
+        Set the subnet scope
 
         :param scope: The scope of the subnet. Use "public" when the subnet
         needs to be advertised externally, "private" when no external routing
@@ -2667,6 +2667,23 @@ class OutsideNetwork(BaseSubnet):
             raise ValueError('OutsideNetwork ip is not set')
         attributes['ip'] = self.get_addr()
         return attributes
+
+    def set_scope(self, scope):
+        """
+        Set the subnet scope
+
+        :param scope: String containing the scope
+        """
+        valid_scopes = ["import-rtctrl", "export-rtctrl", "import-security", "shared-security",
+                        "shared-rtctrl"]
+        if scope is None:
+            raise TypeError('Scope can not be set to None')
+        scope = scope.replace(' ', '')
+        for sub_scope in scope.lower.split(','):
+            if sub_scope not in valid_scopes:
+                raise ValueError('Invalid value for scope. It must be one of "%s".'
+                                 % '", "'.join(valid_scopes))
+        self._scope = scope.lower()
 
     @classmethod
     def _get_apic_classes(cls):
