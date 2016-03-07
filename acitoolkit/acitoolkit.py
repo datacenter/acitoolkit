@@ -2679,7 +2679,7 @@ class OutsideNetwork(BaseSubnet):
         if scope is None:
             raise TypeError('Scope can not be set to None')
         scope = scope.replace(' ', '')
-        for sub_scope in scope.lower.split(','):
+        for sub_scope in scope.lower().split(','):
             if sub_scope not in valid_scopes:
                 raise ValueError('Invalid value for scope. It must be one of "%s".'
                                  % '", "'.join(valid_scopes))
