@@ -31,7 +31,7 @@ from .acisession import EventHandler, Login, Session, Subscriber # noqa
 from .aciTable import Table # noqa
 from .acitoolkit import ( # noqa
     AppProfile, BGPSession, BridgeDomain, CollectionPolicy, CommonEPG, Context,
-    Contract, ContractInterface, Endpoint, EPG, EPGDomain, FexInterface,
+    Contract, ContractInterface, ContractSubject, Endpoint, EPG, EPGDomain, FexInterface,
     Filter, FilterEntry, L2ExtDomain, L2Interface, L3ExtDomain, L3Interface,
     LogicalModel, MonitorPolicy, MonitorStats, MonitorTarget, NetworkPool,
     OSPFInterface, OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, OutsideNetwork,

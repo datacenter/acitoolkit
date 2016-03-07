@@ -1256,6 +1256,15 @@ class OutsideEPG(CommonEPG):
                                                attributes=attr,
                                                children=children)
 
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {'l3extSubnet': OutsideNetwork, }
+
     def _extract_relationships(self, data, epg_type='l3'):
         l3out = self.get_parent()
         tenant = l3out.get_parent()
@@ -3837,7 +3846,10 @@ class Endpoint(BaseACIObject):
         self.mac = str(attributes.get('mac'))
         self.ip = str(attributes.get('ip'))
         self.encap = str(attributes.get('encap'))
-        self.life_cycle = str(attributes.get('lcC'))
+        life_cycle = str(attributes.get('lcC'))
+        if life_cycle is not '':
+            self.life_cycle = life_cycle
+        self.type = str(attributes.get('type'))
 
     def _populate_interface_info(self, working_data):
         for item in working_data[0]:
@@ -3858,7 +3870,7 @@ class Endpoint(BaseACIObject):
                                 node = str(name[2].split('-')[1])
                                 port = re.search(r'pathep-\[eth(.+)\]$', if_dn).group(1)
                                 self.if_name = 'eth {0}/{1}/{2}'.format(pod, node, port)
-                        if child_item == 'fvIp':
+                        if child_item == 'fvIp' or child_item == 'fvStIp':
                             ip_address = str(child[child_item]['attributes']['addr'])
                             self.secondary_ip.append(ip_address)
 
@@ -3878,9 +3890,20 @@ class Endpoint(BaseACIObject):
         obj = None
         for item in working_data:
             for key in item:
+
+                # if an endpoint is static then a dynamic one is also created
+                # the following will prevent the dynamic one from being added
+                if item[key]['attributes']['lcC'] == 'static' and key == 'fvCEp':
+                    continue
+
                 if key in cls._get_apic_classes():
                     attribute_data = item[key]['attributes']
-                    obj = cls(str(attribute_data['name']), parent)
+                    name = str(attribute_data['name'])
+                    if name == '':
+                        name = attribute_data['mac']
+                    obj = cls(name, parent)
+                    if key == 'fvStCEp':
+                        obj.life_cycle = 'static'
                     obj._populate_from_attributes(attribute_data)
                     obj._populate_interface_info(working_data)
                     if 'children' in item[key]:
