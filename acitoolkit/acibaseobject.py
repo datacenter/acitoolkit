@@ -931,7 +931,7 @@ class BaseACIObject(AciSearch):
 
         # always get a dn
         self.dn = self.get_dn_from_attributes(attributes)
-        # pass
+        self.descr = attributes.get('descr')
 
     def get_dn_from_attributes(self, attributes):
         """

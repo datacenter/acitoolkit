@@ -1,5 +1,5 @@
 import unittest
-from acitoolkit import *
+from acitoolkit import AppProfile, EPG, Endpoint, Interface, L2Interface, Context, BridgeDomain
 from intersite import *
 from StringIO import StringIO
 import mock
@@ -31,23 +31,51 @@ except ImportError:
             '''
     sys.exit(0)
 
+
 class FakeStdio(object):
+    """
+    FakeStdio : Class to fake writing to stdio and store it so that it can be verified
+    """
     def __init__(self):
         self.output = []
 
     def write(self, *args, **kwargs):
+        """
+        Mock the write routine
+
+        :param args: Args passed to stdio write
+        :param kwargs: Kwargs passed to stdio write
+        :return: None
+        """
         for arg in args:
             self.output.append(arg)
 
     def verify_output(self, output):
+        """
+        Verify that the output is the same as generated previously
+
+        :param output: Output to test for
+        :return: True if the same as the stored output. False otherwise
+        """
         return output == self.output
 
 
 class TestToolOptions(unittest.TestCase):
+    """
+    Test cases for testing the command line arguments
+    """
     def get_logging_level(self):
+        """
+        Return the current logger level
+
+        :return: Logger level
+        """
         return logging.getLevelName(logging.getLogger().getEffectiveLevel())
 
     def test_no_options(self):
+        """
+        Test no configuration file given.  Verify that it generates an error message
+        """
         args = mock.Mock()
         args.debug = None
         args.generateconfig = None
@@ -57,6 +85,9 @@ class TestToolOptions(unittest.TestCase):
             self.assertEqual(fake_out.getvalue(), '%% No configuration file given.\n')
 
     def test_generateconfig(self):
+        """
+        Test generate sample configuration file.  Verify that it generates the correct text message
+        """
         args = mock.Mock()
         args.debug = None
         args.generateconfig = True
@@ -71,6 +102,9 @@ class TestToolOptions(unittest.TestCase):
             self.assertEqual(fake_out.getvalue(), expected_text)
 
     def test_config_bad_filename(self):
+        """
+        Test no configuration file given.  Verify that it generates an error message
+        """
         args = mock.Mock()
         args.debug = None
         args.generateconfig = None
@@ -82,7 +116,14 @@ class TestToolOptions(unittest.TestCase):
 
 
 class TestBadConfiguration(unittest.TestCase):
+    """
+    Test various invalid configuration files
+    """
     def create_empty_config_file(self):
+        """
+        Generate an empty configuration file with only a single empty Site policy
+        :return: dictionary containing the configuration
+        """
         config = {
             "config": [
                 {
@@ -100,6 +141,10 @@ class TestBadConfiguration(unittest.TestCase):
         return config
 
     def get_args(self):
+        """
+        Generate an empty command line arguments
+        :return: Instance of Mock to represent the command line arguments
+        """
         args = mock.Mock()
         args.debug = None
         args.generateconfig = None
@@ -107,6 +152,10 @@ class TestBadConfiguration(unittest.TestCase):
         return args
 
     def test_no_config_keyword(self):
+        """
+        Test no "config" present in the JSON.  Verify that the correct error message is generated.
+        :return: None
+        """
         args = self.get_args()
         config = {
             "site": {
@@ -133,6 +182,10 @@ class TestBadConfiguration(unittest.TestCase):
         self.assertTrue(fake_out.verify_output(['%% Invalid configuration file', '\n']))
 
     def test_site_with_bad_ipaddress(self):
+        """
+        Test invalid IP address value in the JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
         args = self.get_args()
         config = self.create_empty_config_file()
         config['config'][0]['site']['ip_address'] = 'bogu$'
@@ -146,6 +199,10 @@ class TestBadConfiguration(unittest.TestCase):
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
     def test_site_with_good_ipaddress_and_bad_userid(self):
+        """
+        Test good IP address value but invalid username in the JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
         args = self.get_args()
         config = self.create_empty_config_file()
         config['config'][0]['site']['username'] = ''
@@ -172,16 +229,32 @@ class TestBadConfiguration(unittest.TestCase):
 
 
 class BaseTestCase(unittest.TestCase):
+    """
+    BaseTestCase: Base class to be used for creating other TestCases. Not to be instantiated directly.
+    """
     def setUp(self):
+        """
+        Set up the test case.  Setup the remote and local site.
+        :return: None
+        """
         self.setup_remote_site()
         self.setup_local_site()
 
     def tearDown(self):
+        """
+        Tear down the test case.  Tear down the remote and local site.
+        :return: None
+        """
         self.teardown_local_site()
         self.teardown_remote_site()
         time.sleep(2)
 
     def create_site_config(self):
+        """
+        Generate a basic configuration containing the local and remote site policies.
+        Actual site credentials are set in global variables imported from multisite_test_credentials
+        :return: dictionary containing the configuration
+        """
         config = {
             "config": [
                 {
@@ -209,6 +282,12 @@ class BaseTestCase(unittest.TestCase):
         return config
 
     def write_config_file(self, config, args):
+        """
+        Write the configuration as a temporary file and set the command line arguments to read the file
+        :param config: dictionary containing the configuration
+        :param args: Mock of the command line arguments
+        :return: None
+        """
         config_filename = 'testsuite_cfg.json'
         args.config = config_filename
         config_file = open(config_filename, 'w')
@@ -216,6 +295,15 @@ class BaseTestCase(unittest.TestCase):
         config_file.close()
 
     def verify_remote_site_has_entry(self, mac, ip, tenant_name, l3out_name, remote_epg_name):
+        """
+        Verify that the remote site has the entry
+        :param mac: String containing the MAC address of the endpoint to find on the remote site
+        :param ip: String containing the IP address of the endpoint to find on the remote site
+        :param tenant_name: String containing the remote tenant name holding the endpoint
+        :param l3out_name: String containing the remote OutsideL3 name holding the endpoint
+        :param remote_epg_name: String containing the remote OutsideEPG on the remote OutsideL3 holding the endpoint
+        :return: True if the remote site has the endpoint. False otherwise
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -235,6 +323,16 @@ class BaseTestCase(unittest.TestCase):
         return True
 
     def verify_remote_site_has_entry_with_provided_contract(self, mac, ip, tenant_name, l3out_name, remote_epg_name, contract_name):
+        """
+        Verify that the remote site has the entry and provides the specfied contract
+        :param mac: String containing the MAC address of the endpoint to find on the remote site
+        :param ip: String containing the IP address of the endpoint to find on the remote site
+        :param tenant_name: String containing the remote tenant name holding the endpoint
+        :param l3out_name: String containing the remote OutsideL3 name holding the endpoint
+        :param remote_epg_name: String containing the remote OutsideEPG on the remote OutsideL3 holding the endpoint
+        :param contract_name: String containing the contract name that the remote OutsideEPG should be providing
+        :return: True if the remote site has the endpoint. False otherwise
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -358,6 +456,7 @@ class BaseTestCase(unittest.TestCase):
         # Push the endpoint
         resp = tenant.push_to_apic(site1)
         self.assertTrue(resp.ok)
+
 
 class BaseEndpointTestCase(BaseTestCase):
     def setup_local_site(self):
@@ -1819,6 +1918,7 @@ class TestDuplicates(BaseTestCase):
             ip = '3.4.3.' + str(i)
             self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
 
+
 class SetupDuplicateTests(BaseTestCase):
     def create_config_file(self):
         config = self.create_site_config()
@@ -1878,7 +1978,6 @@ class SetupDuplicateTests(BaseTestCase):
         epg1 = OutsideEPG('intersite-testsuite-app-epg', l3out1)
         other_epg = OutsideEPG('other', l3out1)
         epg2 = OutsideEPG('intersite-testsuite-app-epg', l3out2)
-
 
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)

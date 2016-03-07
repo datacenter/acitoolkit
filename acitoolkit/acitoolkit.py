@@ -35,10 +35,11 @@ import logging
 from operator import attrgetter, itemgetter
 import re
 import sys
+import copy
 
 from requests.compat import urlencode
 
-from .acibaseobject import BaseACIObject, BaseInterface
+from .acibaseobject import BaseACIObject, BaseInterface, Tag
 from .aciphysobject import Interface
 from .acisession import Session
 from .aciTable import Table
@@ -715,6 +716,68 @@ class CommonEPG(BaseACIObject):
                                  parent, tenant)
 
 
+class AttributeCriterion(BaseACIObject):
+    """ AttributeCriterion : roughly equivalent to fvCrtrn """
+    def __init__(self, name, parent=None):
+        """
+        Initializes the AttributeCriterion with a name and optionally an EPG parent
+
+        :param name: String containing the AttributeCriterion name
+        :param parent: Instance of the EPG class representing where this AttributeCriterion is defined
+        :return: Instance of AttributeCriterion class
+        """
+        if parent:
+            if not isinstance(parent, EPG):
+                raise TypeError('Parent must be instance of EPG')
+        super(AttributeCriterion, self).__init__(name, parent)
+        self._match = 'any'
+        self._ip_addresses = []
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, x):
+        assert x in ['any', 'all']
+        self._match = x
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['fvCrtrn']
+
+    def _generate_attributes(self):
+        attr = super(AttributeCriterion, self)._generate_attributes()
+        attr['match'] = self.match
+        return attr
+
+    def add_ip_address(self, ip_addr):
+        if ip_addr not in self._ip_addresses:
+            self._ip_addresses.append(ip_addr)
+
+    def get_json(self):
+        """
+        Returns JSON representation of the AttributeCriterion
+        :return:
+        """
+        attr = self._generate_attributes()
+        children = []
+        for ip_address in self._ip_addresses:
+            child = {'fvIpAttr': {'attributes': {'name': ip_address.split('/')[0],
+                                                 'ip': ip_address},
+                                  'children': []}}
+            children.append(child)
+        return super(AttributeCriterion, self).get_json(self._get_apic_classes()[0],
+                                               attributes=attr,
+                                               children=children)
+
+
+
 class EPG(CommonEPG):
     """ EPG :  roughly equivalent to fvAEPg """
 
@@ -737,6 +800,37 @@ class EPG(CommonEPG):
         self._deployment_immediacy = None
         self._dom_deployment_immediacy = None
         self._dom_resolution_immediacy = None
+        self._is_attribute_based = False
+        self._base_epg = None
+
+    def _generate_attributes(self):
+        attributes = super(EPG, self)._generate_attributes()
+        if self._is_attribute_based:
+            attributes['isAttrBasedEPg'] = 'yes'
+        return attributes
+
+    @property
+    def is_attributed_based(self):
+        return self._is_attribute_based
+
+    @is_attributed_based.setter
+    def is_attributed_based(self, x):
+        if isinstance(x, str):
+            if x.lower() in ['true', 'yes']:
+                self._is_attribute_based = True
+            else:
+                self._is_attribute_based = False
+        self._is_attribute_based = x
+
+    def set_base_epg(self, epg):
+        """
+        Sets the Base EPG.  Used by Attribute-based EPGs to indicate that the BridgeDomain, NodeAttach, and
+        PathAttach relations should be copied from the base EPG when generating JSON.
+
+        :param epg: EPG class instance of the Base EPG
+        :return: None
+        """
+        self._base_epg = epg
 
     @classmethod
     def _get_apic_classes(cls):
@@ -755,7 +849,8 @@ class EPG(CommonEPG):
         :returns: dict of APIC class names to acitoolkit classes
         """
         return {'fvCEp': Endpoint,
-                'fvStCEp': Endpoint, }
+                'fvStCEp': Endpoint,
+                'fvCrtrn': AttributeCriterion}
 
     @staticmethod
     def _get_parent_class():
@@ -788,6 +883,11 @@ class EPG(CommonEPG):
         self.class_id = str(attributes.get('pcTag'))
         self.scope = str(attributes.get('scope'))
         self.name = str(attributes.get('name'))
+        self._is_attribute_based = str(attributes.get('isAttrBasedEPg'))
+        if self._is_attribute_based.lower() in ['true', 'yes']:
+            self._is_attribute_based = True
+        else:
+            self._is_attribute_based = False
 
     # Infrastructure Domain references
     def add_infradomain(self, infradomain):
@@ -976,7 +1076,6 @@ class EPG(CommonEPG):
 
         :param immediacy: String containing either "immediate" or "lazy"
         :param pod: Integer containing the ACI Pod where the supplied leaf is located.
-        :param immediacy: String containing either "immediate" or "lazy"
         """
         if immediacy not in ('immediate', 'lazy'):
             raise ValueError("Immediacy must be one of 'immediate' or 'lazy'")
@@ -1001,12 +1100,24 @@ class EPG(CommonEPG):
         :returns: json dictionary of the EPG
         """
         children = super(EPG, self)._get_common_json()
-        if self.has_bd():
-            text = {'fvRsBd': {'attributes': {'tnFvBDName': self.get_bd().name}}}
+        if self.has_bd() or (self._base_epg is not None and self._base_epg.has_bd()):
+            if self.has_bd():
+                bd_name = self.get_bd().name
+            else:
+                bd_name = self._base_epg.get_bd().name
+            text = {'fvRsBd': {'attributes': {'tnFvBDName': bd_name}}}
             children.append(text)
         # Static leaf bindings
         for leaf_binding in self._leaf_bindings:
             children.append(leaf_binding)
+        if self._base_epg is not None:
+            for leaf_binding in self._base_epg._leaf_bindings:
+                no_encap_leaf_binding = copy.deepcopy(leaf_binding)
+                if 'encap' in no_encap_leaf_binding['fvRsNodeAtt']['attributes']:
+                    del no_encap_leaf_binding['fvRsNodeAtt']['attributes']['encap']
+                no_encap_leaf_binding['fvRsNodeAtt']['attributes']['instrImedcy'] = 'immediate'
+                children.append(no_encap_leaf_binding)
+
         is_interfaces = False
         for interface in self.get_interfaces():
             is_interfaces = True
@@ -1043,7 +1154,10 @@ class EPG(CommonEPG):
                 text = {'fvRsDomAtt': {'attributes': {'tDn': 'uni/phys-allvlans'}}}
                 children.append(text)
 
-        for vmm in self.get_all_attached(VmmDomain):
+        vmm_domains = self.get_all_attached(VmmDomain)
+        if self._base_epg is not None:
+            vmm_domains += self._base_epg.get_all_attached(VmmDomain)
+        for vmm in vmm_domains:
             text = {'fvRsDomAtt': {'attributes': {'tDn': vmm._get_path(),
                                                   'resImedcy': 'immediate'}}}
 
@@ -1115,41 +1229,6 @@ class EPG(CommonEPG):
         data = sorted(data)
         table = Table(data, headers, title=title + 'EPGs')
         return [table, ]
-
-
-class OutsideNetwork(CommonEPG):
-    """
-    OutsideNetwork class, roughly equivalent to l3extSubnet in the APIC model
-    """
-    def __init__(self, name, parent):
-        super(OutsideNetwork, self).__init__(name, parent)
-        self.ip = None
-
-    def _generate_attributes(self):
-        attributes = super(OutsideNetwork, self)._generate_attributes()
-        if self.ip is None:
-            raise ValueError('OutsideNetwork ip is not set')
-        attributes['ip'] = self.ip
-        return attributes
-
-    @classmethod
-    def _get_apic_classes(cls):
-        """
-        Get the APIC classes used by this acitoolkit class.
-
-        :returns: list of strings containing APIC class names
-        """
-        return ['l3extSubnet']
-
-    def get_json(self):
-        """
-        Returns json representation of the OutsideNetwork object.
-
-        :returns: json dictionary of OutsideNetwork
-        """
-        attr = self._generate_attributes()
-        return super(OutsideNetwork, self).get_json(self._get_apic_classes()[0],
-                                                    attributes=attr)
 
 
 class OutsideEPG(CommonEPG):
@@ -2395,29 +2474,26 @@ class BridgeDomain(BaseACIObject):
         return [table, ]
 
 
-class Subnet(BaseACIObject):
-    """ Subnet :  roughly equivalent to fvSubnet """
-
-    def __init__(self, subnet_name, parent=None):
+class BaseSubnet(BaseACIObject):
+    """
+    Base class for Subnet and OutsideNetwork
+    """
+    def __init__(self, name, parent=None):
         """
-        :param subnet_name: String containing the name of this Subnet instance.
-        :param parent: An instance of BridgeDomain class representing the\
-                       BridgeDomain which contains this Subnet.
+        :param name: String containing the name of this instance.
+        :param parent: An instance of the parent class.
         """
-        if not isinstance(parent, BridgeDomain):
-            raise TypeError('Parent of Subnet class must be BridgeDomain')
-        super(Subnet, self).__init__(subnet_name, parent)
+        super(BaseSubnet, self).__init__(name, parent)
         self._addr = None
         self._scope = None
 
-    @classmethod
-    def _get_apic_classes(cls):
-        """
-        Get the APIC classes used by this acitoolkit class.
+    @property
+    def ip(self):
+        return self.get_addr()
 
-        :returns: list of strings containing APIC class names
-        """
-        return ['fvSubnet']
+    @ip.setter
+    def ip(self, x):
+        self.set_addr(x)
 
     def get_addr(self):
         """
@@ -2445,6 +2521,68 @@ class Subnet(BaseACIObject):
         :returns: The subnet scope as a string
         """
         return self._scope
+
+    def set_scope(self, scope):
+        raise NotImplementedError
+
+    def _populate_from_attributes(self, attributes):
+        """
+        Sets the attributes when creating objects from the APIC.
+        Called from the base object when calling the classmethod get()
+        """
+        super(BaseSubnet, self)._populate_from_attributes(attributes)
+        self.set_addr(str(attributes.get('ip')))
+        self.set_scope(str(attributes.get('scope')))
+
+    @property
+    def addr(self):
+        """
+        Subnet address
+        :return: String containing the Subnet address
+        """
+        return self._addr
+
+    def get_attributes(self, name=None):
+
+        result = super(BaseSubnet, self).get_attributes(name)
+        if self.get_addr() is not None:
+            result['addr'] = self.get_addr()
+        if self.get_scope() is not None:
+            result['scope'] = self.get_scope()
+        return result
+
+    def __eq__(self, other):
+        # Neither object has "addr" attribute - use the parent class
+        if not hasattr(self, 'addr') and not hasattr(other, 'addr'):
+            return super(Subnet, self).__eq__(other)
+
+        if not hasattr(self, 'addr') or not hasattr(other, 'addr'):
+            return False
+
+        return super(BaseSubnet, self).__eq__(other) and self._addr == other._addr
+
+
+class Subnet(BaseSubnet):
+    """ Subnet :  roughly equivalent to fvSubnet """
+
+    def __init__(self, subnet_name, parent=None):
+        """
+        :param subnet_name: String containing the name of this Subnet instance.
+        :param parent: An instance of BridgeDomain class representing the\
+                       BridgeDomain which contains this Subnet.
+        """
+        if not isinstance(parent, BridgeDomain):
+            raise TypeError('Parent of Subnet class must be BridgeDomain')
+        super(Subnet, self).__init__(subnet_name, parent)
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['fvSubnet']
 
     def set_scope(self, scope):
         """
@@ -2482,15 +2620,6 @@ class Subnet(BaseACIObject):
             attributes['scope'] = self.get_scope()
         return super(Subnet, self).get_json('fvSubnet', attributes=attributes)
 
-    def _populate_from_attributes(self, attributes):
-        """
-        Sets the attributes when creating objects from the APIC.
-        Called from the base object when calling the classmethod get()
-        """
-        super(Subnet, self)._populate_from_attributes(attributes)
-        self.set_addr(str(attributes.get('ip')))
-        self.set_scope(str(attributes.get('scope')))
-
     @classmethod
     def get(cls, session, bridgedomain, tenant):
         """
@@ -2508,14 +2637,6 @@ class Subnet(BaseACIObject):
         return BaseACIObject.get(session, cls, 'fvSubnet',
                                  parent=bridgedomain, tenant=tenant)
 
-    @property
-    def addr(self):
-        """
-        Subnet address
-        :return: String containing the Subnet address
-        """
-        return self._addr
-
     def get_attributes(self, name=None):
 
         result = super(Subnet, self).get_attributes(name)
@@ -2523,18 +2644,39 @@ class Subnet(BaseACIObject):
         result['scope'] = self.get_scope()
         return result
 
-    def __eq__(self, other):
-        if not isinstance(self, Subnet) or not isinstance(other, Subnet):
-            return NotImplemented
 
-        # Neither object has "addr" attribute - use the parent class
-        if not hasattr(self, 'addr') and not hasattr(other, 'addr'):
-            return super(Subnet, self).__eq__(other)
+class OutsideNetwork(BaseSubnet):
+    """
+    OutsideNetwork class, roughly equivalent to l3extSubnet in the APIC model
+    """
+    def __init__(self, name, parent):
+        super(OutsideNetwork, self).__init__(name, parent)
 
-        if not hasattr(self, 'addr') or not hasattr(other, 'addr'):
-            return False
+    def _generate_attributes(self):
+        attributes = super(OutsideNetwork, self)._generate_attributes()
+        if self.get_addr() is None:
+            raise ValueError('OutsideNetwork ip is not set')
+        attributes['ip'] = self.get_addr()
+        return attributes
 
-        return super(Subnet, self).__eq__(other) and self._addr == other._addr
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['l3extSubnet']
+
+    def get_json(self):
+        """
+        Returns json representation of the OutsideNetwork object.
+
+        :returns: json dictionary of OutsideNetwork
+        """
+        attr = self._generate_attributes()
+        return super(OutsideNetwork, self).get_json(self._get_apic_classes()[0],
+                                                    attributes=attr)
 
 
 class Context(BaseACIObject):
