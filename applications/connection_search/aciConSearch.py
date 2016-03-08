@@ -33,7 +33,7 @@ from copy import copy
 import radix
 import re
 from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, Subnet, ContractSubject, \
-    FilterEntry, Context
+    FilterEntry, Context, OutsideNetwork
 from acitoolkit.aciphysobject import Session
 from acitoolkit.acitoolkitlib import Credentials
 
@@ -568,7 +568,10 @@ class ProtocolFilter(object):
     def __str__(self):
         dport = '{0}-{1}'.format(self.dFromPort, self.dToPort)
         sport = '{0}-{1}'.format(self.sFromPort, self.sToPort)
-        return '{0:4} {1:11} {2:11}'.format(self.prot, dport, sport)
+        return '{0:4} {1:4} {2:11} {3:11}'.format(self.etherT,
+                                                  self.arpOpc if self.etherT == 'arp' else self.prot,
+                                                  dport,
+                                                  sport)
 
     def _port_equal(self, other):
         if self.dFromPort != other.dFromPort:
@@ -886,7 +889,7 @@ class SearchDb(object):
 
         outside_epgs = outside_l3.get_children(OutsideEPG)
         for outside_epg in outside_epgs:
-            subnets = outside_epg.get_children(Subnet)
+            subnets = outside_epg.get_children(OutsideNetwork)
             full_epg = (tenant, outside_l3, outside_epg)
             for subnet in subnets:
                 ip = IpAddress(subnet.get_addr())
@@ -1190,8 +1193,8 @@ def main():
     description = 'Connection Search tool for APIC.'
     creds = Credentials('apic', description)
 
-    creds.add_argument('-tenant', type=str, default='any', help='Tenant name (wildcards, "*", accepted), default "*"')
-    creds.add_argument('-context', type=str, default='any', help='Tenant name (wildcards, "*", accepted), default "*"')
+    creds.add_argument('-tenant', type=str, default='*', help='Tenant name (wildcards, "*", accepted), default "*"')
+    creds.add_argument('-context', type=str, default='*', help='Tenant name (wildcards, "*", accepted), default "*"')
     creds.add_argument('-sip', type=str, default='0/0', help='Source IP or subnet - e.g. 1.2.3.4/24, default: "0/0"')
     creds.add_argument('-dip', type=str, default='0/0',
                        help='Destination IP or subnet - e.g. 1.2.3.4/24, default: "0/0"')
