@@ -676,6 +676,8 @@ class BaseACIObject(AciSearch):
         :param obj: Child object to add to the children list of the\
                     called object.
         """
+        if not obj.has_parent():
+            obj.set_parent(self)
         self._children.append(obj)
 
     def has_child(self, obj):
@@ -722,6 +724,14 @@ class BaseACIObject(AciSearch):
         :returns: Parent of this object.
         """
         return self._parent
+
+    def set_parent(self, parent_obj):
+        """
+        Set the parent object
+        :param parent_obj: Instance of the parent object
+        :return: None
+        """
+        self._parent = parent_obj
 
     def has_parent(self):
         """

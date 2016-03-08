@@ -38,10 +38,10 @@ from acitoolkit.acitoolkit import (
     ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
-    PortChannel, Subnet, Taboo, Tenant, VmmDomain
+    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel
 )
 # TODO: resolve circular dependencies and order-dependent import
-from acitoolkit.aciphysobject import Interface, Linecard, Node
+from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
 import unittest
 import string
 import random
@@ -1597,6 +1597,20 @@ class TestEPG(unittest.TestCase):
         output = tenant.get_json()
         self.assertIn('fvRsProtBy', str(output))
 
+    def test_double_call_to_protect(self):
+        """
+        Test protect method called twice
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        taboo = Taboo('taboo1', tenant)
+        epg.protect(taboo)
+        epg.protect(taboo)
+        output = tenant.get_json()
+        self.assertIn('fvRsProtBy', str(output))
+        self.assertEquals(str(output).count('fvRsProtBy'), 1)
+
     def test_does_protect(self):
         """
         Test protect method
@@ -1966,7 +1980,7 @@ class TestPortChannel(unittest.TestCase):
                          " {'lagT': 'link', 'name': 'pc1'}, 'children': []}}]}"
                          "}]}}")
 
-        #TODO: Temporarily disable check in Python3 environments
+        # TODO: Temporarily disable check in Python3 environments
         if sys.version_info < (3, 0, 0):
             self.assertEqual(str(infra), str(expected_resp))
 
@@ -2211,6 +2225,19 @@ class TestLiveTenant(TestLiveAPIC):
         for tenant in tenants:
             self.assertTrue(isinstance(tenant, Tenant))
             self.assertTrue(isinstance(tenant.name, str))
+
+    def test_get_tenants_with_parent(self):
+        """
+        Test getting tenants with a parent object
+        """
+        session = self.login_to_apic()
+        logical_model = LogicalModel()
+        tenants = Tenant.get(session, parent=logical_model)
+        self.assertTrue(len(tenants) > 0)
+        for tenant in tenants:
+            self.assertTrue(isinstance(tenant, Tenant))
+            self.assertTrue(isinstance(tenant.name, str))
+            self.assertEquals(tenant.get_parent(), logical_model)
 
     def test_get_deep_tenants(self):
         """
@@ -3297,9 +3324,16 @@ class TestLiveContracts(TestLiveAPIC):
 
 
 class TestLiveContractSubject(TestLiveAPIC):
+    """
+    Live tests using an actual APIC for ContractSubject
+    """
     def test_filter_no_children_no_parent(self):
+        """
+        Test pushing basic empty ContractSubject with no parent
+        """
         tenant = Tenant('aci-toolkit-test')
         contract_subject = ContractSubject('contract_subject')
+        # TODO shouldn't this create an exception of some sort ?
 
         # Push to APIC
         session = self.login_to_apic()
@@ -3312,6 +3346,9 @@ class TestLiveContractSubject(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_contract_subject_no_children_parent(self):
+        """
+        Test pushing basic empty ContractSubject with a Contract parent configured
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
@@ -3344,7 +3381,13 @@ class TestLiveContractSubject(TestLiveAPIC):
 
 
 class TestLiveOSPF(TestLiveAPIC):
+    """
+    Live tests using an actual APIC for OSPF
+    """
     def test_no_auth(self):
+        """
+        Test basic no authentication
+        """
         tenant = Tenant('cisco')
         context = Context('cisco-ctx1', tenant)
         outside_l3 = OutsideL3('out-1', tenant)
@@ -3387,6 +3430,9 @@ class TestLiveOSPF(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_authenticated(self):
+        """
+        Test basic authentication
+        """
         tenant = Tenant('cisco')
         context = Context('cisco-ctx1', tenant)
         outside_l3 = OutsideL3('out-1', tenant)
