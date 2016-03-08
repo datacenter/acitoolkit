@@ -20,7 +20,7 @@
 Search test
 """
 import unittest
-from acitoolkit import BridgeDomain, Filter
+from acitoolkit import BridgeDomain, Filter, OutsideNetwork
 from aciConSearch import *
 
 LIVE_TEST = False
@@ -77,25 +77,25 @@ def get_tree():
     outside_epg_2 = OutsideEPG('out_epg_2', outside_l3)
     outside_epg_3 = OutsideEPG('out_epg_3', outside_l3)
 
-    subnet_11 = Subnet('subnet_11', outside_epg_1)
+    subnet_11 = OutsideNetwork('subnet_11', outside_epg_1)
     subnet_11.set_addr('10.10.1.0/24')
-    subnet_12 = Subnet('subnet_12', outside_epg_1)
+    subnet_12 = OutsideNetwork('subnet_12', outside_epg_1)
     subnet_12.set_addr('10.10.2.0/24')
-    subnet_13 = Subnet('subnet_13', outside_epg_1)
+    subnet_13 = OutsideNetwork('subnet_13', outside_epg_1)
     subnet_13.set_addr('10.10.1.0/16')
 
-    subnet_21 = Subnet('subnet_21', outside_epg_2)
+    subnet_21 = OutsideNetwork('subnet_21', outside_epg_2)
     subnet_21.set_addr('10.21.2.1/32')
-    subnet_22 = Subnet('subnet_22', outside_epg_2)
+    subnet_22 = OutsideNetwork('subnet_22', outside_epg_2)
     subnet_22.set_addr('10.22.2.1/32')
-    subnet_23 = Subnet('subnet_23', outside_epg_2)
+    subnet_23 = OutsideNetwork('subnet_23', outside_epg_2)
     subnet_23.set_addr('10.23.2.1/32')
 
-    subnet_31 = Subnet('subnet_31', outside_epg_3)
+    subnet_31 = OutsideNetwork('subnet_31', outside_epg_3)
     subnet_31.set_addr('10.30.2.1/32')
-    subnet_32 = Subnet('subnet_32', outside_epg_3)
+    subnet_32 = OutsideNetwork('subnet_32', outside_epg_3)
     subnet_32.set_addr('10.30.3.1/24')
-    subnet_33 = Subnet('subnet_33', outside_epg_3)
+    subnet_33 = OutsideNetwork('subnet_33', outside_epg_3)
     subnet_33.set_addr('10.30.2.1/25')
 
     contract1 = Contract('contract-1', tenant)
@@ -235,11 +235,11 @@ def get_tree2():
 
     outside_epg_3 = OutsideEPG('out_epg_3', outside_l3)
 
-    subnet_31 = Subnet('subnet_31', outside_epg_3)
+    subnet_31 = OutsideNetwork('subnet_31', outside_epg_3)
     subnet_31.set_addr('10.30.2.1/32')
-    subnet_32 = Subnet('subnet_32', outside_epg_3)
+    subnet_32 = OutsideNetwork('subnet_32', outside_epg_3)
     subnet_32.set_addr('10.30.3.1/24')
-    subnet_33 = Subnet('subnet_33', outside_epg_3)
+    subnet_33 = OutsideNetwork('subnet_33', outside_epg_3)
     subnet_33.set_addr('10.30.2.1/25')
 
     contract1 = Contract('contract-1', tenant)
@@ -420,7 +420,7 @@ class Test_Import_Data(unittest.TestCase):
             for outside_l3 in outside_l3s:
                 outside_epg = outside_l3.get_children(OutsideEPG)
                 for epg in outside_epg:
-                    subnets = epg.get_children(Subnet)
+                    subnets = epg.get_children(OutsideNetwork)
                     for subnet in subnets:
                         ip = IpAddress(subnet.get_addr())
                         ips.add(ip.prefix)
