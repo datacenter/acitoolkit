@@ -735,10 +735,19 @@ class AttributeCriterion(BaseACIObject):
 
     @property
     def match(self):
+        """
+        Return the match property
+        :return: String containing the match property. Possible values are 'any' or 'all'
+        """
         return self._match
 
     @match.setter
     def match(self, x):
+        """
+        Set the match property
+        :param x: String containing the match property. Possible values are 'any' or 'all'
+        :return: None
+        """
         assert x in ['any', 'all']
         self._match = x
 
@@ -757,6 +766,11 @@ class AttributeCriterion(BaseACIObject):
         return attr
 
     def add_ip_address(self, ip_addr):
+        """
+        Add an IP address as an attribute
+        :param ip_addr: String containing the IP address
+        :return: None
+        """
         if ip_addr not in self._ip_addresses:
             self._ip_addresses.append(ip_addr)
 
@@ -811,10 +825,19 @@ class EPG(CommonEPG):
 
     @property
     def is_attributed_based(self):
+        """
+        Get whether the EPG is attribute based
+        :return: True if attribute based. False otherwise.
+        """
         return self._is_attribute_based
 
     @is_attributed_based.setter
     def is_attributed_based(self, x):
+        """
+        Set the attribute_based flag.  Indicates that the EPG is attribute based.
+        :param x: String containing 'true' or 'yes' indicates that the EPG is attribute based.
+        :return: None
+        """
         if isinstance(x, str):
             if x.lower() in ['true', 'yes']:
                 self._is_attribute_based = True
@@ -1252,9 +1275,9 @@ class OutsideEPG(CommonEPG):
         """
         children = super(OutsideEPG, self)._get_common_json()
         attr = self._generate_attributes()
-        return super(CommonEPG, self).get_json(self._get_apic_classes()[0],
-                                               attributes=attr,
-                                               children=children)
+        return super(OutsideEPG, self).get_json(self._get_apic_classes()[0],
+                                                attributes=attr,
+                                                children=children)
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -1349,9 +1372,9 @@ class OutsideL2EPG(CommonEPG):
         """
         children = super(OutsideL2EPG, self)._get_common_json()
         attr = self._generate_attributes()
-        return super(CommonEPG, self).get_json(self._get_apic_classes()[0],
-                                               attributes=attr,
-                                               children=children)
+        return super(OutsideL2EPG, self).get_json(self._get_apic_classes()[0],
+                                                  attributes=attr,
+                                                  children=children)
 
     @staticmethod
     def _get_parent_class():
