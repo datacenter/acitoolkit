@@ -1436,6 +1436,15 @@ class OutsideL3(BaseACIObject):
         self.context_name = context.name
         self._add_relation(context)
 
+    def get_context(self):
+        """
+        Return the assigned context
+
+        :returns: Instance of Context class that this OutsideL3 is assigned.
+                  If no Context is assigned, None is returned.
+        """
+        return self._get_any_relation(Context)
+
     def remove_context(self):
         """
         Remove the context from the EPG
