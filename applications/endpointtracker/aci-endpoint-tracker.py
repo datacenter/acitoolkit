@@ -39,7 +39,6 @@ import sys
 import acitoolkit.acitoolkit as aci
 import warnings
 import re
-import argparse
 import os
 import logging
 import time
@@ -50,10 +49,12 @@ try:
 except ImportError:
     import pymysql as mysql
 
-def touch(fname, times = None):
+
+def touch(fname, times=None):
     """ Touch file """
     with open(fname, 'a'):
         os.utime(fname, times)
+
 
 def convert_timestamp_to_mysql(timestamp):
     """
@@ -67,7 +68,13 @@ def convert_timestamp_to_mysql(timestamp):
     resp_ts = resp_ts + remaining.split('+')[0].split('.')[0]
     return resp_ts
 
+
 def connect_mysql(args):
+    """
+    Connect to the MySQL database
+    :param args: command line arguments
+    :return: tuple of c, cnx
+    """
     # Create the MySQL database
     cnx = mysql.connect(user=args.mysqllogin,
                         password=args.mysqlpassword,
@@ -96,7 +103,13 @@ def connect_mysql(args):
 
     return c, cnx
 
+
 def tracker(args):
+    """
+    Main Endpoint tracker
+    :param args: command line arguments
+    :return: None
+    """
     # Login to APIC
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
@@ -121,8 +134,6 @@ def tracker(args):
                 if match:
                     if match.group(1) and match.group(2):
                         int_name = "Nodes: " + match.group(1) + "-" + match.group(2) + " " + ep.if_name
-                        pass
-                
         else:
             int_name = ep.if_name
 
@@ -199,18 +210,19 @@ def tracker(args):
         # Sleep or else the endpointtracker will take 100% cpu
         time.sleep(0.1)
 
+
 class Daemonize(Daemon):
     """
     Daemonize the endpointtracker
     Creates a daemon and then runs the tracker function
     """
     def __init__(self,
-                args,
-                pidfile,
-                stdin='/var/log/endpointtracker.log',
-                stdout='/var/log/endpointtracker.log',
-                stderr='/var/log/endpointtracker.log'
-                ):
+                 args,
+                 pidfile,
+                 stdin='/var/log/endpointtracker.log',
+                 stdout='/var/log/endpointtracker.log',
+                 stderr='/var/log/endpointtracker.log'
+                 ):
         self.args = args
         if not os.path.isfile(stdout):
             touch(stdout)
@@ -230,7 +242,7 @@ class Daemonize(Daemon):
             except mysql.err.OperationalError:
                 logging.info("Lost connection to database, reconnecting in 10")
                 time.sleep(10)
-                pass
+
 
 def main():
     """
