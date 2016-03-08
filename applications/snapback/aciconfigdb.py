@@ -259,10 +259,8 @@ class ConfigDB(object):
 
         #sort the JSON format if the filename is a domain
         if filename.endswith('domain.json'):
-            
             #Extract the domain key based on the filename
             domain_key = filename.rpartition('/')[2].partition('-')[0] + 'DomP'
-            
             #sort the "imdata" list from the nested dict based on the key "name"
             data['imdata'] = sorted(data['imdata'], key=lambda k: k[domain_key]['attributes']['name'])
 
@@ -332,7 +330,7 @@ class ConfigDB(object):
             filename = 'tenant-%s.json' % tenant.name
             url = self._get_url_for_file(filename)
             self._snapshot(url, filename)
-            
+
         # Save each nodes config
         nodes = ACI.Node.get(self.session)
         for node in nodes:
@@ -369,21 +367,21 @@ class ConfigDB(object):
 
         url = '/api/node/mo/uni/fabric.json'
         remote_path_payload = {"fileRemotePath": {"attributes": {
-                                                     "remotePort": "22",
-                                                     "name": "snapback",
-                                                     "host": "%s" % self.session.ipaddr,
-                                                     "remotePath": "/home/%s" % self.session.uid,
-                                                     "protocol": "scp",
-                                                     "userName": "%s" % self.session.uid,
-                                                     "userPasswd": "%s" % self.session.pwd},
+                                                      "remotePort": "22",
+                                                      "name": "snapback",
+                                                      "host": "%s" % self.session.ipaddr,
+                                                      "remotePath": "/home/%s" % self.session.uid,
+                                                      "protocol": "scp",
+                                                      "userName": "%s" % self.session.uid,
+                                                      "userPasswd": "%s" % self.session.pwd},
                                                   "children": []}}
         resp = self.session.push_to_apic(url, remote_path_payload)
 
-        export_policy_payload = {"configExportP":{"attributes":{"name":"snapback",
-                                                                "adminSt":"triggered"},
+        export_policy_payload = {"configExportP":{"attributes":{"name": "snapback",
+                                                                "adminSt": "triggered"},
                                                   "children":[{"configRsRemotePath":
-                                                              {"attributes":{"tnFileRemotePathName":"snapback"},
-                                                               "children":[]}}]}}
+                                                              {"attributes": {"tnFileRemotePathName": "snapback"},
+                                                               "children": []}}]}}
         resp = self.session.push_to_apic(url, export_policy_payload)
         if not resp.ok:
             print resp, resp.text
@@ -828,6 +826,12 @@ class ConfigDB(object):
             self._check_versions(filename, current_version, old_version)
 
     def _generate_tar_gz(self, filenames, version):
+        """
+        Generate a .tar.gz compressed archive file
+        :param filenames: list of strings containing the filenames to add to the tar.gz file
+        :param version: Version of the snapshot
+        :return: None
+        """
         tar = tarfile.open('ce_snapback.tar.gz', 'w:gz')
         for filename in filenames:
             content = self.get_file(filename, version)
@@ -842,6 +846,12 @@ class ConfigDB(object):
         tar.close()
 
     def rollback_using_import_policy(self, version):
+        """
+        Rollback the configuration using the Import policy for a specific version
+        :param version: Version to rollback to
+        :return: Requests Response object indicating the success of pushing the config to the APIC
+        """
+
         filenames = self.get_filenames(version)
 
         # Create the tar file of the selected JSON files
@@ -861,11 +871,11 @@ class ConfigDB(object):
 
         # Send the import policy to the APIC
         url = '/api/node/mo/uni/fabric.json'
-        payload = {"configImportP": {"attributes": { "name": "snapback",
-                                                     "fileName": "ce_snapback.tar.gz",
-                                                     "adminSt": "triggered",
-                                                     "importType": "replace",
-                                                     "importMode": "atomic"},
+        payload = {"configImportP": {"attributes": {"name": "snapback",
+                                                    "fileName": "ce_snapback.tar.gz",
+                                                    "adminSt": "triggered",
+                                                    "importType": "replace",
+                                                    "importMode": "atomic"},
                                      "children": [{"configRsImportSource": {"attributes": {"tnFileRemotePathName": "snapback"},
                                                                             "children": []
                                                                             }}]}}
@@ -902,12 +912,12 @@ def main():
     commands.add_argument('-s', '--snapshot', action='store_true',
                           help='Take a snapshot of the APIC configuration')
     commands.add_argument('-ls', '--list-snapshots', action='store_true',
-                          help='List all of the available snapshots')    
+                          help='List all of the available snapshots')
     help_txt = ('Configuration file responses include all properties of'
                 ' the returned managed objects.')
     creds.add_argument('-a', '--all-properties', action='store_true',
                        default=False,
-                       help=help_txt)    
+                       help=help_txt)
     help_txt = ('Configuration snapshot using the method available in v0.1.')
     creds.add_argument('--v1', action='store_true',
                        default=False,
