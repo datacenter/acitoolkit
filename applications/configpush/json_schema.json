@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "/",
+  "type": "object",
+  "title": "Root schema.",
+  "description": "Root object contains the set of all EPG/Clusters as well as a concrete model of policies.",
+  "properties": {
+    "apic": {
+      "id": "apic",
+      "type": "object",
+      "title": "APIC schema.",
+      "description": "Credentials used to login to APIC",
+      "properties": {
+        "user_name": {
+          "id": "user_name",
+          "type": "string",
+          "title": "APIC user name"
+        },
+        "password": {
+          "id": "user_name",
+          "type": "string",
+          "title": "APIC user name"
+        },
+        "ip_address": {
+          "id": "ip_address",
+          "type": "string",
+          "format": "ipv4",
+          "description": "APIC IP address",
+          "title": "APIC IP address"
+        },
+        "use_https": {
+          "id": "use_https",
+          "type": "boolean",
+          "description": "Use HTTPS to communicate with APIC",
+          "title": "Use HTTPS to communicate with APIC"
+        }
+      },
+      "required": ["user_name", "ip_address", "password", "use_https"]
+    },
+    "clusters": {
+      "id": "clusters",
+      "type": "array",
+      "title": "EPG schema.",
+      "description": "List of clusters/EPGs",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "id": "name",
+            "type": "string",
+            "title": "Cluster Name"
+          },
+          "id": {
+            "id": "id",
+            "type": "string",
+            "title": "Cluster id"
+          },
+          "route_tag": {
+            "id": "route_tag",
+            "type": "object",
+            "title": "Route_tag schema.",
+            "description": "Smallest known route_tag/subnet containing all of the members of the cluster",
+            "properties": {
+              "subnet_mask": {
+                "id": "subnet_mask",
+                "type": "string"
+              },
+              "name": {
+                "id": "name",
+                "type": "string"
+              }
+            }
+          },
+          "nodes": {
+            "id": "nodes",
+            "type": "array",
+            "title": "Nodes schema.",
+            "description": "List of endpoints/subnets representing cluster members.",
+            "items": {
+              "properties": {
+                "name": {
+                  "id": "name",
+                  "type": "string",
+                  "title": "Host Name"
+                },
+                "ip": {
+                  "id": "ip",
+                  "type": "string",
+                  "title": "IP address"
+                },
+                "prefix_len": {
+                  "id": "prefix_len",
+                  "type": "integer",
+                  "title": "Prefix length if the node represents a subnet"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "policies": {
+      "id": "policies",
+      "type": "array",
+      "title": "Policies schema.",
+      "description": "Concrete model policies between the clusters",
+      "items": {
+        "type": "object",
+        "properties": {
+          "src": {
+            "id": "src",
+            "type": "string",
+            "description": "Source/Consumer cluster id"
+          },
+          "dst": {
+            "id": "dst",
+            "type": "string",
+            "description": "Destination/Provider cluster id"
+          },
+          "src_name": {
+            "id": "src_name",
+            "type": "string",
+            "description": "Source/Consumer cluster name (can also be looked up from clusters array above)"
+          },
+          "dst_name": {
+            "id": "dst_name",
+            "type": "string",
+            "description": "Destination/Provider cluster name (can also be looked up from clusters array above)"
+          },
+          "whitelist": {
+            "id": "whitelist",
+            "type": "array",
+            "title": "Whitelist schema.",
+            "description": "List of ports/protocols opened between src and dst. This means that src can consume a service on dst at ports/protocols provided below.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "port": {
+                  "id": "port",
+                  "type": "array",
+                  "title": "Port schema.",
+                  "description": "Array of size 2 representing the port range (inclusive) to be allowed by policy, i.e., [start_port, end_port]",
+                  "name": "port",
+                  "items": {
+                    "type": "integer",
+                    "description": "port number"
+                  }
+                },
+                "proto": {
+                  "id": "proto",
+                  "type": "integer",
+                  "title": "Proto schema.",
+                  "description": "IP Protocol number, e.g. 1 for ICMP, 6 for TCP and 17 for UDP."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["policies"]
+}
