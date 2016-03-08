@@ -1,6 +1,9 @@
+"""
+Inheritance test suite
+"""
 import unittest
 from inheritance import execute_tool
-from acitoolkit import *
+from acitoolkit import Tenant, Context, OutsideL3, OutsideEPG, OutsideNetwork, Contract, FilterEntry, Session
 import time
 
 APIC_IP = '0.0.0.0'
@@ -10,6 +13,9 @@ APIC_PASSWORD = 'password'
 
 
 class TestArgs(object):
+    """
+    Fake class to mock out Command line arguments
+    """
     def __init__(self):
         self.debug = 'verbose'
         self.maxlogfiles = 10
@@ -17,6 +23,9 @@ class TestArgs(object):
 
 
 class BaseTestCase(unittest.TestCase):
+    """
+    Base class for the various test cases
+    """
     def delete_tenant(self):
         tenant = Tenant('inheritanceautomatedtest')
         tenant.mark_as_deleted()
@@ -38,7 +47,11 @@ class BaseTestCase(unittest.TestCase):
     def tearDown(self):
         self.delete_tenant()
 
+
 class TestBasic(BaseTestCase):
+    """
+    Basic Inheritance test cases
+    """
     def setup_tenant(self, apic):
         tenant = Tenant('inheritanceautomatedtest')
         context = Context('mycontext', tenant)
@@ -89,34 +102,39 @@ class TestBasic(BaseTestCase):
 
     def test_basic_inherit_contract(self):
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": True
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
@@ -128,38 +146,43 @@ class TestBasic(BaseTestCase):
         # Verify that the contract is now inherited by the child EPG
         self.verify_inherited(apic)
         tool.exit()
-        #self.delete_tenant()
+        # self.delete_tenant()
 
     def test_basic_inheritance_disallowed(self):
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": True
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg"
-                          },
-                          "allowed": False,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": False,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
@@ -170,39 +193,44 @@ class TestBasic(BaseTestCase):
 
         # Verify that the contract is now inherited by the child EPG
         self.verify_not_inherited(apic)
-        #self.delete_tenant()
+        # self.delete_tenant()
         tool.exit()
 
     def test_basic_inheritance_disabled(self):
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": False
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
@@ -214,41 +242,47 @@ class TestBasic(BaseTestCase):
         # Verify that the contract is now inherited by the child EPG
         self.verify_not_inherited(apic)
         tool.exit()
-        #self.delete_tenant()
+        # self.delete_tenant()
 
 # TODO write tests for all of the events - add subnet later, delete subnet, add contract later, delete contract, remove relation, etc.
+
 
 class TestContractEvents(BaseTestCase):
     def get_config_json(self):
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": True
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
         return config_json
 
     def get_contract(self, tenant):
@@ -399,44 +433,51 @@ class TestContractEvents(BaseTestCase):
     def test_dual_inheritance_contract(self):
         self.delete_tenant()
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": True
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg1"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
                 },
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg2"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg1"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg2"
+                    },
+                    "allowed": True,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
 
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
@@ -455,44 +496,51 @@ class TestContractEvents(BaseTestCase):
     def test_dual_inheritance_contract_delete_one_relation(self):
         self.delete_tenant()
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": True
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg1"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
                 },
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg2"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg1"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg2"
+                    },
+                    "allowed": True,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
 
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
@@ -527,44 +575,51 @@ class TestContractEvents(BaseTestCase):
 
     def test_dual_inheritance_contract_delete_both_relations(self):
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": True
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg1"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
                 },
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg2"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg1"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg2"
+                    },
+                    "allowed": True,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
 
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
@@ -612,6 +667,7 @@ class TestContractEvents(BaseTestCase):
 # - remove subnet and verify inheritance removed
 # - add 2 subnets and verify that causes to be inherited, remove 1 verify still inherited
 # - remove inherited relation
+
 
 class TestSubnetEvents(BaseTestCase):
     def setup_tenant(self, apic):
@@ -671,34 +727,39 @@ class TestSubnetEvents(BaseTestCase):
 
     def test_basic_inherit_add_subnet(self):
         config_json = {
-              "apic": {"user_name": APIC_USERNAME,
-                             "password": APIC_PASSWORD,
-                             "ip_address": APIC_IP,
-                             "use_https": False
-              },
-              "inheritance_policies": [{
-                          "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "childepg"
-                          },
-                          "allowed": True,
-                          "enabled": True
-              },
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
                 {
-                  "epg": {
-                              "tenant": "inheritanceautomatedtest",
-                              "epg_container": {"name": "myl3out",
-                                                "container_type": "l3out"},
-                              "name": "parentepg"
-                          },
-                          "allowed": True,
-                          "enabled": False
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
                 }
-
-              ]
-            }
+            ]
+        }
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
@@ -727,6 +788,6 @@ if __name__ == '__main__':
         live = unittest.TestSuite()
         live.addTest(unittest.makeSuite(TestBasic))
         live.addTest(unittest.makeSuite(TestContractEvents))
+        live.addTest(unittest.makeSuite(TestSubnetEvents))
 
         unittest.main(defaultTest='live')
-
