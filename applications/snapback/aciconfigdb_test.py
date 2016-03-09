@@ -70,7 +70,6 @@ class TestBasicSnapshot(unittest.TestCase):
         # Check the output
         self.assertEquals(self.fake_out.output[0], 'Versions')
         self.assertEquals(self.fake_out.output[1], '\n')
-        self.assertEquals(self.fake_out.output[2], '===================')
 
     def test_basic_snapshot_v1(self):
         """
