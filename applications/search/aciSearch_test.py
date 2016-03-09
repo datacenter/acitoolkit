@@ -31,72 +31,74 @@ from acitoolkit.acitoolkit import (
 )
 
 LIVE_TEST = False
+
+
 def get_tree():
-        """
-        Will build an object tree with attributes in each object
-        :return:
-        """
-        tenant = Tenant('tenant')
-        tenant.dn = '/tn-tenant'
-        app1 = AppProfile('app1', tenant)
-        app1.dn = app1._parent.dn+'/app-app1'
-        app2 = AppProfile('app2', tenant)
-        app2.dn = app2._parent.dn+'/app-app2'
-        epg11 = EPG('epg11', app1)
-        epg11.dn = epg11._parent.dn+'/epg-epg11'
-        epg12 = EPG('epg12', app1)
-        epg12.dn = epg12._parent.dn+'/epg-epg12'
-        epg21 = EPG('epg21', app2)
-        epg21.dn = epg21._parent.dn+'/epg-epg21'
-        epg22 = EPG('epg22', app2)
-        epg22.dn = epg22._parent.dn+'/epg-epg22'
-        bd1 = BridgeDomain('bd1', tenant)
-        bd1.dn = bd1._parent.dn+'/bd-bd1'
-        bd2 = BridgeDomain('bd2', tenant)
-        bd2.dn = bd2._parent.dn+'/bd-bd2'
-        epg11.add_bd(bd1)
-        epg12.add_bd(bd2)
-        epg21.add_bd(bd1)
-        epg22.add_bd(bd2)
-        context = Context('ctx', tenant)
-        context.dn = context._parent.dn+'/ctx-ctx'
-        bd1.add_context(context)
-        bd2.add_context(context)
-        contract1 = Contract('contract-1', tenant)
-        contract1.dn = contract1._parent.dn+'/con-contract1'
-        entry1 = FilterEntry('entry1',
-                             applyToFrag='no',
-                             arpOpc='unspecified',
-                             dFromPort='80',
-                             dToPort='80',
-                             etherT='ip',
-                             prot='tcp',
-                             sFromPort='1',
-                             sToPort='65535',
-                             tcpRules='unspecified',
-                             parent=contract1)
-        subjects = contract1.get_children(ContractSubject)
-        for subject in subjects:
-            subject.dn = subject._parent.dn+'/subj-'+subject.name
-        filters = tenant.get_children(Filter)
-        for atk_filter in filters:
-            atk_filter.dn = atk_filter._parent.dn+'/flt-'+atk_filter.name
+    """
+    Will build an object tree with attributes in each object
+    :return:
+    """
+    tenant = Tenant('tenant')
+    tenant.dn = '/tn-tenant'
+    app1 = AppProfile('app1', tenant)
+    app1.dn = app1._parent.dn+'/app-app1'
+    app2 = AppProfile('app2', tenant)
+    app2.dn = app2._parent.dn+'/app-app2'
+    epg11 = EPG('epg11', app1)
+    epg11.dn = epg11._parent.dn+'/epg-epg11'
+    epg12 = EPG('epg12', app1)
+    epg12.dn = epg12._parent.dn+'/epg-epg12'
+    epg21 = EPG('epg21', app2)
+    epg21.dn = epg21._parent.dn+'/epg-epg21'
+    epg22 = EPG('epg22', app2)
+    epg22.dn = epg22._parent.dn+'/epg-epg22'
+    bd1 = BridgeDomain('bd1', tenant)
+    bd1.dn = bd1._parent.dn+'/bd-bd1'
+    bd2 = BridgeDomain('bd2', tenant)
+    bd2.dn = bd2._parent.dn+'/bd-bd2'
+    epg11.add_bd(bd1)
+    epg12.add_bd(bd2)
+    epg21.add_bd(bd1)
+    epg22.add_bd(bd2)
+    context = Context('ctx', tenant)
+    context.dn = context._parent.dn+'/ctx-ctx'
+    bd1.add_context(context)
+    bd2.add_context(context)
+    contract1 = Contract('contract-1', tenant)
+    contract1.dn = contract1._parent.dn+'/con-contract1'
+    entry1 = FilterEntry('entry1',
+                         applyToFrag='no',
+                         arpOpc='unspecified',
+                         dFromPort='80',
+                         dToPort='80',
+                         etherT='ip',
+                         prot='tcp',
+                         sFromPort='1',
+                         sToPort='65535',
+                         tcpRules='unspecified',
+                         parent=contract1)
+    subjects = contract1.get_children(ContractSubject)
+    for subject in subjects:
+        subject.dn = subject._parent.dn+'/subj-'+subject.name
+    filters = tenant.get_children(Filter)
+    for atk_filter in filters:
+        atk_filter.dn = atk_filter._parent.dn+'/flt-'+atk_filter.name
 
-        entry1.dn = entry1._parent.dn+'/flte-entry1'
+    entry1.dn = entry1._parent.dn+'/flte-entry1'
 
-        epg11.provide(contract1)
-        epg11.consume(contract1)
-        epg12.consume(contract1)
+    epg11.provide(contract1)
+    epg11.consume(contract1)
+    epg12.consume(contract1)
 
-        epg11.value1 = 'value2'
-        bd1.value2 = 'value1'
-        return tenant
+    epg11.value1 = 'value2'
+    bd1.value2 = 'value1'
+    return tenant
+
 
 class Test_SearchIndexLookup(unittest.TestCase):
     """
     Checks parsing of the XML
     """
-
     def setUp(self):
         tree = get_tree()
         self.index = aciSearchDb.SearchIndexLookup()
@@ -164,7 +166,7 @@ class Test_SearchIndexLookup(unittest.TestCase):
         self.check_single('=value2', 2, ['/tn-tenant/app-app1/epg-epg11'], 'value2')
         self.check_single('@value1', 2, ['/tn-tenant/app-app1/epg-epg11'], 'value1')
         self.check_single('@value2', 2, ['/tn-tenant/bd-bd1'], 'value2')
-        self.check_single('*value1', 1, ['/tn-tenant/bd-bd1','/tn-tenant/app-app1/epg-epg11'], 'value1')
+        self.check_single('*value1', 1, ['/tn-tenant/bd-bd1', '/tn-tenant/app-app1/epg-epg11'], 'value1')
         self.check_single('*Context', 1, ['/tn-tenant/ctx-ctx'], 'Context')
 
     def test_two_terms(self):
@@ -172,8 +174,8 @@ class Test_SearchIndexLookup(unittest.TestCase):
         Will test that the atk object tree is properly indexed
         :return:
         """
-        self.check_single('#BridgeDomain=no', 4, ['/tn-tenant/bd-bd2','/tn-tenant/bd-bd1'], "('BridgeDomain', 'no')")
-        self.check_single('=no#BridgeDomain', 4, ['/tn-tenant/bd-bd2','/tn-tenant/bd-bd1'], "('BridgeDomain', 'no')")
+        self.check_single('#BridgeDomain=no', 4, ['/tn-tenant/bd-bd2', '/tn-tenant/bd-bd1'], "('BridgeDomain', 'no')")
+        self.check_single('=no#BridgeDomain', 4, ['/tn-tenant/bd-bd2', '/tn-tenant/bd-bd1'], "('BridgeDomain', 'no')")
         self.check_single('@value2=value1', 4, ['/tn-tenant/bd-bd1'], "('value2', 'value1')")
         self.check_single('@value2*value1', 3, ['/tn-tenant/bd-bd1'], "('value2', 'value1')")
         self.check_single('=value1@value2', 4, ['/tn-tenant/bd-bd1'], "('value2', 'value1')")
@@ -225,10 +227,13 @@ class Test_SearchIndexLookup(unittest.TestCase):
                                                         {'uid': '/tn-tenant/bd-bd1', 'pscore': 2},
                                                         {'uid': '/tn-tenant/bd-bd2', 'pscore': 2}])
 
-        self.check_multi('@unicast_route #AppProfile ', [{'uid': '/tn-tenant/app-app1', 'pscore': 2},
-                                                        {'uid': '/tn-tenant/app-app2', 'pscore': 2},
-                                                        {'uid': '/tn-tenant/bd-bd1', 'pscore': 2},
-                                                        {'uid': '/tn-tenant/bd-bd2', 'pscore': 2}])
+        self.check_multi('@unicast_route #AppProfile ', [
+            {'uid': '/tn-tenant/app-app1', 'pscore': 2},
+            {'uid': '/tn-tenant/app-app2', 'pscore': 2},
+            {'uid': '/tn-tenant/bd-bd1', 'pscore': 2},
+            {'uid': '/tn-tenant/bd-bd2', 'pscore': 2}
+        ])
+
 
 class Test_SearchObjectStore(unittest.TestCase):
     """
@@ -245,7 +250,7 @@ class Test_SearchObjectStore(unittest.TestCase):
         atk_dn = "/tn-tenant/bd-bd2"
         results = self.store.get_object_info(atk_dn)
 
-        self.assertEqual(results['attributes']['dn'],'/tn-tenant/bd-bd2')
+        self.assertEqual(results['attributes']['dn'], '/tn-tenant/bd-bd2')
         self.assertEqual(results['parent']['dn'], '/tn-tenant')
         self.assertEqual(results['parent']['class'], 'Tenant')
         self.assertEqual(results['parent']['name'], 'tenant')
@@ -281,7 +286,7 @@ class Test_SearchObjectStore(unittest.TestCase):
         self.assertEqual(results['relations']['provided by'][0]['dn'], '/tn-tenant/app-app1/epg-epg11')
 
     def test_get_by_uid_short(self):
-        atk_dn = ["/tn-tenant/bd-bd2",'/tn-tenant/app-app1/epg-epg11']
+        atk_dn = ["/tn-tenant/bd-bd2", '/tn-tenant/app-app1/epg-epg11']
         results = self.store.get_by_uids_short(atk_dn)
         self.assertEqual(results['/tn-tenant/bd-bd2']['dn'], '/tn-tenant/bd-bd2')
         self.assertEqual(results['/tn-tenant/bd-bd2']['class'], 'BridgeDomain')
@@ -289,6 +294,7 @@ class Test_SearchObjectStore(unittest.TestCase):
         self.assertEqual(results['/tn-tenant/app-app1/epg-epg11']['dn'], '/tn-tenant/app-app1/epg-epg11')
         self.assertEqual(results['/tn-tenant/app-app1/epg-epg11']['class'], 'EPG')
         self.assertEqual(results['/tn-tenant/app-app1/epg-epg11']['name'], 'epg11')
+
 
 class TestTerm(unittest.TestCase):
     """
@@ -339,19 +345,19 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('#cl_ass@')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == ('cl_ass',''))
+        self.assertTrue(terms[0].key == ('cl_ass', ''))
         self.assertTrue(terms[0].type == 'ca')
         self.assertTrue(terms[0].points == 4)
 
         terms = aciSearchDb.Term.parse_input('#cl-ass=')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == ('cl-ass',''))
+        self.assertTrue(terms[0].key == ('cl-ass', ''))
         self.assertTrue(terms[0].type == 'cv')
         self.assertTrue(terms[0].points == 4)
 
         terms = aciSearchDb.Term.parse_input('#cl[ass*')
         self.assertTrue(len(terms) == 2)
-        self.assertTrue(terms[0].key == ('cl[ass',''))
+        self.assertTrue(terms[0].key == ('cl[ass', ''))
         self.assertTrue(terms[0].type == 'ca')
         self.assertTrue(terms[0].points == 3)
 
@@ -373,11 +379,9 @@ class TestTerm(unittest.TestCase):
         self.assertTrue(terms[0].type == 'c')
         self.assertTrue(terms[0].points == 2)
 
-
     def test_parse_attr(self):
         """
         Test that it can parse a class
-
         :return: None
         """
         terms = aciSearchDb.Term.parse_input('@attr')
@@ -394,7 +398,7 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('@attr1#other')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == ('other','attr1'))
+        self.assertTrue(terms[0].key == ('other', 'attr1'))
         self.assertTrue(terms[0].type == 'ca')
 
         terms = aciSearchDb.Term.parse_input('@attr=other')
@@ -416,12 +420,12 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('@at-tr=')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == ('at-tr',''))
+        self.assertTrue(terms[0].key == ('at-tr', ''))
         self.assertTrue(terms[0].type == 'av')
 
         terms = aciSearchDb.Term.parse_input('@at[tr*')
         self.assertTrue(len(terms) == 2)
-        self.assertTrue(terms[0].key == ('','at[tr'))
+        self.assertTrue(terms[0].key == ('', 'at[tr'))
         self.assertTrue(terms[0].type == 'ca')
 
         terms = aciSearchDb.Term.parse_input('@attr@another_attr')
@@ -454,7 +458,7 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('=value1#other')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == ('other','value1'))
+        self.assertTrue(terms[0].key == ('other', 'value1'))
         self.assertTrue(terms[0].type == 'cv')
 
         terms = aciSearchDb.Term.parse_input('=value@other')
@@ -471,17 +475,17 @@ class TestTerm(unittest.TestCase):
 
         terms = aciSearchDb.Term.parse_input('=va_lue#')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == ('','va_lue'))
+        self.assertTrue(terms[0].key == ('', 'va_lue'))
         self.assertTrue(terms[0].type == 'cv')
 
         terms = aciSearchDb.Term.parse_input('=va-lue@')
         self.assertTrue(len(terms) == 1)
-        self.assertTrue(terms[0].key == ('','va-lue'))
+        self.assertTrue(terms[0].key == ('', 'va-lue'))
         self.assertTrue(terms[0].type == 'av')
 
         terms = aciSearchDb.Term.parse_input('=va[lue*')
         self.assertTrue(len(terms) == 2)
-        self.assertTrue(terms[0].key == ('','va[lue'))
+        self.assertTrue(terms[0].key == ('', 'va[lue'))
         self.assertTrue(terms[0].type == 'cv')
 
         terms = aciSearchDb.Term.parse_input('=value=another_value')
@@ -582,6 +586,7 @@ class TestTerm(unittest.TestCase):
         self.assertTrue(terms[2].key == 'search_term')
         self.assertTrue(terms[2].type == 'v')
         self.assertTrue(terms[2].points == 1)
+
 
 class TestCustomSplit(unittest.TestCase):
     def test_simple_split(self):
