@@ -257,11 +257,11 @@ class ConfigDB(object):
         filename = os.path.join(self.repo_dir, filename)
         data = self._get_from_apic(query_url)
 
-        #sort the JSON format if the filename is a domain
+        # sort the JSON format if the filename is a domain
         if filename.endswith('domain.json'):
-            #Extract the domain key based on the filename
+            # Extract the domain key based on the filename
             domain_key = filename.rpartition('/')[2].partition('-')[0] + 'DomP'
-            #sort the "imdata" list from the nested dict based on the key "name"
+            # sort the "imdata" list from the nested dict based on the key "name"
             data['imdata'] = sorted(data['imdata'], key=lambda k: k[domain_key]['attributes']['name'])
 
         # Write the config to a file
@@ -366,22 +366,40 @@ class ConfigDB(object):
         tag_name = time.strftime("%Y-%m-%d_%H.%M.%S", time.localtime())
 
         url = '/api/node/mo/uni/fabric.json'
-        remote_path_payload = {"fileRemotePath": {"attributes": {
-                                                      "remotePort": "22",
-                                                      "name": "snapback",
-                                                      "host": "%s" % self.session.ipaddr,
-                                                      "remotePath": "/home/%s" % self.session.uid,
-                                                      "protocol": "scp",
-                                                      "userName": "%s" % self.session.uid,
-                                                      "userPasswd": "%s" % self.session.pwd},
-                                                  "children": []}}
+        remote_path_payload = {
+            "fileRemotePath": {
+                "attributes": {
+                    "remotePort": "22",
+                    "name": "snapback",
+                    "host": "%s" % self.session.ipaddr,
+                    "remotePath": "/home/%s" % self.session.uid,
+                    "protocol": "scp",
+                    "userName": "%s" % self.session.uid,
+                    "userPasswd": "%s" % self.session.pwd
+                },
+                "children": []
+            }
+        }
         resp = self.session.push_to_apic(url, remote_path_payload)
 
-        export_policy_payload = {"configExportP":{"attributes":{"name": "snapback",
-                                                                "adminSt": "triggered"},
-                                                  "children":[{"configRsRemotePath":
-                                                              {"attributes": {"tnFileRemotePathName": "snapback"},
-                                                               "children": []}}]}}
+        export_policy_payload = {
+            "configExportP": {
+                "attributes": {
+                    "name": "snapback",
+                    "adminSt": "triggered"
+                },
+                "children": [
+                    {
+                        "configRsRemotePath": {
+                            "attributes": {
+                                "tnFileRemotePathName": "snapback"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
         resp = self.session.push_to_apic(url, export_policy_payload)
         if not resp.ok:
             print resp, resp.text
@@ -395,8 +413,9 @@ class ConfigDB(object):
         sftp = ssh.open_sftp()
         sftp.chdir('/home/%s' % self.session.uid)
         file_names = sftp.listdir()
+        print file_names
         for file_name in file_names:
-            if str(file_name).startswith('ce_snapback-'):
+            if str(file_name).startswith('ce2_snapback-'):
                 sftp.get('/home/' + self.session.uid + '/' + file_name, './' + file_name)
                 sftp.remove('/home/' + self.session.uid + '/' + file_name)
                 with tarfile.open(file_name, 'r:gz') as tfile:
@@ -404,7 +423,7 @@ class ConfigDB(object):
                 os.remove(file_name)
                 for json_filename in os.listdir(self.repo_dir):
                     print 'checking', json_filename
-                    if json_filename.startswith('ce_snapback') and json_filename.endswith('.json'):
+                    if json_filename.startswith('ce2_snapback') and json_filename.endswith('.json'):
                         new_filename = 'snapshot_' + self.session.ipaddr + '_' + json_filename.rpartition('_')[2]
                         new_filename = os.path.join(self.repo_dir, new_filename)
                         print 'renaming', json_filename, 'to', new_filename
@@ -832,7 +851,7 @@ class ConfigDB(object):
         :param version: Version of the snapshot
         :return: None
         """
-        tar = tarfile.open('ce_snapback.tar.gz', 'w:gz')
+        tar = tarfile.open('ce2_snapback.tar.gz', 'w:gz')
         for filename in filenames:
             content = self.get_file(filename, version)
             content = json.loads(content)
@@ -864,15 +883,15 @@ class ConfigDB(object):
         ssh.connect(self.session.ipaddr, username=self.session.uid, password=self.session.pwd)
         sftp = ssh.open_sftp()
         sftp.chdir('/home/%s' % self.session.uid)
-        sftp.put('./ce_snapback.tar.gz', 'ce_snapback.tar.gz')
+        sftp.put('./ce2_snapback.tar.gz', 'ce2_snapback.tar.gz')
 
         # Remove the local tar file
-        os.remove('./ce_snapback.tar.gz')
+        os.remove('./ce2_snapback.tar.gz')
 
         # Send the import policy to the APIC
         url = '/api/node/mo/uni/fabric.json'
         payload = {"configImportP": {"attributes": {"name": "snapback",
-                                                    "fileName": "ce_snapback.tar.gz",
+                                                    "fileName": "ce2_snapback.tar.gz",
                                                     "adminSt": "triggered",
                                                     "importType": "replace",
                                                     "importMode": "atomic"},
@@ -901,43 +920,44 @@ class ConfigDB(object):
             return False
 
 
-def main():
+def main(args=None):
     """
     Main execution path when run from the command line
     """
     # Get all the arguments
-    description = 'Configuration Snapshot and Rollback tool for APIC. v0.2'
-    creds = ACI.Credentials('apic', description)
-    commands = creds.add_mutually_exclusive_group()
-    commands.add_argument('-s', '--snapshot', action='store_true',
-                          help='Take a snapshot of the APIC configuration')
-    commands.add_argument('-ls', '--list-snapshots', action='store_true',
-                          help='List all of the available snapshots')
-    help_txt = ('Configuration file responses include all properties of'
-                ' the returned managed objects.')
-    creds.add_argument('-a', '--all-properties', action='store_true',
-                       default=False,
-                       help=help_txt)
-    help_txt = ('Configuration snapshot using the method available in v0.1.')
-    creds.add_argument('--v1', action='store_true',
-                       default=False,
-                       help=help_txt)
-    help_txt = 'List all of the available configuration files.'
-    commands.add_argument('-lc', '--list-configfiles', nargs='*',
-                          metavar=('VERSION'),
-                          default=None,
-                          help=help_txt)
-    help_txt = ('Rollback the configuration to the specified version.'
-                ' Optionally only for certain configuration files.')
-    commands.add_argument('--rollback', nargs='+',
-                          metavar=('VERSION'),
-                          help=help_txt)
-    help_txt = ('Show the contents of a particular configfile'
-                ' from a particular snapshot version.')
-    commands.add_argument('--show', nargs=2,
-                          metavar=('VERSION', 'CONFIGFILE'),
-                          help=help_txt)
-    args = creds.get()
+    if args is None:
+        description = 'Configuration Snapshot and Rollback tool for APIC. v0.2'
+        creds = ACI.Credentials('apic', description)
+        commands = creds.add_mutually_exclusive_group()
+        commands.add_argument('-s', '--snapshot', action='store_true',
+                              help='Take a snapshot of the APIC configuration')
+        commands.add_argument('-ls', '--list-snapshots', action='store_true',
+                              help='List all of the available snapshots')
+        help_txt = ('Configuration file responses include all properties of'
+                    ' the returned managed objects.')
+        creds.add_argument('-a', '--all-properties', action='store_true',
+                           default=False,
+                           help=help_txt)
+        help_txt = ('Configuration snapshot using the method available in v0.1.')
+        creds.add_argument('--v1', action='store_true',
+                           default=False,
+                           help=help_txt)
+        help_txt = 'List all of the available configuration files.'
+        commands.add_argument('-lc', '--list-configfiles', nargs='*',
+                              metavar=('VERSION'),
+                              default=None,
+                              help=help_txt)
+        help_txt = ('Rollback the configuration to the specified version.'
+                    ' Optionally only for certain configuration files.')
+        commands.add_argument('--rollback', nargs='+',
+                              metavar=('VERSION'),
+                              help=help_txt)
+        help_txt = ('Show the contents of a particular configfile'
+                    ' from a particular snapshot version.')
+        commands.add_argument('--show', nargs=2,
+                              metavar=('VERSION', 'CONFIGFILE'),
+                              help=help_txt)
+        args = creds.get()
 
     cdb = ConfigDB()
     try:
