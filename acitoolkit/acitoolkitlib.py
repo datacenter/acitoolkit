@@ -92,6 +92,7 @@ class Credentials(object):
             self._parser.add_argument('-p', '--password',
                                       default=DEFAULT_PASSWORD,
                                       help='APIC login password.')
+        if 'nosnapshotfiles' not in qualifier and 'apic' in qualifier:
             self._parser.add_argument('--snapshotfiles', nargs='+',
                                       help='APIC configuration files')
         if 'mysql' in qualifier:
@@ -201,7 +202,7 @@ class Credentials(object):
                 return ''
         except AttributeError:
             pass
-        if 'apic' in self._qualifier and self._args.snapshotfiles is None:
+        if 'apic' in self._qualifier and 'nosnapshotfiles' not in self._qualifier and self._args.snapshotfiles is None:
             if self._args.login is None:
                 self._args.login = self._get_from_user('APIC login username: ')
             if self._args.url is None:
