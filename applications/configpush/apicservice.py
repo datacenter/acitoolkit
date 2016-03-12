@@ -2,9 +2,10 @@
 """
 Application to push contract configuration to the APIC
 """
-from acitoolkit.acitoolkit import (Tenant, AppProfile, EPG,
-                                   Session, Contract, FilterEntry,
-                                   BridgeDomain, AttributeCriterion)
+from acitoolkit import (Tenant, AppProfile, EPG,
+                        Session, Contract, FilterEntry,
+                        BridgeDomain, AttributeCriterion,
+                        Node, Context)
 import json
 from jsonschema import validate, ValidationError, FormatChecker
 import logging
@@ -251,6 +252,44 @@ class EPGPolicy(PolicyObject):
         return self._node_policies
 
 
+class ApplicationPolicy(PolicyObject):
+    """
+    Application Profile Policy
+    """
+    @property
+    def id(self):
+        return self._policy['id']
+
+    @property
+    def name(self):
+        return self._policy['name']
+
+    @property
+    def clusters(self):
+        return self._policy['clusters']
+
+
+class ContextPolicy(PolicyObject):
+    """
+    Context Policy
+    """
+    @property
+    def id(self):
+        return self._policy['id']
+
+    @property
+    def name(self):
+        return self._policy['name']
+
+    @property
+    def tenant_id(self):
+        return self._policy['tenant_id']
+
+    @property
+    def tenant_name(self):
+        return self._policy['tenant_name']
+
+
 class ContractPolicy(PolicyObject):
     """
     Contract Policy
@@ -370,7 +409,9 @@ class ConfigDB(object):
     """
     def __init__(self):
         self._apic_policy = None
+        self._context_policy = None
         self._contract_policies = []
+        self._application_policies = []
         self._epg_policies = []
         self._old_policies = []
 
@@ -402,10 +443,43 @@ class ConfigDB(object):
 
     def get_apic_config(self):
         """
-        Get the APIC policies
-        :return: List of APICPolicy instances
+        Get the APIC policy
+        :return: ApicPolicy instance or None if not present
         """
         return self._apic_policy
+
+    def store_context_config(self, new_config):
+        """
+        Store the Context configuration in the current configuration.
+
+        :param new_config: Config JSON
+        :return: True if config has changed from previous config. False if no change.
+        """
+        # If no apic in new config, we just want to keep the current
+        if 'vrf' not in new_config:
+            return False
+        # If no current Context config, then take the new config
+        if not self.has_context_config():
+            self._context_policy = ContextPolicy(new_config['vrf'])
+            return True
+        if self._context_policy == ContextPolicy(new_config['vrf']):
+            return False
+        self._context_policy = ContextPolicy(new_config['vrf'])
+        return True
+
+    def has_context_config(self):
+        """
+        Check if the configuration has a Context policy
+        :return: True if Context policy is present. False otherwise.
+        """
+        return self._context_policy is not None
+
+    def get_context_config(self):
+        """
+        Get the Context policy
+        :return: ContextPolicy instance or None if not present
+        """
+        return self._context_policy
 
     def store_epg_policy(self, epg_policy):
         """
@@ -452,6 +526,49 @@ class ConfigDB(object):
         """
         return self._epg_policies
 
+    def store_app_policy(self, app_policy):
+        """
+        Store the application policy in the current configuration.
+
+        :param app_policy: dictionary containing JSON of the Application Policy
+        :return: True if config has changed from previous config. False if no change.
+        """
+        app_policy = ApplicationPolicy(app_policy)
+        for configured_policy in self.get_application_policies():
+            # If we already have this policy, we're done
+            if configured_policy == app_policy:
+                return False
+            # Check if the EPG is the same
+            if configured_policy.name == app_policy.name:
+                # Something must have changed. Replace the old policy with the new one.
+                self.remove_application_policy(configured_policy)
+                self.add_application_policy(app_policy)
+                return True
+        # If we get this far, we must not have the policy
+        self.add_application_policy(app_policy)
+        return True
+
+    def remove_application_policy(self, policy):
+        """
+        Remove the application policy
+        :param policy: Instance of applicationPolicy
+        :return: None
+        """
+        self._application_policies.remove(policy)
+
+    def add_application_policy(self, policy):
+        """
+        Add the application policy
+        """
+        self._application_policies.append(policy)
+
+    def get_application_policies(self):
+        """
+        Get the application policies
+        :return: List of applicationPolicy instances
+        """
+        return self._application_policies
+
     def store_contract_policy(self, contract_policy):
         """
         Store the contract policy in the current configuration.
@@ -467,7 +584,7 @@ class ConfigDB(object):
             # Check if the EPG is the same
             if configured_policy.src_id == contract_policy.src_id and configured_policy.dst_id == contract_policy.dst_id:
                 # Something must have changed. Replace the old policy with the new one.
-                self.remove_contract_policy(contract_policy)
+                self.remove_contract_policy(configured_policy)
                 self.add_contract_policy(contract_policy)
                 return True
         # If we get this far, we must not have the policy
@@ -512,8 +629,16 @@ class ConfigDB(object):
                 if self.store_epg_policy(epg_policy):
                     logging.debug('EPG policy config has changed.')
                     config_change = True
+        if 'applications' in config_json:
+            for app_policy in config_json['applications']:
+                if self.store_app_policy(app_policy):
+                    logging.debug('Application Profile policy config has changed.')
+                    config_change = True
         if self.store_apic_config(config_json):
             logging.debug('APIC config has changed.')
+            config_change = True
+        if self.store_context_config(config_json):
+            logging.debug('Context config has changed.')
             config_change = True
         # Look for old contracts that are no longer needed
         for configured_policy in self.get_contract_policies():
@@ -563,6 +688,10 @@ class ApicService(GenericService):
 
         :return: Requests Response instance indicating success or not
         """
+        # Set the tenant name correctly
+        if self.cdb.has_context_config():
+            self.set_tenant_name(self.cdb.get_context_config().tenant_name)
+
         # Find all the unique contract providers
         unique_providers = {}
         for provided_policy in self.cdb.get_contract_policies():
@@ -636,10 +765,23 @@ class ApicService(GenericService):
         app = AppProfile(self._app_name, tenant)
         # Create a Base EPG
         base_epg = EPG('base', app)
+        if self.cdb.has_context_config():
+            context_name = self.cdb.get_context_config().name
+        else:
+            context_name = 'vrf1'
+        context = Context(context_name, tenant)
         bd = BridgeDomain('bd', tenant)
+        bd.add_context(context)
         base_epg.add_bd(bd)
-        # TODO: Send to all of the current nodes
-        base_epg.add_static_leaf_binding('101', 'vlan', '1', encap_mode='untagged')
+        if self._displayonly:
+            # If display only, just deploy the EPG to leaf 101
+            base_epg.add_static_leaf_binding('101', 'vlan', '1', encap_mode='untagged')
+        else:
+            # Deploy the EPG to all of the leaf switches
+            nodes = Node.get(apic)
+            for node in nodes:
+                if node.role == 'leaf':
+                    base_epg.add_static_leaf_binding(node.node, 'vlan', '1', encap_mode='untagged')
 
         # Create the Attribute based EPGs
         for epg_policy in self.cdb.get_epg_policies():
