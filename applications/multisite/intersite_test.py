@@ -1732,6 +1732,9 @@ class TestChangeL3Out(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_add_multiple_endpoint(self):
+        """
+        Test adding multiple endopoints
+        """
         args = self.get_args()
         config = self.create_config_file('l3out1')
         self.write_config_file(config, args)
@@ -1761,7 +1764,14 @@ class TestChangeL3Out(BaseTestCase):
 
 
 class TestDuplicates(BaseTestCase):
+    """
+    Test duplicate existing entry on the remote site
+    """
     def create_config_file(self):
+        """
+        Create the configuration file
+        :return: dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
                     "export": {
@@ -1790,6 +1800,9 @@ class TestDuplicates(BaseTestCase):
         return config
 
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
         self.assertTrue(resp.ok)
@@ -1802,6 +1815,9 @@ class TestDuplicates(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -1816,6 +1832,9 @@ class TestDuplicates(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def teardown_local_site(self):
+        """
+        Tear down the local site
+        """
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
         self.assertTrue(resp.ok)
@@ -1827,6 +1846,9 @@ class TestDuplicates(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def teardown_remote_site(self):
+        """
+        Tear down the remote site
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -1838,6 +1860,11 @@ class TestDuplicates(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def add_remote_duplicate_entry(self, ip):
+        """
+        Add a remote entry
+        :param ip: String containing the IP address
+        :return: None
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -1852,6 +1879,10 @@ class TestDuplicates(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def test_basic_duplicate(self):
+        """
+        Test a basic duplicate entry scenario.  An existing entry exists on the remote site but on
+        a different OutsideEPG on the same OutsideL3.
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1869,6 +1900,9 @@ class TestDuplicates(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_multiple_duplicate(self):
+        """
+        Test a basic multiple duplicate entry scenario.
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1894,6 +1928,9 @@ class TestDuplicates(BaseTestCase):
             self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_partial_duplicate(self):
+        """
+        Test a basic multiple duplicate entry scenario where some of the entries in the set being added are duplicate.
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1920,7 +1957,14 @@ class TestDuplicates(BaseTestCase):
 
 
 class SetupDuplicateTests(BaseTestCase):
+    """
+    Base class to setup the duplicate tests
+    """
     def create_config_file(self):
+        """
+        Create the configuration file
+        :return: dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
                     "export": {
@@ -1955,6 +1999,9 @@ class SetupDuplicateTests(BaseTestCase):
         return config
 
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
         self.assertTrue(resp.ok)
@@ -1967,6 +2014,9 @@ class SetupDuplicateTests(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -1983,6 +2033,9 @@ class SetupDuplicateTests(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def teardown_local_site(self):
+        """
+        Tear down the local site
+        """
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
         self.assertTrue(resp.ok)
@@ -1994,6 +2047,9 @@ class SetupDuplicateTests(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def teardown_remote_site(self):
+        """
+        Tear down the remote site
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -2006,7 +2062,15 @@ class SetupDuplicateTests(BaseTestCase):
 
 
 class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
+    """
+    Test duplicate entries with 2 OutsideL3 interfaces on the remote site
+    """
     def add_remote_duplicate_entry(self, ip):
+        """
+        Add a remote entry
+        :param ip: String containing the IP address
+        :return: None
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -2021,6 +2085,10 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
         self.assertTrue(resp.ok)
 
     def test_basic_duplicate(self):
+        """
+        Test a basic duplicate entry scenario.  An existing entry exists on the remote site but on
+        a different OutsideEPG on the same OutsideL3.
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -2044,6 +2112,9 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
         self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_multiple_duplicate(self):
+        """
+        Test a basic multiple duplicate entry scenario.
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -2071,6 +2142,9 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
             self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_partial_duplicate(self):
+        """
+        Test a basic multiple duplicate entry scenario where some of the entries in the set being added are duplicate.
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -2099,7 +2173,14 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
 
 
 class TestDeletions(BaseEndpointTestCase):
+    """
+    Tests for deletion of stale entries
+    """
     def test_basic_deletion(self):
+        """
+        Test basic deletion of a stale entry on tool startup
+        :return:
+        """
         args = self.get_args()
         config_filename = 'testsuite_cfg.json'
         args.config = config_filename
@@ -2133,6 +2214,9 @@ class TestDeletions(BaseEndpointTestCase):
 
 
 def main_test():
+    """
+    Main execution routine.  Create the test suites and run.
+    """
     full = unittest.TestSuite()
     full.addTest(unittest.makeSuite(TestToolOptions))
     full.addTest(unittest.makeSuite(TestBadConfiguration))

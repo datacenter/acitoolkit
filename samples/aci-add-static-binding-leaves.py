@@ -11,6 +11,7 @@ DEFAULT_ENCAP_MODE = 'regular'
 DEFAULT_IMMEDIACY  = 'immediate'
 DEFAULT_POD        = '1'
 
+
 def main():
     """
     Main show EPGs routine
@@ -35,15 +36,16 @@ def main():
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
-    
+
     tenant = aci.Tenant(args.tenant)
     app = aci.AppProfile(args.app, tenant)
     epg = aci.EPG(args.epg, app)
     epg.add_static_leaf_binding(args.node, args.type, args.id, args.mode, args.deploy, args.pod)
-    
+
     # Push it all to the APIC
     resp = session.push_to_apic(tenant.get_url(), tenant.get_json())
-                            
+
+
 if __name__ == '__main__':
     try:
         main()
