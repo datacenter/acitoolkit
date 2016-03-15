@@ -32,13 +32,10 @@ import sys
 from copy import copy
 import radix
 import re
-from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, Subnet, ContractSubject, \
+from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, ContractSubject, \
     FilterEntry, Context, OutsideNetwork
 from acitoolkit.aciphysobject import Session
 from acitoolkit.acitoolkitlib import Credentials
-
-SQL = False
-TESTMODE = False
 
 
 class LoginError(Exception):
@@ -56,14 +53,17 @@ class IpAddress(object):
     def __init__(self, ip):
 
         if isinstance(ip, str):
-
-            sections = ip.split('/')
-            if len(sections) == 1:
-                self._prefixlen = 32
+            if ip == '':
+                self._prefixlen = 0
+                self.addr = '0.0.0.0'
             else:
-                self._prefixlen = int(sections[1])
+                sections = ip.split('/')
+                if len(sections) == 1:
+                    self._prefixlen = 32
+                else:
+                    self._prefixlen = int(sections[1])
 
-            self.addr = IpAddress.parse_text(sections[0])
+                self.addr = IpAddress.parse_text(sections[0])
         if isinstance(ip, int):
             self._prefixlen = 32
             self.addr = self.n2s(ip)
@@ -127,6 +127,8 @@ class IpAddress(object):
                 return self
             else:
                 return other
+        else:
+            return None
 
     @staticmethod
     def simplify(ip_list):
@@ -387,20 +389,6 @@ class ProtocolFilter(object):
         else:
             self._arpOpc = value
 
-    @property
-    def dFromPort(self):
-        return self._dFromPort
-
-    @dFromPort.setter
-    def dFromPort(self, value):
-        if value == 'unspecified' or value == 'any' or value is None:
-            self._dFromPort = 'any'
-        else:
-            if isinstance(value, str):
-                self._dFromPort = self._port_from_string(value)
-            else:
-                self._dFromPort = value
-
     @staticmethod
     def _port_from_string(value):
         match_result = re.match('^\d+$', value)
@@ -424,6 +412,20 @@ class ProtocolFilter(object):
             raise ValueError('Unrecognized layer 4 port value in filter: ' + value)
 
     @property
+    def dFromPort(self):
+        return self._dFromPort
+
+    @dFromPort.setter
+    def dFromPort(self, value):
+        if value == 'unspecified' or value == 'any' or value is None:
+            self._dFromPort = 'any'
+        else:
+            if isinstance(value, str):
+                self._dFromPort = self._port_from_string(value)
+            else:
+                self._dFromPort = value
+
+    @property
     def dToPort(self):
         return self._dToPort
 
@@ -436,6 +438,25 @@ class ProtocolFilter(object):
                 self._dToPort = self._port_from_string(value)
             else:
                 self._dToPort = value
+
+    @property
+    def dPort(self):
+        return '{0}-{1}'.format(self.dFromPort, self.dToPort)
+
+    @dPort.setter
+    def dPort(self, value):
+        """
+        This is a way to set both dFromPort and dToPort in a single shot
+        :param value:
+        :return:
+        """
+        fields = re.split('[\s-]+', value)
+        if len(fields) > 1:
+            self.dFromPort = fields[0]
+            self.dToPort = fields[1]
+        elif len(fields) == 1:
+            self.dFromPort = fields[0]
+            self.dToPort = fields[0]
 
     @property
     def sFromPort(self):
@@ -466,6 +487,25 @@ class ProtocolFilter(object):
                 self._sToPort = value
 
     @property
+    def sPort(self):
+        return '{0}-{1}'.format(self.sFromPort, self.sToPort)
+
+    @sPort.setter
+    def sPort(self, value):
+        """
+        This is a way to set both sFromPort and sToPort in a single shot
+        :param value:
+        :return:
+        """
+        fields = re.split('[\s-]+', value)
+        if len(fields) > 1:
+            self.sFromPort = fields[0]
+            self.sToPort = fields[1]
+        elif len(fields) == 1:
+            self.sFromPort = fields[0]
+            self.sToPort = fields[0]
+
+    @property
     def etherT(self):
         return self._etherT
 
@@ -485,7 +525,12 @@ class ProtocolFilter(object):
         if value == 'unspecified' or value is None:
             self._prot = 'any'
         else:
+
             self._prot = value
+
+            if self.etherT == 'any':
+                if value in ['icmp','igmp','tcp','egp','igp','udp','icmpv6','eigrp','ospfigp','pim','l2tp']:
+                    self.etherT = 'ip'
 
     @property
     def tcpRules(self):
@@ -497,6 +542,8 @@ class ProtocolFilter(object):
             self._tcpRules = 'any'
         else:
             self._tcpRules = value
+            if self.prot == 'any' and self.tcpRules != 'any':
+                self.prot = 'tcp'
 
     def overlap(self, other):
         """
@@ -638,8 +685,8 @@ class FlowSpec(object):
     def __init__(self):
         self._sip = [IpAddress('0/0')]
         self._dip = [IpAddress('0/0')]
-        self.tenant_name = ''
-        self.context_name = ''
+        self.tenant_name = '*'
+        self.context_name = '*'
         self.protocol_filter = []
 
     def get_source(self):
@@ -817,6 +864,7 @@ class SearchDb(object):
         self.context_radix = {}
         self.tenants_by_name = {}
         self.context_by_name = {}
+        self.initialized = False
 
     def build(self, tenants=None):
         """
@@ -847,6 +895,7 @@ class SearchDb(object):
                 self.build_epg_contract_outside_l3(outside_l3)
 
             self.build_contract_filter(contracts)
+        self.initialized = True
 
     def build_ip_epg(self, epgs):
 
@@ -861,18 +910,15 @@ class SearchDb(object):
                 context = bridge_domain.get_context()
             else:
                 context = None
-            app_profile = epg.get_parent()
-            tenant = app_profile.get_parent()
 
-            if (tenant, context) not in self.context_radix:
-                self.context_radix[(tenant, context)] = radix.Radix()
+            if context not in self.context_radix:
+                self.context_radix[context] = radix.Radix()
 
             for ep in eps:
                 ip = IpAddress(ep.ip)
 
-                full_epg = (tenant, app_profile, epg)
-                node = self.context_radix[(tenant, context)].add(str(ip))
-                node.data['epg'] = full_epg
+                node = self.context_radix[context].add(str(ip))
+                node.data['epg'] = epg
                 node.data['location'] = 'internal'
 
     def build_ip_epg_outside_l3(self, outside_l3):
@@ -882,19 +928,17 @@ class SearchDb(object):
         :return:
         """
 
-        tenant = outside_l3.get_parent()
         context = outside_l3.get_context()
-        if (tenant, context) not in self.context_radix:
-            self.context_radix[(tenant, context)] = radix.Radix()
+        if context not in self.context_radix:
+            self.context_radix[context] = radix.Radix()
 
         outside_epgs = outside_l3.get_children(OutsideEPG)
         for outside_epg in outside_epgs:
             subnets = outside_epg.get_children(OutsideNetwork)
-            full_epg = (tenant, outside_l3, outside_epg)
             for subnet in subnets:
                 ip = IpAddress(subnet.get_addr())
-                node = self.context_radix[(tenant, context)].add(str(ip))
-                node.data['epg'] = full_epg
+                node = self.context_radix[context].add(str(ip))
+                node.data['epg'] = outside_epg
                 node.data['location'] = "external"
 
     def show_ip_epg(self):
@@ -904,10 +948,12 @@ class SearchDb(object):
         :return:
         """
         for vrf in self.context_radix:
-            (tenant, context) = vrf
+            context = vrf
+            tenant = context.get_parent()
             for node in self.context_radix[vrf]:
                 context_str = "{0}/{1}".format(tenant, context)
-                (epg_tenant, app_profile, epg) = node.data['epg']
+                epg = node.data['epg']
+                app_profile = epg.get_parent()
                 print "{4:10} {0:40} {1:30} {2}/{3}".format(context_str, node.prefix, app_profile, epg,
                                                             node.data['location'])
 
@@ -921,9 +967,7 @@ class SearchDb(object):
         for epg in epgs:
             consumed_contracts = epg.get_all_consumed()
             provided_contracts = epg.get_all_provided()
-            app_profile = epg.get_parent()
-            epg_tenant = app_profile.get_parent()
-            full_epg = (epg_tenant, app_profile, epg)
+            full_epg = epg
             if full_epg not in self.epg_contract:
                 self.epg_contract[full_epg] = []
             for contract in consumed_contracts:
@@ -941,12 +985,11 @@ class SearchDb(object):
                 self.epg_contract[full_epg].append(contract_record)
 
     def build_epg_contract_outside_l3(self, outside_l3):
-        epg_tenant = outside_l3.get_parent()
         outside_epgs = outside_l3.get_children(OutsideEPG)
         for outside_epg in outside_epgs:
             consumed_contracts = outside_epg.get_all_consumed()
             provided_contracts = outside_epg.get_all_provided()
-            full_epg = (epg_tenant, outside_l3, outside_epg)
+            full_epg = outside_epg
             if full_epg not in self.epg_contract:
                 self.epg_contract[full_epg] = []
             for contract in consumed_contracts:
@@ -1015,9 +1058,9 @@ class SearchDb(object):
         find corresponding EPGs
         find corresponding consumed contracts
 
-        find matching IP addreses for the destination
+        find matching IP addresses for the destination
         find corresponding EPGs
-        find corrresponding provided contracts
+        find corresponding provided contracts
 
         find intersection of contracts
         build flow specs.
@@ -1043,9 +1086,10 @@ class SearchDb(object):
             filters = self.contract_filter[connection['contract']]
             matching_filters = []
             for aci_filter in filters:
-                overlap_filter = flow_spec.protocol_filter[0].overlap(ProtocolFilter(aci_filter))
-                if overlap_filter is not None:
-                    matching_filters.append(overlap_filter)
+                for fs_p_filter in flow_spec.protocol_filter:
+                    overlap_filter = fs_p_filter.overlap(ProtocolFilter(aci_filter))
+                    if overlap_filter is not None:
+                        matching_filters.append(overlap_filter)
 
             if len(matching_filters) > 0:
                 result.append(self._build_result_flow_spec(connection, matching_filters))
@@ -1059,12 +1103,12 @@ class SearchDb(object):
     def _build_result_flow_spec(connection, matching_filters):
 
         result = FlowSpec()
-        result.tenant_name = connection['source_epg'][0].name
+        result.tenant_name = connection['source_epg'].get_parent().get_parent().name
         source_epg = connection['source_epg']
-        if isinstance(source_epg[2], OutsideEPG):
-            result.context_name = source_epg[1].get_context().name
+        if isinstance(source_epg, OutsideEPG):
+            result.context_name = source_epg.get_parent().get_context().name
         else:
-            result.context_name = source_epg[2].get_bd().get_context().name
+            result.context_name = source_epg.get_bd().get_context().name
         result.sip = connection['source']
         result.dip = connection['dest']
         result.protocol_filter = matching_filters
@@ -1093,27 +1137,20 @@ class SearchDb(object):
                 if match_result is not None and tenant_name == tenant.name:
                     contexts.append(self.context_by_name[(tenant_name, context_name)])
 
-        # tenant = self.tenants_by_name[subflow_spec.tenant_name]
-        # context = self.context_by_name[(subflow_spec.tenant_name, subflow_spec.context_name)]
-
-        vrfs = []
-        for context in contexts:
-            vrfs.append((context.get_parent(), context))
-        # vrf = (tenant, context)
         epgs_prefix = {}
         nodes = []
 
-        for vrf in vrfs:
-            if vrf in self.context_radix:
+        for context in contexts:
+            if context in self.context_radix:
                 # cover both the case where what we are looking for is covered by a prefix
                 # and where it covers more than one address.
                 for ip in subflow_spec.ip:
 
-                    node = self.context_radix[vrf].search_best(str(ip.prefix))
+                    node = self.context_radix[context].search_best(str(ip.prefix))
                     if node is not None:
                         if node not in nodes:
                             nodes.append(node)
-                    temp_nodes = self.context_radix[vrf].search_covered(str(ip.prefix))
+                    temp_nodes = self.context_radix[context].search_covered(str(ip.prefix))
                     for node in temp_nodes:
                         if node not in nodes:
                             nodes.append(node)
@@ -1121,12 +1158,12 @@ class SearchDb(object):
         # now have all the nodes
         if nodes is not None:
             for node in nodes:
-                if node.data['epg'] not in epgs_prefix:
-                    epgs_prefix[node.data['epg']] = []
-
                 for ip in subflow_spec.ip:
                     ovlp = ip.overlap(IpAddress(node.prefix))
                     if ovlp is not None:
+                        if node.data['epg'] not in epgs_prefix:
+                            epgs_prefix[node.data['epg']] = []
+
                         if ovlp not in epgs_prefix[node.data['epg']]:
                             epgs_prefix[node.data['epg']].append(ovlp)
 
@@ -1213,7 +1250,7 @@ def main():
 
     flow_spec = build_flow_spec_from_args(args)
     # todo: verify that a dash can be used in port range.
-    
+
     # Login to APIC
     session = Session(args.url, args.login, args.password)
     resp = session.login()

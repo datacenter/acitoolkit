@@ -20,7 +20,7 @@
 Search test
 """
 import unittest
-from acitoolkit import BridgeDomain, Filter, OutsideNetwork
+from acitoolkit import BridgeDomain, Filter
 from aciConSearch import *
 
 LIVE_TEST = False
@@ -34,39 +34,39 @@ def get_tree():
     tenant = Tenant('tenant')
     tenant.dn = '/tn-tenant'
     app1 = AppProfile('app1', tenant)
-    app1.dn = app1._parent.dn + '/app-app1'
+    app1.dn = app1.get_parent().dn + '/app-app1'
     app2 = AppProfile('app2', tenant)
-    app2.dn = app2._parent.dn + '/app-app2'
+    app2.dn = app2.get_parent().dn + '/app-app2'
     epg11 = EPG('epg11', app1)
-    epg11.dn = epg11._parent.dn + '/epg-epg11'
+    epg11.dn = epg11.get_parent().dn + '/epg-epg11'
     for index in range(1, 5):
         ep = Endpoint('endpoint_' + str(index), epg11)
         ep.ip = '192.168.11.' + str(index)
     epg12 = EPG('epg12', app1)
-    epg12.dn = epg12._parent.dn + '/epg-epg12'
+    epg12.dn = epg12.get_parent().dn + '/epg-epg12'
     for index in range(1, 5):
         ep = Endpoint('endpoint_' + str(index), epg12)
         ep.ip = '192.168.12.' + str(index)
     epg21 = EPG('epg21', app2)
-    epg21.dn = epg21._parent.dn + '/epg-epg21'
+    epg21.dn = epg21.get_parent().dn + '/epg-epg21'
     for index in range(1, 5):
         ep = Endpoint('endpoint_' + str(index), epg21)
         ep.ip = '192.168.21.' + str(index)
     epg22 = EPG('epg22', app2)
-    epg22.dn = epg22._parent.dn + '/epg-epg22'
+    epg22.dn = epg22.get_parent().dn + '/epg-epg22'
     for index in range(1, 5):
         ep = Endpoint('endpoint_' + str(index), epg22)
         ep.ip = '192.168.22.' + str(index)
     bd1 = BridgeDomain('bd1', tenant)
-    bd1.dn = bd1._parent.dn + '/bd-bd1'
+    bd1.dn = bd1.get_parent().dn + '/bd-bd1'
     bd2 = BridgeDomain('bd2', tenant)
-    bd2.dn = bd2._parent.dn + '/bd-bd2'
+    bd2.dn = bd2.get_parent().dn + '/bd-bd2'
     epg11.add_bd(bd1)
     epg12.add_bd(bd2)
     epg21.add_bd(bd1)
     epg22.add_bd(bd2)
     context = Context('ctx', tenant)
-    context.dn = context._parent.dn + '/ctx-ctx'
+    context.dn = context.get_parent().dn + '/ctx-ctx'
     bd1.add_context(context)
     bd2.add_context(context)
 
@@ -99,7 +99,7 @@ def get_tree():
     subnet_33.set_addr('10.30.2.1/25')
 
     contract1 = Contract('contract-1', tenant)
-    contract1.dn = contract1._parent.dn + '/con-contract1'
+    contract1.dn = contract1.get_parent().dn + '/con-contract1'
     entry1 = FilterEntry('entry1',
                          applyToFrag='no',
                          arpOpc='unspecified',
@@ -113,12 +113,12 @@ def get_tree():
                          parent=contract1)
     subjects = contract1.get_children(ContractSubject)
     for subject in subjects:
-        subject.dn = subject._parent.dn + '/subj-' + subject.name
+        subject.dn = subject.get_parent().dn + '/subj-' + subject.name
     filters = tenant.get_children(Filter)
     for atk_filter in filters:
-        atk_filter.dn = atk_filter._parent.dn + '/flt-' + atk_filter.name
+        atk_filter.dn = atk_filter.get_parent().dn + '/flt-' + atk_filter.name
 
-    entry1.dn = entry1._parent.dn + '/flte-entry1'
+    entry1.dn = entry1.get_parent().dn + '/flte-entry1'
 
     contract2 = Contract('contract-2', tenant)
     contract3 = Contract('contract-3', tenant)
@@ -188,44 +188,44 @@ def get_tree2():
     tenant = Tenant('tenant2')
     tenant.dn = '/tn-tenant2'
     app1 = AppProfile('t2_app1', tenant)
-    app1.dn = app1._parent.dn + '/app-app1'
+    app1.dn = app1.get_parent().dn + '/app-app1'
     app2 = AppProfile('t2_app2', tenant)
-    app2.dn = app2._parent.dn + '/app-app2'
+    app2.dn = app2.get_parent().dn + '/app-app2'
     epg11 = EPG('t2_epg11', app1)
-    epg11.dn = epg11._parent.dn + '/epg-epg11'
+    epg11.dn = epg11.get_parent().dn + '/epg-epg11'
     for index in range(1, 5):
         ep = Endpoint('t2_endpoint_' + str(index), epg11)
         ep.ip = '192.168.11.' + str(index)
     epg12 = EPG('t2_epg12', app1)
-    epg12.dn = epg12._parent.dn + '/epg-epg12'
+    epg12.dn = epg12.get_parent().dn + '/epg-epg12'
     for index in range(1, 5):
         ep = Endpoint('t2_endpoint_' + str(index), epg12)
         ep.ip = '192.169.12.' + str(index)
     epg21 = EPG('t2_epg21', app1)
-    epg21.dn = epg11._parent.dn + '/epg-epg21'
+    epg21.dn = epg11.get_parent().dn + '/epg-epg21'
     for index in range(1, 5):
         ep = Endpoint('t2_endpoint_' + str(index), epg21)
         ep.ip = '192.170.11.' + str(index)
     epg22 = EPG('t2_epg22', app1)
-    epg22.dn = epg22._parent.dn + '/epg-epg22'
+    epg22.dn = epg22.get_parent().dn + '/epg-epg22'
     for index in range(1, 5):
         ep = Endpoint('t2_endpoint_' + str(index), epg22)
         ep.ip = '192.170.12.' + str(index)
     bd1 = BridgeDomain('bd1', tenant)
-    bd1.dn = bd1._parent.dn + '/bd-bd1'
+    bd1.dn = bd1.get_parent().dn + '/bd-bd1'
     bd2 = BridgeDomain('bd2', tenant)
-    bd2.dn = bd2._parent.dn + '/bd-bd2'
+    bd2.dn = bd2.get_parent().dn + '/bd-bd2'
     bd3 = BridgeDomain('bd3', tenant)
-    bd3.dn = bd3._parent.dn + '/bd-bd3'
+    bd3.dn = bd3.get_parent().dn + '/bd-bd3'
 
     epg11.add_bd(bd1)
     epg12.add_bd(bd2)
     epg21.add_bd(bd3)
     epg22.add_bd(bd3)
     context = Context('ctx', tenant)
-    context.dn = context._parent.dn + '/ctx-ctx'
+    context.dn = context.get_parent().dn + '/ctx-ctx'
     context2 = Context('ctx2', tenant)
-    context2.dn = context._parent.dn + '/ctx-ctx2'
+    context2.dn = context.get_parent().dn + '/ctx-ctx2'
     bd1.add_context(context)
     bd2.add_context(context)
     bd3.add_context(context2)
@@ -243,9 +243,9 @@ def get_tree2():
     subnet_33.set_addr('10.30.2.1/25')
 
     contract1 = Contract('contract-1', tenant)
-    contract1.dn = contract1._parent.dn + '/con-contract1'
+    contract1.dn = contract1.get_parent().dn + '/con-contract1'
     contract2 = Contract('contract-2', tenant)
-    contract2.dn = contract2._parent.dn + '/con-contract2'
+    contract2.dn = contract2.get_parent().dn + '/con-contract2'
     entry1 = FilterEntry('entry1',
                          applyToFrag='no',
                          arpOpc='unspecified',
@@ -259,12 +259,12 @@ def get_tree2():
                          parent=contract1)
     subjects = contract1.get_children(ContractSubject)
     for subject in subjects:
-        subject.dn = subject._parent.dn + '/subj-' + subject.name
+        subject.dn = subject.get_parent().dn + '/subj-' + subject.name
     filters = tenant.get_children(Filter)
     for atk_filter in filters:
-        atk_filter.dn = atk_filter._parent.dn + '/flt-' + atk_filter.name
+        atk_filter.dn = atk_filter.get_parent().dn + '/flt-' + atk_filter.name
 
-    entry1.dn = entry1._parent.dn + '/flte-entry1'
+    entry1.dn = entry1.get_parent().dn + '/flte-entry1'
 
     contract4 = Contract('contract-4', tenant)
     entry3 = FilterEntry('entry3',
@@ -320,7 +320,7 @@ def get_tree2():
     return [tenant]
 
 
-class Test_Import_Data(unittest.TestCase):
+class TestImportData(unittest.TestCase):
     """
     Checks that the object model is correctly setup
     """
@@ -341,7 +341,7 @@ class Test_Import_Data(unittest.TestCase):
             for app_profile in app_profiles:
                 epgs = app_profile.get_children(EPG)
                 for epg in epgs:
-                    result.append((tenant, app_profile, epg))
+                    result.append(epg)
         return result
 
     def get_all_outside_epgs(self):
@@ -351,7 +351,7 @@ class Test_Import_Data(unittest.TestCase):
             for outside_l3 in outside_l3s:
                 outside_epg = outside_l3.get_children(OutsideEPG)
                 for epg in outside_epg:
-                    result.append((tenant, outside_l3, epg))
+                    result.append(epg)
         return result
 
     def get_all_contracts(self):
@@ -384,7 +384,7 @@ class Test_Import_Data(unittest.TestCase):
         real_contexts = []
         for tenant in self.tenants:
             for context in tenant.get_children(Context):
-                real_contexts.append((tenant, context))
+                real_contexts.append(context)
 
         radix_contexts = self.sdb.context_radix.keys()
 
@@ -505,15 +505,13 @@ class Test_Import_Data(unittest.TestCase):
         epgs = self.get_all_epgs()
         epgs.extend(self.get_all_outside_epgs())
         epg_consume = set()
-        for full_epg in epgs:
-            epg = full_epg[2]
+        for epg in epgs:
             contracts = epg.get_all_consumed()
             for contract in contracts:
                 tenant = contract.get_parent()
                 epg_consume.add((tenant, contract))
         epg_provide = set()
-        for full_epg in epgs:
-            epg = full_epg[2]
+        for epg in epgs:
             contracts = epg.get_all_provided()
             for contract in contracts:
                 tenant = contract.get_parent()
@@ -548,7 +546,7 @@ class Test_Import_Data(unittest.TestCase):
             self.assertTrue(filter_entry in test_filters)
 
 
-class Test_Search(unittest.TestCase):
+class TestSearch(unittest.TestCase):
     """
     Checks that the object model is correctly setup
     """
@@ -601,6 +599,7 @@ class Test_Search(unittest.TestCase):
         flow_spec.tenant_name = 'tenant'
         flow_spec.context_name = 'ctx'
         filt1 = ProtocolFilter()
+        filt1.etherT = 'ip'
         filt1.prot = 'tcp'
         filt1.dFromPort = 80
         filt1.dToPort = 80
@@ -618,6 +617,7 @@ class Test_Search(unittest.TestCase):
         flow_spec.tenant_name = 'tenant'
         flow_spec.context_name = 'ctx'
         filt1 = ProtocolFilter()
+        filt1.etherT = 'ip'
         filt1.prot = 'tcp'
         filt1.dFromPort = 80
         filt1.dToPort = 80
@@ -661,6 +661,7 @@ class Test_Search(unittest.TestCase):
         flow_spec.tenant_name = 'tenant'
         flow_spec.context_name = 'ctx'
         filt1 = ProtocolFilter()
+        filt1.etherT = 'ip'
         filt1.prot = 'tcp'
         filt1.dFromPort = 443
         filt1.dToPort = 443
@@ -676,6 +677,7 @@ class Test_Search(unittest.TestCase):
         flow_spec.context_name = 'ctx'
         filt1 = ProtocolFilter()
         filt1.prot = 'tcp'
+        filt1.etherT = 'ip'
         filt1.dFromPort = 443
         filt1.dToPort = 443
         flow_spec.protocol_filter.append(filt1)
@@ -728,6 +730,7 @@ class Test_Search(unittest.TestCase):
         flow_spec.tenant_name = 'tenant'
         flow_spec.context_name = 'ctx'
         filt1 = ProtocolFilter()
+        filt1.etherT = 'ip'
         filt1.prot = 'tcp'
         filt1.dFromPort = 20
         filt1.dToPort = 20
@@ -781,6 +784,7 @@ class Test_Search(unittest.TestCase):
         flow_spec.tenant_name = 'tenant'
         flow_spec.context_name = 'ctx'
         filt1 = ProtocolFilter()
+        filt1.etherT = 'ip'
         filt1.prot = 'tcp'
         flow_spec.protocol_filter.append(filt1)
 
@@ -864,6 +868,7 @@ class Test_Search(unittest.TestCase):
         flow_spec.tenant_name = 'tenant'
         flow_spec.context_name = 'ctx'
         filt1 = ProtocolFilter()
+        filt1.etherT = 'ip'
         filt1.prot = 'tcp'
         filt1.dFromPort = 443
         filt1.dToPort = 443
@@ -903,6 +908,7 @@ class Test_Search(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
+        exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
         exp_filt1.dFromPort = 443
         exp_filt1.dToPort = 443
@@ -949,6 +955,7 @@ class Test_Search(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
+        exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
         exp_filt1.dFromPort = 20
         exp_filt1.dToPort = 20
@@ -1019,6 +1026,7 @@ class Test_Search(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
+        exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
         exp_flow_spec.protocol_filter.append(exp_filt1)
 
@@ -1077,6 +1085,7 @@ class Test_Search(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
+        exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
         exp_flow_spec.protocol_filter.append(exp_filt1)
 
@@ -1112,6 +1121,7 @@ class Test_Search(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
+        exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
         exp_flow_spec.protocol_filter.append(exp_filt1)
 
@@ -1190,7 +1200,7 @@ class Test_Search(unittest.TestCase):
         self.assertTrue(result[12] == exp_flow_spec)
 
 
-class Test_wildcard_fields(unittest.TestCase):
+class TestWildcardFields(unittest.TestCase):
     def setUp(self):
         self.sdb = SearchDb()
         self.tenants = get_tree()
@@ -1209,10 +1219,12 @@ class Test_wildcard_fields(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant2'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
+        exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
         exp_filt1.dFromPort = 443
         exp_filt1.dToPort = 443
         exp_filt2 = ProtocolFilter()
+        exp_filt2.etherT = 'ip'
         exp_filt2.prot = 'tcp'
         exp_filt2.dFromPort = 80
         exp_filt2.dToPort = 80
@@ -1301,8 +1313,20 @@ class Test_wildcard_fields(unittest.TestCase):
         result = sorted(self.sdb.search(flow_spec))
         self.assertTrue(len(result) == 22)
 
+    def test_empty_epg_result(self):
+        flow_spec = FlowSpec()
+        flow_spec.tenant_name = 'tenant'
+        flow_spec.context_name = '*'
+        filt = ProtocolFilter()
+        flow_spec.protocol_filter.append(filt)
 
-class Test_IpAddress(unittest.TestCase):
+        #flow_spec.sip = '192.168.12/24'
+        flow_spec.dip = '192.168.12/24'
+        result = sorted(self.sdb.search(flow_spec))
+        self.assertTrue(len(result) == 4)
+
+
+class TestIpAddress(unittest.TestCase):
     """
     Will check that IpAddress class works properly
     """
@@ -1437,8 +1461,12 @@ class Test_IpAddress(unittest.TestCase):
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
 
+    def test_null_init(self):
+        ip1 = IpAddress('')
+        self.assertEqual(str(ip1), '0.0.0.0/0')
 
-class Test_protocol_filter(unittest.TestCase):
+
+class TestProtocolFilter(unittest.TestCase):
     def test_load_aci_filter(self):
         entry3 = FilterEntry('entry3',
                              applyToFrag='no',
@@ -1626,7 +1654,7 @@ class Test_protocol_filter(unittest.TestCase):
         self.assertEqual(filt1.tcpRules, 'any')
 
 
-class Test_Args(unittest.TestCase):
+class TestArgs(unittest.TestCase):
     """
     Will test that the command line arguments are parsed correctly to build a flow spec
     """
@@ -1709,6 +1737,20 @@ class Test_Args(unittest.TestCase):
         self.assertEqual(flow_spec.protocol_filter[0].sFromPort, 443)
         self.assertEqual(flow_spec.protocol_filter[0].sToPort, 1000)
 
+# class TestRadix(unittest.TestCase):
+#     """
+#     Test of the Radix library
+#     """
+#     def test_search_covered(self):
+#         import radix
+#         r = radix.Radix()
+#         #r.add("40.2.3.4/16")
+#         r.add("192.168.1.133/32")
+#         r.add("0.0.0.0/0")
+#         a = r.search_covered('40.0.0.0/8')
+#         for n in a:
+#             print n.prefix
+#         self.assertTrue(len(a)== 0)
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAPIC(unittest.TestCase):
