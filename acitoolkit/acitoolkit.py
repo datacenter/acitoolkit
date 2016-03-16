@@ -863,7 +863,6 @@ class EPG(CommonEPG):
         :returns: list of strings containing APIC class names
         """
         return ['fvAEPg']
-
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
         """
@@ -2967,6 +2966,46 @@ class ContractInterface(BaseACIObject):
         else:
             self.tenant = None
 
+    def import_contract(self, contract):
+        """
+        Set the Contract that is imported by this ContractInterface
+
+        :param contract: Instance of Contract
+        :return: None
+        """
+        if self.does_import_contract(contract):
+            return
+        if self.has_import_contract():
+            old_contracts = self._get_all_relation(Contract, 'imported')
+            for old_contract in old_contracts:
+                self._remove_relation(old_contract, 'imported')
+        self._add_relation(contract, 'imported')
+
+    def does_import_contract(self, contract):
+        """
+        Check if this ContractInterface imports a specific Contract.
+
+        :param contract: Instance of Contract class to check if it is\
+                         imported by this ContractInterface.
+        :returns: True or False.  True if the ContractInterface does import the Contract.
+        """
+        return self._has_relation(contract, 'imported')
+
+    def has_import_contract(self):
+        """
+        Check if the ContractInterface has any imported Contract
+        :return: True or False. True if the ContractInterface does import a Contract.
+        """
+        return len(self._get_all_relation(Contract, 'imported')) > 0
+
+    def _generate_children(self):
+        children = []
+        for contract in self._get_all_relation(Contract, 'imported'):
+            text = {'vzRsIf': {'attributes': {'tDn': 'uni/tn-%s/brc-%s' % (contract.get_parent().name,
+                                                                           contract.name)}}}
+            children.append(text)
+        return children
+
     def get_json(self):
         """
         Returns json representation of vzCPIf object
@@ -2974,8 +3013,10 @@ class ContractInterface(BaseACIObject):
         :returns: json dictionary of vzCPIf object
         """
         attributes = self._generate_attributes()
+        children = self._generate_children()
         return super(ContractInterface, self).get_json(self._get_apic_classes()[0],
-                                                       attributes=attributes)
+                                                       attributes=attributes,
+                                                       children=children)
 
     @classmethod
     def get(cls, session, tenant=None):

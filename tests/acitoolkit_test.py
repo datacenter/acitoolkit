@@ -807,6 +807,98 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd.is_unicast_route())
 
 
+class TestContractInterface(unittest.TestCase):
+    """
+    Test the ContractInterface class
+    """
+    def setUp(self):
+        """
+        Set up the basic scenario
+        """
+        self.tenant1 = Tenant('testtenant1')
+        self.contract = Contract('testcontract', self.tenant1)
+        self.tenant2 = Tenant('testtenant2')
+        self.contract_if = ContractInterface('testcontractif', self.tenant2)
+        self.contract_if.import_contract(self.contract)
+
+    def test_has_import(self):
+        """
+        Test has_import_contract function
+        """
+        self.assertTrue(self.contract_if.has_import_contract())
+
+    def test_does_import_contract(self):
+        """
+        Test does_import_contract function
+        """
+        self.assertTrue(self.contract_if.does_import_contract(self.contract))
+
+    def test_does_not_import_contract(self):
+        """
+        Test does_import_contract function - negative scenario
+        """
+        tenant = Tenant('testtenant2')
+        contract = Contract('testcontract', tenant)
+        self.assertFalse(self.contract_if.does_import_contract(contract))
+
+    def test_import_contract_twice(self):
+        """
+        Test calling does_import_contract function twice
+        """
+        self.contract_if.import_contract(self.contract)
+        self.assertTrue(self.contract_if.does_import_contract(self.contract))
+
+    def test_import_different_contract(self):
+        """
+        Test importing a different contract
+        """
+        tenant = Tenant('testtenant2')
+        contract = Contract('testcontract', tenant)
+        self.contract_if.import_contract(contract)
+        self.assertTrue(self.contract_if.does_import_contract(contract))
+        self.assertFalse(self.contract_if.does_import_contract(self.contract))
+        self.assertEqual(len(self.contract_if._get_all_relation(Contract, 'imported')), 1)
+
+    def test_get_json(self):
+        """
+        Test get_json
+        """
+        tenant_json = self.tenant2.get_json()
+        expected_json = {
+            'fvTenant': {
+                'attributes':
+                    {
+                        'name': 'testtenant2'
+                    },
+                'children':
+                    [
+                        {
+                            'vzCPIf':
+                                {
+                                    'attributes':
+                                        {
+                                            'name': 'testcontractif'
+                                        },
+                                    'children':
+                                        [
+                                            {
+                                                'vzRsIf':
+                                                    {
+                                                        'attributes':
+                                                            {
+                                                                'tDn': 'uni/tn-testtenant1/brc-testcontract'
+                                                            }
+                                                    }
+                                            }
+                                        ]
+                                }
+                        }
+                    ]
+            }
+        }
+        self.assertEqual(tenant_json, expected_json)
+
+
 class TestL2Interface(unittest.TestCase):
     """
     Test the L2Interface class
@@ -1224,6 +1316,9 @@ class TestTaboo(unittest.TestCase):
         self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
 
     def test_get_table(self):
+        """
+        Test get_table method
+        """
         tenant = Tenant('tenant')
         taboo1 = Taboo('taboo1', tenant)
         taboo2 = Taboo('taboo2', tenant)
@@ -1910,14 +2005,23 @@ class TestEPGDomain(unittest.TestCase):
     Test the EPG Domain class
     """
     def test_get_parent_class(self):
+        """
+        Test _get_parent_class
+        """
         epg_domain = EPGDomain('test_epg_domain', None)
         self.assertIsNone(epg_domain._get_parent_class())
 
     def test_get_parent(self):
+        """
+        Test get_parent
+        """
         epg_domain = EPGDomain('test_epg_domain', None)
         self.assertEqual(epg_domain.get_parent(), epg_domain._parent)
 
     def test_get_json(self):
+        """
+        Test get_json
+        """
         epg_domain = EPGDomain('test_epg_domain', None)
         self.assertTrue(type(epg_domain.get_json()) is dict)
 
@@ -2349,6 +2453,9 @@ class TestLiveSubscription(TestLiveAPIC):
     Test Subscriptions
     """
     def test_create_class_subscription(self):
+        """
+        Test class subscription creation
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         Tenant.subscribe(session)
@@ -2359,11 +2466,17 @@ class TestLiveSubscription(TestLiveAPIC):
         Tenant.unsubscribe(session)
 
     def test_delete_unsubscribed_class_subscription(self):
+        """
+        Test deleting a class subscription that has not been subscribed
+        """
         session = self.login_to_apic()
         Tenant.unsubscribe(session)
         self.assertFalse(Tenant.has_events(session))
 
     def test_double_class_subscription(self):
+        """
+        Test issuing a class subscription twice
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         Tenant.subscribe(session)
@@ -2375,11 +2488,17 @@ class TestLiveSubscription(TestLiveAPIC):
         Tenant.unsubscribe(session)
 
     def test_get_event_no_subcribe(self):
+        """
+        Test get_event with no subscription
+        """
         session = self.login_to_apic()
         self.assertFalse(Tenant.has_events(session))
         self.assertIsNone(Tenant.get_event(session))
 
     def test_get_actual_event(self):
+        """
+        Test get_event
+        """
         session = self.login_to_apic()
         Tenant.subscribe(session)
 
@@ -2421,6 +2540,9 @@ class TestLiveSubscription(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_resubscribe(self):
+        """
+        Test resubscription
+        """
         session = self.login_to_apic()
         Tenant.subscribe(session)
 
@@ -2496,7 +2618,13 @@ class TestLiveInterface(TestLiveAPIC):
 
 
 class TestLivePortChannel(TestLiveAPIC):
+    """
+    Live tests for PortChannel class
+    """
     def test_get_all_portchannels(self):
+        """
+        Test getting all of the portchannels
+        """
         session = self.login_to_apic()
         self.assertRaises(TypeError, PortChannel.get, None)
         portchannels = PortChannel.get(session)
@@ -3642,6 +3770,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestL3Interface))
     offline.addTest(unittest.makeSuite(TestBaseContract))
     offline.addTest(unittest.makeSuite(TestContract))
+    offline.addTest(unittest.makeSuite(TestContractInterface))
     offline.addTest(unittest.makeSuite(TestContractSubject))
     offline.addTest(unittest.makeSuite(TestFilter))
     offline.addTest(unittest.makeSuite(TestFilterEntry))
