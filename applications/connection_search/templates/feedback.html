@@ -1,0 +1,12 @@
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block body %}
+<p>We welcome comments and suggestions on how we can make this tool
+better.<br>  Please feel free to provide any constructive feedback below.</p>
+<form class="form" action="MAILTO:acitoolkit@external.cisco.com" enctype="text/plain" method="post" role="form">
+{{ wtf.form_field(form.category) }}
+{{ wtf.form_field(form.comment) }}
+{{ wtf.form_field(form.submit) }}
+</form>
+
+{% endblock %}
