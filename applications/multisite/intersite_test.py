@@ -1,3 +1,6 @@
+"""
+Test suite for Intersite application
+"""
 import unittest
 from acitoolkit import AppProfile, EPG, Endpoint, Interface, L2Interface, Context, BridgeDomain
 from intersite import *
@@ -14,7 +17,8 @@ import time
 from requests import ConnectionError
 
 try:
-    from multisite_test_credentials import *
+    from multisite_test_credentials import (SITE1_IPADDR, SITE1_LOGIN, SITE1_PASSWORD, SITE1_URL,
+                                            SITE2_IPADDR, SITE2_LOGIN, SITE2_PASSWORD, SITE2_URL)
 except ImportError:
     print '''
             Please create a file called multisite_test_credentials.py with the following:
@@ -64,7 +68,8 @@ class TestToolOptions(unittest.TestCase):
     """
     Test cases for testing the command line arguments
     """
-    def get_logging_level(self):
+    @staticmethod
+    def get_logging_level():
         """
         Return the current logger level
 
@@ -119,7 +124,8 @@ class TestBadConfiguration(unittest.TestCase):
     """
     Test various invalid configuration files
     """
-    def create_empty_config_file(self):
+    @staticmethod
+    def create_empty_config_file():
         """
         Generate an empty configuration file with only a single empty Site policy
         :return: dictionary containing the configuration
@@ -140,7 +146,8 @@ class TestBadConfiguration(unittest.TestCase):
         }
         return config
 
-    def get_args(self):
+    @staticmethod
+    def get_args():
         """
         Generate an empty command line arguments
         :return: Instance of Mock to represent the command line arguments
@@ -218,15 +225,6 @@ class TestBadConfiguration(unittest.TestCase):
 
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
-    def rtest_debug_no_level(self):
-        args = mock.Mock()
-        args.debug = None
-        args.generateconfig = None
-        args.config = 'sample_config.json'
-        with mock.patch('sys.stdout', new=StringIO()) as fake_out:
-            execute_tool(args, test_mode=True)
-            self.assertEqual(fake_out.getvalue(), '%% No configuration file given.\n')
-
 
 class BaseTestCase(unittest.TestCase):
     """
@@ -249,7 +247,8 @@ class BaseTestCase(unittest.TestCase):
         self.teardown_remote_site()
         time.sleep(2)
 
-    def create_site_config(self):
+    @staticmethod
+    def create_site_config():
         """
         Generate a basic configuration containing the local and remote site policies.
         Actual site credentials are set in global variables imported from multisite_test_credentials
@@ -281,7 +280,8 @@ class BaseTestCase(unittest.TestCase):
         }
         return config
 
-    def write_config_file(self, config, args):
+    @staticmethod
+    def write_config_file(config, args):
         """
         Write the configuration as a temporary file and set the command line arguments to read the file
         :param config: dictionary containing the configuration
@@ -364,6 +364,13 @@ class BaseTestCase(unittest.TestCase):
         return self.verify_remote_site_has_entry(mac, ip, tenant_name, l3out_name, remote_epg_name)
 
     def verify_remote_site_has_policy(self, tenant_name, l3out_name, instp_name):
+        """
+        Verify that the remote site has the policy
+        :param tenant_name: String containing the remote tenant name holding the policy
+        :param l3out_name: String containing the remote OutsideL3 name holding the policy
+        :param instp_name: String containing the remote OutsideEPG holding the policy
+        :return: True if the remote site has the policy. False otherwise
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -382,6 +389,9 @@ class BaseTestCase(unittest.TestCase):
         return True
 
     def teardown_local_site(self):
+        """
+        Teardown the local site configuration
+        """
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
         if not resp.ok:
@@ -395,6 +405,9 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(resp.ok)
 
     def teardown_remote_site(self):
+        """
+        Teardown the remote site configuration
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -406,7 +419,12 @@ class BaseTestCase(unittest.TestCase):
         self.assertTrue(resp.ok)
         time.sleep(2)
 
-    def get_args(self):
+    @staticmethod
+    def get_args():
+        """
+        Get a mock of the command line arguments
+        :return: Mock instance representing the command line arguments
+        """
         args = mock.Mock()
         args.debug = None
         args.generateconfig = None
@@ -414,6 +432,15 @@ class BaseTestCase(unittest.TestCase):
         return args
 
     def remove_endpoint(self, mac, ip, tenant_name, app_name, epg_name):
+        """
+        Remove the endpoint
+        :param mac: String containing the MAC address of the endpoint
+        :param ip: String containing the IP address of the endpoint
+        :param tenant_name: String containing the tenant name of the endpoint
+        :param app_name: String containing the AppProfile name holding the endpoint
+        :param epg_name: String containing the EPG name holding the endpoint
+        :return: None
+        """
         self.add_endpoint(mac, ip, tenant_name, app_name, epg_name, mark_as_deleted=True)
 
     def add_endpoint(self, mac, ip, tenant_name, app_name, epg_name, mark_as_deleted=False):
@@ -487,28 +514,33 @@ class BaseEndpointTestCase(BaseTestCase):
     def create_config_file(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
+            "export":
+                {
+                    "tenant": "intersite-testsuite",
+                    "app": "app",
+                    "epg": "epg",
+                    "remote_epg": "intersite-testsuite-app-epg",
+                    "remote_sites":
+                        [
                             {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
-                                }
+                                "site":
+                                    {
+                                        "name": "Site2",
+                                        "interfaces":
+                                            [
+                                                {
+                                                    "l3out":
+                                                        {
+                                                            "name": "l3out",
+                                                            "tenant": "intersite-testsuite"
+                                                        }
+                                                }
+                                            ]
+                                    }
                             }
                         ]
-                    }
                 }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -597,52 +629,52 @@ class TestMultipleEPG(BaseTestCase):
     def create_config_file(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app1",
-                        "epg": "epg1",
-                        "remote_epg": "intersite-testsuite-app1-epg1",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app1",
+                "epg": "epg1",
+                "remote_epg": "intersite-testsuite-app1-epg1",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app2",
-                        "epg": "epg2",
-                        "remote_epg": "intersite-testsuite-app2-epg2",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app2",
+                "epg": "epg2",
+                "remote_epg": "intersite-testsuite-app2-epg2",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -770,28 +802,28 @@ class TestBasicExistingEndpoints(BaseTestCase):
     def create_config_file(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -856,7 +888,8 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
     def create_config_file(self):
         return self.create_site_config()
 
-    def create_export_policy(self):
+    @staticmethod
+    def create_export_policy():
         config = {
             "export": {
                 "tenant": "intersite-testsuite",
@@ -967,80 +1000,80 @@ class TestExportPolicyRemoval(BaseTestCase):
     def create_diff_epg_config_file(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg2",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg2",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
     def create_config_file(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg2",
-                        "remote_epg": "intersite-testsuite-app-epg2",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out2",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg2",
+                "remote_epg": "intersite-testsuite-app-epg2",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out2",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -1119,33 +1152,33 @@ class TestBasicEndpointsWithContract(BaseTestCase):
     def create_config_file(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite",
-                                                "provides": [
-                                                    {
-                                                        "contract_name": "contract-1"
-                                                    }
-                                                ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite",
+                                        "provides": [
+                                            {
+                                                "contract_name": "contract-1"
                                             }
-                                        }
-                                    ]
+                                        ]
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -1267,52 +1300,52 @@ class TestBasicEndpointMove(BaseTestCase):
     def create_config_file(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg1",
-                        "remote_epg": "intersite-testsuite-app-epg1",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg1",
+                "remote_epg": "intersite-testsuite-app-epg1",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg2",
-                        "remote_epg": "intersite-testsuite-app-epg2",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg2",
+                "remote_epg": "intersite-testsuite-app-epg2",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -1400,69 +1433,69 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
     def create_config_file_before(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite",
-                                                "provides": [
-                                                    {
-                                                        "contract_name": "contract-1",
-                                                    },
-                                                    {
-                                                        "contract_name": "contract-2",
-                                                    }
-                                                ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite",
+                                        "provides": [
+                                            {
+                                                "contract_name": "contract-1",
+                                            },
+                                            {
+                                                "contract_name": "contract-2",
                                             }
-                                        }
-                                    ]
+                                        ]
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
     def create_config_file_after(self):
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite",
-                                                "provides": [
-                                                    {
-                                                        "contract_name": "contract-1"
-                                                    }
-                                                ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite",
+                                        "provides": [
+                                            {
+                                                "contract_name": "contract-1"
                                             }
-                                        }
-                                    ]
+                                        ]
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -1635,30 +1668,31 @@ class TestChangeL3Out(BaseTestCase):
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
 
-    def create_export_policy(self, l3out_name):
+    @staticmethod
+    def create_export_policy(l3out_name):
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": l3out_name,
-                                                "tenant": "intersite-testsuite"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": l3out_name,
+                                        "tenant": "intersite-testsuite"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         return export_policy
 
     def create_config_file(self, l3out_name):
@@ -1774,28 +1808,28 @@ class TestDuplicates(BaseTestCase):
         """
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite-local",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out",
-                                                "tenant": "intersite-testsuite-remote"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite-local",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite-remote"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
@@ -1967,34 +2001,34 @@ class SetupDuplicateTests(BaseTestCase):
         """
         config = self.create_site_config()
         export_policy = {
-                    "export": {
-                        "tenant": "intersite-testsuite-local",
-                        "app": "app",
-                        "epg": "epg",
-                        "remote_epg": "intersite-testsuite-app-epg",
-                        "remote_sites": [
-                            {
-                                "site": {
-                                    "name": "Site2",
-                                    "interfaces": [
-                                        {
-                                            "l3out": {
-                                                "name": "l3out1",
-                                                "tenant": "intersite-testsuite-remote"
-                                            }
-                                        },
-                                        {
-                                            "l3out": {
-                                                "name": "l3out2",
-                                                "tenant": "intersite-testsuite-remote"
-                                            }
-                                        }
-                                    ]
+            "export": {
+                "tenant": "intersite-testsuite-local",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                    {
+                        "site": {
+                            "name": "Site2",
+                            "interfaces": [
+                                {
+                                    "l3out": {
+                                        "name": "l3out1",
+                                        "tenant": "intersite-testsuite-remote"
+                                    }
+                                },
+                                {
+                                    "l3out": {
+                                        "name": "l3out2",
+                                        "tenant": "intersite-testsuite-remote"
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                ]
+            }
+        }
         config['config'].append(export_policy)
         return config
 
