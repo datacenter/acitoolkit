@@ -38,7 +38,7 @@ from acitoolkit.acitoolkit import (
     ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
-    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel
+    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork
 )
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
@@ -2448,6 +2448,8 @@ class TestLiveTenant(TestLiveAPIC):
         self.assertTrue(new_tenant.name not in names)
 
 
+
+
 class TestLiveSubscription(TestLiveAPIC):
     """
     Test Subscriptions
@@ -3449,6 +3451,116 @@ class TestLiveContracts(TestLiveAPIC):
                 total_contracts.append(contract)
 
         self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
+
+
+class TestLiveContractInterface(TestLiveAPIC):
+    def setUp(self):
+        apic = self.login_to_apic()
+
+        provider_tenant = Tenant('aci-toolkit-test-provider')
+        app = AppProfile('myapp', provider_tenant)
+        epg = EPG('myepg', app)
+        contract = Contract('mycontract', provider_tenant)
+        (entry1, entry2) = self.get_2_entries(contract)
+        resp = provider_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+        consumer_tenant = Tenant('aci-toolkit-test-consumer')
+        context = Context('mycontext', consumer_tenant)
+        l3out = OutsideL3('myl3out', consumer_tenant)
+        consumer_epg = OutsideEPG('consumerepg', l3out)
+        consumer_network = OutsideNetwork('5.1.1.1', consumer_epg)
+        consumer_network.ip = '5.1.1.1/8'
+        contract_if = ContractInterface('mycontract', consumer_tenant)
+        contract_if.import_contract(contract)
+        consumer_epg.consume_cif(contract_if)
+        resp = consumer_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def tearDown(self):
+        provider_tenant = Tenant('aci-toolkit-test-provider')
+        provider_tenant.mark_as_deleted()
+        consumer_tenant = Tenant('aci-toolkit-test-consumer')
+        consumer_tenant.mark_as_deleted()
+        apic = self.login_to_apic()
+        resp = provider_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        resp = consumer_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def get_2_entries(self, contract):
+        entry1 = FilterEntry('entry1',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='80',
+                             dToPort='80',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='1',
+                             sToPort='65535',
+                             tcpRules='unspecified',
+                             parent=contract)
+        entry2 = FilterEntry('entry2',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='443',
+                             dToPort='443',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='1',
+                             sToPort='65535',
+                             tcpRules='unspecified',
+                             parent=contract)
+        return (entry1, entry2)
+
+    def test_get(self):
+        apic = self.login_to_apic()
+        tenant = Tenant('aci-toolkit-test-consumer')
+        contract_ifs = ContractInterface.get(apic, tenant)
+        self.assertEqual(len(contract_ifs), 1)
+
+    def test_get_deep(self):
+        apic = self.login_to_apic()
+
+        # Get the tenants
+        fabric = Fabric()
+        tenants = Tenant.get_deep(apic, names=['aci-toolkit-test-provider', 'aci-toolkit-test-consumer'], parent=fabric)
+        self.assertEqual(len(tenants), 2)
+        self.assertEqual(tenants[0].get_parent(), tenants[1].get_parent())
+        self.assertEqual(tenants[0].get_parent(), fabric)
+
+        # Find the Tenant with the ContractInterface
+        consumer_tenant = None
+        for tenant in tenants:
+            if tenant.name == 'aci-toolkit-test-consumer':
+                consumer_tenant = tenant
+        self.assertIsNotNone(consumer_tenant)
+
+        # Find the ContractInterface
+        children = consumer_tenant.get_children(only_class=ContractInterface)
+        self.assertEqual(len(children), 1)
+        contract_if = children[0]
+
+        # Find the Tenant providing the Contract
+        provider_tenant = None
+        for tenant in tenants:
+            if tenant.name == 'aci-toolkit-test-provider':
+                provider_tenant = tenant
+                break
+        self.assertIsNotNone(provider_tenant)
+
+        # Find the Contract
+        provided_contract = None
+        contracts = provider_tenant.get_children(only_class=Contract)
+        for contract in contracts:
+            if contract.name == 'mycontract':
+                provided_contract = contract
+                break
+        self.assertIsNotNone(provided_contract)
+
+        # Verify that it imports the correct Contract
+        self.assertTrue(contract_if.has_import_contract())
+        self.assertTrue(contract_if.does_import_contract(provided_contract))
 
 
 class TestLiveContractSubject(TestLiveAPIC):
