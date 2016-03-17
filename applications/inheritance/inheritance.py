@@ -32,6 +32,13 @@ class GenericService(object):
         self.logger = None
 
     def setup_logging(self, logging_level, max_log_files):
+        """
+        Set the logger level
+
+        :param logging_level: String containing the logger level. Expected values are 'verbose', 'warnings', 'critical'
+        :param max_log_files: Integer containing the maximum number of log files to keep
+        :return: None
+        """
         # Set up the logging infrastructure
         if logging_level is not None:
             if logging_level == 'verbose':
@@ -53,6 +60,12 @@ class GenericService(object):
         logger.setLevel(level)
 
     def set_json_schema(self, filename):
+        """
+        Set the JSON schema filename
+
+        :param filename: String containing the filename of the JSON schema
+        :return: None
+        """
         try:
             with open(filename) as json_data:
                 self._json_schema = json.load(json_data)
@@ -136,6 +149,7 @@ class RelationEvent(Event):
 
 # TODO need to subscribe to tag events in case someone deletes them
 
+
 class TagEvent(RelationEvent):
     @property
     def event_type(self):
@@ -176,6 +190,7 @@ class SubnetEvent(Event):
 
 class EPGEvent(Event):
     pass
+
 
 class BaseDB(object):
     def __init__(self):
@@ -276,7 +291,6 @@ class SubnetDB(BaseDB):
                 if parent_epg not in covering_epgs:
                     covering_epgs.append(parent_epg)
         return covering_epgs
-
 
     def store_subnet_event(self, event):
         logging.debug('store_subnet_event for event: %s', event)
@@ -472,6 +486,9 @@ class Monitor(threading.Thread):
         query_url = '/api/mo/uni.json?query-target=subtree&target-subtree-class=fvRsProv,fvRsCons,fvRsProtBy,fvRsConsIf'
         relations = self.apic.get(query_url)
         for relation in relations.json()['imdata']:
+            # Skip any in-band and out-of-band interfaces
+            if '/mgmtp-' in relation[relation.keys()[0]]['attributes']['dn']:
+                continue
             self._relations.store_relation(RelationEvent(relation))
 
         # Get all of the policies that are inherited from but not inheriting
@@ -671,7 +688,6 @@ class Monitor(threading.Thread):
                     if self._inheritance_tags.is_inherited(EPGPolicy(json.loads(new_epg)), new_relation):
                         # If it's inherited, but we don't have the relation. We are likely coming up and not populated
                         # the old_relations yet
-                        #continue
                         pass
                     # If just configured, we will have a relationDB entry. Otherwise, we need to inherit it
                     if self._relations.has_relation_for_epg(EPGPolicy(json.loads(new_epg)), new_relation):
@@ -836,11 +852,9 @@ class ConfigDB(object):
         return True
 
     def has_apic_config(self):
-        #return 'apic' in self._config
         return self._apic_policy is not None
 
     def get_apic_config(self):
-        #return self._config['apic']
         return self._apic_policy
 
     def store_inheritance_policy(self, inheritance_policy):
