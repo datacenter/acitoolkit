@@ -40,7 +40,7 @@ import copy
 from requests.compat import urlencode
 
 from .acibaseobject import BaseACIObject, BaseInterface, Tag
-from .aciphysobject import Interface
+from .aciphysobject import Interface, Fabric
 from .acisession import Session
 from .aciTable import Table
 from .acitoolkitlib import Credentials
@@ -165,7 +165,7 @@ class Tenant(BaseACIObject):
                          'fvBD']. If no list is given, all classes will be collected.
         :param subtree: String containing the rsp-subtree option. Default is 'full'.
         :param config_only: Boolean containing whether to collect only configurable parameters
-        :param parent: The parent instance to assign to the tenant objects.
+        :param parent: The parent instance to assign to the tenant objects. If None, a Fabric instance will be created.
         :returns: Requests Response code
         """
         resp = []
@@ -191,6 +191,8 @@ class Tenant(BaseACIObject):
         query = urlencode(params)
         objs = []
         full_data = []
+        if parent is None:
+            parent = Fabric()
         for name in names:
             query_url = '/api/mo/uni/tn-{}.json?{}'.format(name, query)
             ret = session.get(query_url)
