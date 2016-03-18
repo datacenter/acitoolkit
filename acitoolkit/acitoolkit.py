@@ -513,8 +513,8 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the Contracts provided by this EPG
 
-        :param deleted:
-        :param deleted:
+        :param deleted: Boolean indicating whether to get Contracts that are provided
+                        or that the provided was marked as deleted
         :returns: List of Contract objects that are provided by the EPG.
         """
         if deleted:
@@ -561,7 +561,8 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the Contracts consumed by this EPG
 
-        :param deleted:
+        :param deleted: Boolean indicating whether to get Contracts that are consumed
+                        or that the consumed was marked as deleted
         :returns: List of Contract objects that are consumed by the EPG.
         """
         if deleted:
@@ -606,7 +607,8 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the ContractInterfaces consumed by this EPG
 
-        :param deleted:
+        :param deleted: Boolean indicating whether to get ContractInterfaces that
+                        are consumed or that the consumed was marked as deleted
         :returns: List of ContractInterface objects that are consumed by the EPG.
         """
         if deleted:
@@ -1118,15 +1120,18 @@ class EPG(CommonEPG):
             raise ValueError("Encap type must be one of 'vlan', 'vxlan', or 'nvgre'")
         if encap_mode not in ('regular', 'untagged', 'native'):
             raise ValueError("Encap mode must be one of 'regular', 'untagged', or 'native'")
-        text = {'fvRsNodeAtt':
-                    {'attributes':
-                         {'encap': "%s-%s" % (encap_type, str(encap_id)),
-                          'instrImedcy': immediacy,
-                          'mode': encap_mode,
-                          'tDn': 'topology/pod-%s/node-%s' % (str(pod), str(leaf_id))
-                          }
-                     }
+        text = {
+            'fvRsNodeAtt':
+                {
+                    'attributes':
+                        {
+                            'encap': "%s-%s" % (encap_type, str(encap_id)),
+                            'instrImedcy': immediacy,
+                            'mode': encap_mode,
+                            'tDn': 'topology/pod-%s/node-%s' % (str(pod), str(leaf_id))
+                        }
                 }
+        }
         self._leaf_bindings.append(text)
 
     # Output
@@ -3089,6 +3094,21 @@ class ContractInterface(BaseACIObject):
         :return: True or False. True if the ContractInterface does import a Contract.
         """
         return len(self._get_all_relation(Contract, 'imported')) > 0
+
+    def get_import_contract(self, deleted=False):
+        """
+        Get the specific Contract that this ContractInterface is importing.
+
+        :param contract: Instance of Contract class that is
+                         imported by this ContractInterface.
+        :returns: Contract class instance or None if not importing a contract
+        """
+        if not self.has_import_contract():
+            return None
+        if deleted:
+            return self._get_all_detached_relation(Contract, 'imported')
+        else:
+            return self._get_all_relation(Contract, 'imported')
 
     def _generate_children(self):
         """
