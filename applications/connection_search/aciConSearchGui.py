@@ -112,6 +112,12 @@ class BaseConnSearchView(BaseView):
         except KeyError:
             return redirect(url_for('credentialsview.index'))
 
+        apic_session = Session(apic_args.url, apic_args.login, apic_args.password)
+        resp = apic_session.login()
+        if not resp.ok:
+            raise LoginError
+        sdb.session = apic_session
+        sdb.build()
         try:
             apic_session = Session(apic_args.url, apic_args.login, apic_args.password)
             resp = apic_session.login()
@@ -345,7 +351,9 @@ def prep_results(s_results):
     """
     result = []
     for s_result in s_results:
-        entry = {'tenant': s_result.tenant_name, 'context': s_result.context_name, 'dip': []}
+        entry = {'tenant': s_result.tenant_name, 'context': s_result.context_name, 'dip': [],
+                 'sourceEpg':s_result.source_epg, 'destEpg':s_result.dest_epg,
+                 'contract':s_result.contract}
         for address in s_result.dip:
             entry['dip'].append(str(address))
         entry['sip'] = []
