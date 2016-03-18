@@ -38,7 +38,7 @@ from acitoolkit.acitoolkit import (
     ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
-    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel
+    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork
 )
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
@@ -807,6 +807,98 @@ class TestBridgeDomain(unittest.TestCase):
         self.assertTrue(bd.is_unicast_route())
 
 
+class TestContractInterface(unittest.TestCase):
+    """
+    Test the ContractInterface class
+    """
+    def setUp(self):
+        """
+        Set up the basic scenario
+        """
+        self.tenant1 = Tenant('testtenant1')
+        self.contract = Contract('testcontract', self.tenant1)
+        self.tenant2 = Tenant('testtenant2')
+        self.contract_if = ContractInterface('testcontractif', self.tenant2)
+        self.contract_if.import_contract(self.contract)
+
+    def test_has_import(self):
+        """
+        Test has_import_contract function
+        """
+        self.assertTrue(self.contract_if.has_import_contract())
+
+    def test_does_import_contract(self):
+        """
+        Test does_import_contract function
+        """
+        self.assertTrue(self.contract_if.does_import_contract(self.contract))
+
+    def test_does_not_import_contract(self):
+        """
+        Test does_import_contract function - negative scenario
+        """
+        tenant = Tenant('testtenant2')
+        contract = Contract('testcontract', tenant)
+        self.assertFalse(self.contract_if.does_import_contract(contract))
+
+    def test_import_contract_twice(self):
+        """
+        Test calling does_import_contract function twice
+        """
+        self.contract_if.import_contract(self.contract)
+        self.assertTrue(self.contract_if.does_import_contract(self.contract))
+
+    def test_import_different_contract(self):
+        """
+        Test importing a different contract
+        """
+        tenant = Tenant('testtenant2')
+        contract = Contract('testcontract', tenant)
+        self.contract_if.import_contract(contract)
+        self.assertTrue(self.contract_if.does_import_contract(contract))
+        self.assertFalse(self.contract_if.does_import_contract(self.contract))
+        self.assertEqual(len(self.contract_if._get_all_relation(Contract, 'imported')), 1)
+
+    def test_get_json(self):
+        """
+        Test get_json
+        """
+        tenant_json = self.tenant2.get_json()
+        expected_json = {
+            'fvTenant': {
+                'attributes':
+                    {
+                        'name': 'testtenant2'
+                    },
+                'children':
+                    [
+                        {
+                            'vzCPIf':
+                                {
+                                    'attributes':
+                                        {
+                                            'name': 'testcontractif'
+                                        },
+                                    'children':
+                                        [
+                                            {
+                                                'vzRsIf':
+                                                    {
+                                                        'attributes':
+                                                            {
+                                                                'tDn': 'uni/tn-testtenant1/brc-testcontract'
+                                                            }
+                                                    }
+                                            }
+                                        ]
+                                }
+                        }
+                    ]
+            }
+        }
+        self.assertEqual(tenant_json, expected_json)
+
+
 class TestL2Interface(unittest.TestCase):
     """
     Test the L2Interface class
@@ -1224,6 +1316,9 @@ class TestTaboo(unittest.TestCase):
         self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
 
     def test_get_table(self):
+        """
+        Test get_table method
+        """
         tenant = Tenant('tenant')
         taboo1 = Taboo('taboo1', tenant)
         taboo2 = Taboo('taboo2', tenant)
@@ -1910,14 +2005,23 @@ class TestEPGDomain(unittest.TestCase):
     Test the EPG Domain class
     """
     def test_get_parent_class(self):
+        """
+        Test _get_parent_class
+        """
         epg_domain = EPGDomain('test_epg_domain', None)
         self.assertIsNone(epg_domain._get_parent_class())
 
     def test_get_parent(self):
+        """
+        Test get_parent
+        """
         epg_domain = EPGDomain('test_epg_domain', None)
         self.assertEqual(epg_domain.get_parent(), epg_domain._parent)
 
     def test_get_json(self):
+        """
+        Test get_json
+        """
         epg_domain = EPGDomain('test_epg_domain', None)
         self.assertTrue(type(epg_domain.get_json()) is dict)
 
@@ -2344,11 +2448,16 @@ class TestLiveTenant(TestLiveAPIC):
         self.assertTrue(new_tenant.name not in names)
 
 
+
+
 class TestLiveSubscription(TestLiveAPIC):
     """
     Test Subscriptions
     """
     def test_create_class_subscription(self):
+        """
+        Test class subscription creation
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         Tenant.subscribe(session)
@@ -2359,11 +2468,17 @@ class TestLiveSubscription(TestLiveAPIC):
         Tenant.unsubscribe(session)
 
     def test_delete_unsubscribed_class_subscription(self):
+        """
+        Test deleting a class subscription that has not been subscribed
+        """
         session = self.login_to_apic()
         Tenant.unsubscribe(session)
         self.assertFalse(Tenant.has_events(session))
 
     def test_double_class_subscription(self):
+        """
+        Test issuing a class subscription twice
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         Tenant.subscribe(session)
@@ -2375,11 +2490,17 @@ class TestLiveSubscription(TestLiveAPIC):
         Tenant.unsubscribe(session)
 
     def test_get_event_no_subcribe(self):
+        """
+        Test get_event with no subscription
+        """
         session = self.login_to_apic()
         self.assertFalse(Tenant.has_events(session))
         self.assertIsNone(Tenant.get_event(session))
 
     def test_get_actual_event(self):
+        """
+        Test get_event
+        """
         session = self.login_to_apic()
         Tenant.subscribe(session)
 
@@ -2421,6 +2542,9 @@ class TestLiveSubscription(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_resubscribe(self):
+        """
+        Test resubscription
+        """
         session = self.login_to_apic()
         Tenant.subscribe(session)
 
@@ -2496,7 +2620,13 @@ class TestLiveInterface(TestLiveAPIC):
 
 
 class TestLivePortChannel(TestLiveAPIC):
+    """
+    Live tests for PortChannel class
+    """
     def test_get_all_portchannels(self):
+        """
+        Test getting all of the portchannels
+        """
         session = self.login_to_apic()
         self.assertRaises(TypeError, PortChannel.get, None)
         portchannels = PortChannel.get(session)
@@ -3323,6 +3453,116 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
 
 
+class TestLiveContractInterface(TestLiveAPIC):
+    def setUp(self):
+        apic = self.login_to_apic()
+
+        provider_tenant = Tenant('aci-toolkit-test-provider')
+        app = AppProfile('myapp', provider_tenant)
+        epg = EPG('myepg', app)
+        contract = Contract('mycontract', provider_tenant)
+        (entry1, entry2) = self.get_2_entries(contract)
+        resp = provider_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+        consumer_tenant = Tenant('aci-toolkit-test-consumer')
+        context = Context('mycontext', consumer_tenant)
+        l3out = OutsideL3('myl3out', consumer_tenant)
+        consumer_epg = OutsideEPG('consumerepg', l3out)
+        consumer_network = OutsideNetwork('5.1.1.1', consumer_epg)
+        consumer_network.ip = '5.1.1.1/8'
+        contract_if = ContractInterface('mycontract', consumer_tenant)
+        contract_if.import_contract(contract)
+        consumer_epg.consume_cif(contract_if)
+        resp = consumer_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def tearDown(self):
+        provider_tenant = Tenant('aci-toolkit-test-provider')
+        provider_tenant.mark_as_deleted()
+        consumer_tenant = Tenant('aci-toolkit-test-consumer')
+        consumer_tenant.mark_as_deleted()
+        apic = self.login_to_apic()
+        resp = provider_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        resp = consumer_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def get_2_entries(self, contract):
+        entry1 = FilterEntry('entry1',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='80',
+                             dToPort='80',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='1',
+                             sToPort='65535',
+                             tcpRules='unspecified',
+                             parent=contract)
+        entry2 = FilterEntry('entry2',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='443',
+                             dToPort='443',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='1',
+                             sToPort='65535',
+                             tcpRules='unspecified',
+                             parent=contract)
+        return (entry1, entry2)
+
+    def test_get(self):
+        apic = self.login_to_apic()
+        tenant = Tenant('aci-toolkit-test-consumer')
+        contract_ifs = ContractInterface.get(apic, tenant)
+        self.assertEqual(len(contract_ifs), 1)
+
+    def test_get_deep(self):
+        apic = self.login_to_apic()
+
+        # Get the tenants
+        fabric = Fabric()
+        tenants = Tenant.get_deep(apic, names=['aci-toolkit-test-provider', 'aci-toolkit-test-consumer'], parent=fabric)
+        self.assertEqual(len(tenants), 2)
+        self.assertEqual(tenants[0].get_parent(), tenants[1].get_parent())
+        self.assertEqual(tenants[0].get_parent(), fabric)
+
+        # Find the Tenant with the ContractInterface
+        consumer_tenant = None
+        for tenant in tenants:
+            if tenant.name == 'aci-toolkit-test-consumer':
+                consumer_tenant = tenant
+        self.assertIsNotNone(consumer_tenant)
+
+        # Find the ContractInterface
+        children = consumer_tenant.get_children(only_class=ContractInterface)
+        self.assertEqual(len(children), 1)
+        contract_if = children[0]
+
+        # Find the Tenant providing the Contract
+        provider_tenant = None
+        for tenant in tenants:
+            if tenant.name == 'aci-toolkit-test-provider':
+                provider_tenant = tenant
+                break
+        self.assertIsNotNone(provider_tenant)
+
+        # Find the Contract
+        provided_contract = None
+        contracts = provider_tenant.get_children(only_class=Contract)
+        for contract in contracts:
+            if contract.name == 'mycontract':
+                provided_contract = contract
+                break
+        self.assertIsNotNone(provided_contract)
+
+        # Verify that it imports the correct Contract
+        self.assertTrue(contract_if.has_import_contract())
+        self.assertTrue(contract_if.does_import_contract(provided_contract))
+
+
 class TestLiveContractSubject(TestLiveAPIC):
     """
     Live tests using an actual APIC for ContractSubject
@@ -3642,6 +3882,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestL3Interface))
     offline.addTest(unittest.makeSuite(TestBaseContract))
     offline.addTest(unittest.makeSuite(TestContract))
+    offline.addTest(unittest.makeSuite(TestContractInterface))
     offline.addTest(unittest.makeSuite(TestContractSubject))
     offline.addTest(unittest.makeSuite(TestFilter))
     offline.addTest(unittest.makeSuite(TestFilterEntry))

@@ -147,6 +147,7 @@ class Tenant(BaseACIObject):
         """
         return {'fvAp': AppProfile,
                 'fvBD': BridgeDomain,
+                'vzCPIf': ContractInterface,
                 'fvCtx': Context,
                 'vzBrCP': Contract,
                 'vzFilter': Filter,
@@ -188,6 +189,8 @@ class Tenant(BaseACIObject):
         if config_only:
             params['rsp-prop-include'] = 'config-only'
         query = urlencode(params)
+        objs = []
+        full_data = []
         for name in names:
             query_url = '/api/mo/uni/tn-{}.json?{}'.format(name, query)
             ret = session.get(query_url)
@@ -201,6 +204,7 @@ class Tenant(BaseACIObject):
                 ret._content = ret._content.replace(b"\\\'", b"'")
 
             data = ret.json()['imdata']
+            full_data.append(data[0])
             if len(data):
                 obj = super(Tenant, cls).get_deep(full_data=data,
                                                   working_data=data,
@@ -208,8 +212,10 @@ class Tenant(BaseACIObject):
                                                   limit_to=limit_to,
                                                   subtree=subtree,
                                                   config_only=config_only)
-                obj._extract_relationships(data)
+                objs.append(obj)
                 resp.append(obj)
+        for obj in objs:
+            obj._extract_relationships(full_data)
         return resp
 
     @classmethod
@@ -787,9 +793,8 @@ class AttributeCriterion(BaseACIObject):
                                   'children': []}}
             children.append(child)
         return super(AttributeCriterion, self).get_json(self._get_apic_classes()[0],
-                                               attributes=attr,
-                                               children=children)
-
+                                                        attributes=attr,
+                                                        children=children)
 
 
 class EPG(CommonEPG):
@@ -994,7 +999,9 @@ class EPG(CommonEPG):
     def _extract_relationships(self, data):
         app_profile = self.get_parent()
         tenant = app_profile.get_parent()
-        tenant_children = data[0]['fvTenant']['children']
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                tenant_children = tenant_data['fvTenant']['children']
         epg_children = None
         for app in tenant_children:
             if 'fvAp' in app:
@@ -1078,6 +1085,11 @@ class EPG(CommonEPG):
                 dom_attributes = child['fvRsDomAtt']['attributes']
                 self._dom_deployment_immediacy = dom_attributes['instrImedcy']
                 self._dom_resolution_immediacy = dom_attributes['resImedcy']
+            elif 'fvRsConsIf' in child:
+                contract_if_name = child['fvRsConsIf']['attributes']['tnVzCPIfName']
+                contract_if = tenant.get_child(ContractInterface, contract_if_name)
+                if contract_if is not None:
+                    self.consume_cif(contract_if)
 
         super(EPG, self)._extract_relationships(data)
 
@@ -1106,12 +1118,14 @@ class EPG(CommonEPG):
             raise ValueError("Encap type must be one of 'vlan', 'vxlan', or 'nvgre'")
         if encap_mode not in ('regular', 'untagged', 'native'):
             raise ValueError("Encap mode must be one of 'regular', 'untagged', or 'native'")
-        text = {'fvRsNodeAtt': {'attributes': {'encap': "%s-%s" % (encap_type, str(encap_id)),
-                                               'instrImedcy': immediacy,
-                                               'mode': encap_mode,
-                                               "tDn": "topology/pod-%s/node-%s" % (str(pod), str(leaf_id))
-                                               }
-                                }
+        text = {'fvRsNodeAtt':
+                    {'attributes':
+                         {'encap': "%s-%s" % (encap_type, str(encap_id)),
+                          'instrImedcy': immediacy,
+                          'mode': encap_mode,
+                          'tDn': 'topology/pod-%s/node-%s' % (str(pod), str(leaf_id))
+                          }
+                     }
                 }
         self._leaf_bindings.append(text)
 
@@ -1291,7 +1305,9 @@ class OutsideEPG(CommonEPG):
     def _extract_relationships(self, data, epg_type='l3'):
         l3out = self.get_parent()
         tenant = l3out.get_parent()
-        tenant_children = data[0]['fvTenant']['children']
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                tenant_children = tenant_data['fvTenant']['children']
         epg_children = []
         l3ext_out = epg_type + 'extOut'
         l3ext_instp = epg_type + 'extInstP'
@@ -1347,6 +1363,11 @@ class OutsideEPG(CommonEPG):
                                 for contract in objs:
                                     if isinstance(contract, Contract):
                                         self.consume(contract)
+            elif 'fvRsConsIf' in child:
+                contract_if_name = child['fvRsConsIf']['attributes']['tnVzCPIfName']
+                contract_if = tenant.get_child(ContractInterface, contract_if_name)
+                if contract_if is not None:
+                    self.consume_cif(contract_if)
 
         super(OutsideEPG, self)._extract_relationships(data)
 
@@ -1470,7 +1491,10 @@ class OutsideL3(BaseACIObject):
         return ['l3extOut']
 
     def _extract_relationships(self, data):
-        tenant_children = data[0]['fvTenant']['children']
+        tenant = self.get_parent()
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                tenant_children = tenant_data['fvTenant']['children']
         for child in tenant_children:
             if 'l3extOut' in child:
                 outside_l3_name = child['l3extOut']['attributes']['name']
@@ -1625,23 +1649,27 @@ class OutsideL2(BaseACIObject):
         self._remove_all_relation(BridgeDomain)
 
     def _extract_relationships(self, data):
-        tenant_children = data[0]['fvTenant']['children']
-        for child in tenant_children:
-            if 'l2extOut' in child:
-                outside_l2_name = child['l2extOut']['attributes']['name']
-                if outside_l2_name == self.name:
-                    outside_children = child['l2extOut']['children']
-                    for outside_child in outside_children:
-                        if 'l2extRsEBd' in outside_child:
-                            bd_name = outside_child['l2extRsEBd']['attributes']['tnFvBDName']
-                            tenant = self.get_parent()
-                            bd_search = Search()
-                            bd_search.name = bd_name
-                            objs = tenant.find(bd_search)
-                            for bd in objs:
-                                if isinstance(bd, BridgeDomain):
-                                    self.add_bd(bd)
-                    break
+        tenant_children = None
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                tenant_children = tenant_data['fvTenant']['children']
+        if tenant_children is not None:
+            for child in tenant_children:
+                if 'l2extOut' in child:
+                    outside_l2_name = child['l2extOut']['attributes']['name']
+                    if outside_l2_name == self.name:
+                        outside_children = child['l2extOut']['children']
+                        for outside_child in outside_children:
+                            if 'l2extRsEBd' in outside_child:
+                                bd_name = outside_child['l2extRsEBd']['attributes']['tnFvBDName']
+                                tenant = self.get_parent()
+                                bd_search = Search()
+                                bd_search.name = bd_name
+                                objs = tenant.find(bd_search)
+                                for bd in objs:
+                                    if isinstance(bd, BridgeDomain):
+                                        self.add_bd(bd)
+                        break
         super(OutsideL2, self)._extract_relationships(data)
 
     # L2 External Domain
@@ -2290,7 +2318,10 @@ class BridgeDomain(BaseACIObject):
                                                   children=children)
 
     def _extract_relationships(self, data):
-        tenant_children = data[0]['fvTenant']['children']
+        tenant = self.get_parent()
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                tenant_children = tenant_data['fvTenant']['children']
         for child in tenant_children:
             if 'fvBD' in child:
                 bd_name = child['fvBD']['attributes']['name']
@@ -2530,10 +2561,20 @@ class BaseSubnet(BaseACIObject):
 
     @property
     def ip(self):
+        """
+        IP address of the subnet in the form of Address/mask e.g. 10.1.1.1/16
+
+        :return: String containing the IP address
+        """
         return self.get_addr()
 
     @ip.setter
     def ip(self, x):
+        """
+        Set the IP address of the subnet
+        :param x: String containing the IP address of the subnet
+        :return: None
+        """
         self.set_addr(x)
 
     def get_addr(self):
@@ -2564,6 +2605,11 @@ class BaseSubnet(BaseACIObject):
         return self._scope
 
     def set_scope(self, scope):
+        """
+        Set the subnet scope
+        :param scope: String containing the subnet scope
+        :return: None
+        """
         raise NotImplementedError
 
     def _populate_from_attributes(self, attributes):
@@ -2935,6 +2981,51 @@ class ContractInterface(BaseACIObject):
         """
         return Tenant
 
+    def _extract_relationships(self, data):
+        consumer_tenant = self.get_parent()
+
+        # Find the ContractInterface
+        imported_contract_dn = None
+        consumer_tenant_data = None
+        contract_if_children_data = None
+        for item in data:
+            if 'fvTenant' in item:
+                if item['fvTenant']['attributes']['name'] == consumer_tenant.name:
+                    consumer_tenant_data = item
+        if consumer_tenant_data is None:
+            return
+        children = consumer_tenant_data['fvTenant']['children']
+        for child in children:
+            if 'vzCPIf' in child and child['vzCPIf']['attributes']['name'] == self.name:
+                if 'children' in child['vzCPIf']:
+                    contract_if_children_data = child['vzCPIf']['children']
+                break
+        if contract_if_children_data is None:
+            return
+
+        # Find the import contract relation
+        for child in contract_if_children_data:
+            if 'vzRsIf' in child:
+                imported_contract_dn = child['vzRsIf']['attributes']['tDn']
+        if imported_contract_dn is None:
+            return
+
+        # Look if there is already a Tenant
+        imported_tenant_name = imported_contract_dn.partition('/tn-')[-1].partition('/')[0]
+        imported_contract_name = imported_contract_dn.partition('/brc-')[-1].partition('/')[0]
+        provider_tenant = None
+        if consumer_tenant.has_parent():
+            for child in consumer_tenant.get_parent().get_children():
+                if isinstance(child, Tenant) and child.name == imported_tenant_name:
+                    provider_tenant = child
+                    break
+
+        # Find the contract
+        if provider_tenant is not None:
+            for contract in provider_tenant.get_children(only_class=Contract):
+                if contract.name == imported_contract_name:
+                    self.import_contract(contract)
+
     @staticmethod
     def _get_parent_dn(dn):
         return dn.split('/cif-')[0]
@@ -2967,6 +3058,50 @@ class ContractInterface(BaseACIObject):
         else:
             self.tenant = None
 
+    def import_contract(self, contract):
+        """
+        Set the Contract that is imported by this ContractInterface
+
+        :param contract: Instance of Contract
+        :return: None
+        """
+        if self.does_import_contract(contract):
+            return
+        if self.has_import_contract():
+            old_contracts = self._get_all_relation(Contract, 'imported')
+            for old_contract in old_contracts:
+                self._remove_relation(old_contract, 'imported')
+        self._add_relation(contract, 'imported')
+
+    def does_import_contract(self, contract):
+        """
+        Check if this ContractInterface imports a specific Contract.
+
+        :param contract: Instance of Contract class to check if it is\
+                         imported by this ContractInterface.
+        :returns: True or False.  True if the ContractInterface does import the Contract.
+        """
+        return self._has_relation(contract, 'imported')
+
+    def has_import_contract(self):
+        """
+        Check if the ContractInterface has any imported Contract
+        :return: True or False. True if the ContractInterface does import a Contract.
+        """
+        return len(self._get_all_relation(Contract, 'imported')) > 0
+
+    def _generate_children(self):
+        """
+        Internal function to generate the children. Called from get_json()
+        :return: List of JSON disctionaries containing the children of this object
+        """
+        children = []
+        for contract in self._get_all_relation(Contract, 'imported'):
+            text = {'vzRsIf': {'attributes': {'tDn': 'uni/tn-%s/brc-%s' % (contract.get_parent().name,
+                                                                           contract.name)}}}
+            children.append(text)
+        return children
+
     def get_json(self):
         """
         Returns json representation of vzCPIf object
@@ -2974,8 +3109,10 @@ class ContractInterface(BaseACIObject):
         :returns: json dictionary of vzCPIf object
         """
         attributes = self._generate_attributes()
+        children = self._generate_children()
         return super(ContractInterface, self).get_json(self._get_apic_classes()[0],
-                                                       attributes=attributes)
+                                                       attributes=attributes,
+                                                       children=children)
 
     @classmethod
     def get(cls, session, tenant=None):
@@ -3189,7 +3326,9 @@ class ContractSubject(BaseACIObject):
         """
         contract = self.get_parent()
         tenant = contract.get_parent()
-        contract_data = data[0]['fvTenant']['children']
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                contract_data = tenant_data['fvTenant']['children']
         for child in contract_data:
             if 'vzBrCP' in child and 'children' in child['vzBrCP']:
                 for subj in child['vzBrCP']['children']:
@@ -4312,7 +4451,8 @@ class IPEndpoint(BaseACIObject):
     @staticmethod
     def get(session):
         """Gets all of the IP endpoints connected to the fabric from the APIC
-        :param session:
+        :param session: Session instance assumed to be logged into the APIC
+        :return: List of IPEndpoint instances
         """
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required')
@@ -4325,6 +4465,14 @@ class IPEndpoint(BaseACIObject):
 
     @classmethod
     def get_all_by_epg(cls, session, tenant_name, app_name, epg_name):
+        """
+        Get all of the IP Endpoints for the specified EPG
+        :param session: Session instance assumed to be logged into the APIC
+        :param tenant_name: String containing the Tenant name that holds the EPG
+        :param app_name: String containing the AppProfile name that holds the EPG
+        :param epg_name: String containing the EPG name
+        :return: List of IPEndpoint instances
+        """
         query_url = ('/api/mo/uni/tn-%s/ap-%s/epg-%s.json?'
                      'query-target=subtree&'
                      'target-subtree-class=fvIp,fvStIp' % (tenant_name, app_name, epg_name))
