@@ -30,7 +30,8 @@ setup(
                       "flask",
                       "pymysql",
                       "tabulate",
-                      "py-radix"],
+                      "py-radix",
+                      "jsonschema"],
     tests_requires=["mock"],
     description="This library allows basic Cisco ACI APIC configuration.",
 )
