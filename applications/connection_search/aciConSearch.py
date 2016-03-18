@@ -30,6 +30,8 @@
 """
 import sys
 from copy import copy
+
+import datetime
 import radix
 import re
 from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, ContractSubject, \
@@ -52,10 +54,14 @@ class IpAddress(object):
 
     def __init__(self, ip):
 
-        if isinstance(ip, str):
+        if isinstance(ip, int):
+            self._prefixlen = 32
+            self.addr = ip
+
+        elif isinstance(ip, str):
             if ip == '':
                 self._prefixlen = 0
-                self.addr = '0.0.0.0'
+                self.addr = 0
             else:
                 sections = ip.split('/')
                 if len(sections) == 1:
@@ -63,38 +69,51 @@ class IpAddress(object):
                 else:
                     self._prefixlen = int(sections[1])
 
-                self.addr = IpAddress.parse_text(sections[0])
-        if isinstance(ip, int):
-            self._prefixlen = 32
-            self.addr = self.n2s(ip)
+                self.addr = sections[0]
+
+
+    @property
+    def addr(self):
+        return self.n2s(self._addr)
+
+    @addr.setter
+    def addr(self, value):
+        if isinstance(value, str):
+            self._addr = IpAddress.parse_text(value)
+        else:
+            assert isinstance(value, int)
+            self._addr = value
 
     @staticmethod
     def parse_text(input_ip):
         ip_bytes = []
         fields = input_ip.split('.')
-        if len(fields) > 0:
-            ip_bytes.append(fields[0])
-
+        result = int(fields[0]) << 8
         if len(fields) > 1:
-            ip_bytes.append(fields[1])
-        else:
-            ip_bytes.append('0')
+            result += int(fields[1])
+        result = result << 8
 
         if len(fields) > 2:
-            ip_bytes.append(fields[2])
-        else:
-            ip_bytes.append('0')
+            result += int(fields[2])
+
+        result = result << 8
 
         if len(fields) > 3:
-            ip_bytes.append(fields[3])
-        else:
-            ip_bytes.append('0')
+            result += int(fields[3])
 
-        return '.'.join(ip_bytes)
+        return result
 
     @property
     def prefix(self):
-        return self._get_prefix()
+        return self.n2s(self._addr & self.mask_num) + '/' + str(self.prefixlen)
+
+    @property
+    def prefix_num(self):
+        """
+        Will return numeric version of the prefix
+        :return:
+        """
+        return self._addr & self.mask_num
 
     @property
     def prefixlen(self):
@@ -107,9 +126,6 @@ class IpAddress(object):
     @property
     def mask_num(self):
         return ~(0xFFFFFFFF >> self.prefixlen)
-
-    def _get_prefix(self):
-        return self.n2s(self.s2n(self.addr) & self.mask_num) + '/' + str(self.prefixlen)
 
     def overlap(self, other):
         """
@@ -205,7 +221,7 @@ class IpAddress(object):
         returns minimum address in the subnet
         :return:
         """
-        return IpAddress(self.n2s(self.prefix_num))
+        return IpAddress(self._addr & self.mask_num)
 
     def max_address(self):
         """
@@ -213,7 +229,7 @@ class IpAddress(object):
         :return:
         """
 
-        return IpAddress(self.prefix_num | ~self.mask_num)
+        return IpAddress((self._addr & self.mask_num)| ~self.mask_num)
 
     @staticmethod
     def s2n(address):
@@ -228,20 +244,6 @@ class IpAddress(object):
         result2 = int(fields[2]) * (2 ** 8)
         result3 = int(fields[3])
         return result + result1 + result2 + result3
-
-    @property
-    def prefix_num(self):
-        """
-        Will return numeric version of the prefix
-        :return:
-        """
-        sections = self.prefix.split('/')
-        fields = sections[0].split('.')
-        result = int(fields[0])
-        result = (result << 8) + int(fields[1])
-        result = (result << 8) + int(fields[2])
-        result = (result << 8) + int(fields[3])
-        return result
 
     @staticmethod
     def n2s(address):
@@ -264,10 +266,7 @@ class IpAddress(object):
         :param other:
         :return:
         """
-        if str(self.prefix) == str(other.prefix):
-            return True
-        else:
-            return False
+        return self.prefix_num == other.prefix_num
 
     def __repr__(self):
         return '{0}/{1}'.format(self.addr, self.prefixlen)
@@ -275,7 +274,9 @@ class IpAddress(object):
     def __eq__(self, other):
 
         if isinstance(other, str):
-            if self != IpAddress(other):
+            if self == IpAddress(other):
+                return True
+            else:
                 return False
         else:
             if not isinstance(self, IpAddress) or not isinstance(other, IpAddress):
@@ -450,13 +451,17 @@ class ProtocolFilter(object):
         :param value:
         :return:
         """
-        fields = re.split('[\s-]+', value)
-        if len(fields) > 1:
-            self.dFromPort = fields[0]
-            self.dToPort = fields[1]
-        elif len(fields) == 1:
-            self.dFromPort = fields[0]
-            self.dToPort = fields[0]
+        if isinstance(value, int) :
+            self.dFromPort = value
+            self.dToPort = value
+        else:
+            fields = re.split('[\s-]+', value)
+            if len(fields) > 1:
+                self.dFromPort = fields[0]
+                self.dToPort = fields[1]
+            elif len(fields) == 1:
+                self.dFromPort = fields[0]
+                self.dToPort = fields[0]
 
     @property
     def sFromPort(self):
@@ -497,13 +502,17 @@ class ProtocolFilter(object):
         :param value:
         :return:
         """
-        fields = re.split('[\s-]+', value)
-        if len(fields) > 1:
-            self.sFromPort = fields[0]
-            self.sToPort = fields[1]
-        elif len(fields) == 1:
-            self.sFromPort = fields[0]
-            self.sToPort = fields[0]
+        if isinstance(value, int) :
+            self.sFromPort = value
+            self.sToPort = value
+        else:
+            fields = re.split('[\s-]+', value)
+            if len(fields) > 1:
+                self.sFromPort = fields[0]
+                self.sToPort = fields[1]
+            elif len(fields) == 1:
+                self.sFromPort = fields[0]
+                self.sToPort = fields[0]
 
     @property
     def etherT(self):
@@ -688,6 +697,9 @@ class FlowSpec(object):
         self.tenant_name = '*'
         self.context_name = '*'
         self.protocol_filter = []
+        self.source_epg = None
+        self.dest_epg = None
+        self.contract = None
 
     def get_source(self):
         return SubFlowSpec(self.tenant_name, self.context_name, self.sip)
@@ -858,6 +870,7 @@ class SearchDb(object):
         create an SQL db to hold all of the info.
         :return:
         """
+        self._implied_contract_guid = 0
         self.epg_contract = {}
         self.contract_filter = {}
         self.session = session
@@ -882,7 +895,6 @@ class SearchDb(object):
                 self.context_by_name[(tenant.name, context.name)] = context
 
             app_profiles = tenant.get_children(AppProfile)
-            contracts = tenant.get_children(Contract)
             outside_l3s = tenant.get_children(OutsideL3)
 
             for app_profile in app_profiles:
@@ -894,6 +906,7 @@ class SearchDb(object):
                 self.build_ip_epg_outside_l3(outside_l3)
                 self.build_epg_contract_outside_l3(outside_l3)
 
+            contracts = tenant.get_children(Contract)
             self.build_contract_filter(contracts)
         self.initialized = True
 
@@ -967,28 +980,57 @@ class SearchDb(object):
         for epg in epgs:
             consumed_contracts = epg.get_all_consumed()
             provided_contracts = epg.get_all_provided()
-            full_epg = epg
-            if full_epg not in self.epg_contract:
-                self.epg_contract[full_epg] = []
+            implied_contract = self._get_implied_contract(epg.get_parent().get_parent())
+            consumed_contracts.append(implied_contract)
+            provided_contracts.append(implied_contract)
+            if epg not in self.epg_contract:
+                self.epg_contract[epg] = []
             for contract in consumed_contracts:
                 contract_tenant = contract.get_parent()
                 contract_record = {'pro_con': 'consume',
                                    'location': 'internal',
                                    'contract': (contract_tenant, contract)}
-                self.epg_contract[full_epg].append(contract_record)
+                self.epg_contract[epg].append(contract_record)
 
             for contract in provided_contracts:
                 contract_tenant = contract.get_parent()
                 contract_record = {'pro_con': 'provide',
                                    'location': 'internal',
                                    'contract': (contract_tenant, contract)}
-                self.epg_contract[full_epg].append(contract_record)
+                self.epg_contract[epg].append(contract_record)
+
+    def _get_implied_contract(self, tenant):
+        """
+        returns an implied contract that represents a contract
+        for traffic within the EPG.  It is an allow all contract, but
+        has a unique name.
+        :return:
+        """
+        name = 'implied_contract_'+str(self._implied_contract_guid)
+        self._implied_contract_guid += 1
+        implied_contract = Contract(name, tenant)
+        FilterEntry('entry1',
+                    applyToFrag='no',
+                    arpOpc='unspecified',
+                    dFromPort='unspecified',
+                    dToPort='unspecified',
+                    etherT='unspecified',
+                    prot='unspecified',
+                    sFromPort='unspecified',
+                    sToPort='unspecified',
+                    tcpRules='unspecified',
+                    parent=implied_contract)
+        return implied_contract
+
 
     def build_epg_contract_outside_l3(self, outside_l3):
         outside_epgs = outside_l3.get_children(OutsideEPG)
         for outside_epg in outside_epgs:
             consumed_contracts = outside_epg.get_all_consumed()
             provided_contracts = outside_epg.get_all_provided()
+            # implied_contract = self._get_implied_contract(outside_l3.get_parent())
+            # consumed_contracts.append(implied_contract)
+            # provided_contracts.append(implied_contract)
             full_epg = outside_epg
             if full_epg not in self.epg_contract:
                 self.epg_contract[full_epg] = []
@@ -1068,6 +1110,7 @@ class SearchDb(object):
         :param flow_spec:
         :return:
         """
+        # todo: add multiple flow_specs
         result = []
         # first convert name of tenant and context to tenant and context objects
         consumed_contracts = self.find_contracts(flow_spec.get_source(), 'consume')
@@ -1082,6 +1125,7 @@ class SearchDb(object):
                                         'dest_epg': p_contract['epg'],
                                         'contract': c_contract['contract']})
 
+
         for connection in connections:
             filters = self.contract_filter[connection['contract']]
             matching_filters = []
@@ -1094,8 +1138,8 @@ class SearchDb(object):
             if len(matching_filters) > 0:
                 result.append(self._build_result_flow_spec(connection, matching_filters))
 
-        # for flow_spec in result:
-        #     print flow_spec
+        #for flow_spec in result:
+        #   print flow_spec
 
         return result
 
@@ -1112,6 +1156,10 @@ class SearchDb(object):
         result.sip = connection['source']
         result.dip = connection['dest']
         result.protocol_filter = matching_filters
+        result.source_epg = connection['source_epg'].name
+        result.dest_epg = connection['dest_epg'].name
+        result.contract = connection['contract'][1].name
+
         return result
 
     def find_contracts(self, subflow_spec, pro_con):
@@ -1128,14 +1176,17 @@ class SearchDb(object):
             match_result = re.match(tenant_search, tenant_name)
             if match_result is not None:
                 tenants.append(self.tenants_by_name[tenant_name])
-
         contexts = []
         context_search = '^' + subflow_spec.context_name.replace('*', '.*') + '$'
         for tenant in tenants:
             for (tenant_name, context_name) in self.context_by_name:
                 match_result = re.match(context_search, context_name)
-                if match_result is not None and tenant_name == tenant.name:
-                    contexts.append(self.context_by_name[(tenant_name, context_name)])
+                context = self.context_by_name[(tenant_name, context_name)]
+                if context not in contexts:
+                    if match_result is not None and tenant_name == tenant.name:
+                        contexts.append(context)
+                    if tenant_name=='common':
+                        contexts.append(context)
 
         epgs_prefix = {}
         nodes = []
