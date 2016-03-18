@@ -1085,6 +1085,11 @@ class EPG(CommonEPG):
                 dom_attributes = child['fvRsDomAtt']['attributes']
                 self._dom_deployment_immediacy = dom_attributes['instrImedcy']
                 self._dom_resolution_immediacy = dom_attributes['resImedcy']
+            elif 'fvRsConsIf' in child:
+                contract_if_name = child['fvRsConsIf']['attributes']['tnVzCPIfName']
+                contract_if = tenant.get_child(ContractInterface, contract_if_name)
+                if contract_if is not None:
+                    self.consume_cif(contract_if)
 
         super(EPG, self)._extract_relationships(data)
 
@@ -1358,6 +1363,11 @@ class OutsideEPG(CommonEPG):
                                 for contract in objs:
                                     if isinstance(contract, Contract):
                                         self.consume(contract)
+            elif 'fvRsConsIf' in child:
+                contract_if_name = child['fvRsConsIf']['attributes']['tnVzCPIfName']
+                contract_if = tenant.get_child(ContractInterface, contract_if_name)
+                if contract_if is not None:
+                    self.consume_cif(contract_if)
 
         super(OutsideEPG, self)._extract_relationships(data)
 
