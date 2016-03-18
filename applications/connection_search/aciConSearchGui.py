@@ -112,12 +112,12 @@ class BaseConnSearchView(BaseView):
         except KeyError:
             return redirect(url_for('credentialsview.index'))
 
-        apic_session = Session(apic_args.url, apic_args.login, apic_args.password)
-        resp = apic_session.login()
-        if not resp.ok:
-            raise LoginError
-        sdb.session = apic_session
-        sdb.build()
+        # apic_session = Session(apic_args.url, apic_args.login, apic_args.password)
+        # resp = apic_session.login()
+        # if not resp.ok:
+        #     raise LoginError
+        # sdb.session = apic_session
+        # sdb.build()
         try:
             apic_session = Session(apic_args.url, apic_args.login, apic_args.password)
             resp = apic_session.login()
@@ -135,9 +135,9 @@ class BaseConnSearchView(BaseView):
         except ConnectionError:
             flash('Connection failure.  Perhaps \'secure\' setting is wrong')
             return redirect(url_for('credentialsview.index'))
-        except:
-            flash('Login failure - perhaps credentials are incorrect')
-            return redirect(url_for('credentialsview.index'))
+        # except:
+        #     flash('Login failure - perhaps credentials are incorrect')
+        #     return redirect(url_for('credentialsview.index'))
 
 
 class AciConnSearchView(BaseConnSearchView):
