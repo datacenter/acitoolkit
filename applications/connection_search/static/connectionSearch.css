@@ -91,3 +91,16 @@
     font-weight:bold;
     color: #0000FF;
 }
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    /*width: 60px;*/
+    /*height: 28px;*/
+    padding: 2px;
+    font: 12px sans-serif;
+    background: cyan;
+    border: 0px;
+    border-radius: 5px;
+    pointer-events: none;
+}

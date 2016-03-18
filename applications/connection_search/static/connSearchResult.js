@@ -41,6 +41,42 @@ function showConnections(result) {
         }
         return result
     }
+
+    var showTip = function(d, i) {
+        var div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+        div.transition()
+            .duration(500)
+            .style("opacity", 1);
+        var row = d3.event.target.parentNode.id;
+        var patt1 = /[0-9]+/g;
+        var result = row.match(patt1);
+        var tip = report[parseInt(result)].tenant + "/" + report[parseInt(result)].context + "::";
+        if (i==0) {
+            tip += report[parseInt(result)].sourceEpg;
+        } else if (i==1) {
+             tip += report[parseInt(result)].destEpg;
+        } else {
+            tip = report[parseInt(result)].tenant + "::" + report[parseInt(result)].contract;
+        }
+        div	.html(tip)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");
+    };
+
+    var hideTip = function(d) {
+        d3.selectAll("div.tooltip").remove();
+            //.transition()
+            //.duration(500)
+            //.style("opacity", 0);
+    };
+
+    // Define the div for the tooltip
+    var div = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
     // determine where to place it and create place holder
     d3.select(".span10").select("#records")
         .remove();
@@ -64,7 +100,11 @@ function showConnections(result) {
         .selectAll("td")
         .data(function(d){return d;}).enter()
         .append("td")
-        .html(function(d){return d;});
+        .html(function(d){return d;})
+        .on("mouseover", function(d, i) {showTip(d, i);})
+        .on("mouseout", function(d) {hideTip(d);});
+
+
 
     spinner.stop();
 
