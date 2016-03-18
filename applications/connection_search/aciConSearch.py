@@ -35,7 +35,7 @@ import datetime
 import radix
 import re
 from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, ContractSubject, \
-    FilterEntry, Context, OutsideNetwork
+    FilterEntry, Context, OutsideNetwork, Fabric
 from acitoolkit.aciphysobject import Session
 from acitoolkit.acitoolkitlib import Credentials
 
@@ -886,7 +886,8 @@ class SearchDb(object):
         :return:
         """
         if tenants is None:
-            tenants = Tenant.get_deep(self.session)
+            fabric = Fabric()
+            tenants = Tenant.get_deep(self.session, parent=fabric)
 
         for tenant in tenants:
             self.tenants_by_name[tenant.name] = tenant
@@ -979,6 +980,11 @@ class SearchDb(object):
         """
         for epg in epgs:
             consumed_contracts = epg.get_all_consumed()
+            consumed_cif = epg.get_all_consumed_cif()
+            for contract_if in consumed_cif:
+                import_contracts = contract_if.get_import_contract()
+                if import_contracts is not None:
+                    consumed_contracts.extend(import_contracts)
             provided_contracts = epg.get_all_provided()
             implied_contract = self._get_implied_contract(epg.get_parent().get_parent())
             consumed_contracts.append(implied_contract)
@@ -1156,8 +1162,14 @@ class SearchDb(object):
         result.sip = connection['source']
         result.dip = connection['dest']
         result.protocol_filter = matching_filters
-        result.source_epg = connection['source_epg'].name
-        result.dest_epg = connection['dest_epg'].name
+        epg = connection['source_epg']
+        name = '{0}/{1}:{2}'.format(epg.get_parent().get_parent().name, epg.get_parent().name, epg.name)
+        result.source_epg = name
+
+        epg = connection['dest_epg']
+        name = '{0}/{1}:{2}'.format(epg.get_parent().get_parent().name, epg.get_parent().name, epg.name)
+        result.dest_epg = name
+
         result.contract = connection['contract'][1].name
 
         return result
