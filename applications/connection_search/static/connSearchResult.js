@@ -52,7 +52,7 @@ function showConnections(result) {
         var row = d3.event.target.parentNode.id;
         var patt1 = /[0-9]+/g;
         var result = row.match(patt1);
-        var tip = report[parseInt(result)].tenant + "/" + report[parseInt(result)].context + "::";
+        var tip="";
         if (i==0) {
             tip += report[parseInt(result)].sourceEpg;
         } else if (i==1) {
