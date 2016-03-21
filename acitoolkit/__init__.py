@@ -32,7 +32,7 @@ from .aciTable import Table # noqa
 from .acitoolkit import ( # noqa
     AppProfile, AttributeCriterion, BGPSession, BridgeDomain, CollectionPolicy, CommonEPG, Context,
     Contract, ContractInterface, ContractSubject, Endpoint, EPG, EPGDomain, FexInterface,
-    Filter, FilterEntry, L2ExtDomain, L2Interface, L3ExtDomain, L3Interface,
+    Filter, FilterEntry, IPEndpoint, L2ExtDomain, L2Interface, L3ExtDomain, L3Interface,
     LogicalModel, MonitorPolicy, MonitorStats, MonitorTarget, NetworkPool,
     OSPFInterface, OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, OutsideNetwork,
     PhysDomain, PortChannel, Search, Subnet, Taboo, Tenant, TunnelInterface,
