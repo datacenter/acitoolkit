@@ -2,8 +2,10 @@
 Test suite for Intersite application
 """
 import unittest
-from acitoolkit import AppProfile, EPG, Endpoint, Interface, L2Interface, Context, BridgeDomain
-from intersite import *
+from acitoolkit import (AppProfile, EPG, Endpoint, Interface, L2Interface, Context, BridgeDomain, Session, Tenant,
+                        IPEndpoint, OutsideL3, OutsideEPG, OutsideNetwork, Contract)
+from intersite import execute_tool, IntersiteTag
+import logging
 from StringIO import StringIO
 import mock
 import sys
@@ -230,6 +232,18 @@ class BaseTestCase(unittest.TestCase):
     """
     BaseTestCase: Base class to be used for creating other TestCases. Not to be instantiated directly.
     """
+    def setup_remote_site(self):
+        """
+        Set up the remote site. Meant to be overridden by inheriting classes
+        """
+        raise NotImplementedError
+
+    def setup_local_site(self):
+        """
+        Set up the local site. Meant to be overridden by inheriting classes
+        """
+        raise NotImplementedError
+
     def setUp(self):
         """
         Set up the test case.  Setup the remote and local site.
@@ -444,6 +458,16 @@ class BaseTestCase(unittest.TestCase):
         self.add_endpoint(mac, ip, tenant_name, app_name, epg_name, mark_as_deleted=True)
 
     def add_endpoint(self, mac, ip, tenant_name, app_name, epg_name, mark_as_deleted=False):
+        """
+        Add the endpoint
+        :param mac: String containing the MAC address of the endpoint
+        :param ip: String containing the IP address of the endpoint
+        :param tenant_name: String containing the tenant name of the endpoint
+        :param app_name: String containing the AppProfile name holding the endpoint
+        :param epg_name: String containing the EPG name holding the endpoint
+        :param mark_as_deleted: True or False. True if the endpoint is to be marked as deleted. Default is False
+        :return: None
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -486,7 +510,13 @@ class BaseTestCase(unittest.TestCase):
 
 
 class BaseEndpointTestCase(BaseTestCase):
+    """
+    Base class for the endpoint test cases
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -500,6 +530,9 @@ class BaseEndpointTestCase(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -512,6 +545,10 @@ class BaseEndpointTestCase(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export":
@@ -545,6 +582,10 @@ class BaseEndpointTestCase(BaseTestCase):
         return config
 
     def setup_with_endpoint(self):
+        """
+        Set up the configuration with an endpoint
+        :return: 2 strings containing the MAC and IP address of the endpoint
+        """
         args = self.get_args()
         self.write_config_file(self.create_config_file(), args)
 
@@ -560,12 +601,21 @@ class BaseEndpointTestCase(BaseTestCase):
 
 
 class TestBasicEndpoints(BaseEndpointTestCase):
+    """
+    Basic tests for endpoints
+    """
     def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_add_multiple_endpoint(self):
+        """
+        Test add multiple endpoints
+        """
         mac1, ip1 = self.setup_with_endpoint()
         mac2 = '00:11:22:33:33:35'
         ip2 = '3.4.3.6'
@@ -576,6 +626,9 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_endpoint(self):
+        """
+        Test remove endpoint
+        """
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
 
@@ -584,6 +637,9 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
+        """
+        Test remove one of multiple endpoints
+        """
         mac1, ip1 = self.setup_with_endpoint()
         mac2 = '00:11:22:33:33:35'
         ip2 = '3.4.3.6'
@@ -599,7 +655,13 @@ class TestBasicEndpoints(BaseEndpointTestCase):
 
 
 class TestMultipleEPG(BaseTestCase):
+    """
+    Test multiple EPGs
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -615,6 +677,9 @@ class TestMultipleEPG(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -627,6 +692,10 @@ class TestMultipleEPG(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -679,6 +748,9 @@ class TestMultipleEPG(BaseTestCase):
         return config
 
     def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
 
@@ -701,6 +773,9 @@ class TestMultipleEPG(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
 
     def test_basic_add_multiple_endpoint(self):
+        """
+        Test adding multiple endpoints
+        """
         args = self.get_args()
         config = self.create_config_file()
 
@@ -729,6 +804,9 @@ class TestMultipleEPG(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac3, ip3, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app2-epg2'))
 
     def test_basic_remove_endpoint(self):
+        """
+        Test remove the endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -746,6 +824,9 @@ class TestMultipleEPG(BaseTestCase):
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
+        """
+        Test remove one of multiple endpoints
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -760,16 +841,26 @@ class TestMultipleEPG(BaseTestCase):
         self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app2', 'epg2')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app2-epg2'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app2-epg2'))
 
         self.remove_endpoint(mac1, ip1, 'intersite-testsuite', 'app1', 'epg1')
-        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app2-epg2'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                           'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app2-epg2'))
 
 
 class TestBasicExistingEndpoints(BaseTestCase):
+    """
+    Tests for endpoints already existing
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -788,6 +879,9 @@ class TestBasicExistingEndpoints(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -800,6 +894,10 @@ class TestBasicExistingEndpoints(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -828,6 +926,9 @@ class TestBasicExistingEndpoints(BaseTestCase):
         return config
 
     def test_basic_add_endpoint(self):
+        """
+        Test add the endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -839,6 +940,9 @@ class TestBasicExistingEndpoints(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_endpoint(self):
+        """
+        Test remove the endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -855,7 +959,13 @@ class TestBasicExistingEndpoints(BaseTestCase):
 
 
 class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
+    """
+    Tests for previously existing endpoints and policy is added later
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -874,6 +984,9 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -886,10 +999,18 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
         return self.create_site_config()
 
     @staticmethod
     def create_export_policy():
+        """
+        Create the export policy
+        :return: Dictionary containing the configuration
+        """
         config = {
             "export": {
                 "tenant": "intersite-testsuite",
@@ -916,6 +1037,9 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         return config
 
     def test_basic_add_endpoint(self):
+        """
+        Test adding the endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -932,6 +1056,9 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_endpoint(self):
+        """
+        Test removing the endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         config['config'].append(self.create_export_policy())
@@ -952,7 +1079,13 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
 
 
 class TestExportPolicyRemoval(BaseTestCase):
+    """
+    Tests for export policy removal
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -985,6 +1118,9 @@ class TestExportPolicyRemoval(BaseTestCase):
         time.sleep(2)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -998,6 +1134,10 @@ class TestExportPolicyRemoval(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_diff_epg_config_file(self):
+        """
+        Create a configuration with different EPGs
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -1026,6 +1166,10 @@ class TestExportPolicyRemoval(BaseTestCase):
         return config
 
     def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -1078,6 +1222,9 @@ class TestExportPolicyRemoval(BaseTestCase):
         return config
 
     def test_basic_remove_policy(self):
+        """
+        Test removing the policy
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1099,6 +1246,9 @@ class TestExportPolicyRemoval(BaseTestCase):
         self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg2'))
 
     def test_basic_change_policy_name(self):
+        """
+        Test changing the policy name
+        """
         args = self.get_args()
         config = self.create_config_file()
         mac = '00:11:22:33:33:33'
@@ -1122,7 +1272,13 @@ class TestExportPolicyRemoval(BaseTestCase):
 
 
 class TestBasicEndpointsWithContract(BaseTestCase):
+    """
+    Basic Tests for endpoints with a contract
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -1136,6 +1292,9 @@ class TestBasicEndpointsWithContract(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -1150,6 +1309,10 @@ class TestBasicEndpointsWithContract(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -1183,6 +1346,9 @@ class TestBasicEndpointsWithContract(BaseTestCase):
         return config
 
     def test_basic_add_endpoint(self):
+        """
+        Test adding endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1201,6 +1367,9 @@ class TestBasicEndpointsWithContract(BaseTestCase):
                                                                                  'intersite-testsuite-app-epg', 'contract-1'))
 
     def test_basic_add_multiple_endpoint(self):
+        """
+        Test adding multiple endpoints
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1221,6 +1390,9 @@ class TestBasicEndpointsWithContract(BaseTestCase):
                                                                                  'intersite-testsuite-app-epg', 'contract-1'))
 
     def test_basic_remove_endpoint(self):
+        """
+        Test removing endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1239,6 +1411,9 @@ class TestBasicEndpointsWithContract(BaseTestCase):
                                                                                   'intersite-testsuite-app-epg', 'contract-1'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
+        """
+        Test removing one of multiple endpoints
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1266,7 +1441,13 @@ class TestBasicEndpointsWithContract(BaseTestCase):
 
 
 class TestBasicEndpointMove(BaseTestCase):
+    """
+    Tests for an endpoint that moves
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -1286,6 +1467,9 @@ class TestBasicEndpointMove(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -1298,6 +1482,10 @@ class TestBasicEndpointMove(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -1350,6 +1538,10 @@ class TestBasicEndpointMove(BaseTestCase):
         return config
 
     def setup_with_endpoint(self):
+        """
+        Set up the local site with the endpoint
+        :return: 2 strings containing the MAC and IP address of the endpoint
+        """
         args = self.get_args()
         config = self.create_config_file()
         self.write_config_file(config, args)
@@ -1364,45 +1556,71 @@ class TestBasicEndpointMove(BaseTestCase):
         return mac, ip
 
     def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
 
     def test_basic_add_multiple_endpoint(self):
+        """
+        Test add multiple endpoints
+        """
         mac1, ip1 = self.setup_with_endpoint()
         mac2 = '00:11:22:33:33:35'
         ip2 = '3.4.3.6'
         self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg2')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg2'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg2'))
 
     def test_basic_remove_endpoint(self):
+        """
+        Test removing the endpoint
+        """
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg1'))
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg1')
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
+                                                           'intersite-testsuite-app-epg1'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
+        """
+        Test removing one of multiple endpoints
+        """
         mac1, ip1 = self.setup_with_endpoint()
         mac2 = '00:11:22:33:33:35'
         ip2 = '3.4.3.6'
         self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg1')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg1'))
 
         self.remove_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg1')
-        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2,  'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                           'intersite-testsuite-app-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg1'))
 
 
 class TestPolicyChangeProvidedContract(BaseTestCase):
+    """
+    Tests to cover changing the provided contract within the policy
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -1416,6 +1634,9 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -1431,6 +1652,10 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def create_config_file_before(self):
+        """
+        Create the configuration before changing the provided contract
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -1467,6 +1692,10 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         return config
 
     def create_config_file_after(self):
+        """
+        Create the configuration after changing the provided contract
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = {
             "export": {
@@ -1500,6 +1729,12 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         return config
 
     def verify_remote_site_has_entry_before(self, mac, ip):
+        """
+        Verify that the remote site has the entry before changing the policy
+        :param mac: String containing the endpoint MAC address
+        :param ip: String containing the endpoint IP address
+        :return: True or False.  True if the remote site has the entry
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -1547,6 +1782,12 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         return True
 
     def verify_remote_site_has_entry_after(self, mac, ip):
+        """
+        Verify that the remote site has the entry after changing the policy
+        :param mac: String containing the endpoint MAC address
+        :param ip: String containing the endpoint IP address
+        :return: True or False.  True if the remote site has the entry
+        """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
@@ -1594,6 +1835,9 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         return True
 
     def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
         args = self.get_args()
         config = self.create_config_file_before()
         self.write_config_file(config, args)
@@ -1616,6 +1860,9 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry_after(mac, ip))
 
     def test_basic_add_multiple_endpoint(self):
+        """
+        Test adding multiple endpoints
+        """
         args = self.get_args()
         config = self.create_config_file_before()
         self.write_config_file(config, args)
@@ -1642,7 +1889,13 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
 
 
 class TestChangeL3Out(BaseTestCase):
+    """
+    Tests for changing OutsideL3 interfaces
+    """
     def setup_local_site(self):
+        """
+        Set up the local site
+        """
         # create Tenant, App, EPG on site 1
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
@@ -1656,6 +1909,9 @@ class TestChangeL3Out(BaseTestCase):
         self.assertTrue(resp.ok)
 
     def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
         # Create tenant, L3out with contract on site 2
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
@@ -1670,6 +1926,11 @@ class TestChangeL3Out(BaseTestCase):
 
     @staticmethod
     def create_export_policy(l3out_name):
+        """
+        Create the export policy
+        :param l3out_name: String containing the OutsideL3 name
+        :return: Dictionary containing the export policy
+        """
         export_policy = {
             "export": {
                 "tenant": "intersite-testsuite",
@@ -1696,12 +1957,20 @@ class TestChangeL3Out(BaseTestCase):
         return export_policy
 
     def create_config_file(self, l3out_name):
+        """
+        Create the configuration
+        :param l3out_name: String containing the OutsideL3 name
+        :return: Dictionary containing the configuration
+        """
         config = self.create_site_config()
         export_policy = self.create_export_policy(l3out_name)
         config['config'].append(export_policy)
         return config
 
     def test_basic_add_endpoint(self):
+        """
+        Basic test for adding endpoint
+        """
         args = self.get_args()
         config = self.create_config_file('l3out1')
         self.write_config_file(config, args)
@@ -1729,6 +1998,9 @@ class TestChangeL3Out(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_add_endpoint_multiple_l3out(self):
+        """
+        Test adding endpoint with multiple OutsideL3 interfaces
+        """
         args = self.get_args()
         config = self.create_config_file('l3out1')
         for policy in config['config']:
