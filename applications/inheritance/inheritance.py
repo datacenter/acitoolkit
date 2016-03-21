@@ -20,7 +20,6 @@ from requests.exceptions import ConnectionError, Timeout
 import time
 import os
 import radix
-# TODO update the setup.py dependencies to install py-radix
 
 # Imports from standalone mode
 import argparse
@@ -369,7 +368,10 @@ class RelationDB(BaseDB):
         epg = self._convert_policy_epg_to_db_epg(epg)
         if epg not in self.db:
             return False
-        return relation in self.db[epg]
+        action, name = relation
+        if action not in self.db[epg]:
+            return False
+        return name in self.db[epg][action]
 
 
 class TagDB(BaseDB):
@@ -387,7 +389,8 @@ class TagDB(BaseDB):
             self.db[epg] = []
         db_entry = (tag_event.policy_relation_type, tag_event.policy_relation_name)
         if tag_event.is_deleted():
-            self.db[epg].remove(db_entry)
+            if db_entry in self.db[epg]:
+                self.db[epg].remove(db_entry)
         else:
             self.db[epg].append(db_entry)
 

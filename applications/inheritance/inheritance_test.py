@@ -899,6 +899,171 @@ class TestSubnetEvents(BaseTestCase):
         self.delete_tenant()
 
 
+class TestMultipleOutsideEPGLevels(BaseTestCase):
+    """
+    Test multiple OutsideEPG levels
+    """
+    def setup_tenant(self, apic):
+        """
+        Setup the tenant configuration
+        :param apic: Session instance assumed to be logged into the APIC
+        :return: None
+        """
+        tenant = Tenant('inheritanceautomatedtest')
+        context = Context('mycontext', tenant)
+        l3out = OutsideL3('myl3out', tenant)
+        grandparent_epg = OutsideEPG('grandparentepg', l3out)
+        grandparent_network = OutsideNetwork('10.0.0.0', grandparent_epg)
+        grandparent_network.ip = '10.0.0.0/8'
+        parent_epg = OutsideEPG('parentepg', l3out)
+        parent_network = OutsideNetwork('10.1.0.0', parent_epg)
+        parent_network.ip = '10.1.0.0/16'
+        child_epg = OutsideEPG('childepg', l3out)
+        child_network = OutsideNetwork('10.1.1.0', child_epg)
+        child_network.ip = '10.1.1.0/24'
+        contract = Contract('mycontract', tenant)
+        entry = FilterEntry('webentry1',
+                            applyToFrag='no',
+                            arpOpc='unspecified',
+                            dFromPort='80',
+                            dToPort='80',
+                            etherT='ip',
+                            prot='tcp',
+                            sFromPort='1',
+                            sToPort='65535',
+                            tcpRules='unspecified',
+                            parent=contract)
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def verify_inherited(self, apic, not_inherited=False):
+        """
+        Verify that the contracts have properly been inherited (or not inherited)
+        :param apic: Session instance assumed to be logged into the APIC
+        :param not_inherited: Boolean to indicate whether to verify that the contracts have properly been inherited or not
+        :return: None
+        """
+        tenants = Tenant.get_deep(apic, names=['inheritanceautomatedtest'])
+        self.assertTrue(len(tenants) > 0)
+        tenant = tenants[0]
+        l3out = tenant.get_child(OutsideL3, 'myl3out')
+        self.assertIsNotNone(l3out)
+        childepg = l3out.get_child(OutsideEPG, 'childepg')
+        self.assertIsNotNone(childepg)
+        if not_inherited:
+            self.assertFalse(childepg.has_tag('inherited:fvRsProv:mycontract'))
+        else:
+            self.assertTrue(childepg.has_tag('inherited:fvRsProv:mycontract'))
+        contract = tenant.get_child(Contract, 'mycontract')
+        self.assertIsNotNone(contract)
+        if not_inherited:
+            self.assertFalse(childepg.does_provide(contract))
+        else:
+            self.assertTrue(childepg.does_provide(contract))
+
+    def verify_not_inherited(self, apic):
+        """
+        Verify that the contracts have not been inherited
+        :param apic: Session instance assumed to be logged into the APIC
+        :return: None
+        """
+        self.verify_inherited(apic, not_inherited=True)
+
+    def test_provide_contract_directly_on_parent_epg(self):
+        """
+        Basic test to inherit after adding a subnet
+        """
+        config_json = {
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": False,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "grandparentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+
+            ]
+        }
+        args = TestArgs()
+        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args, cli_mode=False)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        # Verify that the contract is not inherited by the child EPG
+        self.verify_not_inherited(apic)
+
+        # Provide the contract from the parent EPG
+        tenant = Tenant('inheritanceautomatedtest')
+        l3out = OutsideL3('myl3out', tenant)
+        parent_epg = OutsideEPG('parentepg', l3out)
+        parent_network = OutsideNetwork('10.1.0.0', parent_epg)
+        parent_network.ip = '10.1.0.0/16'
+        contract = Contract('mycontract', tenant)
+        parent_epg.provide(contract)
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        time.sleep(2)
+
+        # Verify that the contract is still not inherited by the child EPG
+        self.verify_not_inherited(apic)
+
+        time.sleep(2)
+
+        # Verify that the parent EPG still provides the contract
+        tenants = Tenant.get_deep(apic, names=['inheritanceautomatedtest'])
+        self.assertTrue(len(tenants) > 0)
+        tenant = tenants[0]
+        l3out = tenant.get_child(OutsideL3, 'myl3out')
+        self.assertIsNotNone(l3out)
+        parentepg = l3out.get_child(OutsideEPG, 'parentepg')
+        self.assertIsNotNone(parentepg)
+        self.assertFalse(parentepg.has_tag('inherited:fvRsProv:mycontract'))
+        contract = tenant.get_child(Contract, 'mycontract')
+        self.assertIsNotNone(contract)
+        self.assertTrue(parentepg.does_provide(contract))
+
+        self.delete_tenant()
+
+
 class BaseImportedContract(unittest.TestCase):
     """
     Base class for tests for ContractInterface
