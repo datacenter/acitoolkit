@@ -7,6 +7,7 @@ Connection Search : Configured Connection Search Tool
 | `Web based Usage`_
 |    `Credentials`_
 |    `Performing a Search`_
+|    `Examples`_
 |    `About`_
 |    `Feedback`_
 | `Command Line Usage`_
@@ -101,7 +102,7 @@ below.  Note that for security purposes, the password is not
 displayed.  Clicking the **Reset** button will cause Connection Search to
 forget the current credentials, but will not impact the APIC in any way.
 
-.. image:: Connection_Search-credentials-set.png
+.. image:: connection_search-credentials-set.png
 
 Performing a Search
 ~~~~~~~~~~~~~~~~~~~
@@ -111,6 +112,8 @@ will read in the configuration of the APIC.  This may take some time depending u
 the size of your configuration as well as the speed of your network connection.
 Your browser may indicate that it is "waiting on 127.0.0.1" while the configuration
 is loading.  Please be patient.
+
+.. image:: connection_search-search-start.png
 
 A search consists of entering the search filter criteria in the search bar and then pressing
 the **SEARCH** button.  If no criteria is entered, all connections will be displayed.
@@ -194,6 +197,75 @@ The Attributes are as follows:
 When the search results are displayed, placing the cursor over a table cell will cause a fully qualified name of the
 EPG or OutsideEPG to be displayed.  If the cursor is placed over the filters, the name of the contract will be
 displayed.
+
+For communication within an EPG, i.e. between two end-points that are in the same EPG, Connection Search will create an
+"implied" contract that is both provided and consumed by that EPG.  The filter in that contract will allow all
+communication.  When the cursor hovers over the filter cell for such a connection, the contract name will begin with
+"implied" followed by a number that makes it unique.  This contract does not actually exist in the APIC.
+
+Examples
+~~~~~~~~
+The following are a few examples of searches and explanation of the results.
+
+Example 1
+^^^^^^^^^
+Find all the connections whose source IP address is in the subnet "192.0.0.0/8".
+
+.. image:: connection-search-example1.png
+
+Here we see how the search is contructed, ``sip=192/8``.  This tells the application to find all connections whose
+source IP address has the first 8-bits equal to "192".
+
+The results show two connections.  The first is from the entire subnet that was searched for going to the default route
+of 0/0.  This connection is for all TCP traffice.  The filter says ``ip tcp any-any any-any`` which should be
+interpreted as:
+
+* EtherType = IP
+* IP protocol = TCP
+* L4 destination port minimum = any
+* L4 destination port maximum = any
+* L4 source port minimum = any
+* L4 source port maximum = any
+
+The second connection indicates the same subnet going to the host address ``192.168.1.133/32``.  Here there are 4
+filters.  The first says all ``icmp`` traffic is allowed.  The next two show destination ports ``80`` and ``443``
+are allowed which corresponds to "http" and "https" traffic respectively.  The last filter shows that all
+``arp`` traffic is allowed, i.e. both requests and responses.
+
+Note that there were additional results that are not shown in the above image.
+
+Example 2
+^^^^^^^^^
+This next example shows a search looking for traffic in a tenant named "Tenant1", whose destination is to anything
+in the ``192.168.0.0/16`` subnet on any layer 4 destination port number in the range of ``100`` to ``500``.
+
+.. image:: connection-search-example2.png
+
+The results show 4 connection groups.  The first one is from a host IP of ``0.0.0.0/32``.  This looks funny and is
+probably a configuration error in the APIC.  The destination here is ``192.168.0.0/16`` and the filter is for any
+TCP traffic that has a destination port in the range of ``100`` to ``500``.  Here the results are showing just the
+overlap of the destination address range.   The full range of addressed configured in the APIC is ``0/0``, but the
+search criteria indicates that the user was looking for the specific range of ``192.168/16``, so that is the only
+range shown in the result.
+
+In a similar fashion, the filter shows that TCP ports ``100`` to ``500`` are allowed.  The actual filter in the APIC
+is for ``any-any``, but the result only shows the overlapping ports because that is what the query was for.
+
+
+Example 3
+^^^^^^^^^
+In this query, the user wants to see all of the destinations that host ``192.168.1.133`` in tenant "Tenant1"
+can send traffic to.
+
+.. image:: connection-search-example3.png
+
+Here there are two results.  The first shows that this host can send traffic to default route of ``0/0`` for any TCP
+traffic.  The second row shows that this host can communicate with itself using any protocol.  This second one
+has a fully open filter of ``any any any-any any-any``.  When we place the cursor over this filter we can see that
+this was an "implied" filter.  The implied filter is created by the connection search tool to show that end-points
+within an EPG can communicate with each other without any constraint.  In this particular case, it shows that end-points
+can send traffic to themselves.
+
 
 About
 ~~~~~
