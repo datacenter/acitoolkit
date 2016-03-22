@@ -41,31 +41,31 @@ def get_tree():
     tenant = Tenant('tenant')
     tenant.dn = '/tn-tenant'
     app1 = AppProfile('app1', tenant)
-    app1.dn = app1._parent.dn+'/app-app1'
+    app1.dn = app1._parent.dn + '/app-app1'
     app2 = AppProfile('app2', tenant)
-    app2.dn = app2._parent.dn+'/app-app2'
+    app2.dn = app2._parent.dn + '/app-app2'
     epg11 = EPG('epg11', app1)
-    epg11.dn = epg11._parent.dn+'/epg-epg11'
+    epg11.dn = epg11._parent.dn + '/epg-epg11'
     epg12 = EPG('epg12', app1)
-    epg12.dn = epg12._parent.dn+'/epg-epg12'
+    epg12.dn = epg12._parent.dn + '/epg-epg12'
     epg21 = EPG('epg21', app2)
-    epg21.dn = epg21._parent.dn+'/epg-epg21'
+    epg21.dn = epg21._parent.dn + '/epg-epg21'
     epg22 = EPG('epg22', app2)
-    epg22.dn = epg22._parent.dn+'/epg-epg22'
+    epg22.dn = epg22._parent.dn + '/epg-epg22'
     bd1 = BridgeDomain('bd1', tenant)
-    bd1.dn = bd1._parent.dn+'/bd-bd1'
+    bd1.dn = bd1._parent.dn + '/bd-bd1'
     bd2 = BridgeDomain('bd2', tenant)
-    bd2.dn = bd2._parent.dn+'/bd-bd2'
+    bd2.dn = bd2._parent.dn + '/bd-bd2'
     epg11.add_bd(bd1)
     epg12.add_bd(bd2)
     epg21.add_bd(bd1)
     epg22.add_bd(bd2)
     context = Context('ctx', tenant)
-    context.dn = context._parent.dn+'/ctx-ctx'
+    context.dn = context._parent.dn + '/ctx-ctx'
     bd1.add_context(context)
     bd2.add_context(context)
     contract1 = Contract('contract-1', tenant)
-    contract1.dn = contract1._parent.dn+'/con-contract1'
+    contract1.dn = contract1._parent.dn + '/con-contract1'
     entry1 = FilterEntry('entry1',
                          applyToFrag='no',
                          arpOpc='unspecified',
@@ -79,12 +79,12 @@ def get_tree():
                          parent=contract1)
     subjects = contract1.get_children(ContractSubject)
     for subject in subjects:
-        subject.dn = subject._parent.dn+'/subj-'+subject.name
+        subject.dn = subject._parent.dn + '/subj-' + subject.name
     filters = tenant.get_children(Filter)
     for atk_filter in filters:
-        atk_filter.dn = atk_filter._parent.dn+'/flt-'+atk_filter.name
+        atk_filter.dn = atk_filter._parent.dn + '/flt-' + atk_filter.name
 
-    entry1.dn = entry1._parent.dn+'/flte-entry1'
+    entry1.dn = entry1._parent.dn + '/flte-entry1'
 
     epg11.provide(contract1)
     epg11.consume(contract1)
