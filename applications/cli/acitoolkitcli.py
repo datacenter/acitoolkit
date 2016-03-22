@@ -28,12 +28,13 @@
 """This module implements a CLI similar to Cisco IOS and NXOS
    for use with the ACI Toolkit.
 """
-import re
 import sys
 import getopt
 import logging
 from cmd import Cmd
-from acitoolkit.acitoolkit import *
+from acitoolkit import (Tenant, Contract, AppProfile, EPG, Interface, PortChannel, L2ExtDomain, Subnet,
+                        PhysDomain, VmmDomain, L3ExtDomain, EPGDomain, Context, BridgeDomain, L2Interface,
+                        FilterEntry, Session)
 import requests
 import pprint
 READLINE = True
@@ -59,11 +60,9 @@ def error_message(resp):
 
 
 class SubMode(Cmd):
-
     """
     Implements the basic commands for all modes
     """
-
     def __init__(self):
         Cmd.__init__(self)
         self.tenant = None
