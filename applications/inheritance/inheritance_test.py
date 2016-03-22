@@ -7,6 +7,7 @@ from acitoolkit import (Tenant, Context, OutsideL3, OutsideEPG, OutsideNetwork,
                         Contract, FilterEntry, Session, AppProfile, EPG,
                         ContractInterface, Fabric)
 import time
+import sys
 try:
     from inheritance_test_credentials import *
 except ImportError:
@@ -26,6 +27,34 @@ class TestArgs(object):
         self.debug = 'verbose'
         self.maxlogfiles = 10
         self.generateconfig = False
+
+
+class FakeStdio(object):
+    """
+    FakeStdio : Class to fake writing to stdio and store it so that it can be verified
+    """
+    def __init__(self):
+        self.output = []
+
+    def write(self, *args, **kwargs):
+        """
+        Mock the write routine
+
+        :param args: Args passed to stdio write
+        :param kwargs: Kwargs passed to stdio write
+        :return: None
+        """
+        for arg in args:
+            self.output.append(arg)
+
+    def verify_output(self, output):
+        """
+        Verify that the output is the same as generated previously
+
+        :param output: Output to test for
+        :return: True if the same as the stored output. False otherwise
+        """
+        return output == self.output
 
 
 class BaseTestCase(unittest.TestCase):
@@ -56,6 +85,59 @@ class BaseTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.delete_tenant()
+
+
+class TestWithoutApicCommunication(unittest.TestCase):
+    """
+    Tests that do not communicate with the APIC
+    """
+    def test_generate_config(self):
+        args = TestArgs()
+        args.generateconfig = True
+
+        sample_config = """
+{
+    "apic": {
+        "user_name": "admin",
+        "password": "password",
+        "ip_address": "0.0.0.0",
+        "use_https": false
+    },
+    "inheritance_policies": [
+        {
+            "epg": {
+                "tenant": "tenant-name",
+                "epg_container": {
+                    "name": "l3out-name",
+                    "container_type": "l3out"
+                },
+                "name": "epg-name"
+            },
+            "allowed": true,
+            "enabled": true
+        },
+        {
+            "epg": {
+                "tenant": "tenant-name",
+                "epg_container": {
+                    "name": "l3out-name",
+                    "container_type": "l3out"
+                },
+                "name": "epg-name"
+            },
+            "allowed": true,
+            "enabled": true
+        },
+    ]
+}
+        """
+        temp = sys.stdout
+        fake_out = FakeStdio()
+        sys.stdout = fake_out
+
+        tool = execute_tool(args)
+        sys.stdout = temp
+        self.assertTrue(fake_out.verify_output([sample_config, '\n']))
 
 
 class TestBasic(BaseTestCase):
@@ -168,7 +250,7 @@ class TestBasic(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(4)
 
@@ -219,7 +301,7 @@ class TestBasic(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -270,7 +352,7 @@ class TestBasic(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -278,6 +360,58 @@ class TestBasic(BaseTestCase):
         self.verify_not_inherited(apic)
         tool.exit()
         # self.delete_tenant()
+
+    def test_get_config(self):
+        """
+        Basic test for getting the configuration
+        """
+        config_json = {
+            "apic": {
+                "user_name": APIC_USERNAME,
+                "password": APIC_PASSWORD,
+                "ip_address": APIC_IP,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myl3out",
+                            "container_type": "l3out"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        config = tool.get_config()
+        # Verify that the contract is now inherited by the child EPG
+        self.assertEqual(config, config_json)
+
+        tool.exit()
 
 
 class TestContractEvents(BaseTestCase):
@@ -461,7 +595,7 @@ class TestContractEvents(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -488,7 +622,7 @@ class TestContractEvents(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -568,7 +702,7 @@ class TestContractEvents(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant_with_2_parent_epgs(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -634,7 +768,7 @@ class TestContractEvents(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant_with_2_parent_epgs(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -716,7 +850,7 @@ class TestContractEvents(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant_with_2_parent_epgs(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(4)
 
@@ -882,7 +1016,7 @@ class TestSubnetEvents(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -1024,7 +1158,7 @@ class TestMultipleOutsideEPGLevels(BaseTestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenant(apic)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -1271,7 +1405,7 @@ class BaseImportedContract(unittest.TestCase):
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
         self.setup_tenants(apic, provider_tenant_name, consumer_tenant_name, use_contract_if=use_contract_if)
-        tool = execute_tool(args, cli_mode=False)
+        tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
@@ -1410,6 +1544,7 @@ if __name__ == '__main__':
         pass
     else:
         live = unittest.TestSuite()
+        live.addTest(unittest.makeSuite(TestWithoutApicCommunication))
         live.addTest(unittest.makeSuite(TestBasic))
         live.addTest(unittest.makeSuite(TestContractEvents))
         live.addTest(unittest.makeSuite(TestSubnetEvents))
