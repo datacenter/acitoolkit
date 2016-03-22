@@ -514,6 +514,12 @@ class Monitor(threading.Thread):
         self.apic.subscribe(tag_query_url)
         self._inheritance_tag_subscriptions.append(tag_query_url)
 
+    def does_tenant_have_contract(self, tenant_name, contract_name):
+        logging.debug('does_tenant_have_contract tenant: %s contract: %s', tenant_name, contract_name)
+        query_url = '/api/mo/uni/tn-%s/brc-%s.json' % (tenant_name, contract_name)
+        resp  = self.apic.get(query_url)
+        return resp.ok and int(resp.json()['totalCount']) > 0
+
     def _add_inherited_relation(self, tenants, epg, relation, deleted=False):
         tenant_found = False
 
@@ -719,7 +725,16 @@ class Monitor(threading.Thread):
 
         # Push the necessary config to the APIC
         for tenant in tenants:
-            resp = tenant.push_to_apic(self.apic)
+            tenant_json = tenant.get_json()
+            # Check that the tenant actually has the contracts since they may actually be tenant common contracts.
+            # If tenant common is used, we need to clean up the tenant JSON to not create an empty contract within
+            # this tenant
+            for child in tenant_json['fvTenant']['children']:
+                if 'vzBrCP' in child:
+                    if not self.does_tenant_have_contract(tenant.name, child['vzBrCP']['attributes']['name']):
+                        tenant_json['fvTenant']['children'].remove(child)
+            logging.debug('Pushing tenant configuration to the APIC: %s', tenant_json)
+            resp = self.apic.push_to_apic(tenant.get_url(), tenant_json)
             if resp.ok:
                 logging.debug('Pushed to APIC successfully')
             else:

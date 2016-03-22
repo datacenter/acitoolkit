@@ -1103,7 +1103,7 @@ class BaseImportedContract(unittest.TestCase):
     def tearDown(self):
         self.delete_tenants('inheritanceautomatedtest-provider', 'inheritanceautomatedtest-consumer')
 
-    def setup_tenants(self, apic, provider_tenant_name, consumer_tenant_name):
+    def setup_tenants(self, apic, provider_tenant_name, consumer_tenant_name, use_contract_if=True):
         """
         Setup 2 tenants with 1 providing a contract that is consumed by the
         other tenant
@@ -1138,11 +1138,20 @@ class BaseImportedContract(unittest.TestCase):
         parent_network = OutsideNetwork('5.1.1.1', parent_epg)
         parent_network.ip = '5.1.1.1/8'
         child_epg = OutsideEPG('childepg', l3out)
-        contract_if = ContractInterface('mycontract', consumer_tenant)
-        contract_if.import_contract(contract)
-        parent_epg.consume_cif(contract_if)
-        resp = consumer_tenant.push_to_apic(apic)
-        self.assertTrue(resp.ok)
+        if use_contract_if:
+            contract_if = ContractInterface('mycontract', consumer_tenant)
+            contract_if.import_contract(contract)
+            parent_epg.consume_cif(contract_if)
+            resp = consumer_tenant.push_to_apic(apic)
+            self.assertTrue(resp.ok)
+        else:
+            parent_epg.consume(contract)
+            consumer_tenant_json = consumer_tenant.get_json()
+            for child in consumer_tenant_json['fvTenant']['children']:
+                if 'vzBrCP' in child:
+                    consumer_tenant_json['fvTenant']['children'].remove(child)
+            resp = apic.push_to_apic(consumer_tenant.get_url(), consumer_tenant_json)
+            self.assertTrue(resp.ok)
 
     def add_child_subnet(self, apic, consumer_tenant_name):
         """
@@ -1159,7 +1168,8 @@ class BaseImportedContract(unittest.TestCase):
         resp = tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
 
-    def verify_inherited(self, apic, provider_tenant_name, consumer_tenant_name, not_inherited=False):
+    def verify_inherited(self, apic, provider_tenant_name, consumer_tenant_name,
+                         not_inherited=False, use_contract_if=True):
         """
         Verify that the contracts have properly been inherited (or not inherited)
         :param apic: Session instance assumed to be logged into the APIC
@@ -1172,27 +1182,41 @@ class BaseImportedContract(unittest.TestCase):
         tenants = Tenant.get_deep(apic, names=[consumer_tenant_name, provider_tenant_name], parent=fabric)
         self.assertTrue(len(tenants) > 0)
         consumer_tenant = None
+        provider_tenant = None
         for tenant in tenants:
             if tenant.name == consumer_tenant_name:
                 consumer_tenant = tenant
-                break
+            if tenant.name == provider_tenant_name:
+                provider_tenant = tenant
         self.assertIsNotNone(consumer_tenant)
         l3out = consumer_tenant.get_child(OutsideL3, 'myl3out')
         self.assertIsNotNone(l3out)
         childepg = l3out.get_child(OutsideEPG, 'childepg')
         self.assertIsNotNone(childepg)
+        cons_word = 'fvRsCons'
+        if use_contract_if:
+            cons_word += 'If'
         if not_inherited:
-            self.assertFalse(childepg.has_tag('inherited:fvRsConsIf:mycontract'))
+            self.assertFalse(childepg.has_tag('inherited:%s:mycontract' % cons_word))
         else:
-            self.assertTrue(childepg.has_tag('inherited:fvRsConsIf:mycontract'))
-        contract_if = consumer_tenant.get_child(ContractInterface, 'mycontract')
+            self.assertTrue(childepg.has_tag('inherited:%s:mycontract' % cons_word))
+        if use_contract_if:
+            contract_if = consumer_tenant.get_child(ContractInterface, 'mycontract')
+        else:
+            contract_if = provider_tenant.get_child(Contract, 'mycontract')
         self.assertIsNotNone(contract_if)
         if not_inherited:
-            self.assertFalse(childepg.does_consume_cif(contract_if))
+            if use_contract_if:
+                self.assertFalse(childepg.does_consume_cif(contract_if))
+            else:
+                self.assertFalse(childepg.does_consume(contract_if))
         else:
-            self.assertTrue(childepg.does_consume_cif(contract_if))
+            if use_contract_if:
+                self.assertTrue(childepg.does_consume_cif(contract_if))
+            else:
+                self.assertTrue(childepg.does_consume(contract_if))
 
-    def verify_not_inherited(self, apic, provider_tenant_name, consumer_tenant_name):
+    def verify_not_inherited(self, apic, provider_tenant_name, consumer_tenant_name, use_contract_if=True):
         """
         Verify that the contracts have not been inherited
         :param apic: Session instance assumed to be logged into the APIC
@@ -1200,9 +1224,10 @@ class BaseImportedContract(unittest.TestCase):
         :param consumer_tenant_name: String containing the tenant name consuming the imported contract
         :return: None
         """
-        self.verify_inherited(apic, provider_tenant_name, consumer_tenant_name, not_inherited=True)
+        self.verify_inherited(apic, provider_tenant_name, consumer_tenant_name,
+                              not_inherited=True, use_contract_if=use_contract_if)
 
-    def run_basic_test(self, provider_tenant_name, consumer_tenant_name):
+    def run_basic_test(self, provider_tenant_name, consumer_tenant_name, use_contract_if=True):
         """
         Run the test using the specified tenant names
         :param provider_tenant_name: String containing the tenant to export the contract
@@ -1245,20 +1270,20 @@ class BaseImportedContract(unittest.TestCase):
         args = TestArgs()
         apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
         apic.login()
-        self.setup_tenants(apic, provider_tenant_name, consumer_tenant_name)
+        self.setup_tenants(apic, provider_tenant_name, consumer_tenant_name, use_contract_if=use_contract_if)
         tool = execute_tool(args, cli_mode=False)
         tool.add_config(config_json)
         time.sleep(2)
 
         # Verify that the contract is not inherited by the child EPG
-        self.verify_not_inherited(apic, provider_tenant_name, consumer_tenant_name)
+        self.verify_not_inherited(apic, provider_tenant_name, consumer_tenant_name, use_contract_if=use_contract_if)
 
         # Add the child subnet
         self.add_child_subnet(apic, consumer_tenant_name)
         time.sleep(2)
 
         # Verify that the contract is now inherited by the child EPG
-        self.verify_inherited(apic, provider_tenant_name, consumer_tenant_name)
+        self.verify_inherited(apic, provider_tenant_name, consumer_tenant_name, use_contract_if=use_contract_if)
 
 
 class TestImportedContract(BaseImportedContract):
@@ -1289,6 +1314,8 @@ class TestImportedContractFromTenantCommon(BaseImportedContract):
         provider_tenant = Tenant(provider_tenant_name)
         app = AppProfile('myinheritanceapp', provider_tenant)
         app.mark_as_deleted()
+        contract = Contract('mycontract', provider_tenant)
+        contract.mark_as_deleted()
 
         consumer_tenant = Tenant(consumer_tenant_name)
         consumer_tenant.mark_as_deleted()
@@ -1321,6 +1348,57 @@ class TestImportedContractFromTenantCommon(BaseImportedContract):
         provider_tenant_name = 'common'
         consumer_tenant_name = 'inheritanceautomatedtest-consumer'
         self.run_basic_test(provider_tenant_name, consumer_tenant_name)
+
+
+class TestContractFromTenantCommonUsedInTenant(BaseImportedContract):
+    """
+    Tests for when Contract is imported from Tenant common not using ContractInterface
+    """
+    def delete_tenants(self, provider_tenant_name, consumer_tenant_name, use_contract_if=True):
+        """
+        Delete the tenants.  Called before and after tests automatically
+
+        :param provider_tenant_name: String containing the tenant name exporting the contract
+        :param consumer_tenant_name: String containing the tenant name consuming the imported contract
+        :return: None
+        """
+        provider_tenant = Tenant(provider_tenant_name)
+        app = AppProfile('myinheritanceapp', provider_tenant)
+        app.mark_as_deleted()
+        contract = Contract('mycontract', provider_tenant)
+        contract.mark_as_deleted()
+
+        consumer_tenant = Tenant(consumer_tenant_name)
+        consumer_tenant.mark_as_deleted()
+        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic.login()
+        resp = provider_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        resp = consumer_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        time.sleep(4)
+        resp = provider_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        resp = consumer_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        time.sleep(2)
+        tenants = Tenant.get(apic)
+        for tenant in tenants:
+            self.assertTrue(tenant.name != consumer_tenant_name)
+
+    def setUp(self):
+        self.delete_tenants('common', 'inheritanceautomatedtest-consumer')
+
+    def tearDown(self):
+        self.delete_tenants('common', 'inheritanceautomatedtest-consumer')
+
+    def test_basic_inherit_add_subnet_provided_by_tenant_common(self):
+        """
+        Basic test for ContractInterface when Contract is imported from Tenant common
+        """
+        provider_tenant_name = 'common'
+        consumer_tenant_name = 'inheritanceautomatedtest-consumer'
+        self.run_basic_test(provider_tenant_name, consumer_tenant_name, use_contract_if=False)
 
 
 if __name__ == '__main__':
