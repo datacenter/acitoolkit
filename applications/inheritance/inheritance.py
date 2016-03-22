@@ -1102,182 +1102,13 @@ class InheritanceService(GenericService):
         self.monitor.exit()
 
 
-class CommandLine(cmd.Cmd):
-    prompt = 'intersite> '
-    intro = 'Cisco ACI Intersite tool (type help for commands)'
-
-    SHOW_CMDS = ['configfile', 'debug', 'config', 'log', 'sites', 'stats']
-    DEBUG_CMDS = ['verbose', 'warnings', 'critical']
-    CLEAR_CMDS = ['stats']
-
-    def __init__(self, collector):
-        self.collector = collector
-        cmd.Cmd.__init__(self)
-
-    def do_quit(self, line):
-        '''
-        quit
-        Quit the Intersite tool.
-        '''
-        sys.exit(0)
-
-    def do_show(self, keyword):
-        '''
-        show
-        Various commands that show the intersite tool details.
-
-        Available subcommands:
-        show debug - show the current debug level setting
-        show configfile - show the config file name setting
-        show config - show the current JSON configuration
-        show log - show the contents of the intersite.log file
-        show sites - show the status of the communication with the various APICs
-        show stats - show some basic event statistics
-        '''
-        if keyword == 'debug':
-            current_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
-            if current_level == 'DEBUG':
-                current_level = 'VERBOSE'
-            elif current_level == 'WARNING':
-                current_level = 'WARNINGS'
-            print 'Debug level currently set to:', current_level
-        elif keyword == 'configfile':
-            print 'Configuration file is set to:', self.collector.config_filename
-        elif keyword == 'config':
-            print json.dumps(self.collector.config.get_config(), indent=4, separators=(',', ':'))
-        elif keyword == 'log':
-            p = subprocess.Popen(['less', 'intersite.%s.log' % str(os.getpid())], stdin=subprocess.PIPE)
-            p.communicate()
-        elif keyword == 'sites':
-            sites = self.collector.get_sites()
-            for site in sites:
-                if site.session.logged_in():
-                    state = 'Connected'
-                else:
-                    state = 'Not connected'
-                print site.name, ':', state
-        elif keyword == 'stats':
-            handler = self.collector.get_local_site().monitor._endpoints
-            print 'Endpoint addition events:', handler.endpoint_add_events
-            print 'Endpoint deletion events:', handler.endpoint_del_events
-
-    def emptyline(self):
-        """
-        Action for empty line input
-        """
-        pass
-
-    def complete_show(self, text, line, begidx, endidx):
-        if not text:
-            completions = self.SHOW_CMDS[:]
-        else:
-            completions = [f
-                           for f in self.SHOW_CMDS
-                           if f.startswith(text)
-                           ]
-        return completions
-
-    def do_reloadconfig(self, line):
-        '''
-        reloadconfig
-        Reload the configuration file and apply the configuration.
-        '''
-        if self.collector.reload_config():
-            print 'Configuration reload complete'
-
-    def do_configfile(self, filename):
-        '''
-        configfile <filename>
-        Set the configuration file name.
-        '''
-        if len(filename):
-            self.collector.config_filename = filename
-            print 'Configuration file is set to:', self.collector.config_filename
-        else:
-            print 'No config filename given.'
-
-    def do_clear(self, keyword):
-        '''
-        clear stats
-        Set the statistics back to 0.
-        '''
-        if keyword == 'stats':
-            handler = self.collector.get_local_site().monitor._endpoints
-            handler.endpoint_add_events = 0
-            handler.endpoint_del_events = 0
-
-    def complete_clear(self, text, line, begidx, endidx):
-        if not text:
-            completions = self.CLEAR_CMDS[:]
-        else:
-            completions = [f
-                           for f in self.CLEAR_CMDS
-                           if f.startswith(text)
-                           ]
-        return completions
-
-    def do_debug(self, keyword):
-        '''
-        debug [critical | warnings | verbose]
-        Set the level for debug messages.
-        '''
-        if keyword == 'warnings':
-            level = logging.WARNING
-        elif keyword == 'verbose':
-            level = logging.DEBUG
-        elif keyword == 'critical':
-            level = logging.CRITICAL
-        else:
-            print 'Unknown debug level. Valid values are:', self.DEBUG_CMDS[:]
-            return
-        logging.getLogger().setLevel(level)
-        level_name = logging.getLevelName(logging.getLogger().getEffectiveLevel())
-        if level_name == 'DEBUG':
-            level_name = 'verbose'
-        elif level_name == 'WARNING':
-            level_name = 'warnings'
-        elif level_name == 'CRITICAL':
-            level_name = 'critical'
-        print 'Debug level currently set to:', level_name
-
-    def complete_debug(self, text, line, begidx, endidx):
-        if not text:
-            completions = self.DEBUG_CMDS[:]
-        else:
-            completions = [f
-                           for f in self.DEBUG_CMDS
-                           if f.startswith(text)
-                           ]
-        return completions
-
-    def do_reapply(self, keyword):
-        '''
-        reapply <tenant_name>/<app_profile_name>/<epg_name>
-        Reapply the policy for EPG belonging to the specified tenant, app profile, epg
-        '''
-        logging.info('')
-        if len(keyword.split('/')) != 3:
-            print 'Usage: reapply <tenant_name>/<app_profile_name>/<epg_name>'
-            return
-        (tenant_name, app_name, epg_name) = keyword.split('/')
-        local_site = self.collector.get_local_site()
-        if local_site is None:
-            print 'No local site configured.'
-            return
-        policy = local_site.get_policy_for_epg(tenant_name, app_name, epg_name)
-        if policy is None:
-            print 'Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>'
-            return
-        local_site.monitor.handle_existing_endpoints(policy)
-
-
 def get_arg_parser():
     """
     Get the parser with the necessary arguments
 
     :return: Instance of argparse.ArgumentParser
     """
-    parser = argparse.ArgumentParser(description='ACI Multisite Tool')
+    parser = argparse.ArgumentParser(description='ACI Inheritance Tool')
     parser.add_argument('--config', default=None, help='Configuration file')
     parser.add_argument('--maxlogfiles', type=int, default=10, help='Maximum number of log files (default is 10)')
     parser.add_argument('--generateconfig', action='store_true', default=False,
@@ -1298,36 +1129,61 @@ def main():
     execute_tool(get_arg_parser().parse_args())
 
 
-def execute_tool(args, cli_mode=False):
+def execute_tool(args):
     """
     Main Inheritance application execution
 
     :param args: command line arguments
-    :param cli_mode: True or False. True indicates that the command line parser should be run.
-                     False is used by test routines and when invoked by the REST API
-    :return: If cli_mode is False, returns an instance of InheritanceService. Otherwise, None.
+    :return: Instance of InheritanceService
     """
 
     logging.info('Starting the tool....')
     # Handle generating sample configuration
     if args.generateconfig:
-        raise NotImplementedError
-
-    # if args.config is None:
-    #     print '%% No configuration file given.'
-    #     return
+        sample_config = """
+{
+    "apic": {
+        "user_name": "admin",
+        "password": "password",
+        "ip_address": "0.0.0.0",
+        "use_https": false
+    },
+    "inheritance_policies": [
+        {
+            "epg": {
+                "tenant": "tenant-name",
+                "epg_container": {
+                    "name": "l3out-name",
+                    "container_type": "l3out"
+                },
+                "name": "epg-name"
+            },
+            "allowed": true,
+            "enabled": true
+        },
+        {
+            "epg": {
+                "tenant": "tenant-name",
+                "epg_container": {
+                    "name": "l3out-name",
+                    "container_type": "l3out"
+                },
+                "name": "epg-name"
+            },
+            "allowed": true,
+            "enabled": true
+        },
+    ]
+}
+        """
+        print sample_config
+        return
 
     tool = InheritanceService()
     tool.setup_logging(args.debug, args.maxlogfiles)
     tool.set_json_schema('schema.json')
 
-    if not cli_mode:
-        return tool
-
-    # Start the Command line parser
-    CommandLine(tool).cmdloop()
-    while True:
-        pass
+    return tool
 
 
 if __name__ == '__main__':
