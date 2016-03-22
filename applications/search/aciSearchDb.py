@@ -38,11 +38,13 @@ import sqlite3
 SQL = True
 APIC = False  # opposite of toolkit
 
+
 class LoginError(Exception):
     """
     Exception for login errors.
     """
     pass
+
 
 class Term(object):
     """
@@ -80,15 +82,15 @@ class Term(object):
 
         (self.class_last, self.attr_last, self.value_last) = flags
         self.sql = ''
-        if self.class_last :
+        if self.class_last:
             self.sql = "SELECT class FROM avc WHERE {0} class LIKE '{1}%'"\
                 .format(self._get_known_keys(term_type, 'c', keys), keys[c])
             self.prefix = '#'
-        if self.attr_last :
+        if self.attr_last:
             self.sql = "SELECT attribute FROM avc WHERE {0} attribute LIKE '{1}%'"\
                 .format(self._get_known_keys(term_type, 'a', keys), keys[a])
             self.prefix = '@'
-        if self.value_last :
+        if self.value_last:
             self.sql = "SELECT value FROM avc WHERE {0} value LIKE '{1}%'"\
                 .format(self._get_known_keys(term_type, 'v', keys), keys[v])
             self.prefix = '='
@@ -106,11 +108,11 @@ class Term(object):
         for key_type in term_type:
             if key_type == exclude_type:
                 continue
-            if key_type=='c':
+            if key_type == 'c':
                 result += "class = '{0}' AND ".format(keys[0])
-            if key_type=='a':
+            if key_type == 'a':
                 result += "attribute = '{0}' AND ".format(keys[1])
-            if key_type=='v':
+            if key_type == 'v':
                 result += "value = '{0}' AND ".format(keys[2])
         return result
 
@@ -281,7 +283,6 @@ class SearchIndexLookup(object):
         self.cursor.execute("DROP TABLE IF EXISTS cnu")
         self.cursor.execute("CREATE TABLE cnu "
                             "(class TEXT, name TEXT, uid TEXT)")
-
 
     def _index_searchables(self, searchables):
 
@@ -510,7 +511,6 @@ class SearchIndexLookup(object):
             self.cursor = conn.cursor()
             self.cursor.execute("SELECT class, attribute, value FROM avc")
             return [(str(x[0]), str(x[1]), str(x[2])) for x in self.cursor.fetchall()]
-
 
     @staticmethod
     def _get_terms(term_string):
@@ -831,7 +831,7 @@ class SearchObjectStore(object):
             # pull object directly from APIC
             if obj_dn == '/':
                 obj_dn = 'topology/pod-1/node-101/sys'
-            result={}
+            result = {}
             mo_query_url = '/api/mo/' + obj_dn + '.json?query-target=self'
             ret = self.session.get(mo_query_url)
             node_data = ret.json()['imdata']
@@ -850,7 +850,6 @@ class SearchObjectStore(object):
         for x in unicode_dict:
             result[str(x)] = str(unicode_dict[x])
         return result
-
 
     def get_by_uids_short(self, uids):
         """
