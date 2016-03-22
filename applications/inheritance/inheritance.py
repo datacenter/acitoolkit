@@ -3,20 +3,16 @@
 Inheritance application enables EPGs to inherit contracts from other EPGs
 For documentation, refer to http://acitoolkit.readthedocs.org/en/latest/inheritance.html
 """
-from acitoolkit.acitoolkit import (Tenant, AppProfile, EPG, OutsideL3, OutsideEPG, OutsideNetwork,
-                                   IPEndpoint, Session, Contract, ContractInterface,
-                                   Taboo)
+from acitoolkit.acitoolkit import (Tenant, AppProfile, EPG, OutsideL3, OutsideEPG,
+                                   Session, Contract, ContractInterface, Taboo)
 import json
 from jsonschema import validate, ValidationError, FormatChecker
-import re
 import threading
 import logging
 from logging.handlers import RotatingFileHandler
 import cmd
 import sys
-import socket
 import subprocess
-from requests.exceptions import ConnectionError, Timeout
 import time
 import os
 import radix
@@ -26,11 +22,15 @@ import argparse
 
 
 class GenericService(object):
+    """
+    Base class for services
+    """
     def __init__(self):
         self._json_schema = None
         self.logger = None
 
-    def setup_logging(self, logging_level, max_log_files):
+    @staticmethod
+    def setup_logging(logging_level, max_log_files):
         """
         Set the logger level
 
@@ -50,7 +50,7 @@ class GenericService(object):
             level = logging.CRITICAL
         log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
         log_file = 'inheritance.%s.log' % str(os.getpid())
-        my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5*1024*1024,
+        my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5 * 1024 * 1024,
                                          backupCount=max_log_files, encoding=None, delay=0)
         my_handler.setLevel(level)
         my_handler.setFormatter(log_formatter)
@@ -74,25 +74,44 @@ class GenericService(object):
             logging.error('Schema file does not contain properly formatted JSON')
 
     def get_json_schema(self):
+        """
+        Get the JSON schema
+        :return: Dictionary containing the JSON schema
+        """
         return self._json_schema
 
 
 class Event(object):
+    """
+    Base class for Events
+    """
     def __init__(self, event):
         self.event = event
 
     @property
     def dn(self):
+        """
+        Get the distinguished name (dn) from the event
+        :return: String containing the dn
+        """
         return self.event[self.event_type]['attributes']['dn']
 
     @property
     def tenant(self):
+        """
+        Get the tenant name from the event
+        :return: String containing the tenant name
+        """
         dn = self.dn
         tenant_name = dn.partition('/tn-')[-1].partition('/')[0]
         return tenant_name
 
     @property
     def epg(self):
+        """
+        Get the epg name from the event
+        :return: String containing the epg name
+        """
         dn = self.dn
         tenant_name = self.tenant
         if '/out-' in dn:
@@ -120,10 +139,18 @@ class Event(object):
 
     @property
     def event_type(self):
+        """
+        Get the event type
+        :return: String containing the event type
+        """
         for event_type in self.event:
             return event_type
 
     def is_deleted(self):
+        """
+        Check whether the event is a deletion event
+        :return: True or False. True if the event indicates a managed object deletion
+        """
         status = self.event[self.event_type]['attributes']['status']
         return status == 'deleted'
 
@@ -132,8 +159,15 @@ class Event(object):
 
 
 class RelationEvent(Event):
+    """
+    Relation event.  Relations cover EPG relations to Contracts, Taboos, and ContractInterfaces
+    """
     @property
     def relation_name(self):
+        """
+        Get the relation name
+        :return: String containing the relation name
+        """
         dn = self.event[self.event_type]['attributes']['dn']
         relation_name = ''
         if self.event_type == 'fvRsProv':
@@ -150,52 +184,102 @@ class RelationEvent(Event):
 
 
 class TagEvent(RelationEvent):
+    """
+    Tag events (tagInst in the APIC object model)
+    """
     @property
     def event_type(self):
+        """
+        Get the event type
+        :return: String containing 'tagInst'
+        """
         return 'tagInst'
 
     def _process_names(self):
+        """
+        Process the inheritance tag
+        :return: Tuple containing strings held in the inheritance tag, namely the relation_type and relation_name
+        """
         tag_name = self.event['tagInst']['attributes']['dn'].partition('/tag-inherited:')[-1]
         return tag_name.split(':')
 
     @property
     def policy_relation_type(self):
+        """
+        Get the policy relation type
+        :return: String containing the relation type
+        """
         relation_type, relation_name = self._process_names()
         return relation_type
 
     @property
     def policy_relation_name(self):
+        """
+        Get the policy relation name
+        :return: String containing the relation name
+        """
         relation_type, relation_name = self._process_names()
         return relation_name
 
 
 class SubnetEvent(Event):
+    """
+    Subnet event
+    """
     @property
     def event_type(self):
+        """
+        Get the event type
+        :return: String containing 'l3extSubnet'
+        """
         return 'l3extSubnet'
 
     @property
     def l3out(self):
+        """
+        Get the OutsideL3 name
+        :return: String containing the OutsideL3 name
+        """
         return self.dn.partition('/out-')[-1].partition('/')[0]
 
     @property
     def l3instp(self):
+        """
+        Get the OutsideEPG name
+        :return: String containing the OutsideEPG name
+        """
         return self.dn.partition('/instP-')[-1].partition('/')[0]
 
     @property
     def subnet(self):
+        """
+        Get the subnet
+        :return: String containing the subnet
+        """
         return self.dn.partition('/extsubnet-[')[-1].partition(']')[0]
 
 
 class EPGEvent(Event):
+    """
+    EPG Event
+    """
     pass
 
 
 class BaseDB(object):
+    """
+    Base class for the various databases
+    """
     def __init__(self):
         self.db = {}
 
-    def _convert_policy_epg_to_db_epg(self, epg):
+    @staticmethod
+    def _convert_policy_epg_to_db_epg(epg):
+        """
+        Convert the EPG stored in the policies to a format that can be used in the database lookup
+        :param epg: String, Dictionary, or EPGPolicy instance representing the EPG
+        :return: Tuple containing strings for tenant name, epg container type, epg container name, epg name
+        """
         if isinstance(epg, str):
             return epg
         elif isinstance(epg, dict):
@@ -209,7 +293,13 @@ class BaseDB(object):
                     epg.epg_container_name,
                     epg.name)
 
-    def _convert_db_epg_to_policy_epg(self, epg):
+    @staticmethod
+    def _convert_db_epg_to_policy_epg(epg):
+        """
+        Convert the EPG from the format that can be used in the database lookup to that used in the policies
+        :param epg: String, Dictionary, or EPGPolicy instance representing the EPG
+        :return: EPGPolicy instance
+        """
         if isinstance(epg, str):
             return json.loads(epg)
         if isinstance(epg, EPGPolicy):
@@ -230,9 +320,19 @@ class SubnetDB(BaseDB):
     InstP that the subnet resides.
     """
     def is_l3out_known(self, epg):
+        """
+        Checks whether the OutsideL3 is known to the database
+        :param epg: EPGPolicy instance
+        :return: True if the EPG is known. False otherwise
+        """
         return epg.tenant in self.db and epg.l3out_name in self.db[epg.tenant]
 
     def get_all_subnets_for_epg(self, epg):
+        """
+        Get all of the subnets for a given OutsideEPG
+        :param epg: EPGPolicy instance
+        :return: list of subnet prefixes in the form of strings
+        """
         logging.debug('get_all_subnets_for_epg for epg: %s', epg)
         subnets = []
         if epg.epg_container_type != 'l3out' or epg.tenant not in self.db or epg.epg_container_name not in self.db[epg.tenant]:
@@ -292,6 +392,11 @@ class SubnetDB(BaseDB):
         return covering_epgs
 
     def store_subnet_event(self, event):
+        """
+        Store the subnet event in the database
+        :param event: SubnetEvent instance
+        :return: None
+        """
         logging.debug('store_subnet_event for event: %s', event)
         assert isinstance(event, SubnetEvent)
 
@@ -322,6 +427,11 @@ class RelationDB(BaseDB):
         self.db = {}
 
     def store_relation(self, event):
+        """
+        Store the relation event in the database
+        :param event: RelationEvent instance
+        :return: None
+        """
         assert isinstance(event, RelationEvent)
         logging.debug('add_relation: %s', event)
         epg = self._convert_policy_epg_to_db_epg(event.epg)
@@ -383,6 +493,11 @@ class TagDB(BaseDB):
         self.db = {}
 
     def store_tag(self, tag_event):
+        """
+        Store the tag event in the database
+        :param event: TagEvent instance
+        :return: None
+        """
         assert isinstance(tag_event, TagEvent)
         epg = self._convert_policy_epg_to_db_epg(tag_event.epg)
         if epg not in self.db:
@@ -517,7 +632,7 @@ class Monitor(threading.Thread):
     def does_tenant_have_contract(self, tenant_name, contract_name):
         logging.debug('does_tenant_have_contract tenant: %s contract: %s', tenant_name, contract_name)
         query_url = '/api/mo/uni/tn-%s/brc-%s.json' % (tenant_name, contract_name)
-        resp  = self.apic.get(query_url)
+        resp = self.apic.get(query_url)
         return resp.ok and int(resp.json()['totalCount']) > 0
 
     def _add_inherited_relation(self, tenants, epg, relation, deleted=False):
@@ -846,6 +961,9 @@ class InheritancePolicy(PolicyObject):
 
 
 class ConfigDB(object):
+    """
+    Configuration database
+    """
     def __init__(self):
         self._apic_policy = None
         self._inheritance_policies = []
@@ -870,9 +988,17 @@ class ConfigDB(object):
         return True
 
     def has_apic_config(self):
+        """
+        Checks whether the ConfigDB has apic configuration
+        :return: True if the ConfigDB has apic configuration
+        """
         return self._apic_policy is not None
 
     def get_apic_config(self):
+        """
+        Get the apic configuration
+        :return: Instance of ApicPolicy or None if no apic policy configured.
+        """
         return self._apic_policy
 
     def store_inheritance_policy(self, inheritance_policy):
@@ -926,6 +1052,20 @@ class ConfigDB(object):
             config_change = True
         return config_change
 
+    def get_config(self):
+        """
+        Get the current configuration
+        :return: Dictionary of JSON configuration
+        """
+        resp = {}
+        if self.has_apic_config():
+            resp['apic'] = self._apic_policy._policy
+        for inheritance_policy in self.get_inheritance_policies():
+            if 'inheritance_policies' not in resp:
+                resp['inheritance_policies'] = []
+            resp['inheritance_policies'].append(inheritance_policy._policy)
+        return resp
+
     def is_inheritance_allowed(self, epg):
         policy = self.get_inheritance_policy(epg)
         if policy is None:
@@ -954,6 +1094,9 @@ class InheritanceService(GenericService):
             self.monitor.start()
             self.monitor.connect_to_apic()
         return 'OK'
+
+    def get_config(self):
+        return self.cdb.get_config()
 
     def exit(self):
         self.monitor.exit()
@@ -1162,7 +1305,7 @@ def execute_tool(args, cli_mode=False):
     :param args: command line arguments
     :param cli_mode: True or False. True indicates that the command line parser should be run.
                      False is used by test routines and when invoked by the REST API
-    :return: None
+    :return: If cli_mode is False, returns an instance of InheritanceService. Otherwise, None.
     """
 
     logging.info('Starting the tool....')
