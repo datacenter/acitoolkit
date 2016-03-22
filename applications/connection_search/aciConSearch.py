@@ -389,6 +389,8 @@ class ProtocolFilter(object):
             self._arpOpc = 'any'
         else:
             self._arpOpc = value
+            if self.etherT == 'any':
+                self.etherT = 'arp'
 
     @staticmethod
     def _port_from_string(value):
@@ -523,7 +525,7 @@ class ProtocolFilter(object):
         if value == 'unspecified' or value is None:
             self._etherT = 'any'
         else:
-            self._etherT = value
+            self._etherT = str(value)
 
     @property
     def prot(self):
@@ -535,7 +537,7 @@ class ProtocolFilter(object):
             self._prot = 'any'
         else:
 
-            self._prot = value
+            self._prot = str(value)
 
             if self.etherT == 'any':
                 if value in ['icmp','igmp','tcp','egp','igp','udp','icmpv6','eigrp','ospfigp','pim','l2tp']:
@@ -1294,7 +1296,7 @@ def main():
     creds = Credentials('apic', description)
 
     creds.add_argument('-tenant', type=str, default='*', help='Tenant name (wildcards, "*", accepted), default "*"')
-    creds.add_argument('-context', type=str, default='*', help='Tenant name (wildcards, "*", accepted), default "*"')
+    creds.add_argument('-context', type=str, default='*', help='Context name (wildcards, "*", accepted), default "*"')
     creds.add_argument('-sip', type=str, default='0/0', help='Source IP or subnet - e.g. 1.2.3.4/24, default: "0/0"')
     creds.add_argument('-dip', type=str, default='0/0',
                        help='Destination IP or subnet - e.g. 1.2.3.4/24, default: "0/0"')
