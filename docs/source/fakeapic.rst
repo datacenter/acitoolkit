@@ -43,7 +43,7 @@ Usage
    
    .. code-block:: python
                    
-      from os import lisdir
+      from os import listdir
       from acitoolkit.acifakeapic import FakeSession
       ...
       ...
