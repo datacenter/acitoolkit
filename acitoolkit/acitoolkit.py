@@ -739,6 +739,7 @@ class AttributeCriterion(BaseACIObject):
         if parent:
             if not isinstance(parent, EPG):
                 raise TypeError('Parent must be instance of EPG')
+            parent.is_attributed_based = True
         super(AttributeCriterion, self).__init__(name, parent)
         self._match = 'any'
         self._ip_addresses = []
