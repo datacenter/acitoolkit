@@ -19,7 +19,7 @@ parser.add_argument('--port',
 
 args = parser.parse_args()
 app = Flask(__name__)
-tool = execute_tool(args, cli_mode=False)
+tool = execute_tool(args)
 
 @auth.get_password
 def get_password(username):
