@@ -67,7 +67,8 @@ def main():
     tool = execute_tool(args)
     resp = tool.add_config(config)
     if resp == 'OK':
-        print 'Success'
+        if not args.displayonly:
+            print 'Success'
 
 
 if __name__ == '__main__':

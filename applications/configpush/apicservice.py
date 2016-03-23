@@ -717,12 +717,13 @@ class ApicService(GenericService):
         for duplicate_policy in duplicate_policies:
             self.cdb.remove_contract_policy(duplicate_policy)
 
-        # Log on to the APIC
-        apic_cfg = self.cdb.get_apic_config()
-        apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
-        resp = apic.login()
-        if not resp.ok:
-            return resp
+        if not self._displayonly:
+            # Log on to the APIC
+            apic_cfg = self.cdb.get_apic_config()
+            apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
+            resp = apic.login()
+            if not resp.ok:
+                return resp
 
         # Push all of the Contracts
         tenant = Tenant(self._tenant_name)
@@ -830,7 +831,7 @@ class ApicService(GenericService):
         except ValidationError as e:
             logging.error('JSON configuration validation failed: %s', e.message)
             return 'NOTOK'
-        if self.cdb.store_config(config_json) and self.cdb.has_apic_config():
+        if self.cdb.store_config(config_json) and (self.cdb.has_apic_config() or self._displayonly):
             self.push_config_to_apic()
         return 'OK'
 
