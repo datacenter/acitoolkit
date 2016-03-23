@@ -38,7 +38,8 @@ from acitoolkit.acitoolkit import (
     ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
-    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork
+    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork,
+    AttributeCriterion, OutsideL2
 )
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
@@ -2026,6 +2027,256 @@ class TestEPGDomain(unittest.TestCase):
         self.assertTrue(type(epg_domain.get_json()) is dict)
 
 
+class TestAttributeCriterion(unittest.TestCase):
+    """
+    Test the AttributeCriterion class
+    """
+    @staticmethod
+    def make_valid_criteria():
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        return AttributeCriterion('attr', epg)
+
+    def test_create(self):
+        criterion = self.make_valid_criteria()
+        self.assertEqual(criterion.match, 'any')
+
+    def test_create_with_bad_parent(self):
+        tenant = Tenant('test')
+        self.assertRaises(TypeError, AttributeCriterion, 'attr', tenant)
+
+    def test_set_match(self):
+        criterion = self.make_valid_criteria()
+        self.assertEqual(criterion.match, 'any')
+        criterion.match = 'all'
+        self.assertEqual(criterion.match, 'all')
+
+    def test_set_bad_match(self):
+        criterion = self.make_valid_criteria()
+        self.assertEqual(criterion.match, 'any')
+        criterion.match = 'all'
+        with self.assertRaises(AssertionError):
+            criterion.match = 'bad'
+        self.assertEqual(criterion.match, 'all')
+
+    def test_get_json(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        criterion = AttributeCriterion('attr', epg)
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {
+                    'name': 'test'
+                }, 'children': [
+                    {
+                        'fvAp': {
+                            'attributes': {
+                                'name': 'app'
+                            },
+                            'children': [
+                                {
+                                    'fvAEPg': {
+                                        'attributes': {'isAttrBasedEPg': 'yes', 'name': 'epg'},
+                                        'children': [
+                                            {'fvCrtrn':
+                                                 {'attributes': {'name': 'attr', 'match': 'any'},
+                                                  'children': []
+                                                  }
+                                             }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(tenant.get_json(), expected_json)
+
+    def test_is_attribute_based(self):
+        criterion = self.make_valid_criteria()
+        epg = criterion.get_parent()
+        self.assertEqual(epg.__class__, EPG)
+        self.assertTrue(epg.is_attributed_based)
+
+    def test_single_ip_based_attribute(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        criterion = AttributeCriterion('attr', epg)
+        criterion.add_ip_address('1.2.3.4')
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {'name': 'test'},
+                'children': [
+                    {
+                        'fvAp': {
+                            'attributes': {'name': 'app'},
+                            'children': [
+                                {
+                                    'fvAEPg': {
+                                        'attributes': {'isAttrBasedEPg': 'yes', 'name': 'epg'},
+                                        'children': [
+                                            {
+                                                'fvCrtrn': {
+                                                    'attributes': {'name': 'attr', 'match': 'any'},
+                                                    'children': [
+                                                        {
+                                                            'fvIpAttr': {
+                                                                'attributes': {'ip': '1.2.3.4', 'name': '1.2.3.4'},
+                                                                'children': []
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(tenant.get_json(), expected_json)
+
+    def test_multiple_ip_based_attribute(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        criterion = AttributeCriterion('attr', epg)
+        criterion.add_ip_address('1.2.3.4')
+        criterion.add_ip_address('1.2.3.5')
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {'name': 'test'},
+                'children': [
+                    {
+                        'fvAp': {
+                            'attributes': {'name': 'app'},
+                            'children': [
+                                {
+                                    'fvAEPg': {
+                                        'attributes': {'isAttrBasedEPg': 'yes', 'name': 'epg'},
+                                        'children': [
+                                            {
+                                                'fvCrtrn': {
+                                                    'attributes': {'name': 'attr', 'match': 'any'},
+                                                    'children': [
+                                                        {
+                                                            'fvIpAttr': {
+                                                                'attributes': {'ip': '1.2.3.4', 'name': '1.2.3.4'},
+                                                                'children': []
+                                                            }
+                                                        },
+                                                        {
+                                                            'fvIpAttr': {
+                                                                'attributes': {'ip': '1.2.3.5', 'name': '1.2.3.5'},
+                                                                'children': []
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(tenant.get_json(), expected_json)
+
+
+class TestOutsideL2(unittest.TestCase):
+    """
+    Test the OutsideL2 class
+    """
+    def test_create(self):
+        tenant = Tenant('test')
+        outside_l2 = OutsideL2('l2out', tenant)
+        self.assertEqual(outside_l2.bd_name, None)
+
+    def test_create_bad_parent(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        with self.assertRaises(TypeError):
+            outside_l2 = OutsideL2('l2out', app)
+
+    def test_has_bd(self):
+        tenant = Tenant('test')
+        bd = BridgeDomain('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        self.assertFalse(outside_l2.has_bd())
+        outside_l2.add_bd(bd)
+        self.assertTrue(outside_l2.has_bd())
+
+    def test_add_bad_bd(self):
+        tenant = Tenant('test')
+        bd = Context('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        with self.assertRaises(AssertionError):
+            outside_l2.add_bd(bd)
+        self.assertFalse(outside_l2.has_bd())
+
+    def test_remove_bd(self):
+        tenant = Tenant('test')
+        bd = BridgeDomain('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        self.assertFalse(outside_l2.has_bd())
+        outside_l2.add_bd(bd)
+        self.assertTrue(outside_l2.has_bd())
+        outside_l2.remove_bd()
+        self.assertFalse(outside_l2.has_bd())
+
+    def test_get_json(self):
+        tenant = Tenant('test')
+        bd = BridgeDomain('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        outside_l2.add_bd(bd)
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {'name': 'test'},
+                'children': [
+                    {
+                        'fvBD': {
+                            'attributes': {
+                                'name': 'bd',
+                                'unkMacUcastAct': 'proxy',
+                                'arpFlood': 'no',
+                                'multiDstPktAct': 'bd-flood',
+                                'unicastRoute': 'yes',
+                                'unkMcastAct': 'flood'
+                            },
+                            'children': []
+                        }
+                    },
+                    {
+                        'l2extOut': {
+                            'attributes': {'name': 'l2out'},
+                            'children': [
+                                {
+                                    'l2extRsEctx': {'attributes': {'tnFvBDName': 'bd'}}
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(expected_json, tenant.get_json())
+
+
 class TestPortChannel(unittest.TestCase):
     """
     Test the PortChannel class
@@ -3550,17 +3801,19 @@ class TestLiveContractInterface(TestLiveAPIC):
         self.assertIsNotNone(provider_tenant)
 
         # Find the Contract
-        provided_contract = None
-        contracts = provider_tenant.get_children(only_class=Contract)
-        for contract in contracts:
-            if contract.name == 'mycontract':
-                provided_contract = contract
-                break
+        provided_contract = provider_tenant.get_child(Contract, 'mycontract')
         self.assertIsNotNone(provided_contract)
 
         # Verify that it imports the correct Contract
         self.assertTrue(contract_if.has_import_contract())
         self.assertTrue(contract_if.does_import_contract(provided_contract))
+
+        # Find the EPG that it supposed to be consuming the ContractInterface
+        outsidel3 = consumer_tenant.get_child(OutsideL3, 'myl3out')
+        self.assertIsNotNone(outsidel3)
+        consumer_epg = outsidel3.get_child(OutsideEPG, 'consumerepg')
+        self.assertIsNotNone(consumer_epg)
+        self.assertTrue(consumer_epg.does_consume_cif(contract_if))
 
 
 class TestLiveContractSubject(TestLiveAPIC):
@@ -3871,6 +4124,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
     live.addTest(unittest.makeSuite(TestLiveOutsideL3))
+    live.addTest(unittest.makeSuite(TestLiveContractInterface))
 
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestBaseRelation))
@@ -3898,6 +4152,8 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestBGP))
     offline.addTest(unittest.makeSuite(TestEndpoint))
     offline.addTest(unittest.makeSuite(TestMonitorPolicy))
+    offline.addTest(unittest.makeSuite(TestAttributeCriterion))
+    offline.addTest(unittest.makeSuite(TestOutsideL2))
 
     full = unittest.TestSuite([live, offline])
 
