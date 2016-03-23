@@ -775,6 +775,24 @@ class TestBridgeDomain(unittest.TestCase):
         bd.set_arp_flood('no')
         self.assertFalse(bd.is_arp_flood())
 
+    def test_multidestination(self):
+        """
+        Test changing multidestination
+        """
+        tenant, bd = self.create_bd()
+        for multidestination_setting in ['drop', 'bd-flood', 'encap-flood']:
+            bd.set_multidestination(multidestination_setting)
+            self.assertEqual(bd.multidestination, multidestination_setting)
+
+    def test_invalid_multidestination(self):
+        """
+        Test changing multidestination to an invalid value
+        """
+        tenant, bd = self.create_bd()
+        with self.assertRaises(ValueError):
+            bd.set_multidestination('bad-value')
+        self.assertNotEqual(bd.multidestination, 'bad-value')
+
     def test_unicast_route_default(self):
         """
         Test default unicast route
@@ -2081,11 +2099,13 @@ class TestAttributeCriterion(unittest.TestCase):
                                     'fvAEPg': {
                                         'attributes': {'isAttrBasedEPg': 'yes', 'name': 'epg'},
                                         'children': [
-                                            {'fvCrtrn':
-                                                 {'attributes': {'name': 'attr', 'match': 'any'},
-                                                  'children': []
-                                                  }
-                                             }
+                                            {
+                                                'fvCrtrn':
+                                                    {
+                                                        'attributes': {'name': 'attr', 'match': 'any'},
+                                                        'children': []
+                                                    }
+                                            }
                                         ]
                                     }
                                 }
@@ -2699,8 +2719,6 @@ class TestLiveTenant(TestLiveAPIC):
         self.assertTrue(new_tenant.name not in names)
 
 
-
-
 class TestLiveSubscription(TestLiveAPIC):
     """
     Test Subscriptions
@@ -3111,22 +3129,40 @@ class TestLiveEPGDomain(TestLiveAPIC):
 
 
 class TestLiveEndpoint(TestLiveAPIC):
+    """
+    Live tests for Endpoint class
+    """
     def test_get_bad_session(self):
+        """
+        Test Endpoint.get() supplied with a bad session
+        """
         bad_session = 'BAD SESSION'
         self.assertRaises(TypeError, Endpoint.get, bad_session)
 
     def test_get(self):
+        """
+        Test Endpoint.get()
+        """
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
 
     def test_get_table(self):
+        """
+        Test Endpoint.get_table()
+        """
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
         self.assertTrue(isinstance(Endpoint.get_table(endpoints)[0], Table))
 
 
 class TestApic(TestLiveAPIC):
+    """
+    APIC live tests
+    """
     def base_test_setup(self):
+        """
+        Set up the tests
+        """
         session = self.login_to_apic()
 
         # Create the Tenant
@@ -3147,12 +3183,18 @@ class TestApic(TestLiveAPIC):
         return (session, tenant, app, epg)
 
     def base_test_teardown(self, session, tenant):
+        """
+        Tear down the tests
+        """
         # Delete the tenant
         tenant.mark_as_deleted()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_assign_epg_to_interface(self):
+        """
+        Assign the EPG to an interface
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3198,6 +3240,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_assign_bridgedomain_to_epg(self):
+        """
+        Assign the bridgedomain to an EPG
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3233,10 +3278,16 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_get_contexts(self):
+        """
+        Test Context.get()
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         Context.get(session, tenant)
 
     def test_get_contexts_table(self):
+        """
+        Test Context.get_table()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         total_contexts = []
@@ -3248,10 +3299,16 @@ class TestApic(TestLiveAPIC):
         self.assertIsInstance(contexts_table, Table)
 
     def test_get_contexts_invalid_tenant_as_string(self):
+        """
+        Test Context.get invalid parent
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         self.assertRaises(TypeError, Context.get, session, 'tenant')
 
     def test_assign_epg_to_port_channel(self):
+        """
+        Assign EPG to a port channel
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3290,6 +3347,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_context_allow_all(self):
+        """
+        Test Context.set_allow_all()
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3307,6 +3367,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_bd_attach_context(self):
+        """
+        Test BridgeDomain.attach to a Context
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3325,6 +3388,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_subnet_basic(self):
+        """
+        Basic test for Subnet class
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3352,6 +3418,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_ospf_basic(self):
+        """
+        Basic test for OSPF
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3480,7 +3549,13 @@ class TestLivePhysDomain(TestLiveAPIC):
 
 
 class TestLiveVmmDomain(TestLiveAPIC):
+    """
+    Live tests for VmmDomain class
+    """
     def test_get(self):
+        """
+        Test VmmDomain.get()
+        """
         session = self.login_to_apic()
         vmm_domains = VmmDomain.get(session)
         for vmm_domain in vmm_domains:
@@ -3488,11 +3563,17 @@ class TestLiveVmmDomain(TestLiveAPIC):
         return vmm_domains
 
     def test_get_json(self):
+        """
+        Test VmmDomain.get_deep()
+        """
         vmm_domains = self.test_get()
         for vmm_domain in vmm_domains:
             self.assertTrue(type(vmm_domain.get_json()) is dict)
 
     def test_get_by_name(self):
+        """
+        Test VmmDomain.get_by_name()
+        """
         session = self.login_to_apic()
         vmm_domains = VmmDomain.get(session)
         for vmm_domain in vmm_domains:
@@ -3500,7 +3581,13 @@ class TestLiveVmmDomain(TestLiveAPIC):
 
 
 class TestLiveFilter(TestLiveAPIC):
+    """
+    Live tests for Filter class
+    """
     def test_filter_no_children_no_parent(self):
+        """
+        Test Filter created with no parent nor child
+        """
         tenant = Tenant('aci-toolkit-test')
         filt = Filter('Filter')
 
@@ -3515,6 +3602,9 @@ class TestLiveFilter(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_filter_no_children_parent(self):
+        """
+        Test Filter created with parent but no child
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
@@ -3531,6 +3621,9 @@ class TestLiveFilter(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_filter_children_no_parent(self):
+        """
+        Test Filter created with child but no parent
+        """
         tenant = Tenant('aci-toolkit-test')
         filt = Filter('Filter')
         filt_entry = FilterEntry('FilterEntry', filt)
@@ -3546,6 +3639,9 @@ class TestLiveFilter(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_filter_children_parent(self):
+        """
+        Test Filter created with child and parent
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
@@ -3564,7 +3660,13 @@ class TestLiveFilter(TestLiveAPIC):
 
 
 class TestLiveFilterEntry(TestLiveAPIC):
+    """
+    Live tests for FilterEntry class
+    """
     def test_get(self):
+        """
+        Test FilterEntry.get()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         filter_entries = []
@@ -3580,12 +3682,23 @@ class TestLiveFilterEntry(TestLiveAPIC):
         return filter_entries
 
     def test_get_table(self):
+        """
+        Test FilterEntry.get_table()
+        """
         filter_entries = self.test_get()
         self.assertTrue(FilterEntry.get_table(filter_entries), Table)
 
 
 class TestLiveContracts(TestLiveAPIC):
+    """
+    Live tests for Contract class
+    """
     def get_2_entries(self, contract):
+        """
+        Get 2 FilterEntry instances
+        :param contract: Contract instance that will serve as the parent for the FilterEntry instances
+        :return: Tuple containing the 2 FilterEntry instances
+        """
         entry1 = FilterEntry('entry1',
                              applyToFrag='no',
                              arpOpc='unspecified',
@@ -3611,6 +3724,9 @@ class TestLiveContracts(TestLiveAPIC):
         return (entry1, entry2)
 
     def test_get(self):
+        """
+        Test Contract.get()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         self.assertTrue(len(tenants) > 0)
@@ -3618,6 +3734,9 @@ class TestLiveContracts(TestLiveAPIC):
         contracts = Contract.get(session, tenant)
 
     def test_create_basic_contract(self):
+        """
+        Test Contract creation
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract1', tenant)
 
@@ -3633,6 +3752,9 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_create_basic_taboo(self):
+        """
+        Test Taboo creation
+        """
         tenant = Tenant('aci-toolkit-test')
         taboo = Taboo('taboo1', tenant)
 
@@ -3648,6 +3770,9 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_contract_scope(self):
+        """
+        Test Contract scope
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract1', tenant)
         (entry1, entry2) = self.get_2_entries(contract)
@@ -3692,6 +3817,9 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_get_table(self):
+        """
+        Test Contract.get_table()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         self.assertTrue(len(tenants) > 0)
@@ -3705,6 +3833,9 @@ class TestLiveContracts(TestLiveAPIC):
 
 
 class TestLiveContractInterface(TestLiveAPIC):
+    """
+    Live tests for ContractInterface
+    """
     def setUp(self):
         apic = self.login_to_apic()
 
@@ -3740,6 +3871,11 @@ class TestLiveContractInterface(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def get_2_entries(self, contract):
+        """
+        Get 2 FilterEntry instances
+        :param contract: Contract instance that will serve as the parent for the FilterEntry instances
+        :return: Tuple containing the 2 FilterEntry instances
+        """
         entry1 = FilterEntry('entry1',
                              applyToFrag='no',
                              arpOpc='unspecified',
@@ -3765,12 +3901,18 @@ class TestLiveContractInterface(TestLiveAPIC):
         return (entry1, entry2)
 
     def test_get(self):
+        """
+        Test ContractInterface.get()
+        """
         apic = self.login_to_apic()
         tenant = Tenant('aci-toolkit-test-consumer')
         contract_ifs = ContractInterface.get(apic, tenant)
         self.assertEqual(len(contract_ifs), 1)
 
     def test_get_deep(self):
+        """
+        Test ContractInterface.get_deep()
+        """
         apic = self.login_to_apic()
 
         # Get the tenants
@@ -3857,6 +3999,9 @@ class TestLiveContractSubject(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_contract_subject_children_parent(self):
+        """
+        Test pushing ContractSubject with a Contract parent configured and a Filter child
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
@@ -3976,8 +4121,10 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
     """
     Live tests of the monitoriing policy
     """
-
     def check_collection_policy(self, parent):
+        """
+        Check the collection policy
+        """
         for index in parent.collection_policy:
             policy = parent.collection_policy[index]
             self.assertEqual(index, policy.granularity)
@@ -3992,6 +4139,9 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
             self.assertEqual(policy._parent, parent)
 
     def test_get(self):
+        """
+        Test MonitorPolicy.get()
+        """
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
         self.assertTrue(len(policies) > 0)
@@ -4002,6 +4152,9 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
         return policies
 
     def test_monitor_target(self):
+        """
+        Test MonitorPolicy monitor_target
+        """
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
         for policy in policies:
@@ -4015,6 +4168,9 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
                 self.check_collection_policy(monitor_target)
 
     def test_monitor_stats(self):
+        """
+        Test MonitorPolicy monitor_stats
+        """
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
         for policy in policies:
@@ -4036,8 +4192,13 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
 
 
 class TestLiveHealthScores(TestLiveAPIC):
-
+    """
+    Live tests for HealthScore class
+    """
     def base_test_setup(self):
+        """
+        Set up the test
+        """
         session = self.login_to_apic()
 
         # Create the Tenant
@@ -4058,12 +4219,18 @@ class TestLiveHealthScores(TestLiveAPIC):
         return (session, tenant, app, epg)
 
     def base_test_teardown(self, session, tenant):
+        """
+        Tear down the test
+        """
         # Delete the tenant
         tenant.mark_as_deleted()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_get_all_healthscores(self):
+        """
+        Test HealthScore.get_all
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         session = self.login_to_apic()
         scores = HealthScore.get_all(session)
@@ -4084,6 +4251,9 @@ class TestLiveHealthScores(TestLiveAPIC):
     #     self.assertEqual(scores, ['100','100','100'])
 
     def test_get_healthscore_by_dn(self):
+        """
+        Test HealthScore.get_by_dn
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         ts = HealthScore.get_by_dn(session, 'uni/tn-aci-toolkit-test')
         try:
@@ -4096,6 +4266,9 @@ class TestLiveHealthScores(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_get_unhealthy(self):
+        """
+        Test get_unhealthy
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         unhealthy = HealthScore.get_unhealthy(session, 100)
 
