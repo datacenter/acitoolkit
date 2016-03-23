@@ -187,6 +187,12 @@ class Subscriber(threading.Thread):
             resp._content = '{"error": "Could not send subscription to APIC"}'
             return resp
         resp_data = json.loads(resp.text)
+        if 'subscriptionId' not in resp_data:
+            logging.error('Did not receive proper subscription response from APIC for url %s response: %s', url, resp_data)
+            resp = requests.Response()
+            resp.status_code = 404
+            resp._content = '{"error": "Could not send subscription to APIC"}'
+            return resp
         subscription_id = resp_data['subscriptionId']
         self._subscriptions[url] = subscription_id
         if not only_new:
@@ -487,8 +493,8 @@ class Session(object):
         logging.info('Initializing connection to the APIC')
         try:
             resp = self._send_login(timeout)
-        except ConnectionError:
-            logging.error('Could not relogin to APIC due to ConnectionError')
+        except ConnectionError as e:
+            logging.error('Could not relogin to APIC due to ConnectionError: %s', e)
             resp = requests.Response()
             resp.status_code = 404
             resp._content = '{"error": "Could not relogin to APIC due to ConnectionError"}'
