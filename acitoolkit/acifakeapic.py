@@ -123,7 +123,8 @@ class FakeSession(Session):
         # get the queries and convert them to a string
         query_target = ''.join(url_queries.get('query-target', ['self']))
         rsp_subtree = ''.join(url_queries.get('rsp-subtree', ['no']))
-        target_classes = ','.join(url_queries.get('target-subtree-class', ['']))
+        target_classes = ','.join(url_queries.get('target-subtree-class',
+                                                  ['']))
         node_class = None
         if dn == root_cl:
             node_class = root_cl
@@ -330,38 +331,44 @@ class FakeSession(Session):
         """
         pass
 
-    def get_login_response(self, name):
+    @staticmethod
+    def get_login_response(name='admin'):
+        """
+        Get the response to a login request
+        :param name: String containing the user name
+        :return: FakeResponse instance containing the login response
+        """
         resp_data = [
             {
-                "aaaLogin":{
-                    "attributes":{
-                        "token":"123456789",
-                        "siteFingerprint":"123456789",
-                        "refreshTimeoutSeconds":"600",
-                        "maximumLifetimeSeconds":"86400",
-                        "guiIdleTimeoutSeconds":"1200",
-                        "restTimeoutSeconds":"90",
-                        "creationTime":"2222222",
-                        "firstLoginTime":"222222",
-                        "userName":"%s" % name,
-                        "remoteUser":"false",
-                        "unixUserId":"12345",
-                        "sessionId":"12345==",
-                        "lastName":"",
-                        "firstName":"",
-                        "version":"1.2(1.216a)",
-                        "buildTime":"Sat Feb 13 01:56:41 PST 2016",
-                        "node":"topology/pod-1/node-1"
+                "aaaLogin": {
+                    "attributes": {
+                        "token": "123456789",
+                        "siteFingerprint": "123456789",
+                        "refreshTimeoutSeconds": "600",
+                        "maximumLifetimeSeconds": "86400",
+                        "guiIdleTimeoutSeconds": "1200",
+                        "restTimeoutSeconds": "90",
+                        "creationTime": "2222222",
+                        "firstLoginTime": "222222",
+                        "userName": "%s" % name,
+                        "remoteUser": "false",
+                        "unixUserId": "12345",
+                        "sessionId": "12345==",
+                        "lastName": "",
+                        "firstName": "",
+                        "version": "1.2(1.216a)",
+                        "buildTime": "Sat Feb 13 01:56:41 PST 2016",
+                        "node": "topology/pod-1/node-1"
                     },
-                    "children":[
+                    "children": [
                         {
-                            "aaaUserDomain":{
-                                "attributes":{
-                                    "name":"all",
-                                    "rolesR":"admin",
-                                    "rolesW":"admin"
+                            "aaaUserDomain": {
+                                "attributes": {
+                                    "name": "all",
+                                    "rolesR": "admin",
+                                    "rolesW": "admin"
                                 },
-                                "children":[]
+                                "children": []
                             }
                         }
                     ]
