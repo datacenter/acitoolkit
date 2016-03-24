@@ -22,6 +22,7 @@ import re
 import urlparse
 
 from .acisession import Session
+import logging
 
 
 class FakeResponse(object):
@@ -115,7 +116,7 @@ class FakeSession(Session):
         url = 'scheme://apic' + url
         url_parsed = urlparse.urlparse(url)
         cl_path = url_parsed.path.partition('.json')[0]
-        path_regex = r'/api/(?:mo|node/class)/(([^/]*).*)'
+        path_regex = r'/api/(?:mo|node/class|class|node/mo)/(([^/]*).*)'
         dn, root_cl = re.search(path_regex, cl_path).groups()
         # get the queries as a dict
         url_queries = urlparse.parse_qs(url_parsed.query)
@@ -144,7 +145,11 @@ class FakeSession(Session):
         """
         resp = []
         if cl:
-            lst = self._classes[cl]
+            try:
+                lst = self._classes[cl]
+            except KeyError:
+                logging.error('Unknown class %s', cl)
+                return []
             return [cl_obj for _, cl_obj in lst]
         for _, lst in self._classes.iteritems():
             if target and query_target != 'self':
@@ -325,6 +330,46 @@ class FakeSession(Session):
         """
         pass
 
+    def get_login_response(self, name):
+        resp_data = [
+            {
+                "aaaLogin":{
+                    "attributes":{
+                        "token":"123456789",
+                        "siteFingerprint":"123456789",
+                        "refreshTimeoutSeconds":"600",
+                        "maximumLifetimeSeconds":"86400",
+                        "guiIdleTimeoutSeconds":"1200",
+                        "restTimeoutSeconds":"90",
+                        "creationTime":"2222222",
+                        "firstLoginTime":"222222",
+                        "userName":"%s" % name,
+                        "remoteUser":"false",
+                        "unixUserId":"12345",
+                        "sessionId":"12345==",
+                        "lastName":"",
+                        "firstName":"",
+                        "version":"1.2(1.216a)",
+                        "buildTime":"Sat Feb 13 01:56:41 PST 2016",
+                        "node":"topology/pod-1/node-1"
+                    },
+                    "children":[
+                        {
+                            "aaaUserDomain":{
+                                "attributes":{
+                                    "name":"all",
+                                    "rolesR":"admin",
+                                    "rolesW":"admin"
+                                },
+                                "children":[]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+        return FakeResponse(data=resp_data)
+
     def push_to_apic(self, url, data):
         """
         Push the object data to the APIC
@@ -336,6 +381,9 @@ class FakeSession(Session):
         :returns: Response class instance from the requests library.\
                   response.ok is True if request is sent successfully.
         """
+        if 'aaaUser' in data:
+            name = json.loads(data)['aaaUser']['attributes']['name']
+            return self.get_login_response(name)
         resp = FakeResponse()
         return resp
 
@@ -349,5 +397,11 @@ class FakeSession(Session):
         response.ok is True if request is sent successfully.\
         response.json() will return the JSON data sent back by the APIC.
         """
-        resp = FakeResponse(self._get_config(url))
+        if '/api/aaaRefresh' in url:
+            return self.get_login_response()
+        if url.startswith('/socket'):
+            resp_data = [{}]
+            resp = FakeResponse(data=resp_data)
+        else:
+            resp = FakeResponse(self._get_config(url))
         return resp
