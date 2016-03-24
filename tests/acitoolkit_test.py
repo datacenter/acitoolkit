@@ -39,7 +39,7 @@ from acitoolkit.acitoolkit import (
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
     PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork,
-    AttributeCriterion, OutsideL2
+    AttributeCriterion, OutsideL2, TunnelInterface, FexInterface, VMM
 )
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
@@ -1779,9 +1779,22 @@ class TestEPG(unittest.TestCase):
         output = str(tenant.get_json())
         self.assertTrue(all(x in output for x in ('fvRsPathAtt', 'deleted')))
 
+    def test_set_deployment_immediacy(self):
+        """
+        Test setting deployment immediacy
+        """
+        tenant, app, epg = self.create_epg()
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_intf = L2Interface('v5', 'vlan', '5')
+        vlan_intf.attach(interface)
+        epg.attach(vlan_intf)
+        epg.set_deployment_immediacy('immediate')
+        output = str(tenant.get_json())
+        self.assertTrue("'instrImedcy': 'immediate'" in output)
+
     def test_set_dom_deployment_immediacy(self):
         """
-        Test detaching an EPG from an L2Interface
+        Test setting domain deployment immediacy
         """
         tenant, app, epg = self.create_epg()
         domain = EPGDomain('test_epg_domain', tenant)
@@ -1789,6 +1802,23 @@ class TestEPG(unittest.TestCase):
         epg.set_dom_deployment_immediacy('immediate')
         output = str(tenant.get_json())
         self.assertTrue("'instrImedcy': 'immediate'" in output)
+
+    def test_set_bad_infradomain(self):
+        """
+        Test setting a bad infradomain
+        """
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(TypeError):
+            epg.add_infradomain(tenant)
+
+    def test_duplicate_add_infradomain(self):
+        tenant, app, epg = self.create_epg()
+        domain = EPGDomain('test_epg_domain', tenant)
+        epg.add_infradomain(domain)
+        epg.set_dom_resolution_immediacy('immediate')
+        epg.add_infradomain(domain)
+        output = str(tenant.get_json())
+        self.assertTrue("'resImedcy': 'immediate'" in output)
 
     def test_set_dom_resolution_immediacy(self):
         """
@@ -2403,6 +2433,30 @@ class TestPortChannel(unittest.TestCase):
         pc.mark_as_deleted()
         fabric, infra = pc.get_json()
         fabric_url, infra_url = pc.get_url()
+
+
+class TestTunnelInterface(unittest.TestCase):
+    """
+    Test TunnelInterface class
+    """
+    def test_create(self):
+        """
+        Basic create test
+        """
+        tunnel = TunnelInterface('eth', '1', '1', '1')
+        self.assertTrue(isinstance(tunnel, TunnelInterface))
+
+
+class TestFexInterface(unittest.TestCase):
+    """
+    Test FexInterface class
+    """
+    def test_create(self):
+        """
+        Basic create test
+        """
+        fex = FexInterface('eth', '1', '1', '1', '1', '1')
+        self.assertTrue(isinstance(fex, FexInterface))
 
 
 class TestContext(unittest.TestCase):
@@ -3146,6 +3200,26 @@ class TestLiveEndpoint(TestLiveAPIC):
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
 
+    def test_get_all_by_epg(self):
+        """
+        Test Endpoint.get_all_by_epg()
+        """
+        session = self.login_to_apic()
+        endpoints = Endpoint.get(session)
+
+        epg, app, tenant = None, None, None
+
+        for endpoint in endpoints:
+            if not isinstance(endpoint.get_parent(), EPG):
+                continue
+            epg = endpoint.get_parent()
+            app = epg.get_parent()
+            tenant = app.get_parent()
+
+        self.assertNotEqual(tenant, None)
+        endpoints = Endpoint.get_all_by_epg(session, tenant.name, app.name, epg.name, with_interface_attachments=False)
+        self.assertGreater(len(endpoints), 0)
+
     def test_get_table(self):
         """
         Test Endpoint.get_table()
@@ -3548,6 +3622,20 @@ class TestLivePhysDomain(TestLiveAPIC):
         self.assertTrue(new_phys_domain.name not in names)
 
 
+class TestLiveVmm(TestLiveAPIC):
+    """
+    Live tests for VMM class
+    """
+    def test_get(self):
+        """
+        Test VMM.get()
+        """
+        session = self.login_to_apic()
+        vmms = VMM.get(session)
+        for vmm in vmms:
+            self.assertTrue(isinstance(vmm, VMM))
+
+
 class TestLiveVmmDomain(TestLiveAPIC):
     """
     Live tests for VmmDomain class
@@ -3680,6 +3768,15 @@ class TestLiveFilterEntry(TestLiveAPIC):
         for filter_entry in filter_entries:
             self.assertTrue(isinstance(filter_entry, FilterEntry))
         return filter_entries
+
+    def test_get_bad_parent(self):
+        """
+        Test FilterEntry.get() with a bad parent
+        """
+        session = self.login_to_apic()
+        contract = Contract('contract', Tenant('tenant'))
+        with self.assertRaises(TypeError):
+            FilterEntry.get(session, contract, 'tenant')
 
     def test_get_table(self):
         """
