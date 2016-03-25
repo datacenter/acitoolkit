@@ -1853,7 +1853,7 @@ class TestEPG(unittest.TestCase):
     def test_add_static_leaf_binding_get_json(self):
         tenant, app, epg = self.create_epg()
         epg.add_static_leaf_binding('101', 'vlan', '5', 'untagged', 'immediate', '1')
-        self.assertIn('fvRsNodeAtt' in str(tenant.get_json()))
+        self.assertIn('fvRsNodeAtt', str(tenant.get_json()))
 
 
 class TestOutsideEPG(unittest.TestCase):
@@ -2587,8 +2587,8 @@ class TestOspf(unittest.TestCase):
         l3if.add_context(context)
         l3if.attach(l2if)
         rtr = OSPFRouter('rtr-1')
-        rtr.set_router_id = '1'
-        rtr.set_node_id = '1'
+        rtr.set_router_id('1')
+        rtr.set_node_id('1')
         self.assertEqual(rtr.get_router_id(), '1')
         self.assertEqual(rtr.get_node_id(), '1')
         ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
