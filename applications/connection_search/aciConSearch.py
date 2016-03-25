@@ -30,8 +30,6 @@
 """
 import sys
 from copy import copy
-
-import datetime
 import radix
 import re
 from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, ContractSubject, \
@@ -47,13 +45,30 @@ class LoginError(Exception):
     pass
 
 
-class IpAddress(object):
+def IpAddress(address):
+    """Take an IP string/int and return an object of the correct type.
+    :param address:
+
+    """
+    try:
+        return Ipv4Address(address)
+    except ValueError:
+        pass
+
+    try:
+        return Ipv6Address(address)
+    except:
+        raise ValueError('{0} does not appear to be an IPv4 or IPv6 address'.format(address))
+
+
+class Ipv4Address(object):
     """
     This class holds an IP address and allows various functions to be performed on it
     """
 
     def __init__(self, ip):
 
+        self._addr = None
         if isinstance(ip, int):
             self._prefixlen = 32
             self.addr = ip
@@ -71,6 +86,15 @@ class IpAddress(object):
 
                 self.addr = sections[0]
 
+    @classmethod
+    def valid_ip(cls,address):
+        try:
+            host_bytes = address.split('.')
+            valid = [int(b) for b in host_bytes]
+            valid = [b for b in valid if b >= 0 and b<=255]
+            return len(host_bytes) == len(valid)
+        except:
+            return False
 
     @property
     def addr(self):
@@ -79,27 +103,30 @@ class IpAddress(object):
     @addr.setter
     def addr(self, value):
         if isinstance(value, str):
-            self._addr = IpAddress.parse_text(value)
+            self._addr = Ipv4Address.parse_text(value)
         else:
             assert isinstance(value, int)
             self._addr = value
 
-    @staticmethod
-    def parse_text(input_ip):
-        ip_bytes = []
-        fields = input_ip.split('.')
-        result = int(fields[0]) << 8
-        if len(fields) > 1:
-            result += int(fields[1])
-        result = result << 8
+    @classmethod
+    def parse_text(cls, input_ip):
+        result = 0
+        if cls.valid_ip(input_ip):
+            fields = input_ip.split('.')
+            result = int(fields[0]) << 8
+            if len(fields) > 1:
+                result += int(fields[1])
+            result <<= 8
 
-        if len(fields) > 2:
-            result += int(fields[2])
+            if len(fields) > 2:
+                result += int(fields[2])
 
-        result = result << 8
+            result <<= 8
 
-        if len(fields) > 3:
-            result += int(fields[3])
+            if len(fields) > 3:
+                result += int(fields[3])
+        else:
+            raise ValueError
 
         return result
 
@@ -134,7 +161,7 @@ class IpAddress(object):
         :return:
         """
 
-        assert isinstance(other, IpAddress)
+        assert isinstance(other, Ipv4Address)
         max_addr = min(self.max_address(), other.max_address())
         min_addr = max(self.min_address(), other.min_address())
 
@@ -154,7 +181,7 @@ class IpAddress(object):
         :param ip_list:
         :return:
         """
-        return IpAddress.supernet(IpAddress.combine(ip_list))
+        return Ipv4Address.supernet(Ipv4Address.combine(ip_list))
 
     @staticmethod
     def supernet(ip_list):
@@ -174,7 +201,7 @@ class IpAddress(object):
                     p1 = ip1.prefix_num >> (32 - ip1.prefixlen)
                     p2 = ip2.prefix_num >> (32 - ip2.prefixlen)
                     if (p1 - p2 == 1) and (p1 & 0xFFFFFFFE) == (p2 & 0xFFFFFFFE):
-                        new_ip = IpAddress(str(ip1.prefix))
+                        new_ip = Ipv4Address(str(ip1.prefix))
                         new_ip._prefixlen -= 1
                         new_list.remove(ip1)
                         new_list.remove(ip2)
@@ -183,7 +210,7 @@ class IpAddress(object):
         if len(new_list) == len(ip_list):
             return new_list
         else:
-            return IpAddress.supernet(new_list)
+            return Ipv4Address.supernet(new_list)
 
     @staticmethod
     def combine(ip_list):
@@ -199,12 +226,12 @@ class IpAddress(object):
                 for index in reversed(range(len(new_list))):
                     other = new_list[index]
                     if candidate != other:
-                        if IpAddress.encompass(candidate, other):
+                        if Ipv4Address.encompass(candidate, other):
                             new_list.remove(other)
             if len(new_list) == len(ip_list):
                 return new_list
             else:
-                return IpAddress.combine(new_list)
+                return Ipv4Address.combine(new_list)
 
         else:
             return ip_list
@@ -221,7 +248,7 @@ class IpAddress(object):
         returns minimum address in the subnet
         :return:
         """
-        return IpAddress(self._addr & self.mask_num)
+        return Ipv4Address(self._addr & self.mask_num)
 
     def max_address(self):
         """
@@ -229,7 +256,7 @@ class IpAddress(object):
         :return:
         """
 
-        return IpAddress((self._addr & self.mask_num)| ~self.mask_num)
+        return Ipv4Address((self._addr & self.mask_num) | ~self.mask_num)
 
     @staticmethod
     def s2n(address):
@@ -274,12 +301,12 @@ class IpAddress(object):
     def __eq__(self, other):
 
         if isinstance(other, str):
-            if self == IpAddress(other):
+            if self == Ipv4Address(other):
                 return True
             else:
                 return False
         else:
-            if not isinstance(self, IpAddress) or not isinstance(other, IpAddress):
+            if not isinstance(self, Ipv4Address) or not isinstance(other, Ipv4Address):
                 return False
 
             if self.prefix_num != other.prefix_num:
@@ -305,6 +332,340 @@ class IpAddress(object):
             return self.min_address().prefix_num > other.min_address().prefix_num
         else:
             return self.prefixlen < other.prefixlen
+
+    def __ge__(self, other):
+        """
+        returns True if self is greater than or equal to other
+        :param other:
+        :return:
+        """
+        if self.prefixlen == other.prefixlen:
+            return self.prefix_num >= other.prefix_num
+        else:
+            return self.prefixlen < other.prefixlen
+
+    def __lt__(self, other):
+        """
+        returns True if self is less than other
+        :param other:
+        :return:
+        """
+        if self.prefixlen == other.prefixlen:
+            return self.prefix_num < other.prefix_num
+        else:
+            return self.prefixlen > other.prefixlen
+
+    def __le__(self, other):
+        """
+        returns True if self is less than or equal to other
+        :param other:
+        :return:
+        """
+        if self.prefixlen == other.prefixlen:
+            return self.prefix_num <= other.prefix_num
+        else:
+            return self.prefixlen > other.prefixlen
+
+
+class Ipv6Address(object):
+    """
+    This class holds an IP address and allows various functions to be performed on it
+    """
+
+    def __init__(self, ip):
+
+        self._addr = None
+        if isinstance(ip, str):
+            if ip == '':
+                self._prefixlen = 0
+                self.addr = [0, 0, 0, 0, 0, 0, 0, 0]
+            else:
+                sections = ip.split('/')
+                if len(sections) == 1:
+                    self._prefixlen = 128
+                else:
+                    self._prefixlen = int(sections[1])
+
+                self.addr = sections[0]
+        elif isinstance(ip, list):
+            self._prefixlen = 128
+            self.addr = ip
+        else:
+            assert TypeError("expect either string or list of 8 integers")
+
+    @property
+    def addr(self):
+        return self._addr
+
+    @addr.setter
+    def addr(self, value):
+        if isinstance(value, list):
+            self._addr = value
+
+        elif isinstance(value, str):
+            self._addr = Ipv6Address.parse_text(value)
+
+    @staticmethod
+    def parse_text(input_ip):
+        assert ':' in input_ip
+
+        addr = [0, 0, 0, 0, 0, 0, 0, 0]
+        fields = input_ip.split(':')
+        for index in range(len(fields)):
+            if fields[index] == '':
+                break
+            else:
+                addr[index] = int(fields[index], 16)
+
+        if index < 8:
+            byte_position = 7
+            for index in reversed(range(len(fields))):
+                if fields[index] == '':
+                    break
+                addr[byte_position] = int(fields[index], 16)
+                byte_position -= 1
+
+        return addr
+
+    @property
+    def prefix(self):
+        return self.n2s(Ipv6Address.apply_mask(self, self.mask()).addr) + '/' + str(self.prefixlen)
+
+    @property
+    def prefix_num(self):
+        """
+        Will return numeric version of the prefix
+        :return:
+        """
+        return Ipv6Address.apply_mask(self, self.mask()).addr
+
+    @property
+    def prefixlen(self):
+        return self._prefixlen
+
+    @prefixlen.setter
+    def prefixlen(self, value):
+        self._prefixlen = value
+
+    def mask(self):
+        result = [0, 0, 0, 0, 0, 0, 0, 0]
+        remaining_prefixlen = self.prefixlen
+        index = 0
+        while remaining_prefixlen > 16:
+            result[index] = 0xFFFF
+            remaining_prefixlen -= 16
+            index += 1
+
+        result[index] = ((0xFFFF << 16 - remaining_prefixlen) & 0xFFFF)
+
+        return result
+
+    @staticmethod
+    def apply_mask(ipv6, mask):
+        if isinstance(ipv6, Ipv6Address):
+            ip = ipv6
+        else:
+            ip = Ipv6Address(ipv6)
+        new_ip = []
+        for index in range(8):
+            new_ip.append(ip.addr[index] & mask[index])
+        return Ipv6Address(new_ip)
+
+    def overlap(self, other):
+        """
+        This will return an Ipv6Address that is the overlap of self and other
+        :param other:
+        :return:
+        """
+
+        assert isinstance(other, Ipv6Address)
+        max_addr = min(self.max_address(), other.max_address())
+        min_addr = max(self.min_address(), other.min_address())
+
+        if min_addr <= max_addr:
+            if self.prefixlen > other.prefixlen:
+                return self
+            else:
+                return other
+        else:
+            return None
+
+    @classmethod
+    def simplify(cls, ip_list):
+        """
+        Will combine and then supernet prefixes in list to
+        come up with the most simple list
+        :param ip_list:
+        :return:
+        """
+        return cls.supernet(cls.combine(ip_list))
+
+    @classmethod
+    def supernet(cls, ip_list):
+        """
+        Will combine subnets into larger subnets
+        :param ip_list:
+        :return:
+        """
+        if len(ip_list) == 1:
+            return ip_list
+
+        new_list = copy(ip_list)
+        for ip1 in ip_list:
+            for index in reversed(range(len(new_list))):
+                ip2 = new_list[index]
+                if ip1 != ip2:
+                    if ip1.prefixlen == ip2.prefixlen:
+                        p1 = Ipv6Address(ip1.prefix_num)
+                        p2 = Ipv6Address(ip2.prefix_num)
+                        p1.prefixlen = ip1.prefixlen - 1
+                        p2.prefixlen = ip2.prefixlen - 1
+                        if p1.prefix == p2.prefix:
+                            new_ip = Ipv6Address(p1.prefix)
+                            new_list.remove(ip1)
+                            new_list.remove(ip2)
+                            new_list.append(new_ip)
+
+        if len(new_list) == len(ip_list):
+            return new_list
+        else:
+            return cls.supernet(new_list)
+
+    @classmethod
+    def combine(cls, ip_list):
+        """
+        Will go through list and combine any prefixes that can be combined
+        and return a new list with result.
+        :param ip_list:
+        :return:
+        """
+        new_list = copy(ip_list)
+        if len(ip_list) > 1:
+            for candidate in ip_list:
+                for index in reversed(range(len(new_list))):
+                    other = new_list[index]
+                    if candidate != other:
+                        if cls.encompass(candidate, other):
+                            new_list.remove(other)
+            if len(new_list) == len(ip_list):
+                return new_list
+            else:
+                return cls.combine(new_list)
+
+        else:
+            return ip_list
+
+    @staticmethod
+    def encompass(ip1, ip2):
+        if ip1.min_address() <= ip2.min_address() and ip1.max_address() >= ip2.max_address():
+            return True
+        else:
+            return False
+
+    def min_address(self):
+        """
+        returns minimum address in the subnet
+        :return:
+        """
+        return Ipv6Address(self.prefix_num)
+
+    def max_address(self):
+        """
+        returns the maximum address in the subnet
+        :return:
+        """
+        new_ip = []
+        mask = self.mask()
+        addr = self.addr
+        for index in range(8):
+            new_ip.append(addr[index] | (~mask[index] & 0xFFFF))
+        return Ipv6Address(new_ip)
+
+    @staticmethod
+    def n2s(address):
+        """
+        will return a string in the x.y.w.z format given a number
+        :param address:
+        :return:
+        """
+        result = '{0:x}:{1:x}:{2:x}:{3:x}:{4:x}:{5:x}:{6:x}:{7:x}'.format(*address)
+
+        pat = re.compile('^0:0:0:0:0:0:0:0$')
+        if re.search(pat, result):
+            return '::'
+        pat = re.compile('(^0:0:0:0:0:0:0:|:0:0:0:0:0:0:0$)')
+        if re.search(pat, result):
+            return re.sub(pat, '::', result, 1)
+        pat = re.compile('(^0:0:0:0:0:0:|:0:0:0:0:0:0:|:0:0:0:0:0:0$)')
+        if re.search(pat, result):
+            return re.sub(pat, '::', result, 1)
+        pat = re.compile('(^0:0:0:0:0:|:0:0:0:0:0:|:0:0:0:0:0$)')
+        if re.search(pat, result):
+            return re.sub(pat, '::', result, 1)
+        pat = re.compile('(^0:0:0:0:|:0:0:0:0:|:0:0:0:0$)')
+        if re.search(pat, result):
+            return re.sub(pat, '::', result, 1)
+        pat = re.compile('(^0:0:0:|:0:0:0:|:0:0:0$)')
+        if re.search(pat, result):
+            return re.sub(pat, '::', result, 1)
+        pat = re.compile('(^0:0:|:0:0:|:0:0$)')
+        if re.search(pat, result):
+            return re.sub(pat, '::', result, 1)
+        return result
+
+    def equiv(self, other):
+        """
+        Checks to see if self is equivalent to other
+        This is just like ==, except it will check the prefixes rather than the absolute address
+        values.
+        :param other:
+        :return:
+        """
+        return self.prefix_num == other.prefix_num
+
+    def __repr__(self):
+        return self.n2s(self.addr) + '/' + str(self.prefixlen)
+
+    def __eq__(self, other):
+
+        if isinstance(other, str):
+            if self == Ipv6Address(other):
+                return True
+            else:
+                return False
+        else:
+            if not isinstance(self, Ipv6Address) or not isinstance(other, Ipv6Address):
+                return False
+
+            for index in range(8):
+                if self.addr[index] != other.addr[index]:
+                    return False
+            if self.prefixlen != other.prefixlen:
+                return False
+            return True
+
+    def __ne__(self, other):
+
+        if self == other:
+            return False
+        else:
+            return True
+
+    def __gt__(self, other):
+        """
+        returns True if self is greater than other
+        :param other:
+        :return:
+        """
+        if self.prefixlen == other.prefixlen:
+            a1 = self.min_address().addr
+            a2 = other.min_address().addr
+            for index in range(8):
+                if a1[index] > a2[index]:
+                    return True
+                elif a1[index] < a2[index]:
+                    return False
+        return self.prefixlen < other.prefixlen
 
     def __ge__(self, other):
         """
@@ -453,7 +814,7 @@ class ProtocolFilter(object):
         :param value:
         :return:
         """
-        if isinstance(value, int) :
+        if isinstance(value, int):
             self.dFromPort = value
             self.dToPort = value
         else:
@@ -504,7 +865,7 @@ class ProtocolFilter(object):
         :param value:
         :return:
         """
-        if isinstance(value, int) :
+        if isinstance(value, int):
             self.sFromPort = value
             self.sToPort = value
         else:
@@ -540,7 +901,7 @@ class ProtocolFilter(object):
             self._prot = str(value)
 
             if self.etherT == 'any':
-                if value in ['icmp','igmp','tcp','egp','igp','udp','icmpv6','eigrp','ospfigp','pim','l2tp']:
+                if value in ['icmp', 'igmp', 'tcp', 'egp', 'igp', 'udp', 'icmpv6', 'eigrp', 'ospfigp', 'pim', 'l2tp']:
                     self.etherT = 'ip'
 
     @property
@@ -1014,7 +1375,7 @@ class SearchDb(object):
         has a unique name.
         :return:
         """
-        name = 'implied_contract_'+str(self._implied_contract_guid)
+        name = 'implied_contract_' + str(self._implied_contract_guid)
         self._implied_contract_guid += 1
         implied_contract = Contract(name, tenant)
         FilterEntry('entry1',
@@ -1029,7 +1390,6 @@ class SearchDb(object):
                     tcpRules='unspecified',
                     parent=implied_contract)
         return implied_contract
-
 
     def build_epg_contract_outside_l3(self, outside_l3):
         outside_epgs = outside_l3.get_children(OutsideEPG)
@@ -1133,7 +1493,6 @@ class SearchDb(object):
                                         'dest_epg': p_contract['epg'],
                                         'contract': c_contract['contract']})
 
-
         for connection in connections:
             filters = self.contract_filter[connection['contract']]
             matching_filters = []
@@ -1146,7 +1505,7 @@ class SearchDb(object):
             if len(matching_filters) > 0:
                 result.append(self._build_result_flow_spec(connection, matching_filters))
 
-        #for flow_spec in result:
+        # for flow_spec in result:
         #   print flow_spec
 
         return result
@@ -1199,7 +1558,7 @@ class SearchDb(object):
                 if context not in contexts:
                     if match_result is not None and tenant_name == tenant.name:
                         contexts.append(context)
-                    if tenant_name=='common':
+                    if tenant_name == 'common':
                         contexts.append(context)
 
         epgs_prefix = {}
@@ -1238,7 +1597,7 @@ class SearchDb(object):
                 for entry in self.epg_contract[epg]:
                     if entry['pro_con'] == pro_con:
                         result.append({'contract': entry['contract'],
-                                       'prefix': IpAddress.simplify(epgs_prefix[epg]),
+                                       'prefix': epgs_prefix[epg][0].simplify(epgs_prefix[epg]),
                                        'epg': epg})
 
         return result
