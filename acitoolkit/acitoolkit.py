@@ -1026,11 +1026,12 @@ class EPG(CommonEPG):
                 # bd_search = Search()
                 # bd_search.name = bd_name
                 #objs = tenant.find(bd_search)
-                objs = obj_dict[BridgeDomain]
-                for bd in objs:
-                    #if isinstance(bd, BridgeDomain):
-                    if bd.name == bd_name and bd.get_parent() == tenant:
-                        self.add_bd(bd)
+                if BridgeDomain in obj_dict:
+                    objs = obj_dict[BridgeDomain]
+                    for bd in objs:
+                        #if isinstance(bd, BridgeDomain):
+                        if bd.name == bd_name and bd.get_parent() == tenant:
+                            self.add_bd(bd)
             elif 'fvRsPathAtt' in child:
                 int_attributes = child['fvRsPathAtt']['attributes']
                 int_dn = int_attributes['tDn']
@@ -1070,7 +1071,10 @@ class EPG(CommonEPG):
                 #                     if isinstance(contract, Contract):
                 #                         self.provide(contract)
 
-                objs = obj_dict[Contract]
+                if Contract in obj_dict:
+                    objs = obj_dict[Contract]
+                else:
+                    objs = []
                 if len(objs):
                     found = False
                     for contract in objs:
@@ -1105,17 +1109,19 @@ class EPG(CommonEPG):
                 #             for contract in objs:
                 #                 if isinstance(contract, Contract):
                 #                     self.consume(contract)
-                objs = obj_dict[Contract]
-                if len(objs):
-                    found = False
-                    for contract in objs:
-                        if contract.name == contract_name and contract.get_parent() == tenant:
-                            self.consume(contract)
-                            found = True
-                    if not found:
+                if Contract in obj_dict:
+                    objs = obj_dict[Contract]
+
+                    if len(objs):
+                        found = False
                         for contract in objs:
-                            if contract.name == contract_name and contract.get_parent() == 'common':
+                            if contract.name == contract_name and contract.get_parent() == tenant:
                                 self.consume(contract)
+                                found = True
+                        if not found:
+                            for contract in objs:
+                                if contract.name == contract_name and contract.get_parent() == 'common':
+                                    self.consume(contract)
 
             elif 'fvRsDomAtt' in child:
                 dom_attributes = child['fvRsDomAtt']['attributes']
@@ -1381,17 +1387,19 @@ class OutsideEPG(CommonEPG):
                 #                     if isinstance(contract, Contract):
                 #                         self.provide(contract)
 
-                objs = obj_dict[Contract]
-                if len(objs):
-                    found = False
-                    for contract in objs:
-                        if contract.name == contract_name and contract.get_parent() == tenant:
-                            self.provide(contract)
-                            found = True
-                    if not found:
+                if Contract in obj_dict:
+                    objs = obj_dict[Contract]
+
+                    if len(objs):
+                        found = False
                         for contract in objs:
-                            if contract.name == contract_name and contract.get_parent() == 'common':
+                            if contract.name == contract_name and contract.get_parent() == tenant:
                                 self.provide(contract)
+                                found = True
+                        if not found:
+                            for contract in objs:
+                                if contract.name == contract_name and contract.get_parent() == 'common':
+                                    self.provide(contract)
 
             elif 'fvRsCons' in child:
                 contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
@@ -1416,17 +1424,18 @@ class OutsideEPG(CommonEPG):
                 #                     if isinstance(contract, Contract):
                 #                         self.consume(contract)
 
-                objs = obj_dict[Contract]
-                if len(objs):
-                    found = False
-                    for contract in objs:
-                        if contract.name == contract_name and contract.get_parent() == tenant:
-                            self.consume(contract)
-                            found = True
-                    if not found:
+                if Contract in obj_dict:
+                    objs = obj_dict[Contract]
+                    if len(objs):
+                        found = False
                         for contract in objs:
-                            if contract.name == contract_name and contract.get_parent() == 'common':
+                            if contract.name == contract_name and contract.get_parent() == tenant:
                                 self.consume(contract)
+                                found = True
+                        if not found:
+                            for contract in objs:
+                                if contract.name == contract_name and contract.get_parent() == 'common':
+                                    self.consume(contract)
 
 
             elif 'fvRsConsIf' in child:
@@ -1577,11 +1586,12 @@ class OutsideL3(BaseACIObject):
                             #     if isinstance(context, Context):
                             #         self.add_context(context)
 
-                            all_contexts = obj_dict[Context]
-                            if len(all_contexts):
-                                for context in all_contexts:
-                                    if context.name == context_name and context.get_parent()==tenant:
-                                        self.add_context(context)
+                            if Context in obj_dict:
+                                all_contexts = obj_dict[Context]
+                                if len(all_contexts):
+                                    for context in all_contexts:
+                                        if context.name == context_name and context.get_parent()==tenant:
+                                            self.add_context(context)
                     break
         super(OutsideL3, self)._extract_relationships(data, obj_dict)
 
@@ -1742,11 +1752,12 @@ class OutsideL2(BaseACIObject):
                                 #     if isinstance(bd, BridgeDomain):
                                 #         self.add_bd(bd)
 
-                                all_bds = obj_dict[BridgeDomain]
-                                if len(all_bds):
-                                    for bd in all_bds:
-                                        if bd.name == bd_name and bd.get_parent() == tenant:
-                                            self.add_bd(bd)
+                                if BridgeDomain in obj_dict:
+                                    all_bds = obj_dict[BridgeDomain]
+                                    if len(all_bds):
+                                        for bd in all_bds:
+                                            if bd.name == bd_name and bd.get_parent() == tenant:
+                                                self.add_bd(bd)
                         break
         super(OutsideL2, self)._extract_relationships(data, obj_dict)
 
@@ -2416,11 +2427,12 @@ class BridgeDomain(BaseACIObject):
                             #     if isinstance(context, Context):
                             #         self.add_context(context)
 
-                            all_contexts = obj_dict[Context]
-                            if len(all_contexts):
-                                for context in all_contexts:
-                                    if context.name == context_name and context.get_parent()==tenant:
-                                        self.add_context(context)
+                            if Context in obj_dict:
+                                all_contexts = obj_dict[Context]
+                                if len(all_contexts):
+                                    for context in all_contexts:
+                                        if context.name == context_name and context.get_parent()==tenant:
+                                            self.add_context(context)
 
                         elif 'fvRsBDToOut' in bd_child:
                             l3_out_name = bd_child['fvRsBDToOut']['attributes']['tnL3extOutName']
@@ -2432,11 +2444,12 @@ class BridgeDomain(BaseACIObject):
                             #     if isinstance(l3_out, OutsideL3):
                             #         self.add_l3out(l3_out)
 
-                            all_l3out = obj_dict[OutsideL3]
-                            if len(all_l3out):
-                                for l3_out in all_l3out:
-                                    if l3_out.name == l3_out_name and l3_out.get_parent()==tenant:
-                                        self.add_l3out(l3_out)
+                            if OutsideL3 in obj_dict:
+                                all_l3out = obj_dict[OutsideL3]
+                                if len(all_l3out):
+                                    for l3_out in all_l3out:
+                                        if l3_out.name == l3_out_name and l3_out.get_parent()==tenant:
+                                            self.add_l3out(l3_out)
                     break
         super(BridgeDomain, self)._extract_relationships(data, obj_dict)
 
@@ -3451,19 +3464,20 @@ class ContractSubject(BaseACIObject):
                                         #     if isinstance(specific_filt, Filter):
                                         #         self.add_filter(specific_filt)
 
-                                        all_filters = obj_dict[Filter]
-                                        if len(all_filters):
-                                            found = False
-                                            for specific_filter in all_filters:
-                                                if specific_filter.name == filt_name and \
-                                                                specific_filter.get_parent()==tenant:
-                                                    self.add_filter(specific_filter)
-                                                    found = True
-                                            if not found:
+                                        if Filter in obj_dict:
+                                            all_filters = obj_dict[Filter]
+                                            if len(all_filters):
+                                                found = False
                                                 for specific_filter in all_filters:
                                                     if specific_filter.name == filt_name and \
-                                                                    specific_filter.get_parent()=='common':
+                                                                    specific_filter.get_parent()==tenant:
                                                         self.add_filter(specific_filter)
+                                                        found = True
+                                                if not found:
+                                                    for specific_filter in all_filters:
+                                                        if specific_filter.name == filt_name and \
+                                                                        specific_filter.get_parent()=='common':
+                                                            self.add_filter(specific_filter)
 
                         except KeyError:
                             pass
