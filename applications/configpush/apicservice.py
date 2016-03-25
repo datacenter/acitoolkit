@@ -26,37 +26,6 @@ class GenericService(object):
         self.logger = None
         self._displayonly = False
 
-    def setup_logging(self, logging_level, max_log_files):
-        """
-        Set the logger level
-
-        :param logging_level: String containing the logger level.
-                              Expected values are 'verbose', 'warnings',
-                              'critical'
-        :param max_log_files: Integer containing the maximum number of log
-                              files to keep
-        :return: None
-        """
-        # Set up the logging infrastructure
-        if logging_level is not None:
-            if logging_level == 'verbose':
-                level = logging.DEBUG
-            elif logging_level == 'warnings':
-                level = logging.WARNING
-            else:
-                level = logging.CRITICAL
-        else:
-            level = logging.CRITICAL
-        log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
-        log_file = 'apicintegration.%s.log' % str(os.getpid())
-        my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5*1024*1024,
-                                         backupCount=max_log_files, encoding=None, delay=0)
-        my_handler.setLevel(level)
-        my_handler.setFormatter(log_formatter)
-        logger = logging.getLogger()
-        logger.addHandler(my_handler)
-        logger.setLevel(level)
-
     def set_json_schema(self, filename):
         """
         Set the JSON schema filename
@@ -79,12 +48,19 @@ class GenericService(object):
         """
         return self._json_schema
 
-    def set_displayonly(self):
+    @property
+    def displayonly(self):
+        """
+        Get the display only flag.  This will cause the JSON to be displayed but not pushed to APIC.
+        """
+        return self._displayonly
+
+    @displayonly.setter
+    def displayonly(self, x):
         """
         Set the display only flag.  This will cause the JSON to be displayed but not pushed to APIC.
-        :return: None
         """
-        self._displayonly = True
+        self._displayonly = x
 
 
 class PolicyObject(object):
@@ -717,12 +693,13 @@ class ApicService(GenericService):
         for duplicate_policy in duplicate_policies:
             self.cdb.remove_contract_policy(duplicate_policy)
 
-        # Log on to the APIC
-        apic_cfg = self.cdb.get_apic_config()
-        apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
-        resp = apic.login()
-        if not resp.ok:
-            return resp
+        if not self.displayonly:
+            # Log on to the APIC
+            apic_cfg = self.cdb.get_apic_config()
+            apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
+            resp = apic.login()
+            if not resp.ok:
+                return resp
 
         # Push all of the Contracts
         tenant = Tenant(self._tenant_name)
@@ -752,7 +729,7 @@ class ApicService(GenericService):
                                         etherT='ip',
                                         prot=whitelist_policy.proto,
                                         parent=contract)
-        if self._displayonly:
+        if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
         else:
             resp = tenant.push_to_apic(apic)
@@ -760,7 +737,7 @@ class ApicService(GenericService):
                 return resp
 
         # Push all of the EPGs
-        if not self._displayonly:
+        if not self.displayonly:
             tenant = Tenant(self._tenant_name)
         app = AppProfile(self._app_name, tenant)
         # Create a Base EPG
@@ -773,7 +750,7 @@ class ApicService(GenericService):
         bd = BridgeDomain('bd', tenant)
         bd.add_context(context)
         base_epg.add_bd(bd)
-        if self._displayonly:
+        if self.displayonly:
             # If display only, just deploy the EPG to leaf 101
             base_epg.add_static_leaf_binding('101', 'vlan', '1', encap_mode='untagged')
         else:
@@ -812,7 +789,7 @@ class ApicService(GenericService):
                         contract = Contract(name, tenant)
                     epg.provide(contract)
 
-        if self._displayonly:
+        if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
         else:
             resp = tenant.push_to_apic(apic)
@@ -830,7 +807,7 @@ class ApicService(GenericService):
         except ValidationError as e:
             logging.error('JSON configuration validation failed: %s', e.message)
             return 'NOTOK'
-        if self.cdb.store_config(config_json) and self.cdb.has_apic_config():
+        if self.cdb.store_config(config_json) and (self.cdb.has_apic_config() or self.displayonly):
             self.push_config_to_apic()
         return 'OK'
 
@@ -868,6 +845,25 @@ def execute_tool(args):
     :param args: command line arguments
     :return: None
     """
+    # Set up the logging infrastructure
+    if args.debug is not None:
+        if args.debug == 'verbose':
+            level = logging.DEBUG
+        elif args.debug == 'warnings':
+            level = logging.WARNING
+        else:
+            level = logging.CRITICAL
+    else:
+        level = logging.CRITICAL
+    log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
+    log_file = 'apicservice.%s.log' % str(os.getpid())
+    my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5 * 1024 * 1024,
+                                     backupCount=args.max_log_files, encoding=None, delay=0)
+    my_handler.setLevel(level)
+    my_handler.setFormatter(log_formatter)
+    logger = logging.getLogger()
+    logger.addHandler(my_handler)
+    logger.setLevel(level)
 
     logging.info('Starting the tool....')
     # Handle generating sample configuration
@@ -875,9 +871,7 @@ def execute_tool(args):
         raise NotImplementedError
 
     tool = ApicService()
-    if args.displayonly:
-        tool.set_displayonly()
-    tool.setup_logging(args.debug, args.maxlogfiles)
+    tool.displayonly = args.displayonly
     if args.tenant:
         tool.set_tenant_name(args.tenant)
     if args.app:

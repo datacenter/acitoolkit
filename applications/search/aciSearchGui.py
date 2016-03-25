@@ -288,6 +288,7 @@ def search_result_page(search_terms='1/101/1/49'):
     print "SearchGui time:", t2-t1
     return jsonify(result=result, total_hits=total_hits)
 
+
 @app.route("/term_complete/<terms>")
 def presearch_result_page(terms='1/101/1/49'):
     """

@@ -42,6 +42,7 @@ from .acitoolkit import (  # noqa
     VMM, VMMCredentials, VmmDomain, VMMvSwitchInfo,
 )
 from .acitoolkitlib import Credentials  # noqa
+from .acifakeapic import FakeSession  # noqa
 # Dependent on acitoolkit
 from .aciConcreteLib import (  # noqa
     ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext, ConcreteEp,

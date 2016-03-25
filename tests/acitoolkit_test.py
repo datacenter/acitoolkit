@@ -38,7 +38,8 @@ from acitoolkit.acitoolkit import (
     ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
-    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork
+    PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork,
+    AttributeCriterion, OutsideL2, TunnelInterface, FexInterface, VMM
 )
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
@@ -773,6 +774,24 @@ class TestBridgeDomain(unittest.TestCase):
         bd.set_arp_flood('yes')
         bd.set_arp_flood('no')
         self.assertFalse(bd.is_arp_flood())
+
+    def test_multidestination(self):
+        """
+        Test changing multidestination
+        """
+        tenant, bd = self.create_bd()
+        for multidestination_setting in ['drop', 'bd-flood', 'encap-flood']:
+            bd.set_multidestination(multidestination_setting)
+            self.assertEqual(bd.multidestination, multidestination_setting)
+
+    def test_invalid_multidestination(self):
+        """
+        Test changing multidestination to an invalid value
+        """
+        tenant, bd = self.create_bd()
+        with self.assertRaises(ValueError):
+            bd.set_multidestination('bad-value')
+        self.assertNotEqual(bd.multidestination, 'bad-value')
 
     def test_unicast_route_default(self):
         """
@@ -1760,9 +1779,22 @@ class TestEPG(unittest.TestCase):
         output = str(tenant.get_json())
         self.assertTrue(all(x in output for x in ('fvRsPathAtt', 'deleted')))
 
+    def test_set_deployment_immediacy(self):
+        """
+        Test setting deployment immediacy
+        """
+        tenant, app, epg = self.create_epg()
+        interface = Interface('eth', '1', '1', '1', '1')
+        vlan_intf = L2Interface('v5', 'vlan', '5')
+        vlan_intf.attach(interface)
+        epg.attach(vlan_intf)
+        epg.set_deployment_immediacy('immediate')
+        output = str(tenant.get_json())
+        self.assertTrue("'instrImedcy': 'immediate'" in output)
+
     def test_set_dom_deployment_immediacy(self):
         """
-        Test detaching an EPG from an L2Interface
+        Test setting domain deployment immediacy
         """
         tenant, app, epg = self.create_epg()
         domain = EPGDomain('test_epg_domain', tenant)
@@ -1770,6 +1802,23 @@ class TestEPG(unittest.TestCase):
         epg.set_dom_deployment_immediacy('immediate')
         output = str(tenant.get_json())
         self.assertTrue("'instrImedcy': 'immediate'" in output)
+
+    def test_set_bad_infradomain(self):
+        """
+        Test setting a bad infradomain
+        """
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(TypeError):
+            epg.add_infradomain(tenant)
+
+    def test_duplicate_add_infradomain(self):
+        tenant, app, epg = self.create_epg()
+        domain = EPGDomain('test_epg_domain', tenant)
+        epg.add_infradomain(domain)
+        epg.set_dom_resolution_immediacy('immediate')
+        epg.add_infradomain(domain)
+        output = str(tenant.get_json())
+        self.assertTrue("'resImedcy': 'immediate'" in output)
 
     def test_set_dom_resolution_immediacy(self):
         """
@@ -1781,6 +1830,30 @@ class TestEPG(unittest.TestCase):
         epg.set_dom_resolution_immediacy('immediate')
         output = str(tenant.get_json())
         self.assertTrue("'resImedcy': 'immediate'" in output)
+
+    def test_add_static_leaf_binding(self):
+        tenant, app, epg = self.create_epg()
+        epg.add_static_leaf_binding('101', 'vlan', '5', 'untagged', 'immediate', '1')
+
+    def test_add_static_leaf_binding_bad_immediacy(self):
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(ValueError):
+            epg.add_static_leaf_binding('101', 'vlan', '5', 'untagged', 'bad', '1')
+
+    def test_add_static_leaf_binding_bad_encap_type(self):
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(ValueError):
+            epg.add_static_leaf_binding('101', 'bad', '5', 'untagged', 'immediate', '1')
+
+    def test_add_static_leaf_binding_bad_encap_mode(self):
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(ValueError):
+            epg.add_static_leaf_binding('101', 'vlan', '5', 'bad', 'immediate', '1')
+
+    def test_add_static_leaf_binding_get_json(self):
+        tenant, app, epg = self.create_epg()
+        epg.add_static_leaf_binding('101', 'vlan', '5', 'untagged', 'immediate', '1')
+        self.assertIn('fvRsNodeAtt', str(tenant.get_json()))
 
 
 class TestOutsideEPG(unittest.TestCase):
@@ -2026,6 +2099,258 @@ class TestEPGDomain(unittest.TestCase):
         self.assertTrue(type(epg_domain.get_json()) is dict)
 
 
+class TestAttributeCriterion(unittest.TestCase):
+    """
+    Test the AttributeCriterion class
+    """
+    @staticmethod
+    def make_valid_criteria():
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        return AttributeCriterion('attr', epg)
+
+    def test_create(self):
+        criterion = self.make_valid_criteria()
+        self.assertEqual(criterion.match, 'any')
+
+    def test_create_with_bad_parent(self):
+        tenant = Tenant('test')
+        self.assertRaises(TypeError, AttributeCriterion, 'attr', tenant)
+
+    def test_set_match(self):
+        criterion = self.make_valid_criteria()
+        self.assertEqual(criterion.match, 'any')
+        criterion.match = 'all'
+        self.assertEqual(criterion.match, 'all')
+
+    def test_set_bad_match(self):
+        criterion = self.make_valid_criteria()
+        self.assertEqual(criterion.match, 'any')
+        criterion.match = 'all'
+        with self.assertRaises(AssertionError):
+            criterion.match = 'bad'
+        self.assertEqual(criterion.match, 'all')
+
+    def test_get_json(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        criterion = AttributeCriterion('attr', epg)
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {
+                    'name': 'test'
+                }, 'children': [
+                    {
+                        'fvAp': {
+                            'attributes': {
+                                'name': 'app'
+                            },
+                            'children': [
+                                {
+                                    'fvAEPg': {
+                                        'attributes': {'isAttrBasedEPg': 'yes', 'name': 'epg'},
+                                        'children': [
+                                            {
+                                                'fvCrtrn':
+                                                    {
+                                                        'attributes': {'name': 'attr', 'match': 'any'},
+                                                        'children': []
+                                                    }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(tenant.get_json(), expected_json)
+
+    def test_is_attribute_based(self):
+        criterion = self.make_valid_criteria()
+        epg = criterion.get_parent()
+        self.assertEqual(epg.__class__, EPG)
+        self.assertTrue(epg.is_attributed_based)
+
+    def test_single_ip_based_attribute(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        criterion = AttributeCriterion('attr', epg)
+        criterion.add_ip_address('1.2.3.4')
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {'name': 'test'},
+                'children': [
+                    {
+                        'fvAp': {
+                            'attributes': {'name': 'app'},
+                            'children': [
+                                {
+                                    'fvAEPg': {
+                                        'attributes': {'isAttrBasedEPg': 'yes', 'name': 'epg'},
+                                        'children': [
+                                            {
+                                                'fvCrtrn': {
+                                                    'attributes': {'name': 'attr', 'match': 'any'},
+                                                    'children': [
+                                                        {
+                                                            'fvIpAttr': {
+                                                                'attributes': {'ip': '1.2.3.4', 'name': '1.2.3.4'},
+                                                                'children': []
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(tenant.get_json(), expected_json)
+
+    def test_multiple_ip_based_attribute(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        criterion = AttributeCriterion('attr', epg)
+        criterion.add_ip_address('1.2.3.4')
+        criterion.add_ip_address('1.2.3.5')
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {'name': 'test'},
+                'children': [
+                    {
+                        'fvAp': {
+                            'attributes': {'name': 'app'},
+                            'children': [
+                                {
+                                    'fvAEPg': {
+                                        'attributes': {'isAttrBasedEPg': 'yes', 'name': 'epg'},
+                                        'children': [
+                                            {
+                                                'fvCrtrn': {
+                                                    'attributes': {'name': 'attr', 'match': 'any'},
+                                                    'children': [
+                                                        {
+                                                            'fvIpAttr': {
+                                                                'attributes': {'ip': '1.2.3.4', 'name': '1.2.3.4'},
+                                                                'children': []
+                                                            }
+                                                        },
+                                                        {
+                                                            'fvIpAttr': {
+                                                                'attributes': {'ip': '1.2.3.5', 'name': '1.2.3.5'},
+                                                                'children': []
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(tenant.get_json(), expected_json)
+
+
+class TestOutsideL2(unittest.TestCase):
+    """
+    Test the OutsideL2 class
+    """
+    def test_create(self):
+        tenant = Tenant('test')
+        outside_l2 = OutsideL2('l2out', tenant)
+        self.assertEqual(outside_l2.bd_name, None)
+
+    def test_create_bad_parent(self):
+        tenant = Tenant('test')
+        app = AppProfile('app', tenant)
+        with self.assertRaises(TypeError):
+            outside_l2 = OutsideL2('l2out', app)
+
+    def test_has_bd(self):
+        tenant = Tenant('test')
+        bd = BridgeDomain('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        self.assertFalse(outside_l2.has_bd())
+        outside_l2.add_bd(bd)
+        self.assertTrue(outside_l2.has_bd())
+
+    def test_add_bad_bd(self):
+        tenant = Tenant('test')
+        bd = Context('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        with self.assertRaises(AssertionError):
+            outside_l2.add_bd(bd)
+        self.assertFalse(outside_l2.has_bd())
+
+    def test_remove_bd(self):
+        tenant = Tenant('test')
+        bd = BridgeDomain('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        self.assertFalse(outside_l2.has_bd())
+        outside_l2.add_bd(bd)
+        self.assertTrue(outside_l2.has_bd())
+        outside_l2.remove_bd()
+        self.assertFalse(outside_l2.has_bd())
+
+    def test_get_json(self):
+        tenant = Tenant('test')
+        bd = BridgeDomain('bd', tenant)
+        outside_l2 = OutsideL2('l2out', tenant)
+        outside_l2.add_bd(bd)
+
+        expected_json = {
+            'fvTenant': {
+                'attributes': {'name': 'test'},
+                'children': [
+                    {
+                        'fvBD': {
+                            'attributes': {
+                                'name': 'bd',
+                                'unkMacUcastAct': 'proxy',
+                                'arpFlood': 'no',
+                                'multiDstPktAct': 'bd-flood',
+                                'unicastRoute': 'yes',
+                                'unkMcastAct': 'flood'
+                            },
+                            'children': []
+                        }
+                    },
+                    {
+                        'l2extOut': {
+                            'attributes': {'name': 'l2out'},
+                            'children': [
+                                {
+                                    'l2extRsEctx': {'attributes': {'tnFvBDName': 'bd'}}
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(expected_json, tenant.get_json())
+
+
 class TestPortChannel(unittest.TestCase):
     """
     Test the PortChannel class
@@ -2134,6 +2459,30 @@ class TestPortChannel(unittest.TestCase):
         fabric_url, infra_url = pc.get_url()
 
 
+class TestTunnelInterface(unittest.TestCase):
+    """
+    Test TunnelInterface class
+    """
+    def test_create(self):
+        """
+        Basic create test
+        """
+        tunnel = TunnelInterface('eth', '1', '1', '1')
+        self.assertTrue(isinstance(tunnel, TunnelInterface))
+
+
+class TestFexInterface(unittest.TestCase):
+    """
+    Test FexInterface class
+    """
+    def test_create(self):
+        """
+        Basic create test
+        """
+        fex = FexInterface('eth', '1', '1', '1', '1', '1')
+        self.assertTrue(isinstance(fex, FexInterface))
+
+
 class TestContext(unittest.TestCase):
     """
     Test Context class
@@ -2208,6 +2557,8 @@ class TestBGP(unittest.TestCase):
         bgpif.attach(l3if)
         bgpif.options = 'send-ext-com'
         bgpif.networks.append('0.0.0.0/0')
+        self.assertTrue(bgpif.is_interface())
+        self.assertTrue(bgpif.is_bgp())
         contract1 = Contract('icmp')
         outside.provide(contract1)
         l3out.add_context(context)
@@ -2236,6 +2587,10 @@ class TestOspf(unittest.TestCase):
         l3if.add_context(context)
         l3if.attach(l2if)
         rtr = OSPFRouter('rtr-1')
+        rtr.set_router_id('1')
+        rtr.set_node_id('1')
+        self.assertEqual(rtr.get_router_id(), '1')
+        self.assertEqual(rtr.get_node_id(), '1')
         ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
         ifpol.set_nw_type('bcast')
         ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='2')
@@ -2250,6 +2605,7 @@ class TestOspf(unittest.TestCase):
         contract2 = Contract('contract-2')
         outside.consume(contract2)
         outside.attach(ospfif)
+        self.assertTrue(ospfif.is_ospf())
         ospf_json = outside.get_json()
 
 
@@ -2446,8 +2802,6 @@ class TestLiveTenant(TestLiveAPIC):
         # Get all of the tenants and verify that the new tenant is deleted
         names = self.get_all_tenant_names()
         self.assertTrue(new_tenant.name not in names)
-
-
 
 
 class TestLiveSubscription(TestLiveAPIC):
@@ -2860,22 +3214,60 @@ class TestLiveEPGDomain(TestLiveAPIC):
 
 
 class TestLiveEndpoint(TestLiveAPIC):
+    """
+    Live tests for Endpoint class
+    """
     def test_get_bad_session(self):
+        """
+        Test Endpoint.get() supplied with a bad session
+        """
         bad_session = 'BAD SESSION'
         self.assertRaises(TypeError, Endpoint.get, bad_session)
 
     def test_get(self):
+        """
+        Test Endpoint.get()
+        """
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
 
+    def test_get_all_by_epg(self):
+        """
+        Test Endpoint.get_all_by_epg()
+        """
+        session = self.login_to_apic()
+        endpoints = Endpoint.get(session)
+
+        epg, app, tenant = None, None, None
+
+        for endpoint in endpoints:
+            if not isinstance(endpoint.get_parent(), EPG):
+                continue
+            epg = endpoint.get_parent()
+            app = epg.get_parent()
+            tenant = app.get_parent()
+
+        self.assertNotEqual(tenant, None)
+        endpoints = Endpoint.get_all_by_epg(session, tenant.name, app.name, epg.name, with_interface_attachments=False)
+        self.assertGreater(len(endpoints), 0)
+
     def test_get_table(self):
+        """
+        Test Endpoint.get_table()
+        """
         session = self.login_to_apic()
         endpoints = Endpoint.get(session)
         self.assertTrue(isinstance(Endpoint.get_table(endpoints)[0], Table))
 
 
 class TestApic(TestLiveAPIC):
+    """
+    APIC live tests
+    """
     def base_test_setup(self):
+        """
+        Set up the tests
+        """
         session = self.login_to_apic()
 
         # Create the Tenant
@@ -2896,12 +3288,18 @@ class TestApic(TestLiveAPIC):
         return (session, tenant, app, epg)
 
     def base_test_teardown(self, session, tenant):
+        """
+        Tear down the tests
+        """
         # Delete the tenant
         tenant.mark_as_deleted()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_assign_epg_to_interface(self):
+        """
+        Assign the EPG to an interface
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -2947,6 +3345,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_assign_bridgedomain_to_epg(self):
+        """
+        Assign the bridgedomain to an EPG
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -2982,10 +3383,16 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_get_contexts(self):
+        """
+        Test Context.get()
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         Context.get(session, tenant)
 
     def test_get_contexts_table(self):
+        """
+        Test Context.get_table()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         total_contexts = []
@@ -2997,10 +3404,16 @@ class TestApic(TestLiveAPIC):
         self.assertIsInstance(contexts_table, Table)
 
     def test_get_contexts_invalid_tenant_as_string(self):
+        """
+        Test Context.get invalid parent
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         self.assertRaises(TypeError, Context.get, session, 'tenant')
 
     def test_assign_epg_to_port_channel(self):
+        """
+        Assign EPG to a port channel
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3039,6 +3452,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_context_allow_all(self):
+        """
+        Test Context.set_allow_all()
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3056,6 +3472,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_bd_attach_context(self):
+        """
+        Test BridgeDomain.attach to a Context
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3074,6 +3493,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_subnet_basic(self):
+        """
+        Basic test for Subnet class
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3101,6 +3523,9 @@ class TestApic(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_ospf_basic(self):
+        """
+        Basic test for OSPF
+        """
         # Set up the tenant, app, and epg
         (session, tenant, app, epg) = self.base_test_setup()
 
@@ -3228,8 +3653,28 @@ class TestLivePhysDomain(TestLiveAPIC):
         self.assertTrue(new_phys_domain.name not in names)
 
 
-class TestLiveVmmDomain(TestLiveAPIC):
+class TestLiveVmm(TestLiveAPIC):
+    """
+    Live tests for VMM class
+    """
     def test_get(self):
+        """
+        Test VMM.get()
+        """
+        session = self.login_to_apic()
+        vmms = VMM.get(session)
+        for vmm in vmms:
+            self.assertTrue(isinstance(vmm, VMM))
+
+
+class TestLiveVmmDomain(TestLiveAPIC):
+    """
+    Live tests for VmmDomain class
+    """
+    def test_get(self):
+        """
+        Test VmmDomain.get()
+        """
         session = self.login_to_apic()
         vmm_domains = VmmDomain.get(session)
         for vmm_domain in vmm_domains:
@@ -3237,11 +3682,17 @@ class TestLiveVmmDomain(TestLiveAPIC):
         return vmm_domains
 
     def test_get_json(self):
+        """
+        Test VmmDomain.get_deep()
+        """
         vmm_domains = self.test_get()
         for vmm_domain in vmm_domains:
             self.assertTrue(type(vmm_domain.get_json()) is dict)
 
     def test_get_by_name(self):
+        """
+        Test VmmDomain.get_by_name()
+        """
         session = self.login_to_apic()
         vmm_domains = VmmDomain.get(session)
         for vmm_domain in vmm_domains:
@@ -3249,7 +3700,13 @@ class TestLiveVmmDomain(TestLiveAPIC):
 
 
 class TestLiveFilter(TestLiveAPIC):
+    """
+    Live tests for Filter class
+    """
     def test_filter_no_children_no_parent(self):
+        """
+        Test Filter created with no parent nor child
+        """
         tenant = Tenant('aci-toolkit-test')
         filt = Filter('Filter')
 
@@ -3264,6 +3721,9 @@ class TestLiveFilter(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_filter_no_children_parent(self):
+        """
+        Test Filter created with parent but no child
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
@@ -3280,6 +3740,9 @@ class TestLiveFilter(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_filter_children_no_parent(self):
+        """
+        Test Filter created with child but no parent
+        """
         tenant = Tenant('aci-toolkit-test')
         filt = Filter('Filter')
         filt_entry = FilterEntry('FilterEntry', filt)
@@ -3295,6 +3758,9 @@ class TestLiveFilter(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_filter_children_parent(self):
+        """
+        Test Filter created with child and parent
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
@@ -3313,7 +3779,13 @@ class TestLiveFilter(TestLiveAPIC):
 
 
 class TestLiveFilterEntry(TestLiveAPIC):
+    """
+    Live tests for FilterEntry class
+    """
     def test_get(self):
+        """
+        Test FilterEntry.get()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         filter_entries = []
@@ -3328,13 +3800,33 @@ class TestLiveFilterEntry(TestLiveAPIC):
             self.assertTrue(isinstance(filter_entry, FilterEntry))
         return filter_entries
 
+    def test_get_bad_parent(self):
+        """
+        Test FilterEntry.get() with a bad parent
+        """
+        session = self.login_to_apic()
+        contract = Contract('contract', Tenant('tenant'))
+        with self.assertRaises(TypeError):
+            FilterEntry.get(session, contract, 'tenant')
+
     def test_get_table(self):
+        """
+        Test FilterEntry.get_table()
+        """
         filter_entries = self.test_get()
         self.assertTrue(FilterEntry.get_table(filter_entries), Table)
 
 
 class TestLiveContracts(TestLiveAPIC):
+    """
+    Live tests for Contract class
+    """
     def get_2_entries(self, contract):
+        """
+        Get 2 FilterEntry instances
+        :param contract: Contract instance that will serve as the parent for the FilterEntry instances
+        :return: Tuple containing the 2 FilterEntry instances
+        """
         entry1 = FilterEntry('entry1',
                              applyToFrag='no',
                              arpOpc='unspecified',
@@ -3360,6 +3852,9 @@ class TestLiveContracts(TestLiveAPIC):
         return (entry1, entry2)
 
     def test_get(self):
+        """
+        Test Contract.get()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         self.assertTrue(len(tenants) > 0)
@@ -3367,6 +3862,9 @@ class TestLiveContracts(TestLiveAPIC):
         contracts = Contract.get(session, tenant)
 
     def test_create_basic_contract(self):
+        """
+        Test Contract creation
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract1', tenant)
 
@@ -3382,6 +3880,9 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_create_basic_taboo(self):
+        """
+        Test Taboo creation
+        """
         tenant = Tenant('aci-toolkit-test')
         taboo = Taboo('taboo1', tenant)
 
@@ -3397,6 +3898,9 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_contract_scope(self):
+        """
+        Test Contract scope
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract1', tenant)
         (entry1, entry2) = self.get_2_entries(contract)
@@ -3441,6 +3945,9 @@ class TestLiveContracts(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_get_table(self):
+        """
+        Test Contract.get_table()
+        """
         session = self.login_to_apic()
         tenants = Tenant.get(session)
         self.assertTrue(len(tenants) > 0)
@@ -3454,6 +3961,9 @@ class TestLiveContracts(TestLiveAPIC):
 
 
 class TestLiveContractInterface(TestLiveAPIC):
+    """
+    Live tests for ContractInterface
+    """
     def setUp(self):
         apic = self.login_to_apic()
 
@@ -3489,6 +3999,11 @@ class TestLiveContractInterface(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def get_2_entries(self, contract):
+        """
+        Get 2 FilterEntry instances
+        :param contract: Contract instance that will serve as the parent for the FilterEntry instances
+        :return: Tuple containing the 2 FilterEntry instances
+        """
         entry1 = FilterEntry('entry1',
                              applyToFrag='no',
                              arpOpc='unspecified',
@@ -3514,12 +4029,18 @@ class TestLiveContractInterface(TestLiveAPIC):
         return (entry1, entry2)
 
     def test_get(self):
+        """
+        Test ContractInterface.get()
+        """
         apic = self.login_to_apic()
         tenant = Tenant('aci-toolkit-test-consumer')
         contract_ifs = ContractInterface.get(apic, tenant)
         self.assertEqual(len(contract_ifs), 1)
 
     def test_get_deep(self):
+        """
+        Test ContractInterface.get_deep()
+        """
         apic = self.login_to_apic()
 
         # Get the tenants
@@ -3550,17 +4071,19 @@ class TestLiveContractInterface(TestLiveAPIC):
         self.assertIsNotNone(provider_tenant)
 
         # Find the Contract
-        provided_contract = None
-        contracts = provider_tenant.get_children(only_class=Contract)
-        for contract in contracts:
-            if contract.name == 'mycontract':
-                provided_contract = contract
-                break
+        provided_contract = provider_tenant.get_child(Contract, 'mycontract')
         self.assertIsNotNone(provided_contract)
 
         # Verify that it imports the correct Contract
         self.assertTrue(contract_if.has_import_contract())
         self.assertTrue(contract_if.does_import_contract(provided_contract))
+
+        # Find the EPG that it supposed to be consuming the ContractInterface
+        outsidel3 = consumer_tenant.get_child(OutsideL3, 'myl3out')
+        self.assertIsNotNone(outsidel3)
+        consumer_epg = outsidel3.get_child(OutsideEPG, 'consumerepg')
+        self.assertIsNotNone(consumer_epg)
+        self.assertTrue(consumer_epg.does_consume_cif(contract_if))
 
 
 class TestLiveContractSubject(TestLiveAPIC):
@@ -3604,6 +4127,9 @@ class TestLiveContractSubject(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
     def test_contract_subject_children_parent(self):
+        """
+        Test pushing ContractSubject with a Contract parent configured and a Filter child
+        """
         tenant = Tenant('aci-toolkit-test')
         contract = Contract('contract', tenant)
         contract_subject = ContractSubject('contract_subject', contract)
@@ -3723,8 +4249,10 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
     """
     Live tests of the monitoriing policy
     """
-
     def check_collection_policy(self, parent):
+        """
+        Check the collection policy
+        """
         for index in parent.collection_policy:
             policy = parent.collection_policy[index]
             self.assertEqual(index, policy.granularity)
@@ -3739,6 +4267,9 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
             self.assertEqual(policy._parent, parent)
 
     def test_get(self):
+        """
+        Test MonitorPolicy.get()
+        """
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
         self.assertTrue(len(policies) > 0)
@@ -3749,6 +4280,9 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
         return policies
 
     def test_monitor_target(self):
+        """
+        Test MonitorPolicy monitor_target
+        """
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
         for policy in policies:
@@ -3762,6 +4296,9 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
                 self.check_collection_policy(monitor_target)
 
     def test_monitor_stats(self):
+        """
+        Test MonitorPolicy monitor_stats
+        """
         session = self.login_to_apic()
         policies = MonitorPolicy.get(session)
         for policy in policies:
@@ -3783,8 +4320,13 @@ class TestLiveMonitorPolicy(TestLiveAPIC):
 
 
 class TestLiveHealthScores(TestLiveAPIC):
-
+    """
+    Live tests for HealthScore class
+    """
     def base_test_setup(self):
+        """
+        Set up the test
+        """
         session = self.login_to_apic()
 
         # Create the Tenant
@@ -3805,12 +4347,18 @@ class TestLiveHealthScores(TestLiveAPIC):
         return (session, tenant, app, epg)
 
     def base_test_teardown(self, session, tenant):
+        """
+        Tear down the test
+        """
         # Delete the tenant
         tenant.mark_as_deleted()
         resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         self.assertTrue(resp.ok)
 
     def test_get_all_healthscores(self):
+        """
+        Test HealthScore.get_all
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         session = self.login_to_apic()
         scores = HealthScore.get_all(session)
@@ -3831,6 +4379,9 @@ class TestLiveHealthScores(TestLiveAPIC):
     #     self.assertEqual(scores, ['100','100','100'])
 
     def test_get_healthscore_by_dn(self):
+        """
+        Test HealthScore.get_by_dn
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         ts = HealthScore.get_by_dn(session, 'uni/tn-aci-toolkit-test')
         try:
@@ -3843,6 +4394,9 @@ class TestLiveHealthScores(TestLiveAPIC):
         self.base_test_teardown(session, tenant)
 
     def test_get_unhealthy(self):
+        """
+        Test get_unhealthy
+        """
         (session, tenant, app, epg) = self.base_test_setup()
         unhealthy = HealthScore.get_unhealthy(session, 100)
 
@@ -3867,10 +4421,12 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestApic))
     live.addTest(unittest.makeSuite(TestLivePhysDomain))
     live.addTest(unittest.makeSuite(TestLiveVmmDomain))
+    live.addTest(unittest.makeSuite(TestLiveVmm))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
     live.addTest(unittest.makeSuite(TestLiveOutsideL3))
+    live.addTest(unittest.makeSuite(TestLiveContractInterface))
 
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestBaseRelation))
@@ -3898,6 +4454,10 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestBGP))
     offline.addTest(unittest.makeSuite(TestEndpoint))
     offline.addTest(unittest.makeSuite(TestMonitorPolicy))
+    offline.addTest(unittest.makeSuite(TestAttributeCriterion))
+    offline.addTest(unittest.makeSuite(TestOutsideL2))
+    offline.addTest(unittest.makeSuite(TestTunnelInterface))
+    offline.addTest(unittest.makeSuite(TestFexInterface))
 
     full = unittest.TestSuite([live, offline])
 

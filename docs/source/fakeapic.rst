@@ -20,11 +20,14 @@ Usage
 
    .. code:: python
 
-       python aciconfigdb.py -u <APIC url> -l <login> -p <password> -s -a
+       python aciconfigdb.py -u <APIC url> -l <login> -p <password> -s --v1 -a
 
 -  The ``-s`` option takes the snapshot of the configuration from the
    APIC
--  The ``-a`` option ensures the configuration includes all properities
+-  The ``--v1`` option takes the snapshot using direct HTTP queries
+   rather than the configuration import and export policies. This is
+   important to be able to simulate HTTP responses.
+-  The ``-a`` option ensures the configuration includes all properties
    of the class objects
 
    -  It's **very important** to give the ``-a`` because the Fake APIC
@@ -43,7 +46,7 @@ Usage
    
    .. code-block:: python
                    
-      from os import lisdir
+      from os import listdir
       from acitoolkit.acifakeapic import FakeSession
       ...
       ...

@@ -1172,6 +1172,13 @@ class LocalSite(Site):
                 remote_epg.mark_as_deleted()
 
     def get_policy_for_epg(self, tenant_name, app_name, epg_name):
+        """
+        Get the policy for the specific EPG
+        :param tenant_name: String containing the tenant name
+        :param app_name: String containing the application profile name
+        :param epg_name: String containing the EPG name
+        :return: 
+        """
         for policy in self.policy_db:
             if policy.tenant == tenant_name and policy.app == app_name and policy.epg == epg_name:
                 return policy
@@ -1179,6 +1186,9 @@ class LocalSite(Site):
 
 
 class RemoteSite(Site):
+    """
+    Remote site
+    """
     def __init__(self, name, credentials):
         super(RemoteSite, self).__init__(name, credentials, local=False)
 
@@ -1297,6 +1307,13 @@ class MultisiteCollector(object):
         return len(self.sites)
 
     def add_site(self, name, credentials, local):
+        """
+        Add a site
+        :param name: String containing the name of the site
+        :param credentials: SiteLoginCredentials instance
+        :param local: Boolean indicating whether the site is local or not
+        :return: None
+        """
         logging.info('name:%s local:%s', name, local)
         self.delete_site(name)
         if local:
@@ -1308,6 +1325,11 @@ class MultisiteCollector(object):
         site.session.register_login_callback(self.login_callback)
 
     def add_site_from_config(self, site):
+        """
+        Add site from config
+        :param site: SiteLoginCredentials instance
+        :return: None
+        """
         if site.use_https == 'True':
             use_https = True
         else:
@@ -1343,6 +1365,12 @@ class MultisiteCollector(object):
             print site.name, site.credentials.ip_address
 
     def _reload_sites(self, old_config, new_config):
+        """
+        Reload the site configurations
+        :param old_config: Instance of IntersiteConfiguration
+        :param new_config: Instance of IntersiteConfiguration
+        :return: True or False. True if added local site
+        """
         added_local_site = False
         # Check the old sites for deleted sites or changed configs
         logging.info('Loading site configurations...')
@@ -1381,6 +1409,10 @@ class MultisiteCollector(object):
         return added_local_site
 
     def reload_config(self):
+        """
+        Reload the configuration
+        :return: True or False. True if successful.
+        """
         logging.info('')
         try:
             with open(self.config_filename) as config_file:
@@ -1436,6 +1468,11 @@ class MultisiteCollector(object):
         return True
 
     def save_config(self, config):
+        """
+        Save the config
+        :param config: Dictionary containing the configuration
+        :return: String indicating 'OK' if successful, otherwise a string containing the error message
+        """
         logging.info('')
         try:
             new_config = IntersiteConfiguration(config)
@@ -1449,6 +1486,11 @@ class MultisiteCollector(object):
         return 'OK'
 
     def login_callback(self, session):
+        """
+        Callback function for site re-login
+        :param session: Session instance assumed to be logged into the APIC
+        :return: None
+        """
         logging.info('')
         my_policies = []
         local_site = self.get_local_site()
@@ -1463,6 +1505,11 @@ class MultisiteCollector(object):
 
 
 def initialize_tool(config):
+    """
+    Initialize the tool
+    :param config: Dictionary containing the configuration
+    :return: Instance of MultisiteCollector
+    """
     try:
         IntersiteConfiguration(config)
     except ValueError as e:
@@ -1491,6 +1538,9 @@ def initialize_tool(config):
 
 
 class CommandLine(cmd.Cmd):
+    """
+    Command line parser
+    """
     prompt = 'intersite> '
     intro = 'Cisco ACI Intersite tool (type help for commands)'
 
@@ -1556,6 +1606,14 @@ class CommandLine(cmd.Cmd):
         pass
 
     def complete_show(self, text, line, begidx, endidx):
+        """
+        Complete the show command
+        :param text:
+        :param line:
+        :param begidx:
+        :param endidx:
+        :return:
+        """
         if not text:
             completions = self.SHOW_CMDS[:]
         else:
@@ -1595,6 +1653,14 @@ class CommandLine(cmd.Cmd):
             handler.endpoint_del_events = 0
 
     def complete_clear(self, text, line, begidx, endidx):
+        """
+        Complete the clear command
+        :param text:
+        :param line:
+        :param begidx:
+        :param endidx:
+        :return:
+        """
         if not text:
             completions = self.CLEAR_CMDS[:]
         else:
@@ -1629,6 +1695,14 @@ class CommandLine(cmd.Cmd):
         print 'Debug level currently set to:', level_name
 
     def complete_debug(self, text, line, begidx, endidx):
+        """
+        complete the debug command
+        :param text:
+        :param line:
+        :param begidx:
+        :param endidx:
+        :return:
+        """
         if not text:
             completions = self.DEBUG_CMDS[:]
         else:
