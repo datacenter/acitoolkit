@@ -265,7 +265,7 @@ class BaseACIObject(AciSearch):
         """
         return {}
 
-    def _extract_relationships(self, data):
+    def _extract_relationships(self, data, obj_dict):
         """
         Used internally by get_deep to populate the relationships
         Will be overridden when necessary.  The default implementation
@@ -274,7 +274,7 @@ class BaseACIObject(AciSearch):
         :param data: data to extract relationships from
         """
         for child in self.get_children():
-            child._extract_relationships(data)
+            child._extract_relationships(data, obj_dict)
 
     def has_tag(self, tag):
         """
