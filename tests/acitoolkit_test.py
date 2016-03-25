@@ -1831,6 +1831,30 @@ class TestEPG(unittest.TestCase):
         output = str(tenant.get_json())
         self.assertTrue("'resImedcy': 'immediate'" in output)
 
+    def test_add_static_leaf_binding(self):
+        tenant, app, epg = self.create_epg()
+        epg.add_static_leaf_binding('101', 'vlan', '5', 'untagged', 'immediate', '1')
+
+    def test_add_static_leaf_binding_bad_immediacy(self):
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(ValueError):
+            epg.add_static_leaf_binding('101', 'vlan', '5', 'untagged', 'bad', '1')
+
+    def test_add_static_leaf_binding_bad_encap_type(self):
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(ValueError):
+            epg.add_static_leaf_binding('101', 'bad', '5', 'untagged', 'immediate', '1')
+
+    def test_add_static_leaf_binding_bad_encap_mode(self):
+        tenant, app, epg = self.create_epg()
+        with self.assertRaises(ValueError):
+            epg.add_static_leaf_binding('101', 'vlan', '5', 'bad', 'immediate', '1')
+
+    def test_add_static_leaf_binding_get_json(self):
+        tenant, app, epg = self.create_epg()
+        epg.add_static_leaf_binding('101', 'vlan', '5', 'untagged', 'immediate', '1')
+        self.assertIn('fvRsNodeAtt' in str(tenant.get_json()))
+
 
 class TestOutsideEPG(unittest.TestCase):
     """
@@ -2533,6 +2557,8 @@ class TestBGP(unittest.TestCase):
         bgpif.attach(l3if)
         bgpif.options = 'send-ext-com'
         bgpif.networks.append('0.0.0.0/0')
+        self.assertTrue(bgpif.is_interface())
+        self.assertTrue(bgpif.is_bgp())
         contract1 = Contract('icmp')
         outside.provide(contract1)
         l3out.add_context(context)
@@ -2561,6 +2587,10 @@ class TestOspf(unittest.TestCase):
         l3if.add_context(context)
         l3if.attach(l2if)
         rtr = OSPFRouter('rtr-1')
+        rtr.set_router_id = '1'
+        rtr.set_node_id = '1'
+        self.assertEqual(rtr.get_router_id(), '1')
+        self.assertEqual(rtr.get_node_id(), '1')
         ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
         ifpol.set_nw_type('bcast')
         ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='2')
@@ -2575,6 +2605,7 @@ class TestOspf(unittest.TestCase):
         contract2 = Contract('contract-2')
         outside.consume(contract2)
         outside.attach(ospfif)
+        self.assertTrue(ospfif.is_ospf())
         ospf_json = outside.get_json()
 
 
@@ -4390,6 +4421,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestApic))
     live.addTest(unittest.makeSuite(TestLivePhysDomain))
     live.addTest(unittest.makeSuite(TestLiveVmmDomain))
+    live.addTest(unittest.makeSuite(TestLiveVmm))
     live.addTest(unittest.makeSuite(TestLiveSubscription))
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
@@ -4424,6 +4456,8 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestMonitorPolicy))
     offline.addTest(unittest.makeSuite(TestAttributeCriterion))
     offline.addTest(unittest.makeSuite(TestOutsideL2))
+    offline.addTest(unittest.makeSuite(TestTunnelInterface))
+    offline.addTest(unittest.makeSuite(TestFexInterface))
 
     full = unittest.TestSuite([live, offline])
 
