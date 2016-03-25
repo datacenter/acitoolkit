@@ -320,6 +320,146 @@ def get_tree2():
     return [tenant]
 
 
+def get_tree3():
+    """
+        Will build an object tree with attributes in each object
+        :return:
+        """
+    tenant = Tenant('tenant3')
+    tenant.dn = '/tn-tenant3'
+    app1 = AppProfile('t3_app1', tenant)
+    app1.dn = app1.get_parent().dn + '/app-app1'
+    app2 = AppProfile('t3_app2', tenant)
+    app2.dn = app2.get_parent().dn + '/app-app2'
+    epg11 = EPG('t3_epg11', app1)
+    epg11.dn = epg11.get_parent().dn + '/epg-epg11'
+    for index in range(1, 5):
+        ep = Endpoint('t3_endpoint_' + str(index), epg11)
+        ep.ip = 'abcd:168:11::' + str(index)
+    epg12 = EPG('t3_epg12', app1)
+    epg12.dn = epg12.get_parent().dn + '/epg-epg12'
+    for index in range(1, 5):
+        ep = Endpoint('t3_endpoint_' + str(index), epg12)
+        ep.ip = 'abcd:169:12::' + str(index)
+    epg21 = EPG('t3_epg21', app1)
+    epg21.dn = epg11.get_parent().dn + '/epg-epg21'
+    for index in range(1, 5):
+        ep = Endpoint('t3_endpoint_' + str(index), epg21)
+        ep.ip = 'abcd:170:11::' + str(index)
+    epg22 = EPG('t3_epg22', app1)
+    epg22.dn = epg22.get_parent().dn + '/epg-epg22'
+    for index in range(1, 5):
+        ep = Endpoint('t3_endpoint_' + str(index), epg22)
+        ep.ip = 'abcd:170:12::' + str(index)
+    bd1 = BridgeDomain('bd1', tenant)
+    bd1.dn = bd1.get_parent().dn + '/bd-bd1'
+    bd2 = BridgeDomain('bd2', tenant)
+    bd2.dn = bd2.get_parent().dn + '/bd-bd2'
+    bd3 = BridgeDomain('bd3', tenant)
+    bd3.dn = bd3.get_parent().dn + '/bd-bd3'
+
+    epg11.add_bd(bd1)
+    epg12.add_bd(bd2)
+    epg21.add_bd(bd3)
+    epg22.add_bd(bd3)
+    context = Context('ctx', tenant)
+    context.dn = context.get_parent().dn + '/ctx-ctx'
+    context2 = Context('ctx2', tenant)
+    context2.dn = context.get_parent().dn + '/ctx-ctx2'
+    bd1.add_context(context)
+    bd2.add_context(context)
+    bd3.add_context(context2)
+
+    outside_l3 = OutsideL3('out_l3_1', tenant)
+    outside_l3.add_context(context)
+
+    outside_epg_3 = OutsideEPG('out_epg_3', outside_l3)
+
+    subnet_31 = OutsideNetwork('subnet_31', outside_epg_3)
+    subnet_31.set_addr('10.30.2.1/32')
+    subnet_32 = OutsideNetwork('subnet_32', outside_epg_3)
+    subnet_32.set_addr('10.30.3.1/24')
+    subnet_33 = OutsideNetwork('subnet_33', outside_epg_3)
+    subnet_33.set_addr('10.30.2.1/25')
+
+    contract1 = Contract('contract-1', tenant)
+    contract1.dn = contract1.get_parent().dn + '/con-contract1'
+    contract2 = Contract('contract-2', tenant)
+    contract2.dn = contract2.get_parent().dn + '/con-contract2'
+    entry1 = FilterEntry('entry1',
+                         applyToFrag='no',
+                         arpOpc='unspecified',
+                         dFromPort='80',
+                         dToPort='80',
+                         etherT='ip',
+                         prot='tcp',
+                         sFromPort='unspecified',
+                         sToPort='unspecified',
+                         tcpRules='unspecified',
+                         parent=contract1)
+    subjects = contract1.get_children(ContractSubject)
+    for subject in subjects:
+        subject.dn = subject.get_parent().dn + '/subj-' + subject.name
+    filters = tenant.get_children(Filter)
+    for atk_filter in filters:
+        atk_filter.dn = atk_filter.get_parent().dn + '/flt-' + atk_filter.name
+
+    entry1.dn = entry1.get_parent().dn + '/flte-entry1'
+
+    contract4 = Contract('contract-4', tenant)
+    entry3 = FilterEntry('entry3',
+                         applyToFrag='no',
+                         arpOpc='unspecified',
+                         dFromPort='443',
+                         dToPort='443',
+                         etherT='ip',
+                         prot='tcp',
+                         sFromPort='unspecified',
+                         sToPort='unspecified',
+                         tcpRules='unspecified',
+                         parent=contract4)
+
+    entry4 = FilterEntry('entry4',
+                         applyToFrag='no',
+                         arpOpc='unspecified',
+                         dFromPort='80',
+                         dToPort='80',
+                         etherT='ip',
+                         prot='tcp',
+                         sFromPort='unspecified',
+                         sToPort='unspecified',
+                         tcpRules='unspecified',
+                         parent=contract4)
+
+    entry4 = FilterEntry('entry4',
+                         applyToFrag='no',
+                         arpOpc='unspecified',
+                         dFromPort='unspecified',
+                         dToPort='unspecified',
+                         etherT='ip',
+                         prot='tcp',
+                         sFromPort='unspecified',
+                         sToPort='unspecified',
+                         tcpRules='unspecified',
+                         parent=contract2)
+
+    epg11.provide(contract1)
+    epg11.consume(contract1)
+
+    epg12.consume(contract1)
+    epg12.provide(contract1)
+    epg12.provide(contract4)
+    epg12.consume(contract4)
+
+    outside_epg_3.consume(contract4)
+    outside_epg_3.provide(contract4)
+
+    epg21.consume(contract2)
+    epg22.provide(contract2)
+
+    return [tenant]
+
+
 class TestImportData(unittest.TestCase):
     """
     Checks that the object model is correctly setup
@@ -1223,6 +1363,86 @@ class TestSearch(unittest.TestCase):
         exp_filt1.dToPort = 443
         self.assertTrue(result[16] == exp_flow_spec)
 
+class TestSearchv6(unittest.TestCase):
+    """
+    Checks that the object model is correctly setup
+    """
+
+    def setUp(self):
+        self.sdb = SearchDb()
+        self.tenants = get_tree3()
+        self.sdb.build(self.tenants)
+
+
+    def test_full(self):
+        flow_spec = FlowSpec()
+        flow_spec.tenant_name = 'tenant3'
+        flow_spec.context_name = 'ctx'
+        filt1 = ProtocolFilter()
+        filt1.prot = 'tcp'
+        flow_spec.protocol_filter.append(filt1)
+
+        exp_flow_spec = FlowSpec()
+        exp_flow_spec.tenant_name = 'tenant3'
+        exp_flow_spec.context_name = 'ctx'
+        exp_filt1 = ProtocolFilter()
+        exp_filt1.etherT = 'ip'
+        exp_filt1.prot = 'tcp'
+        exp_flow_spec.protocol_filter.append(exp_filt1)
+
+        flow_spec.sip = '::/0'
+        flow_spec.dip = '::/0'
+        result = sorted(self.sdb.search(flow_spec))
+        self.assertTrue(len(result) == 7)
+
+
+        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_filt1.prot = 'tcp'
+        self.assertTrue(result[0] == exp_flow_spec)
+
+        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_filt1.prot = 'tcp'
+        exp_filt1.dPort = 80
+        self.assertTrue(result[1] == exp_flow_spec)
+
+        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_filt1.dFromPort = 80
+        exp_filt1.dToPort = 80
+        self.assertTrue(result[2] == exp_flow_spec)
+
+        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_filt1.dFromPort = 80
+        exp_filt1.dToPort = 80
+        self.assertTrue(result[3] == exp_flow_spec)
+
+        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_filt1.dFromPort = 'any'
+        exp_filt1.dToPort = 'any'
+        self.assertTrue(result[4] == exp_flow_spec)
+
+        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_filt1.dFromPort = 80
+        exp_filt1.dToPort = 80
+        self.assertTrue(result[6] == exp_flow_spec)
+
+        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_filt1.dFromPort = 443
+        exp_filt1.dToPort = 443
+        exp_filt2 = ProtocolFilter()
+        exp_filt2.prot = 'tcp'
+        exp_flow_spec.protocol_filter.append(exp_filt2)
+        exp_filt2.dFromPort = 80
+        exp_filt2.dToPort = 80
+        self.assertTrue(result[5] == exp_flow_spec)
+
+
 
 class TestWildcardFields(unittest.TestCase):
     def setUp(self):
@@ -1423,18 +1643,18 @@ class TestIpAddress(unittest.TestCase):
     def test_combine(self):
         ip1 = IpAddress('1.2.3.4/24')
         ip2 = IpAddress('1.2.3.4/16')
-        result = IpAddress.combine([ip1, ip2])
+        result = Ipv4Address.combine([ip1, ip2])
         self.assertTrue(len(result) == 1)
         self.assertEqual(result[0], ip2)
 
-        ip3 = IpAddress('1.3.3.4')
-        ip4 = IpAddress('1.3.3.4/24')
+        ip3 = Ipv4Address('1.3.3.4')
+        ip4 = Ipv4Address('1.3.3.4/24')
 
-        result = IpAddress.combine([ip1, ip2, ip3, ip4])
+        result = Ipv4Address.combine([ip1, ip2, ip3, ip4])
         self.assertTrue(len(result) == 2)
         self.assertEqual([ip4, ip2], sorted(result))
 
-        result = IpAddress.combine([ip4, ip3, ip2, ip1])
+        result = Ipv4Address.combine([ip4, ip3, ip2, ip1])
         self.assertTrue(len(result) == 2)
         self.assertEqual([ip4, ip2], sorted(result))
 
@@ -1447,40 +1667,40 @@ class TestIpAddress(unittest.TestCase):
         ip2 = IpAddress('4.3.3.1/24')
         ip3 = IpAddress('4.3.0.0/24')
         ip4 = IpAddress('4.3.1.1/24')
-        result = IpAddress.supernet([ip1, ip2])
+        result = ip1.supernet([ip1, ip2])
         self.assertTrue(len(result) == 1)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/23')))
 
-        result = IpAddress.supernet([ip1, ip2, ip3, ip4])
+        result = ip1.supernet([ip1, ip2, ip3, ip4])
         self.assertTrue(len(result) == 1)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/22')))
 
-        result = sorted(IpAddress.supernet([ip1, ip3, ip4]))
+        result = sorted(ip1.supernet([ip1, ip3, ip4]))
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
 
-        result = sorted(IpAddress.supernet([ip3, ip1, ip4]))
+        result = sorted(ip1.supernet([ip3, ip1, ip4]))
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
 
-        result = sorted(IpAddress.supernet([ip1, ip4, ip3]))
+        result = sorted(ip1.supernet([ip1, ip4, ip3]))
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
 
-        result = sorted(IpAddress.supernet([ip3, ip4, ip1]))
+        result = sorted(ip1.supernet([ip3, ip4, ip1]))
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
 
-        result = sorted(IpAddress.supernet([ip4, ip1, ip3]))
+        result = sorted(ip1.supernet([ip4, ip1, ip3]))
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
 
-        result = sorted(IpAddress.supernet([ip4, ip3, ip1]))
+        result = sorted(ip1.supernet([ip4, ip3, ip1]))
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
@@ -1490,7 +1710,7 @@ class TestIpAddress(unittest.TestCase):
         ip3 = IpAddress('4.3.0.0/24')
         ip4 = IpAddress('4.3.1.1/24')
 
-        result = sorted(IpAddress.supernet([ip1, ip2, ip3, ip4]))
+        result = sorted(ip1.supernet([ip1, ip2, ip3, ip4]))
         self.assertTrue(len(result) == 3)
         self.assertTrue(result[1].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[2].equiv(IpAddress('4.3.1.1/23')))
@@ -1502,7 +1722,7 @@ class TestIpAddress(unittest.TestCase):
         ip3 = IpAddress('4.3.0.0/24')
         ip4 = IpAddress('4.3.1.1/24')
 
-        result = sorted(IpAddress.simplify([ip1, ip2, ip3, ip4]))
+        result = sorted(ip1.simplify([ip1, ip2, ip3, ip4]))
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0].equiv(IpAddress('4.3.2.1/24')))
         self.assertTrue(result[1].equiv(IpAddress('4.3.1.1/23')))
@@ -1511,6 +1731,231 @@ class TestIpAddress(unittest.TestCase):
         ip1 = IpAddress('')
         self.assertEqual(str(ip1), '0.0.0.0/0')
 
+class TestIpv6Address(unittest.TestCase):
+    """
+    Will check that IpAddress class works properly
+    """
+    def test_input_ipv6(self):
+        ip1 = IpAddress('2004:1:2:1::1:0:8')
+        self.assertEqual(str(ip1), '2004:1:2:1:0:1:0:8/128')
+        self.assertEqual(ip1.prefixlen, 128)
+
+        ip1 = IpAddress('2004:1:2::1:0:8')
+        self.assertEqual(str(ip1), '2004:1:2::1:0:8/128')
+
+        ip1 = IpAddress('2004::8')
+        self.assertEqual(str(ip1), '2004::8/128')
+        self.assertEqual(ip1.prefixlen, 128)
+
+        ip1 = IpAddress('2004::')
+        self.assertEqual(str(ip1), '2004::/128')
+
+        ip1 = IpAddress('::1:2:3')
+        self.assertEqual(str(ip1), '::1:2:3/128')
+
+        ip1 = IpAddress('::')
+        self.assertEqual(str(ip1), '::/128')
+        self.assertEqual(ip1.prefixlen, 128)
+
+        ip1 = IpAddress('0:4:3:2:1:2:3:4')
+        self.assertEqual(str(ip1), '0:4:3:2:1:2:3:4/128')
+
+        ip1 = IpAddress('0:0:3:2:1:2:3:4')
+        self.assertEqual(str(ip1), '::3:2:1:2:3:4/128')
+
+        ip1 = IpAddress('0:0:0:2:1:2:3:4')
+        self.assertEqual(str(ip1), '::2:1:2:3:4/128')
+
+        ip1 = IpAddress('0:0:0:0:1:2:3:4')
+        self.assertEqual(str(ip1), '::1:2:3:4/128')
+
+        ip1 = IpAddress('0:0:0:0:0:2:3:4')
+        self.assertEqual(str(ip1), '::2:3:4/128')
+
+        ip1 = IpAddress('0:0:0:0:0:0:3:4')
+        self.assertEqual(str(ip1), '::3:4/128')
+
+        ip1 = IpAddress('0:0:0:0:0:0:0:4')
+        self.assertEqual(str(ip1), '::4/128')
+
+        ip1 = IpAddress('0:0:0:0:0:0:0:0')
+        self.assertEqual(str(ip1), '::/128')
+
+        ip1 = IpAddress('1:0:0:0:0:0:0:0')
+        self.assertEqual(str(ip1), '1::/128')
+
+        ip1 = IpAddress('1:2:0:0:0:0:0:0')
+        self.assertEqual(str(ip1), '1:2::/128')
+
+        ip1 = IpAddress('1:2:3:0:0:0:0:0')
+        self.assertEqual(str(ip1), '1:2:3::/128')
+
+        ip1 = IpAddress('1:2:3:4:0:0:0:0')
+        self.assertEqual(str(ip1), '1:2:3:4::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:0:0:0')
+        self.assertEqual(str(ip1), '1:2:3:4:5::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:0:0')
+        self.assertEqual(str(ip1), '1:2:3:4:5:6::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:0')
+        self.assertEqual(str(ip1), '1:2:3:4:5:6:7:0/128')
+
+        ip1 = IpAddress('1:0:0:4:5:6:7:0')
+        self.assertEqual(str(ip1), '1::4:5:6:7:0/128')
+
+        ip1 = IpAddress('1:0:0:0:5:6:7:0')
+        self.assertEqual(str(ip1), '1::5:6:7:0/128')
+
+        ip1 = IpAddress('1:0:0:0:0:6:7:0')
+        self.assertEqual(str(ip1), '1::6:7:0/128')
+
+        ip1 = IpAddress('1:0:0:0:0:0:7:8')
+        self.assertEqual(str(ip1), '1::7:8/128')
+
+        ip1 = IpAddress('1:0:0:0:0:0:0:8')
+        self.assertEqual(str(ip1), '1::8/128')
+
+        ip1 = IpAddress('1:0:0:2:0:0:0:8')
+        self.assertEqual(str(ip1), '1:0:0:2::8/128')
+
+        ip1 = IpAddress('1:0:0:0:2:0:0:8')
+        self.assertEqual(str(ip1), '1::2:0:0:8/128')
+
+        ip1 = IpAddress('1:0:0:0:2:0:0:0')
+        self.assertEqual(str(ip1), '1::2:0:0:0/128')
+
+        ip1 = IpAddress('abcd:ef01:2345:6789::')
+        self.assertEqual(str(ip1), 'abcd:ef01:2345:6789::/128')
+
+        ip1 = IpAddress('ABCD:ef01:2345:6789::')
+        self.assertEqual(str(ip1), 'abcd:ef01:2345:6789::/128')
+
+    def test_prefixlen(self):
+        ip1 = IpAddress('1234::/3')
+        self.assertEqual(ip1.prefixlen, 3)
+
+        ip1 = IpAddress('1234::/24')
+        self.assertEqual(ip1.prefixlen, 24)
+
+    def test_max_address(self):
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/64')
+        self.assertEqual(str(ip1.max_address()), '1:2:3:4:ffff:ffff:ffff:ffff/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/65')
+        self.assertEqual(str(ip1.max_address()), '1:2:3:4:7fff:ffff:ffff:ffff/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/72')
+        self.assertEqual(str(ip1.max_address()), '1:2:3:4:ff:ffff:ffff:ffff/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/76')
+        self.assertEqual(str(ip1.max_address()), '1:2:3:4:f:ffff:ffff:ffff/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/78')
+        self.assertEqual(str(ip1.max_address()), '1:2:3:4:7:ffff:ffff:ffff/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/79')
+        self.assertEqual(str(ip1.max_address()), '1:2:3:4:5:ffff:ffff:ffff/128')
+
+    def test_min_address(self):
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/64')
+        self.assertEqual(str(ip1.min_address()), '1:2:3:4::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/65')
+        self.assertEqual(str(ip1.min_address()), '1:2:3:4::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/72')
+        self.assertEqual(str(ip1.min_address()), '1:2:3:4::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/76')
+        self.assertEqual(str(ip1.min_address()), '1:2:3:4::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/78')
+        self.assertEqual(str(ip1.min_address()), '1:2:3:4:4::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/79')
+        self.assertEqual(str(ip1.min_address()), '1:2:3:4:4::/128')
+
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/80')
+        self.assertEqual(str(ip1.min_address()), '1:2:3:4:5::/128')
+
+    def test_compare(self):
+        ip1 = IpAddress('1:2:3:4:5:6:7:8')
+        ip2 = IpAddress('1:2:3:4:5:6:7:8')
+        self.assertEqual(ip1, ip2)
+
+        ip3 = IpAddress('1:2:3:4:5:6:7:9')
+        self.assertTrue(ip1 < ip3)
+        self.assertFalse(ip1 > ip3)
+        self.assertTrue(ip3 > ip1)
+        self.assertFalse(ip3 < ip1)
+
+        ip4 = IpAddress('1:2:3:6:5:6:7:8')
+        self.assertTrue(ip1 <= ip4)
+        self.assertFalse(ip1 >= ip4)
+        self.assertTrue(ip4 >= ip1)
+        self.assertFalse(ip4 <= ip1)
+
+        self.assertTrue(ip1 <= ip2)
+        self.assertTrue(ip2 >= ip1)
+
+        self.assertTrue(ip1 != ip3)
+        self.assertFalse(ip1 != ip2)
+        self.assertFalse(ip1 == ip3)
+
+    def test_encompass(self):
+        ip1 = IpAddress('1:2:3:4:5:6:7:8/64')
+        ip2 = IpAddress('1:2:3:4:5:6:71:8/70')
+        ip3 = IpAddress('1:2:4:4:5:6:72:8/64')
+        self.assertTrue(Ipv6Address.encompass(ip1, ip2))
+        self.assertFalse(Ipv6Address.encompass(ip2, ip1))
+        self.assertFalse(Ipv6Address.encompass(ip3, ip2))
+
+        ip1 = IpAddress('1:2:3:4::/64')
+        ip2 = IpAddress('1:2:3:4:5::/80')
+        ip3 = IpAddress('1:2:3:4:5:6:72:8/128')
+        self.assertTrue(Ipv6Address.encompass(ip1, ip2))
+        self.assertTrue(Ipv6Address.encompass(ip1, ip3))
+        self.assertTrue(Ipv6Address.encompass(ip2, ip3))
+
+        self.assertFalse(Ipv6Address.encompass(ip2, ip1))
+        self.assertFalse(Ipv6Address.encompass(ip3, ip1))
+        self.assertFalse(Ipv6Address.encompass(ip3, ip2))
+
+    def test_combine(self):
+        ip1 = IpAddress('1:2:3:4::/64')
+        ip2 = IpAddress('1:2:3:4:5::/80')
+        ip3 = IpAddress('1:2:3:4:5:6:72:8/128')
+        ip4 = IpAddress('1:2:3:5::/64')
+        result = Ipv6Address.combine([ip1, ip2, ip3, ip4])
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], ip1)
+        self.assertEqual(result[1], ip4)
+
+    def test_overlap(self):
+        ip1 = IpAddress('1:2:3:4::/64')
+        ip2 = IpAddress('1:2:3:4:5::/80')
+        self.assertEqual(ip1.overlap(ip2), ip2)
+        self.assertEqual(ip2.overlap(ip1), ip2)
+
+    def test_supernet(self):
+        ip1 = IpAddress('1:2:3:4:4:/80')
+        ip2 = IpAddress('1:2:3:4:5::/80')
+        ip3 = IpAddress('1:2:3:5:4:/80')
+        ip4 = IpAddress('1:2:3:5:5::/80')
+        result = Ipv6Address.supernet([ip1, ip2, ip3, ip4])
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], IpAddress('1:2:3:4:4:/79'))
+        self.assertEqual(result[1], IpAddress('1:2:3:5:4:/79'))
+
+        ip1 = IpAddress('1:2:0:4:4:/48')
+        ip2 = IpAddress('1:2:1:4:5::/48')
+        ip3 = IpAddress('1:2:2:5:4:/48')
+        ip4 = IpAddress('1:2:3:5:5::/48')
+        result = Ipv6Address.supernet([ip1, ip2, ip3, ip4])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], IpAddress('1:2::/46'))
 
 class TestProtocolFilter(unittest.TestCase):
     def test_load_aci_filter(self):
