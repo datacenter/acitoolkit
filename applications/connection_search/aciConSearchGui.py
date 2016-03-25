@@ -205,6 +205,7 @@ class CredentialsView(BaseView):
                     (old_username is not None and old_username != form.username.data) or
                     (old_secure is not None and old_secure != form.secure.data) or
                     (old_password is not None and old_password != form.password.data)):
+                sdb.initialized = False
                 flash('APIC Credentials have been updated')
 
             session['ipaddr'] = form.ipaddr.data
