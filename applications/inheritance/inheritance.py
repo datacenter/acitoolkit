@@ -27,36 +27,6 @@ class GenericService(object):
     """
     def __init__(self):
         self._json_schema = None
-        self.logger = None
-
-    @staticmethod
-    def setup_logging(logging_level, max_log_files):
-        """
-        Set the logger level
-
-        :param logging_level: String containing the logger level. Expected values are 'verbose', 'warnings', 'critical'
-        :param max_log_files: Integer containing the maximum number of log files to keep
-        :return: None
-        """
-        # Set up the logging infrastructure
-        if logging_level is not None:
-            if logging_level == 'verbose':
-                level = logging.DEBUG
-            elif logging_level == 'warnings':
-                level = logging.WARNING
-            else:
-                level = logging.CRITICAL
-        else:
-            level = logging.CRITICAL
-        log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
-        log_file = 'inheritance.%s.log' % str(os.getpid())
-        my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5 * 1024 * 1024,
-                                         backupCount=max_log_files, encoding=None, delay=0)
-        my_handler.setLevel(level)
-        my_handler.setFormatter(log_formatter)
-        logger = logging.getLogger()
-        logger.addHandler(my_handler)
-        logger.setLevel(level)
 
     def set_json_schema(self, filename):
         """
@@ -1180,7 +1150,27 @@ def execute_tool(args):
         return
 
     tool = InheritanceService()
-    tool.setup_logging(args.debug, args.maxlogfiles)
+
+    # Setup logging
+    if args.debug is not None:
+        if args.debug == 'verbose':
+            level = logging.DEBUG
+        elif args.debug == 'warnings':
+            level = logging.WARNING
+        else:
+            level = logging.CRITICAL
+    else:
+        level = logging.CRITICAL
+    logger = logging.getLogger()
+    log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
+    log_file = 'inheritance.%s.log' % str(os.getpid())
+    my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5 * 1024 * 1024,
+                                     backupCount=args.maxlogfiles, encoding=None, delay=0)
+    my_handler.setLevel(level)
+    my_handler.setFormatter(log_formatter)
+    logger.addHandler(my_handler)
+    logger.setLevel(level)
+
     tool.set_json_schema('schema.json')
 
     return tool
