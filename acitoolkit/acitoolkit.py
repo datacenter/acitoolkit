@@ -825,6 +825,9 @@ class EPG(CommonEPG):
                 raise TypeError('Parent must be instance of AppProfile')
         super(EPG, self).__init__(epg_name, parent)
         self._leaf_bindings = []
+        self.match_type = None
+        self.class_id = None
+        self.scope = None
         self._deployment_immediacy = None
         self._dom_deployment_immediacy = None
         self._dom_resolution_immediacy = None
@@ -1085,8 +1088,6 @@ class EPG(CommonEPG):
                         for contract in objs:
                             if contract.name == contract_name and contract.get_parent() == 'common':
                                 self.provide(contract)
-
-
             elif 'fvRsCons' in child:
                 contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
                 # contract_search = Search()
@@ -1161,16 +1162,14 @@ class EPG(CommonEPG):
         if encap_mode not in ('regular', 'untagged', 'native'):
             raise ValueError("Encap mode must be one of 'regular', 'untagged', or 'native'")
         text = {
-            'fvRsNodeAtt':
-                {
-                    'attributes':
-                        {
-                            'encap': "%s-%s" % (encap_type, str(encap_id)),
-                            'instrImedcy': immediacy,
-                            'mode': encap_mode,
-                            'tDn': 'topology/pod-%s/node-%s' % (str(pod), str(leaf_id))
-                        }
+            'fvRsNodeAtt': {
+                'attributes': {
+                    'encap': "%s-%s" % (encap_type, str(encap_id)),
+                    'instrImedcy': immediacy,
+                    'mode': encap_mode,
+                    'tDn': 'topology/pod-%s/node-%s' % (str(pod), str(leaf_id))
                 }
+            }
         }
         self._leaf_bindings.append(text)
 
@@ -1436,8 +1435,6 @@ class OutsideEPG(CommonEPG):
                             for contract in objs:
                                 if contract.name == contract_name and contract.get_parent() == 'common':
                                     self.consume(contract)
-
-
             elif 'fvRsConsIf' in child:
                 contract_if_name = child['fvRsConsIf']['attributes']['tnVzCPIfName']
                 contract_if = tenant.get_child(ContractInterface, contract_if_name)
@@ -1590,7 +1587,7 @@ class OutsideL3(BaseACIObject):
                                 all_contexts = obj_dict[Context]
                                 if len(all_contexts):
                                     for context in all_contexts:
-                                        if context.name == context_name and context.get_parent()==tenant:
+                                        if context.name == context_name and context.get_parent() == tenant:
                                             self.add_context(context)
                     break
         super(OutsideL3, self)._extract_relationships(data, obj_dict)
@@ -1732,6 +1729,7 @@ class OutsideL2(BaseACIObject):
 
     def _extract_relationships(self, data, obj_dict):
         tenant_children = None
+        tenant = self.get_parent()
         for tenant_data in data:
             if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
                 tenant_children = tenant_data['fvTenant']['children']
@@ -2431,7 +2429,7 @@ class BridgeDomain(BaseACIObject):
                                 all_contexts = obj_dict[Context]
                                 if len(all_contexts):
                                     for context in all_contexts:
-                                        if context.name == context_name and context.get_parent()==tenant:
+                                        if context.name == context_name and context.get_parent() == tenant:
                                             self.add_context(context)
 
                         elif 'fvRsBDToOut' in bd_child:
@@ -2448,7 +2446,7 @@ class BridgeDomain(BaseACIObject):
                                 all_l3out = obj_dict[OutsideL3]
                                 if len(all_l3out):
                                     for l3_out in all_l3out:
-                                        if l3_out.name == l3_out_name and l3_out.get_parent()==tenant:
+                                        if l3_out.name == l3_out_name and l3_out.get_parent() == tenant:
                                             self.add_l3out(l3_out)
                     break
         super(BridgeDomain, self)._extract_relationships(data, obj_dict)
@@ -3470,13 +3468,13 @@ class ContractSubject(BaseACIObject):
                                                 found = False
                                                 for specific_filter in all_filters:
                                                     if specific_filter.name == filt_name and \
-                                                                    specific_filter.get_parent()==tenant:
+                                                                    specific_filter.get_parent() == tenant:
                                                         self.add_filter(specific_filter)
                                                         found = True
                                                 if not found:
                                                     for specific_filter in all_filters:
                                                         if specific_filter.name == filt_name and \
-                                                                        specific_filter.get_parent()=='common':
+                                                                        specific_filter.get_parent() == 'common':
                                                             self.add_filter(specific_filter)
 
                         except KeyError:
@@ -3536,12 +3534,11 @@ class ContractSubject(BaseACIObject):
 
 class Filter(BaseACIObject):
     """ Filter : roughly equivalent to vzFilter """
-
     def __init__(self, filter_name, parent=None):
         # Backward compatibility, allows the use of Filters that are attached to
         # ContractSubject instead of Tenants
         if isinstance(parent, ContractSubject):
-            print('The parent of a Filter should be a Tenant Object!')
+            logging.warning('The parent of a Filter should be a Tenant Object!')
             parent.add_filter(self)
             parent = parent.get_parent().get_parent()
         super(Filter, self).__init__(filter_name, parent)
@@ -6312,6 +6309,7 @@ class LogicalModel(BaseACIObject):
         results[0].add_term('model', 'logical')
 
         return results
+
 
 def build_object_dictionary(objs):
     """
