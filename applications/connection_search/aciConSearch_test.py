@@ -22,6 +22,7 @@ Search test
 import unittest
 from acitoolkit import BridgeDomain, Filter
 from aciConSearch import *
+import radix
 
 LIVE_TEST = False
 
@@ -2227,6 +2228,182 @@ class TestArgs(unittest.TestCase):
         self.assertEqual(flow_spec.protocol_filter[0].dToPort, 85)
         self.assertEqual(flow_spec.protocol_filter[0].sFromPort, 443)
         self.assertEqual(flow_spec.protocol_filter[0].sToPort, 1000)
+
+class TextRadix(unittest.TestCase):
+    """
+    Will test the radix library
+    """
+    def test_find_best(self):
+        r = radix.Radix()
+        r.add('1.2.3.4')
+        r.add('1.2.3.5')
+        r.add('1.2.3.6')
+        r.add('1.2.4.4')
+        r.add('1.2.4.5')
+        r.add('1.2.4.6')
+        r.add('1.2.3.0/24')
+        r.add('1.2.4.0/24')
+        r.add('1.2.0.0/16')
+        r.add('1.3.0.0/16')
+        r.add('1.0.0.0/8')
+        r.add('2.0.0.0/8')
+        r.add('0.0.0.0/0')
+
+        self.assertEqual('1.2.3.4/32',r.search_best('1.2.3.4').prefix)
+        self.assertEqual('1.2.3.5/32',r.search_best('1.2.3.5').prefix)
+        self.assertEqual('1.2.3.6/32',r.search_best('1.2.3.6').prefix)
+        self.assertEqual('1.2.3.0/24',r.search_best('1.2.3.7').prefix)
+        self.assertEqual('1.2.4.4/32',r.search_best('1.2.4.4').prefix)
+        self.assertEqual('1.2.4.5/32',r.search_best('1.2.4.5').prefix)
+        self.assertEqual('1.2.4.6/32',r.search_best('1.2.4.6').prefix)
+        self.assertEqual('1.2.4.0/24',r.search_best('1.2.4.7').prefix)
+
+        self.assertEqual('1.2.3.0/24',r.search_best('1.2.3.0/24').prefix)
+        self.assertEqual('1.2.0.0/16',r.search_best('1.2.5.4/32').prefix)
+        self.assertEqual('1.2.0.0/16',r.search_best('1.2.6.0/24').prefix)
+
+        self.assertEqual('1.3.0.0/16',r.search_best('1.3.6.0/24').prefix)
+
+        self.assertEqual('1.0.0.0/8',r.search_best('1.4.6.0/24').prefix)
+        self.assertEqual('2.0.0.0/8',r.search_best('2.4.6.4').prefix)
+
+        self.assertEqual('0.0.0.0/0',r.search_best('3.4.6.4').prefix)
+
+    def test_find_covered(self):
+        r = radix.Radix()
+        r.add('1.2.3.4')
+        r.add('1.2.3.5')
+        r.add('1.2.3.6')
+        r.add('1.2.4.4')
+        r.add('1.2.4.5')
+        r.add('1.2.4.6')
+        r.add('1.2.3.0/24')
+        r.add('1.2.4.0/24')
+        r.add('1.2.0.0/16')
+        r.add('1.3.0.0/16')
+        r.add('1.0.0.0/8')
+        r.add('2.0.0.0/8')
+        r.add('0.0.0.0/0')
+
+        result = r.search_covered('1.2.3.4/32')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].prefix,'1.2.3.4/32')
+
+        result = r.search_covered('1.2.3.5/32')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].prefix,'1.2.3.5/32')
+
+        result = r.search_covered('1.2.3.6/24')
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].prefix,'1.2.3.4/32')
+        self.assertEqual(result[1].prefix,'1.2.3.5/32')
+        self.assertEqual(result[2].prefix,'1.2.3.6/32')
+        self.assertEqual(result[3].prefix,'1.2.3.0/24')
+
+        result = r.search_covered('1.2.3.7/24')
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].prefix,'1.2.3.4/32')
+        self.assertEqual(result[1].prefix,'1.2.3.5/32')
+        self.assertEqual(result[2].prefix,'1.2.3.6/32')
+        self.assertEqual(result[3].prefix,'1.2.3.0/24')
+
+        result = r.search_covered('1.2.4.4/24')
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].prefix,'1.2.4.4/32')
+        self.assertEqual(result[1].prefix,'1.2.4.5/32')
+        self.assertEqual(result[2].prefix,'1.2.4.6/32')
+        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+
+        result = r.search_covered('1.2.4.5/24')
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].prefix,'1.2.4.4/32')
+        self.assertEqual(result[1].prefix,'1.2.4.5/32')
+        self.assertEqual(result[2].prefix,'1.2.4.6/32')
+        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+
+        result = r.search_covered('1.2.4.6/24')
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].prefix,'1.2.4.4/32')
+        self.assertEqual(result[1].prefix,'1.2.4.5/32')
+        self.assertEqual(result[2].prefix,'1.2.4.6/32')
+        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+
+        result = r.search_covered('1.2.4.7/24')
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].prefix,'1.2.4.4/32')
+        self.assertEqual(result[1].prefix,'1.2.4.5/32')
+        self.assertEqual(result[2].prefix,'1.2.4.6/32')
+        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+
+        result = r.search_covered('1.2.3.0/24')
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].prefix,'1.2.3.4/32')
+        self.assertEqual(result[1].prefix,'1.2.3.5/32')
+        self.assertEqual(result[2].prefix,'1.2.3.6/32')
+        self.assertEqual(result[3].prefix,'1.2.3.0/24')
+
+        result = r.search_covered('1.2.3.5/31')
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].prefix,'1.2.3.4/32')
+        self.assertEqual(result[1].prefix,'1.2.3.5/32')
+
+        result = r.search_covered('1.2.6.0/16')
+        self.assertEqual(len(result), 9)
+        self.assertEqual(result[0].prefix,'1.2.3.4/32')
+        self.assertEqual(result[1].prefix,'1.2.3.5/32')
+        self.assertEqual(result[2].prefix,'1.2.3.6/32')
+        self.assertEqual(result[3].prefix,'1.2.3.0/24')
+        self.assertEqual(result[4].prefix,'1.2.4.4/32')
+        self.assertEqual(result[5].prefix,'1.2.4.5/32')
+        self.assertEqual(result[6].prefix,'1.2.4.6/32')
+        self.assertEqual(result[7].prefix,'1.2.4.0/24')
+        self.assertEqual(result[8].prefix,'1.2.0.0/16')
+
+        result = r.search_covered('1.3.6.0/16')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].prefix,'1.3.0.0/16')
+
+        result = r.search_covered('1.4.6.0/16')
+        self.assertEqual(len(result), 0)
+
+        result = r.search_covered('2.4.6.4/8')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].prefix,'2.0.0.0/8')
+        result = r.search_covered('3.4.6.4/8')
+        self.assertEqual(len(result), 0)
+
+        result = r.search_covered('0.0.0.0/0')
+        self.assertEqual(len(result), 13)
+        self.assertEqual(result[0].prefix, '1.2.3.4/32')
+        self.assertEqual(result[1].prefix, '1.2.3.5/32')
+        self.assertEqual(result[2].prefix, '1.2.3.6/32')
+        self.assertEqual(result[3].prefix, '1.2.3.0/24')
+        self.assertEqual(result[4].prefix, '1.2.4.4/32')
+        self.assertEqual(result[5].prefix, '1.2.4.5/32')
+        self.assertEqual(result[6].prefix, '1.2.4.6/32')
+        self.assertEqual(result[7].prefix, '1.2.4.0/24')
+        self.assertEqual(result[8].prefix, '1.2.0.0/16')
+        self.assertEqual(result[9].prefix, '1.3.0.0/16')
+        self.assertEqual(result[10].prefix, '1.0.0.0/8')
+        self.assertEqual(result[11].prefix, '2.0.0.0/8')
+        self.assertEqual(result[12].prefix, '0.0.0.0/0')
+
+
+    def test_default_bug(self):
+        r = radix.Radix()
+        r.add("0.0.0.0/0")
+        r.add("192.168.1.133/32")
+        result = r.search_covered('192.168.0.0/16')
+        self.assertEqual(result[0].prefix,'192.168.1.133/32')
+
+    def test_default_bug2(self):
+        r = radix.Radix()
+        r.add('10.0.0.0/24')
+        r.add('0.0.0.0/0')
+
+        result = r.search_covered('10.0.0.1')
+        self.assertEqual(len(result), 0)
+
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
