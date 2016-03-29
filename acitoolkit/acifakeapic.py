@@ -80,7 +80,10 @@ class FakeSession(Session):
         self._classes = {}
         for filename in filenames:
             with open(filename, 'r') as f:
-                data = json.loads(f.read())
+                try:
+                    data = json.loads(f.read())
+                except ValueError:
+                    continue
                 self._fill_data(data['imdata'], None)
                 self.db.append(data)
             with open(filename, "w") as f:
