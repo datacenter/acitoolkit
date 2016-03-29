@@ -30,6 +30,8 @@
 """
 import sys
 from copy import copy
+
+import datetime
 import radix
 import re
 from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, ContractSubject, \
@@ -90,6 +92,8 @@ class Ipv4Address(object):
     def valid_ip(cls,address):
         try:
             host_bytes = address.split('.')
+            if host_bytes[-1]=='':
+                host_bytes.pop()
             valid = [int(b) for b in host_bytes]
             valid = [b for b in valid if b >= 0 and b<=255]
             return len(host_bytes) == len(valid)
@@ -113,6 +117,8 @@ class Ipv4Address(object):
         result = 0
         if cls.valid_ip(input_ip):
             fields = input_ip.split('.')
+            if fields[-1]=='':
+                fields.pop()
             result = int(fields[0]) << 8
             if len(fields) > 1:
                 result += int(fields[1])
@@ -1318,22 +1324,6 @@ class SearchDb(object):
                 node.data['epg'] = outside_epg
                 node.data['location'] = "external"
 
-    def show_ip_epg(self):
-        """
-        Will simply print the ip_epg table
-
-        :return:
-        """
-        for vrf in self.context_radix:
-            context = vrf
-            tenant = context.get_parent()
-            for node in self.context_radix[vrf]:
-                context_str = "{0}/{1}".format(tenant, context)
-                epg = node.data['epg']
-                app_profile = epg.get_parent()
-                print "{4:10} {0:40} {1:30} {2}/{3}".format(context_str, node.prefix, app_profile, epg,
-                                                            node.data['location'])
-
     def build_epg_contract(self, epgs):
         """
         This will build the epg to contract mapping
@@ -1479,6 +1469,7 @@ class SearchDb(object):
         :return:
         """
         # todo: add multiple flow_specs
+        # t1 = datetime.datetime.now()
         result = []
         # first convert name of tenant and context to tenant and context objects
         consumed_contracts = self.find_contracts(flow_spec.get_source(), 'consume')
@@ -1493,6 +1484,9 @@ class SearchDb(object):
                                         'dest_epg': p_contract['epg'],
                                         'contract': c_contract['contract']})
 
+        # t2 = datetime.datetime.now()
+        # print 'connections done', t2-t1
+        # t1=t2
         for connection in connections:
             filters = self.contract_filter[connection['contract']]
             matching_filters = []
@@ -1504,6 +1498,9 @@ class SearchDb(object):
 
             if len(matching_filters) > 0:
                 result.append(self._build_result_flow_spec(connection, matching_filters))
+        # t2 = datetime.datetime.now()
+        # print 'search result done', t2-t1
+        # t1=t2
 
         # for flow_spec in result:
         #   print flow_spec
@@ -1543,20 +1540,27 @@ class SearchDb(object):
         :param pro_con:
         :return:
         """
+        # t1 = datetime.datetime.now()
         tenants = []
         tenant_search = '^' + subflow_spec.tenant_name.replace('*', '.*') + '$'
         for tenant_name in self.tenants_by_name:
             match_result = re.match(tenant_search, tenant_name)
             if match_result is not None:
-                tenants.append(self.tenants_by_name[tenant_name])
+                tenants.append(tenant_name)
+
+        # t2 = datetime.datetime.now()
+        # print 'tenants done', t2-t1
+        # t1=t2
+
+        tenants.append('common')
         contexts = []
         context_search = '^' + subflow_spec.context_name.replace('*', '.*') + '$'
-        for tenant in tenants:
-            for (tenant_name, context_name) in self.context_by_name:
+        for (tenant_name, context_name) in self.context_by_name:
+            if tenant_name in tenants:
                 match_result = re.match(context_search, context_name)
                 context = self.context_by_name[(tenant_name, context_name)]
                 if context not in contexts:
-                    if match_result is not None and tenant_name == tenant.name:
+                    if match_result is not None:
                         contexts.append(context)
                     if tenant_name == 'common':
                         contexts.append(context)
@@ -1564,6 +1568,9 @@ class SearchDb(object):
         epgs_prefix = {}
         nodes = []
 
+        # t2 = datetime.datetime.now()
+        # print 'contexts done', t2-t1
+        # t1=t2
         for context in contexts:
             if context in self.context_radix:
                 # cover both the case where what we are looking for is covered by a prefix
@@ -1578,7 +1585,9 @@ class SearchDb(object):
                     for node in temp_nodes:
                         if node not in nodes:
                             nodes.append(node)
-
+        # t2 = datetime.datetime.now()
+        # print 'nodes done', t2-t1
+        # t1=t2
         # now have all the nodes
         if nodes is not None:
             for node in nodes:
@@ -1591,6 +1600,9 @@ class SearchDb(object):
                         if ovlp not in epgs_prefix[node.data['epg']]:
                             epgs_prefix[node.data['epg']].append(ovlp)
 
+        # t2 = datetime.datetime.now()
+        # print 'overlap done', t2-t1
+        # t1=t2
         result = []
         for epg in epgs_prefix:
             if epg in self.epg_contract:
@@ -1599,6 +1611,9 @@ class SearchDb(object):
                         result.append({'contract': entry['contract'],
                                        'prefix': epgs_prefix[epg][0].simplify(epgs_prefix[epg]),
                                        'epg': epg})
+        # t2 = datetime.datetime.now()
+        # print 'result done', t2-t1
+        # t1=t2
 
         return result
 
