@@ -30,6 +30,10 @@
 """
 import sys
 from copy import copy
+
+import datetime
+
+import itertools
 import radix
 import re
 from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, ContractSubject, \
@@ -90,6 +94,8 @@ class Ipv4Address(object):
     def valid_ip(cls,address):
         try:
             host_bytes = address.split('.')
+            if host_bytes[-1]=='':
+                host_bytes.pop()
             valid = [int(b) for b in host_bytes]
             valid = [b for b in valid if b >= 0 and b<=255]
             return len(host_bytes) == len(valid)
@@ -113,6 +119,8 @@ class Ipv4Address(object):
         result = 0
         if cls.valid_ip(input_ip):
             fields = input_ip.split('.')
+            if fields[-1]=='':
+                fields.pop()
             result = int(fields[0]) << 8
             if len(fields) > 1:
                 result += int(fields[1])
@@ -201,7 +209,7 @@ class Ipv4Address(object):
                     p1 = ip1.prefix_num >> (32 - ip1.prefixlen)
                     p2 = ip2.prefix_num >> (32 - ip2.prefixlen)
                     if (p1 - p2 == 1) and (p1 & 0xFFFFFFFE) == (p2 & 0xFFFFFFFE):
-                        new_ip = Ipv4Address(str(ip1.prefix))
+                        new_ip = Ipv4Address(ip1.prefix)
                         new_ip._prefixlen -= 1
                         new_list.remove(ip1)
                         new_list.remove(ip2)
@@ -220,21 +228,27 @@ class Ipv4Address(object):
         :param ip_list:
         :return:
         """
-        new_list = copy(ip_list)
+        list1 = list(ip_list)
         if len(ip_list) > 1:
-            for candidate in ip_list:
-                for index in reversed(range(len(new_list))):
-                    other = new_list[index]
-                    if candidate != other:
-                        if Ipv4Address.encompass(candidate, other):
-                            new_list.remove(other)
-            if len(new_list) == len(ip_list):
-                return new_list
-            else:
-                return Ipv4Address.combine(new_list)
-
-        else:
-            return ip_list
+            list2 = copy(list1)
+            done = False
+            while not done:
+                done = True
+                for a, b in itertools.combinations(list1, 2):
+                    if Ipv4Address.encompass(a, b):
+                        try:
+                            list2.remove(b)
+                        except:
+                            pass
+                        done = False
+                    elif Ipv4Address.encompass(b, a):
+                        try:
+                            list2.remove(a)
+                        except:
+                            pass
+                        done = False
+                list1 = copy(list2)
+        return list1
 
     @staticmethod
     def encompass(ip1, ip2):
@@ -508,28 +522,38 @@ class Ipv6Address(object):
         :return:
         """
         if len(ip_list) == 1:
-            return ip_list
+            return list(ip_list)
 
-        new_list = copy(ip_list)
-        for ip1 in ip_list:
-            for index in reversed(range(len(new_list))):
-                ip2 = new_list[index]
-                if ip1 != ip2:
-                    if ip1.prefixlen == ip2.prefixlen:
-                        p1 = Ipv6Address(ip1.prefix_num)
-                        p2 = Ipv6Address(ip2.prefix_num)
-                        p1.prefixlen = ip1.prefixlen - 1
-                        p2.prefixlen = ip2.prefixlen - 1
-                        if p1.prefix == p2.prefix:
-                            new_ip = Ipv6Address(p1.prefix)
-                            new_list.remove(ip1)
-                            new_list.remove(ip2)
-                            new_list.append(new_ip)
-
-        if len(new_list) == len(ip_list):
-            return new_list
+        if isinstance(ip_list, list):
+            list1 = set(ip_list)
         else:
-            return cls.supernet(new_list)
+            list1 = copy(ip_list)
+
+        list2 = copy(list1)
+        done = True
+        for a, b in itertools.combinations(list1, 2):
+            if a==b:
+                if b in list2:
+                    list2.remove(b)
+            elif a.prefixlen == b.prefixlen:
+                p1 = cls(a.prefix_num)
+                p2 = cls(b.prefix_num)
+                p1.prefixlen = a.prefixlen - 1
+                p2.prefixlen = b.prefixlen - 1
+                if p1.prefix == p2.prefix:
+                    new_ip = cls(p1.prefix)
+                    if a in list2:
+                        list2.remove(a)
+                    if b in list2:
+                        list2.remove(b)
+                    list2.add(new_ip)
+                    done = False
+        if done:
+            return list(list2)
+        else:
+            return cls.supernet(list2)
+
+
 
     @classmethod
     def combine(cls, ip_list):
@@ -539,21 +563,28 @@ class Ipv6Address(object):
         :param ip_list:
         :return:
         """
-        new_list = copy(ip_list)
+        list1 = list(ip_list)
         if len(ip_list) > 1:
-            for candidate in ip_list:
-                for index in reversed(range(len(new_list))):
-                    other = new_list[index]
-                    if candidate != other:
-                        if cls.encompass(candidate, other):
-                            new_list.remove(other)
-            if len(new_list) == len(ip_list):
-                return new_list
-            else:
-                return cls.combine(new_list)
+            list2 = copy(list1)
+            done = False
+            while not done:
+                done = True
+                for a, b in itertools.combinations(list1, 2):
+                    if Ipv4Address.encompass(a, b):
+                        try:
+                            list2.remove(b)
+                        except:
+                            pass
+                        done = False
+                    elif Ipv4Address.encompass(b, a):
+                        try:
+                            list2.remove(a)
+                        except:
+                            pass
+                        done = False
+                list1 = copy(list2)
 
-        else:
-            return ip_list
+        return list1
 
     @staticmethod
     def encompass(ip1, ip2):
@@ -1028,13 +1059,13 @@ class ProtocolFilter(object):
         return False
 
     def __ge__(self, other):
-        return self > other or self._port_equal(other)
+        return self > other or self == other
 
     def __lt__(self, other):
         return not self >= other
 
     def __le__(self, other):
-        return self < other or self._port_equal(other)
+        return self < other or self==other
 
 
 class SubFlowSpec(object):
@@ -1078,6 +1109,8 @@ class FlowSpec(object):
     def sip(self, value):
         if isinstance(value, list):
             self._sip = value
+        elif isinstance(value, set):
+            self._sip = list(value)
         elif isinstance(value, str):
             self._sip = [IpAddress(value)]
         else:
@@ -1092,6 +1125,8 @@ class FlowSpec(object):
     def dip(self, value):
         if isinstance(value, list):
             self._dip = value
+        elif isinstance(value, set):
+            self._dip = list(value)
         elif isinstance(value, str):
             self._dip = [IpAddress(value)]
         else:
@@ -1176,9 +1211,9 @@ class FlowSpec(object):
 
         num_comps = min(len(self.sip), len(other.sip))
         for index in range(num_comps):
-            if self.sip[index] > other.sip[index]:
+            if sorted(self.sip)[index] > sorted(other.sip)[index]:
                 return True
-            elif self._sip[index] < other.sip[index]:
+            elif sorted(self.sip)[index] < sorted(other.sip)[index]:
                 return False
 
         if len(self.sip) > len(other.sip):
@@ -1188,14 +1223,26 @@ class FlowSpec(object):
 
         num_comps = min(len(self.dip), len(other.dip))
         for index in range(num_comps):
-            if self.dip[index] > other.dip[index]:
+            if sorted(self.dip)[index] > sorted(other.dip)[index]:
                 return True
-            elif self.dip[index] < other.dip[index]:
+            elif sorted(self.dip)[index] < sorted(other.dip)[index]:
                 return False
 
         if len(self.dip) > len(other.dip):
             return True
         elif len(self.dip) < len(other.dip):
+            return False
+
+        num_comps = min(len(self.protocol_filter), len(other.protocol_filter))
+        for index in range(num_comps):
+            if self.protocol_filter[index] > other.protocol_filter[index]:
+                return True
+            elif self.protocol_filter[index] < other.protocol_filter[index]:
+                return False
+
+        if len(self.protocol_filter) > len(other.protocol_filter):
+            return True
+        elif len(self.protocol_filter) < len(other.protocol_filter):
             return False
 
         return False
@@ -1317,22 +1364,6 @@ class SearchDb(object):
                 node = self.context_radix[context].add(str(ip))
                 node.data['epg'] = outside_epg
                 node.data['location'] = "external"
-
-    def show_ip_epg(self):
-        """
-        Will simply print the ip_epg table
-
-        :return:
-        """
-        for vrf in self.context_radix:
-            context = vrf
-            tenant = context.get_parent()
-            for node in self.context_radix[vrf]:
-                context_str = "{0}/{1}".format(tenant, context)
-                epg = node.data['epg']
-                app_profile = epg.get_parent()
-                print "{4:10} {0:40} {1:30} {2}/{3}".format(context_str, node.prefix, app_profile, epg,
-                                                            node.data['location'])
 
     def build_epg_contract(self, epgs):
         """
@@ -1479,6 +1510,7 @@ class SearchDb(object):
         :return:
         """
         # todo: add multiple flow_specs
+        # t1 = datetime.datetime.now()
         result = []
         # first convert name of tenant and context to tenant and context objects
         consumed_contracts = self.find_contracts(flow_spec.get_source(), 'consume')
@@ -1493,6 +1525,9 @@ class SearchDb(object):
                                         'dest_epg': p_contract['epg'],
                                         'contract': c_contract['contract']})
 
+        # t2 = datetime.datetime.now()
+        # print 'connections done', t2-t1
+        # t1=t2
         for connection in connections:
             filters = self.contract_filter[connection['contract']]
             matching_filters = []
@@ -1504,6 +1539,9 @@ class SearchDb(object):
 
             if len(matching_filters) > 0:
                 result.append(self._build_result_flow_spec(connection, matching_filters))
+        # t2 = datetime.datetime.now()
+        # print 'search result done', t2-t1
+        # t1=t2
 
         # for flow_spec in result:
         #   print flow_spec
@@ -1543,27 +1581,37 @@ class SearchDb(object):
         :param pro_con:
         :return:
         """
+        # t1 = datetime.datetime.now()
         tenants = []
         tenant_search = '^' + subflow_spec.tenant_name.replace('*', '.*') + '$'
         for tenant_name in self.tenants_by_name:
             match_result = re.match(tenant_search, tenant_name)
             if match_result is not None:
-                tenants.append(self.tenants_by_name[tenant_name])
+                tenants.append(tenant_name)
+
+        # t2 = datetime.datetime.now()
+        # print 'tenants done', t2-t1
+        # t1=t2
+
+        tenants.append('common')
         contexts = []
         context_search = '^' + subflow_spec.context_name.replace('*', '.*') + '$'
-        for tenant in tenants:
-            for (tenant_name, context_name) in self.context_by_name:
+        for (tenant_name, context_name) in self.context_by_name:
+            if tenant_name in tenants:
                 match_result = re.match(context_search, context_name)
                 context = self.context_by_name[(tenant_name, context_name)]
                 if context not in contexts:
-                    if match_result is not None and tenant_name == tenant.name:
+                    if match_result is not None:
                         contexts.append(context)
                     if tenant_name == 'common':
                         contexts.append(context)
 
         epgs_prefix = {}
-        nodes = []
+        nodes = set()
 
+        # t2 = datetime.datetime.now()
+        # print 'contexts done', t2-t1
+        # t1=t2
         for context in contexts:
             if context in self.context_radix:
                 # cover both the case where what we are looking for is covered by a prefix
@@ -1572,13 +1620,13 @@ class SearchDb(object):
 
                     node = self.context_radix[context].search_best(str(ip.prefix))
                     if node is not None:
-                        if node not in nodes:
-                            nodes.append(node)
+                        nodes.add(node)
                     temp_nodes = self.context_radix[context].search_covered(str(ip.prefix))
                     for node in temp_nodes:
-                        if node not in nodes:
-                            nodes.append(node)
-
+                        nodes.add(node)
+        # t2 = datetime.datetime.now()
+        # print 'nodes done', t2-t1
+        # t1=t2
         # now have all the nodes
         if nodes is not None:
             for node in nodes:
@@ -1586,19 +1634,24 @@ class SearchDb(object):
                     ovlp = ip.overlap(IpAddress(node.prefix))
                     if ovlp is not None:
                         if node.data['epg'] not in epgs_prefix:
-                            epgs_prefix[node.data['epg']] = []
+                            epgs_prefix[node.data['epg']] = set()
 
-                        if ovlp not in epgs_prefix[node.data['epg']]:
-                            epgs_prefix[node.data['epg']].append(ovlp)
+                        epgs_prefix[node.data['epg']].add(ovlp)
 
+        # t2 = datetime.datetime.now()
+        # print 'overlap done', t2-t1
+        # t1=t2
         result = []
         for epg in epgs_prefix:
             if epg in self.epg_contract:
                 for entry in self.epg_contract[epg]:
                     if entry['pro_con'] == pro_con:
                         result.append({'contract': entry['contract'],
-                                       'prefix': epgs_prefix[epg][0].simplify(epgs_prefix[epg]),
+                                       'prefix': next(iter(epgs_prefix[epg])).simplify(epgs_prefix[epg]),
                                        'epg': epg})
+        # t2 = datetime.datetime.now()
+        # print 'result done', t2-t1
+        # t1=t2
 
         return result
 
