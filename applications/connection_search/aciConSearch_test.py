@@ -1931,8 +1931,8 @@ class TestIpv6Address(unittest.TestCase):
         ip4 = IpAddress('1:2:3:5::/64')
         result = Ipv6Address.combine([ip1, ip2, ip3, ip4])
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], ip1)
-        self.assertEqual(result[1], ip4)
+        self.assertTrue(ip1 in result)
+        self.assertTrue(ip4 in result)
 
     def test_overlap(self):
         ip1 = IpAddress('1:2:3:4::/64')
@@ -1964,8 +1964,8 @@ class TestIpv6Address(unittest.TestCase):
         ip4 = IpAddress('1:2:2:5:4:/48')
         result = Ipv6Address.supernet([ip1, ip2, ip3, ip4])
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], IpAddress('1:2:0:4:4:/48'))
-        self.assertEqual(result[1], IpAddress('1:2:2:5:4:/48'))
+        self.assertTrue(IpAddress('1:2:0:4:4:/48') in result)
+        self.assertTrue(IpAddress('1:2:2:5:4:/48') in result)
 
         ip1 = IpAddress('1:2:0:4:4:/48')
         ip2 = IpAddress('1:2:1:4:4:/48')
