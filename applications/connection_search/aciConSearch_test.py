@@ -1278,13 +1278,13 @@ class TestSearch(unittest.TestCase):
         exp_flow_spec.sip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_filt1.prot = 'tcp'
-        self.assertTrue(result[0] == exp_flow_spec)
+        self.assertTrue(result[1] == exp_flow_spec)
 
         exp_flow_spec.sip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_filt1.prot = 'tcp'
         exp_filt1.dPort = 80
-        self.assertTrue(result[1] == exp_flow_spec)
+        self.assertTrue(result[0] == exp_flow_spec)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('10.21.2.1/32'), IpAddress('10.22.2.1/32'), IpAddress('10.23.2.1/32')]
@@ -1296,13 +1296,13 @@ class TestSearch(unittest.TestCase):
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_filt1.dFromPort = 'any'
         exp_filt1.dToPort = 'any'
-        self.assertTrue(result[3] == exp_flow_spec)
+        self.assertTrue(result[4] == exp_flow_spec)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_filt1.dFromPort = 80
         exp_filt1.dToPort = 80
-        self.assertTrue(result[4] == exp_flow_spec)
+        self.assertTrue(result[3] == exp_flow_spec)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
@@ -1400,13 +1400,13 @@ class TestSearchv6(unittest.TestCase):
         exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
         exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
         exp_filt1.prot = 'tcp'
-        self.assertTrue(result[0] == exp_flow_spec)
+        self.assertTrue(result[1] == exp_flow_spec)
 
         exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
         exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
         exp_filt1.prot = 'tcp'
         exp_filt1.dPort = 80
-        self.assertTrue(result[1] == exp_flow_spec)
+        self.assertTrue(result[0] == exp_flow_spec)
 
         exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
@@ -1424,13 +1424,13 @@ class TestSearchv6(unittest.TestCase):
         exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_filt1.dFromPort = 'any'
         exp_filt1.dToPort = 'any'
-        self.assertTrue(result[4] == exp_flow_spec)
+        self.assertTrue(result[6] == exp_flow_spec)
 
         exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_filt1.dFromPort = 80
         exp_filt1.dToPort = 80
-        self.assertTrue(result[6] == exp_flow_spec)
+        self.assertTrue(result[4] == exp_flow_spec)
 
         exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
@@ -1947,8 +1947,8 @@ class TestIpv6Address(unittest.TestCase):
         ip4 = IpAddress('1:2:3:5:5::/80')
         result = Ipv6Address.supernet([ip1, ip2, ip3, ip4])
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], IpAddress('1:2:3:4:4:/79'))
-        self.assertEqual(result[1], IpAddress('1:2:3:5:4:/79'))
+        self.assertTrue(IpAddress('1:2:3:4:4:/79') in result)
+        self.assertTrue(IpAddress('1:2:3:5:4:/79') in result)
 
         ip1 = IpAddress('1:2:0:4:4:/48')
         ip2 = IpAddress('1:2:1:4:5::/48')
@@ -1957,6 +1957,24 @@ class TestIpv6Address(unittest.TestCase):
         result = Ipv6Address.supernet([ip1, ip2, ip3, ip4])
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], IpAddress('1:2::/46'))
+
+        ip1 = IpAddress('1:2:0:4:4:/48')
+        ip2 = IpAddress('1:2:0:4:4:/48')
+        ip3 = IpAddress('1:2:2:5:4:/48')
+        ip4 = IpAddress('1:2:2:5:4:/48')
+        result = Ipv6Address.supernet([ip1, ip2, ip3, ip4])
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], IpAddress('1:2:0:4:4:/48'))
+        self.assertEqual(result[1], IpAddress('1:2:2:5:4:/48'))
+
+        ip1 = IpAddress('1:2:0:4:4:/48')
+        ip2 = IpAddress('1:2:1:4:4:/48')
+        ip3 = IpAddress('1:2:2:5:4:/48')
+        ip4 = IpAddress('1:2:2:5:4:/48')
+        ip5 = IpAddress('1:2:3:5:4:/48')
+        result = Ipv6Address.supernet([ip1, ip2, ip3, ip4, ip5])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], IpAddress('1:2:0::/46'))
 
 class TestProtocolFilter(unittest.TestCase):
     def test_load_aci_filter(self):
