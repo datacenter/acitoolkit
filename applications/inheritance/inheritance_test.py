@@ -8,15 +8,82 @@ from acitoolkit import (Tenant, Context, OutsideL3, OutsideEPG, OutsideNetwork,
                         ContractInterface, Fabric)
 import time
 import sys
-try:
-    from inheritance_test_credentials import *
-except ImportError:
-    print ('Please create a file named inheritance_test_credentials.py with the following content,'
-           'replacing the values as approriate for your system:')
-    print 'APIC_IP = "0.0.0.0"'
-    print 'APIC_URL = "http://" + APIC_IP'
-    print 'APIC_USERNAME = "admin"'
-    print 'APIC_PASSWORD = "password"'
+import logging
+from logging.handlers import RotatingFileHandler
+import argparse
+from os import getpid
+from ConfigParser import ConfigParser, NoSectionError, NoOptionError
+
+DEFAULT_INI_FILENAME = 'inheritance_apic_credentials.ini'
+
+
+class ApicCredentials(object):
+    """
+    Class to collect the APIC credentials from an configuration file
+    """
+    def __init__(self):
+        self._config = None
+        self._username = None
+        self._password = None
+        self._url = None
+        self._ip_address = None
+
+    def set_config(self, filename):
+        """
+        Set the configuration file name
+        :param filename: String containing the configuration file name
+        :return: None
+        """
+        if filename is None:
+            return
+        self._config = ConfigParser()
+        self._config.read(filename)
+
+    def _get_attribute(self, attr_name):
+        """
+        Get the requested configuration attribute
+        :param attr_name: String containing the attribute name
+        :return: String containing the requested configuration attribute
+        :raises: ValueError: An error occurred accessing the requested configuration attribute
+        """
+        try:
+            return self._config.get('Credentials', attr_name)
+        except AttributeError:
+            raise ValueError('Credentials configuration file not found')
+        except(NoSectionError, NoOptionError):
+            raise ValueError('Requested credential attribute not present')
+
+    @property
+    def username(self):
+        """
+        APIC username
+        :return: String containing APIC username
+        """
+        return self._get_attribute('Username')
+
+    @property
+    def password(self):
+        """
+        APIC password
+        :return: String containing APIC password
+        """
+        return self._get_attribute('Password')
+
+    @property
+    def url(self):
+        """
+        APIC URL
+        :return: String containing APIC URL
+        """
+        return self._get_attribute('URL')
+
+    @property
+    def ip_address(self):
+        """
+        APIC IP address as parsed from the URL
+        :return: String containing APIC IP address
+        """
+        return self.url.partition('://')[-1].split('/')[0]
 
 
 class TestArgs(object):
@@ -68,7 +135,7 @@ class BaseTestCase(unittest.TestCase):
         """
         tenant = Tenant('inheritanceautomatedtest')
         tenant.mark_as_deleted()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         resp = tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
@@ -92,6 +159,9 @@ class TestWithoutApicCommunication(unittest.TestCase):
     Tests that do not communicate with the APIC
     """
     def test_generate_config(self):
+        """
+        Generate the test configuration
+        """
         args = TestArgs()
         args.generateconfig = True
 
@@ -140,9 +210,9 @@ class TestWithoutApicCommunication(unittest.TestCase):
         self.assertTrue(fake_out.verify_output([sample_config, '\n']))
 
 
-class TestBasic(BaseTestCase):
+class TestBasicL3Out(BaseTestCase):
     """
-    Basic Inheritance test cases
+    Basic Inheritance test cases enabled on OutsideEPGs
     """
     def setup_tenant(self, apic):
         """
@@ -214,9 +284,9 @@ class TestBasic(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -247,7 +317,7 @@ class TestBasic(BaseTestCase):
             ]
         }
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -265,9 +335,9 @@ class TestBasic(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -298,7 +368,7 @@ class TestBasic(BaseTestCase):
             ]
         }
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -316,9 +386,9 @@ class TestBasic(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -349,7 +419,7 @@ class TestBasic(BaseTestCase):
             ]
         }
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -367,9 +437,9 @@ class TestBasic(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -400,7 +470,7 @@ class TestBasic(BaseTestCase):
             ]
         }
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -425,9 +495,9 @@ class TestContractEvents(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -592,7 +662,7 @@ class TestContractEvents(BaseTestCase):
         self.delete_tenant()
         config_json = self.get_config_json()
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -619,7 +689,7 @@ class TestContractEvents(BaseTestCase):
         self.delete_tenant()
         config_json = self.get_config_json()
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -653,9 +723,9 @@ class TestContractEvents(BaseTestCase):
         self.delete_tenant()
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -699,14 +769,13 @@ class TestContractEvents(BaseTestCase):
         }
 
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant_with_2_parent_epgs(apic)
         tool = execute_tool(args)
         tool.add_config(config_json)
         time.sleep(2)
 
-        print 'STARTING VERIFICATION...'
         # Verify that the contract is now inherited by the child EPG
         self.verify_inherited(apic)
 
@@ -719,9 +788,9 @@ class TestContractEvents(BaseTestCase):
         self.delete_tenant()
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -765,7 +834,7 @@ class TestContractEvents(BaseTestCase):
         }
 
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant_with_2_parent_epgs(apic)
         tool = execute_tool(args)
@@ -774,8 +843,6 @@ class TestContractEvents(BaseTestCase):
 
         # Verify that the contract is now inherited by the child EPG
         self.verify_inherited(apic)
-
-        print 'REMOVING 1 CONTRACT'
 
         # Remove contract
         tenant = Tenant('inheritanceautomatedtest')
@@ -786,8 +853,6 @@ class TestContractEvents(BaseTestCase):
         parent_epg.dont_provide(contract)
         resp = tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
-
-        print 'STARTING VERIFICATION'
 
         # Verify that the contract is still inherited by the child EPG
         time.sleep(2)
@@ -801,9 +866,9 @@ class TestContractEvents(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -847,7 +912,7 @@ class TestContractEvents(BaseTestCase):
         }
 
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant_with_2_parent_epgs(apic)
         tool = execute_tool(args)
@@ -856,8 +921,6 @@ class TestContractEvents(BaseTestCase):
 
         # Verify that the contract is now inherited by the child EPG
         self.verify_inherited(apic)
-
-        print 'REMOVING 1 CONTRACT'
 
         # Remove contracts
         tenant = Tenant('inheritanceautomatedtest')
@@ -871,8 +934,6 @@ class TestContractEvents(BaseTestCase):
         parent_epg2.dont_provide(contract)
         resp = tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
-
-        print 'STARTING VERIFICATION'
 
         # Verify that the contract is still inherited by the child EPG
         time.sleep(4)
@@ -910,10 +971,10 @@ class TestSubnetEvents(BaseTestCase):
         parent_epg = OutsideEPG('parentepg', l3out)
         parent_network = OutsideNetwork('5.1.1.1', parent_epg)
         parent_network.ip = '5.1.1.1/8'
-        child_epg = OutsideEPG('childepg', l3out)
+        _ = OutsideEPG('childepg', l3out)
         contract = Contract('mycontract', tenant)
         parent_epg.provide(contract)
-        entry = FilterEntry('webentry1',
+        _ = FilterEntry('webentry1',
                             applyToFrag='no',
                             arpOpc='unspecified',
                             dFromPort='80',
@@ -980,9 +1041,9 @@ class TestSubnetEvents(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -1013,7 +1074,7 @@ class TestSubnetEvents(BaseTestCase):
             ]
         }
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -1109,9 +1170,9 @@ class TestMultipleOutsideEPGLevels(BaseTestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -1155,7 +1216,7 @@ class TestMultipleOutsideEPGLevels(BaseTestCase):
             ]
         }
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenant(apic)
         tool = execute_tool(args)
@@ -1214,7 +1275,7 @@ class BaseImportedContract(unittest.TestCase):
         provider_tenant.mark_as_deleted()
         consumer_tenant = Tenant(consumer_tenant_name)
         consumer_tenant.mark_as_deleted()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         resp = provider_tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
@@ -1369,9 +1430,9 @@ class BaseImportedContract(unittest.TestCase):
         """
         config_json = {
             "apic": {
-                "user_name": APIC_USERNAME,
-                "password": APIC_PASSWORD,
-                "ip_address": APIC_IP,
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
                 "use_https": False
             },
             "inheritance_policies": [
@@ -1402,7 +1463,7 @@ class BaseImportedContract(unittest.TestCase):
             ]
         }
         args = TestArgs()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         self.setup_tenants(apic, provider_tenant_name, consumer_tenant_name, use_contract_if=use_contract_if)
         tool = execute_tool(args)
@@ -1453,7 +1514,7 @@ class TestImportedContractFromTenantCommon(BaseImportedContract):
 
         consumer_tenant = Tenant(consumer_tenant_name)
         consumer_tenant.mark_as_deleted()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         resp = provider_tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
@@ -1504,7 +1565,7 @@ class TestContractFromTenantCommonUsedInTenant(BaseImportedContract):
 
         consumer_tenant = Tenant(consumer_tenant_name)
         consumer_tenant.mark_as_deleted()
-        apic = Session(APIC_URL, APIC_USERNAME, APIC_PASSWORD)
+        apic = Session(credentials.url, credentials.username, credentials.password)
         apic.login()
         resp = provider_tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
@@ -1535,19 +1596,335 @@ class TestContractFromTenantCommonUsedInTenant(BaseImportedContract):
         self.run_basic_test(provider_tenant_name, consumer_tenant_name, use_contract_if=False)
 
 
+class TestBasicAppProfile(BaseTestCase):
+    """
+    Basic Inheritance test cases enabled on Application Profile EPGs
+    """
+    def setup_tenant(self, apic):
+        """
+        Setup the tenant configuration
+        :param apic: Session instance assumed to be logged into the APIC
+        :return: None
+        """
+        tenant = Tenant('inheritanceautomatedtest')
+        context = Context('mycontext', tenant)
+        app = AppProfile('myapp', tenant)
+        parent_epg = EPG('parentepg', app)
+        child_epg = EPG('childepg', app)
+        contract = Contract('mycontract', tenant)
+        parent_epg.provide(contract)
+        entry = FilterEntry('webentry1',
+                            applyToFrag='no',
+                            arpOpc='unspecified',
+                            dFromPort='80',
+                            dToPort='80',
+                            etherT='ip',
+                            prot='tcp',
+                            sFromPort='1',
+                            sToPort='65535',
+                            tcpRules='unspecified',
+                            parent=contract)
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def verify_inherited(self, apic, not_inherited=False):
+        """
+        Verify that the contracts have properly been inherited (or not inherited)
+        :param apic: Session instance assumed to be logged into the APIC
+        :param not_inherited: Boolean to indicate whether to verify that the contracts have properly been inherited or not
+        :return: None
+        """
+        tenants = Tenant.get_deep(apic, names=['inheritanceautomatedtest'])
+        self.assertTrue(len(tenants) > 0)
+        tenant = tenants[0]
+        app = tenant.get_child(AppProfile, 'myapp')
+        self.assertIsNotNone(app)
+        childepg = app.get_child(EPG, 'childepg')
+        self.assertIsNotNone(childepg)
+        if not_inherited:
+            self.assertFalse(childepg.has_tag('inherited:fvRsProv:mycontract'))
+        else:
+            self.assertTrue(childepg.has_tag('inherited:fvRsProv:mycontract'))
+        contract = tenant.get_child(Contract, 'mycontract')
+        self.assertIsNotNone(contract)
+        if not_inherited:
+            self.assertFalse(childepg.does_provide(contract))
+        else:
+            self.assertTrue(childepg.does_provide(contract))
+
+    def verify_not_inherited(self, apic):
+        """
+        Verify that the contracts have not been inherited
+        :param apic: Session instance assumed to be logged into the APIC
+        :return: None
+        """
+        self.verify_inherited(apic, not_inherited=True)
+
+    def test_basic_inherit_contract(self):
+        """
+        Basic inherit contract test
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True,
+                    "inherit_from": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    }
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(4)
+
+        # Verify that the contract is now inherited by the child EPG
+        self.verify_inherited(apic)
+        tool.exit()
+        # self.delete_tenant()
+
+    def test_basic_inheritance_disallowed(self):
+        """
+        Basic test for when inheritance is disallowed
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": False,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        # Verify that the contract is now inherited by the child EPG
+        self.verify_not_inherited(apic)
+        # self.delete_tenant()
+        tool.exit()
+
+    def test_basic_inheritance_disabled(self):
+        """
+        Basic test for when inheritance is disabled
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        # Verify that the contract is now inherited by the child EPG
+        self.verify_not_inherited(apic)
+        tool.exit()
+        # self.delete_tenant()
+
+    def test_get_config(self):
+        """
+        Basic test for getting the configuration
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        config = tool.get_config()
+        # Verify that the contract is now inherited by the child EPG
+        self.assertEqual(config, config_json)
+
+        tool.exit()
+
+
+credentials = ApicCredentials()
+
 if __name__ == '__main__':
-    try:
-        if APIC_IP == '0.0.0.0':
-            print 'Invalid APIC IP address in inheritance_test_credentials.py'
-            raise ValueError
-    except (NameError, ValueError):
-        pass
+    parser = argparse.ArgumentParser(description='ACI Inheritance Tool')
+    parser.add_argument('--config', default=None,
+                        help='.ini file providing APIC credentials')
+    parser.add_argument('--maxlogfiles', type=int, default=10,
+                        help='Maximum number of log files (default is 10)')
+    parser.add_argument('--debug', nargs='?',
+                        choices=['verbose', 'warnings', 'critical'],
+                        const='critical',
+                        help='Enable debug messages.')
+    args, unittest_args = parser.parse_known_args()
+
+    # Deal with logging
+    if args.debug is not None:
+        if args.debug == 'verbose':
+            level = logging.DEBUG
+        elif args.debug == 'warnings':
+            level = logging.WARNING
+        else:
+            level = logging.CRITICAL
     else:
-        live = unittest.TestSuite()
-        live.addTest(unittest.makeSuite(TestWithoutApicCommunication))
-        live.addTest(unittest.makeSuite(TestBasic))
-        live.addTest(unittest.makeSuite(TestContractEvents))
-        live.addTest(unittest.makeSuite(TestSubnetEvents))
-        live.addTest(unittest.makeSuite(TestImportedContract))
-        live.addTest(unittest.makeSuite(TestImportedContractFromTenantCommon))
-        unittest.main(defaultTest='live')
+        level = logging.CRITICAL
+    format_string = '%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s'
+    log_formatter = logging.Formatter(format_string)
+    log_file = 'inheritance_test.%s.log' % str(getpid())
+    my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5 * 1024 * 1024,
+                                     backupCount=args.maxlogfiles,
+                                     encoding=None, delay=0)
+    my_handler.setLevel(level)
+    my_handler.setFormatter(log_formatter)
+    logging.getLogger().addHandler(my_handler)
+    logging.getLogger().setLevel(level)
+
+    # Deal with credentials
+    config_filename = args.config
+    if config_filename is None:
+        config_filename = DEFAULT_INI_FILENAME
+    credentials.set_config(config_filename)
+    if credentials.ip_address == '0.0.0.0':
+        print 'APIC credentials not given. Please ensure that there is a .ini file present and credentials are filled in.'
+        sys.exit()
+
+    # Run the tests
+    live = unittest.TestSuite()
+    live.addTest(unittest.makeSuite(TestWithoutApicCommunication))
+    live.addTest(unittest.makeSuite(TestBasicL3Out))
+    live.addTest(unittest.makeSuite(TestContractEvents))
+    live.addTest(unittest.makeSuite(TestSubnetEvents))
+    live.addTest(unittest.makeSuite(TestImportedContract))
+    live.addTest(unittest.makeSuite(TestImportedContractFromTenantCommon))
+    live.addTest(unittest.makeSuite(TestBasicAppProfile))
+    unittest.main(defaultTest='live', argv=sys.argv[:1] + unittest_args)
