@@ -1926,7 +1926,5 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestSubnetEvents))
     live.addTest(unittest.makeSuite(TestImportedContract))
     live.addTest(unittest.makeSuite(TestImportedContractFromTenantCommon))
-    live.addTest(unittest.makeSuite(TestMultipleOutsideEPGLevels))
-    live.addTest(unittest.makeSuite(TestContractFromTenantCommonUsedInTenant))
     live.addTest(unittest.makeSuite(TestBasicAppProfile))
     unittest.main(defaultTest='live', argv=sys.argv[:1] + unittest_args)
