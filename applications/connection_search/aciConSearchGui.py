@@ -21,10 +21,8 @@
 Browser GUI for connection search.
 """
 import datetime
-
 import re
 from copy import copy
-
 from flask import Flask, session, redirect, url_for, jsonify
 from flask import flash, request
 from flask.ext import admin
@@ -128,20 +126,20 @@ class BaseConnSearchView(BaseView):
 
         except Timeout:
             flash('Connection timeout when trying to reach the APIC', 'error')
-            return False;
-            #return redirect(url_for('switchreportadmin.index_view'))
+            return False
+            # return redirect(url_for('switchreportadmin.index_view'))
         except LoginError:
             flash('Unable to login to the APIC', 'error')
             return False
-            #return redirect(url_for('credentialsview.index'))
+            # return redirect(url_for('credentialsview.index'))
         except ConnectionError:
             flash('Connection failure.  Perhaps \'secure\' setting is wrong')
             return False
-            #return redirect(url_for('credentialsview.index'))
+            # return redirect(url_for('credentialsview.index'))
         except CredentialsError, e:
-            flash('There is a problem with your APIC credentials:'+e.message)
+            flash('There is a problem with your APIC credentials:' + e.message)
             return False
-            #return redirect(url_for('credentialsview.index'))
+            # return redirect(url_for('credentialsview.index'))
         return True
         #     flash('Login failure - perhaps credentials are incorrect')
         #     return redirect(url_for('credentialsview.index'))
@@ -164,7 +162,6 @@ class AciConnSearchView(BaseConnSearchView):
         # load data from file if it has not been otherwise loaded
         if not sdb.initialized:
             return self.render('loading.html')
-            # self.load_db()
 
         return self.render('search_result.html', form=form)
 
@@ -361,9 +358,20 @@ def prep_results(s_results):
     """
     result = []
     for s_result in s_results:
-        entry = {'tenant': s_result.tenant_name, 'context': s_result.context_name, 'dip': [],
-                 'sourceEpg':s_result.source_epg, 'destEpg':s_result.dest_epg,
-                 'contract':s_result.contract}
+        entry = {'src_tenant': s_result.src_tenant_name,
+                 'src_app_profile': s_result.src_app_profile,
+                 'src_app_profile_type': s_result.src_app_profile_type,
+                 'sourceEpg': s_result.source_epg,
+                 'src_epg_type': s_result.src_epg_type,
+                 'sip': [],
+                 'dip': [],
+                 'dst_tenant': s_result.dst_tenant_name,
+                 'dst_app_profile': s_result.dst_app_profile,
+                 'dst_app_profile_type' : s_result.dst_app_profile_type,
+                 'destEpg': s_result.dest_epg,
+                 'dst_epg_type': s_result.dst_epg_type,
+                 'contract_tenant': s_result.contract_tenant,
+                 'contract': s_result.contract}
         for address in s_result.dip:
             entry['dip'].append(str(address))
         entry['sip'] = []
@@ -393,16 +401,16 @@ def search_result_page(search_terms='1/101/1/49'):
     return jsonify(result=prep_results(result))
 
 
-@app.route("/load_data/<terms>")
-def load_data(terms='1/101/1/49'):
+@app.route("/load_data")
+def load_data():
     if BaseConnSearchView.load_db():
         return jsonify(result='done')
     else:
         return jsonify(result='fail')
 
-    #return redirect(url_for('credentialsview.index'))
+        # return redirect(url_for('credentialsview.index'))
 
-    #return jsonify(result='done')
+        # return jsonify(result='done')
 
 
 def initialize_db():

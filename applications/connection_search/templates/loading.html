@@ -70,7 +70,7 @@
         target = document.getElementById('spinner-box');
 
         var spinner = new Spinner(opts);//.spin(target);
-        function loadData() {d3.json("/load_data/terms?", function (error, report){
+        function loadData() {d3.json("/load_data", function (error, report){
                 var uri;
                 if (report['result'] == 'fail') {
                     uri = '/credentialsview';
@@ -84,13 +84,16 @@
 
         spinner.spin(target);
 
-        message.append("div")
+        message.append("p")
             .attr("x", 480)
             .attr("y", 250)
             .attr("dy", ".35em")
             .attr("text-anchor", "middle")
             .style("font", "200 16px Helvetica Neue")
-            .text("Loading APIC Data...this may take a while depending upon your configuration");
+            .text("Loading APIC Data...this may take a while " +
+                    "depending upon your configuration." +
+                    "The config is loaded only once.  " +
+                    "Multiple searches do not require additional loads");
 
         loadData();
 
