@@ -59,6 +59,11 @@ else:
         pass
 
 
+class CredentialsError(Exception):
+    def __init___(self,message):
+        Exception.__init__(self,"Session Credentials Error:{0}".format(message))
+        self.message = message
+
 class Login(threading.Thread):
     """
     Login thread responsible for refreshing the APIC login before timeout.
@@ -423,6 +428,14 @@ class Session(object):
         Indicates whether SSL certificates must be verified.  Possible\
         values are True and False with the default being False.
         """
+
+        if not isinstance(url,str) and not isinstance(url, unicode) :
+            raise CredentialsError("The URL or APIC address must be a string")
+        if not isinstance(uid, str) and not isinstance(url, unicode) :
+            raise CredentialsError("The user ID must be a string")
+        if not isinstance(pwd, str) and not isinstance(url, unicode):
+            raise CredentialsError("The password must be a string")
+
         if 'https://' in url:
             self.ipaddr = url[len('https://'):]
         else:

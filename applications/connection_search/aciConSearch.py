@@ -1041,11 +1041,16 @@ class ProtocolFilter(object):
             return False
         if self.etherT != other.etherT:
             return False
+        if self.prot != other.prot:
+            return False
         if not self._port_equal(other):
             return False
         if self.tcpRules != other.tcpRules:
             return False
         return True
+
+    def __ne__(self, other):
+        return not self==other
 
     def __gt__(self, other):
         if self.dFromPort > other.dFromPort:
@@ -1055,6 +1060,16 @@ class ProtocolFilter(object):
         if self.dToPort > other.dToPort:
             return True
         if self.sToPort > other.sToPort:
+            return True
+        if self.prot > other.prot:
+            return True
+        if self.etherT > other.etherT:
+            return True
+        if self.arpOpc > other.arpOpc:
+            return True
+        if self.tcpRules > other.tcpRules:
+            return True
+        if self.applyToFrag > other.applyToFrag:
             return True
         return False
 
@@ -1190,6 +1205,9 @@ class FlowSpec(object):
             return False
 
         return True
+
+    def __ne__(self, other):
+        return not self==other
 
     def __gt__(self, other):
         """

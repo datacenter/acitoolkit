@@ -32,7 +32,7 @@ from flask.ext.admin import BaseView, AdminIndexView, expose
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.wtf import Form, CsrfProtect
 from acitoolkit.acitoolkitlib import Credentials
-from acitoolkit.acisession import Session
+from acitoolkit.acisession import Session, CredentialsError
 from requests import Timeout, ConnectionError
 # Create application
 from Forms import FeedbackForm, CredentialsForm, ResetForm
@@ -128,14 +128,21 @@ class BaseConnSearchView(BaseView):
 
         except Timeout:
             flash('Connection timeout when trying to reach the APIC', 'error')
-            return redirect(url_for('switchreportadmin.index_view'))
+            return False;
+            #return redirect(url_for('switchreportadmin.index_view'))
         except LoginError:
             flash('Unable to login to the APIC', 'error')
-            return redirect(url_for('credentialsview.index'))
+            return False
+            #return redirect(url_for('credentialsview.index'))
         except ConnectionError:
             flash('Connection failure.  Perhaps \'secure\' setting is wrong')
-            return redirect(url_for('credentialsview.index'))
-        # except:
+            return False
+            #return redirect(url_for('credentialsview.index'))
+        except CredentialsError, e:
+            flash('There is a problem with your APIC credentials:'+e.message)
+            return False
+            #return redirect(url_for('credentialsview.index'))
+        return True
         #     flash('Login failure - perhaps credentials are incorrect')
         #     return redirect(url_for('credentialsview.index'))
 
@@ -156,7 +163,8 @@ class AciConnSearchView(BaseConnSearchView):
 
         # load data from file if it has not been otherwise loaded
         if not sdb.initialized:
-            self.load_db()
+            return self.render('loading.html')
+            # self.load_db()
 
         return self.render('search_result.html', form=form)
 
@@ -218,6 +226,7 @@ class CredentialsView(BaseView):
             session['secure'] = None
             session['username'] = None
             session['password'] = None
+            sdb.initialized = False
             return redirect(url_for('credentialsview.index'))
         return self.render('credentials.html', form=form,
                            reset_form=reset_form,
@@ -378,23 +387,22 @@ def search_result_page(search_terms='1/101/1/49'):
     print 'search terms', terms
     flow_spec = build_flow_spec(terms)
     t1 = datetime.datetime.now()
-    result = sdb.search(flow_spec)
+    result = sorted(sdb.search(flow_spec))
     t2 = datetime.datetime.now()
     print "Search time:", t2 - t1
     return jsonify(result=prep_results(result))
 
 
-# @app.route("/term_complete/<terms>")
-# def presearch_result_page(terms='1/101/1/49'):
-#     """
-#     This will return a set of autocomplete terms to complete the search
-#     :param terms:
-#     """
-#     terms = str(request.args['searchString'])
-#     print 'search terms', terms
-#
-#     result, total_hits = sdb.term_complete(terms)
-#     return jsonify(result=result, total_hits=total_hits)
+@app.route("/load_data/<terms>")
+def load_data(terms='1/101/1/49'):
+    if BaseConnSearchView.load_db():
+        return jsonify(result='done')
+    else:
+        return jsonify(result='fail')
+
+    #return redirect(url_for('credentialsview.index'))
+
+    #return jsonify(result='done')
 
 
 def initialize_db():

@@ -1593,7 +1593,7 @@ class TestWildcardFields(unittest.TestCase):
         self.assertTrue(result[0]==exp_flow_spec)
 
 
-class TestIpAddress(unittest.TestCase):
+class TestIpv4Address(unittest.TestCase):
     """
     Will check that IpAddress class works properly
     """
@@ -2163,6 +2163,102 @@ class TestProtocolFilter(unittest.TestCase):
         self.assertEqual(filt1.sToPort, 'any')
         self.assertEqual(filt1.tcpRules, 'any')
 
+    def check_all_combos_a_lt_b(self, a, b):
+        self.assertFalse(a == b)
+        self.assertTrue(a != b)
+        self.assertFalse(a >= b)
+        self.assertFalse(a > b)
+        self.assertTrue(a <= b)
+        self.assertTrue(a < b)
+        self.assertFalse(b == a)
+        self.assertTrue(b != a)
+        self.assertFalse(b <= a)
+        self.assertFalse(b < a)
+        self.assertTrue(b >= a)
+        self.assertTrue(b > a)
+
+    def test_compare(self):
+        filt1 = ProtocolFilter()
+        filt2 = ProtocolFilter()
+        filt1.applyToFrag = 'no'
+        filt1.arpOpc = 'unspecified'
+        filt1.dFromPort = '20'
+        filt1.dToPort = '40'
+        filt1.etherT = 'any'
+        filt1.prot = 'tcp'
+        filt1.sFromPort = '100'
+        filt1.sToPort = '500'
+        filt1.tcpRules = 'rst'
+
+        filt2.applyToFrag = 'no'
+        filt2.arpOpc = 'unspecified'
+        filt2.dFromPort = '20'
+        filt2.dToPort = '40'
+        filt2.etherT = 'any'
+        filt2.prot = 'tcp'
+        filt2.sFromPort = '100'
+        filt2.sToPort = '500'
+        filt2.tcpRules = 'rst'
+
+        self.assertTrue(filt1 == filt2)
+        self.assertFalse(filt1 != filt2)
+        self.assertTrue(filt1 >= filt2)
+        self.assertFalse(filt1 > filt2)
+        self.assertTrue(filt1 <= filt2)
+        self.assertFalse(filt1 < filt2)
+
+        filt2.applyToFrag = 'any'
+
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.applyToFrag = 'no'
+        filt2.arpOpc = 'req'
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.arpOpc = 'any'
+        filt2.dFromPort = 21
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.dFromPort = 20
+        filt2.dToPort = 41
+
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.dToPort = 40
+        filt2.etherT = 'ip'
+        filt1.etherT = 'any'
+
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.etherT = 'any'
+        filt2.prot = 'udp'
+        filt2.etherT = 'any'
+
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.prot = 'tcp'
+        filt2.sFromPort = '101'
+        filt2.etherT = 'any'
+        filt2.etherT = 'any'
+
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.sFromPort = '100'
+        filt2.sToPort = '501'
+        filt2.etherT = 'any'
+
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.sToPort = '500'
+        filt2.tcpRules = 'syn'
+        filt2.etherT = 'any'
+
+        self.check_all_combos_a_lt_b(filt1, filt2)
+
+        filt2.tcpRules = 'rst'
+
+        self.assertEqual(filt1, filt2)
+
 
 class TestArgs(unittest.TestCase):
     """
@@ -2247,7 +2343,7 @@ class TestArgs(unittest.TestCase):
         self.assertEqual(flow_spec.protocol_filter[0].sFromPort, 443)
         self.assertEqual(flow_spec.protocol_filter[0].sToPort, 1000)
 
-class TextRadix(unittest.TestCase):
+class TestRadix(unittest.TestCase):
     """
     Will test the radix library
     """
@@ -2421,6 +2517,159 @@ class TextRadix(unittest.TestCase):
 
         result = r.search_covered('10.0.0.1')
         self.assertEqual(len(result), 0)
+
+class TestFlowSpec(unittest.TestCase):
+    def test_compare_tenant_context(self):
+        f1 = FlowSpec()
+        f1.tenant_name = 'tenant'
+        f1.context_name = 'ctx'
+        filt1 = ProtocolFilter()
+        filt1.prot = 'tcp'
+        f1.protocol_filter.append(filt1)
+
+        f2 = FlowSpec()
+        f2.tenant_name = 'tenant1'
+        f2.context_name = 'ctx'
+        f2.protocol_filter.append(filt1)
+
+        self.assertTrue(f1 < f2)
+        self.assertTrue(f2 > f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertTrue(f1 != f2)
+        self.assertTrue(f2 != f1)
+        self.assertFalse(f1 == f2)
+
+        f2.tenant_name = 'tenant'
+        f2.context_name = 'dtx'
+
+        self.assertTrue(f1 < f2)
+        self.assertTrue(f2 > f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertTrue(f1 != f2)
+        self.assertTrue(f2 != f1)
+        self.assertFalse(f1 == f2)
+
+        f2.tenant_name = 'tenant'
+        f2.context_name = 'ctx'
+        self.assertTrue(f1 == f2)
+        self.assertFalse(f2 != f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertFalse(f1 < f2)
+        self.assertFalse(f1 > f2)
+        self.assertFalse(f2 < f1)
+        self.assertFalse(f2 > f1)
+
+    def test_compare_ip(self):
+        f1 = FlowSpec()
+        f1.tenant_name = 'tenant'
+        f1.context_name = 'ctx'
+        filt1 = ProtocolFilter()
+        filt1.prot = 'tcp'
+        f1.protocol_filter.append(filt1)
+
+        f2 = FlowSpec()
+        f2.tenant_name = 'tenant'
+        f2.context_name = 'ctx'
+        f2.protocol_filter.append(filt1)
+
+        f1.dip = [Ipv4Address('1.2.3.4/32')]
+        f2.dip = [Ipv4Address('1.2.4.4/32')]
+        self.assertTrue(f1 < f2)
+        self.assertTrue(f2 > f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertTrue(f1 != f2)
+        self.assertTrue(f2 != f1)
+        self.assertFalse(f1 == f2)
+        self.assertFalse(f2 == f1)
+        self.assertFalse(f1 > f2)
+        self.assertFalse(f2 < f1)
+        self.assertFalse(f1 >= f2)
+        self.assertFalse(f2 <= f1)
+
+        f2.dip = [Ipv4Address('1.2.3.4/32')]
+        self.assertTrue(f1 == f2)
+
+        f1.sip = [Ipv4Address('1.2.3.4/32')]
+        f2.sip = [Ipv4Address('1.2.4.4/32')]
+        self.assertTrue(f1 < f2)
+        self.assertTrue(f2 > f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertTrue(f1 != f2)
+        self.assertTrue(f2 != f1)
+        self.assertFalse(f1 == f2)
+        self.assertFalse(f2 == f1)
+        self.assertFalse(f1 > f2)
+        self.assertFalse(f2 < f1)
+        self.assertFalse(f1 >= f2)
+        self.assertFalse(f2 <= f1)
+
+        f1.sip = [Ipv4Address('1.2.3.4/32')]
+        f2.sip = [Ipv4Address('1.2.3.4/16')]
+        self.assertTrue(f1 < f2)
+        self.assertTrue(f2 > f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertTrue(f1 != f2)
+        self.assertTrue(f2 != f1)
+        self.assertFalse(f1 == f2)
+        self.assertFalse(f2 == f1)
+        self.assertFalse(f1 > f2)
+        self.assertFalse(f2 < f1)
+        self.assertFalse(f1 >= f2)
+        self.assertFalse(f2 <= f1)
+
+        f2.sip = [Ipv4Address('1.2.3.4/32')]
+
+        f1.sip = [Ipv4Address('1.2.3.4/16')]
+        f2.sip = [Ipv4Address('1.2.3.4/16'), Ipv4Address('1.2.3.7/8')]
+        self.assertTrue(f1 < f2)
+        self.assertTrue(f2 > f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertTrue(f1 != f2)
+        self.assertTrue(f2 != f1)
+        self.assertFalse(f1 == f2)
+        self.assertFalse(f2 == f1)
+        self.assertFalse(f1 > f2)
+        self.assertFalse(f2 < f1)
+        self.assertFalse(f1 >= f2)
+        self.assertFalse(f2 <= f1)
+
+    def test_compare_protocol_filter(self):
+        f1 = FlowSpec()
+        f1.tenant_name = 'tenant'
+        f1.context_name = 'ctx'
+        filt1 = ProtocolFilter()
+        filt1.prot = 'tcp'
+        f1.protocol_filter.append(filt1)
+
+        f2 = FlowSpec()
+        f2.tenant_name = 'tenant'
+        f2.context_name = 'ctx'
+        filt2 = ProtocolFilter()
+        filt2.prot = 'tcp'
+        f2.protocol_filter.append(filt2)
+
+        filt1.dFromPort = 80
+        self.assertTrue(f1 < f2)
+        self.assertTrue(f2 > f1)
+        self.assertTrue(f1 <= f2)
+        self.assertTrue(f2 >= f1)
+        self.assertTrue(f1 != f2)
+        self.assertTrue(f2 != f1)
+        self.assertFalse(f1 == f2)
+        self.assertFalse(f2 == f1)
+        self.assertFalse(f1 > f2)
+        self.assertFalse(f2 < f1)
+        self.assertFalse(f1 >= f2)
+        self.assertFalse(f2 <= f1)
+
+
 
 
 
