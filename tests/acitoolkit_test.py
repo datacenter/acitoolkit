@@ -3959,6 +3959,105 @@ class TestLiveContracts(TestLiveAPIC):
 
         self.assertIsInstance(Contract.get_table(total_contracts)[0], Table)
 
+    def test_get_deep_contract_consumed_same_tenant(self):
+        """
+        Test get_deep() that contract consume relationship is set correctly
+        """
+        apic = self.login_to_apic()
+
+        # Create the tenant
+        tenant = Tenant('aci-toolkit-test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        contract = Contract('mycontract', tenant)
+        epg.consume(contract)
+        self.assertTrue(epg.does_consume(contract))
+
+        # Push tenant to the APIC
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+        # Get the tenant using get_deep
+        tenants = Tenant.get_deep(apic, names=['aci-toolkit-test'])
+        self.assertTrue(len(tenants) > 0)
+        tenant = tenants[0]
+
+        # Check that the EPG consumes the contract
+        contract = tenant.get_child(Contract, 'mycontract')
+        self.assertIsNotNone(contract)
+        app = tenant.get_child(AppProfile, 'app')
+        self.assertIsNotNone(app)
+        epg = app.get_child(EPG, 'epg')
+        self.assertIsNotNone(epg)
+
+        self.assertTrue(epg.does_consume(contract))
+
+        # Delete the tenant
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def test_get_deep_contract_consumed_different_tenant(self):
+        """
+        Test get_deep() that contract consume relationship is set correctly
+        """
+        apic = self.login_to_apic()
+
+        # Create the contract in tenant common
+        common_tenant = Tenant('common')
+        common_contract = Contract('aci-toolkit-test', common_tenant)
+
+        # Push contract to the APIC
+        resp = common_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+        # Create the tenant
+        tenant = Tenant('aci-toolkit-test')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg', app)
+        epg.consume(common_contract)
+        self.assertTrue(epg.does_consume(common_contract))
+
+        # Push tenant to the APIC
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+        # Get the tenant using get_deep
+        fabric = Fabric()
+        tenants = Tenant.get_deep(apic, names=['aci-toolkit-test', 'common'], parent=fabric)
+        self.assertTrue(len(tenants) > 0)
+        consumer_tenant = None
+        common_tenant = None
+        for tenant in tenants:
+            if tenant.name == 'aci-toolkit-test':
+                consumer_tenant = tenant
+            elif tenant.name == 'common':
+                common_tenant = tenant
+        self.assertIsNotNone(consumer_tenant)
+        self.assertIsNotNone(common_tenant)
+
+        # Check that the EPG consumes the contract
+        contract = common_tenant.get_child(Contract, 'aci-toolkit-test')
+        self.assertIsNotNone(contract)
+        app = consumer_tenant.get_child(AppProfile, 'app')
+        self.assertIsNotNone(app)
+        epg = app.get_child(EPG, 'epg')
+        self.assertIsNotNone(epg)
+
+        self.assertTrue(epg.does_consume(contract))
+
+        # Delete the tenant
+        consumer_tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+        # Delete the tenant common contract
+        common_tenant = Tenant('common')
+        common_contract = Contract('aci-toolkit-test', common_tenant)
+        common_contract.mark_as_deleted()
+        resp = common_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
 
 class TestLiveContractInterface(TestLiveAPIC):
     """
@@ -4037,7 +4136,7 @@ class TestLiveContractInterface(TestLiveAPIC):
         contract_ifs = ContractInterface.get(apic, tenant)
         self.assertEqual(len(contract_ifs), 1)
 
-    def test_get_deep(self):
+    def test_get_deep_contract_if(self):
         """
         Test ContractInterface.get_deep()
         """
