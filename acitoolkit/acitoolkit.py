@@ -206,8 +206,8 @@ class Tenant(BaseACIObject):
                 ret._content = ret._content.replace(b"\\\'", b"'")
 
             data = ret.json()['imdata']
-            full_data.append(data[0])
             if len(data):
+                full_data.append(data[0])
                 obj = super(Tenant, cls).get_deep(full_data=data,
                                                   working_data=data,
                                                   parent=parent,
