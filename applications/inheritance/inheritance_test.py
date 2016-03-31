@@ -210,9 +210,9 @@ class TestWithoutApicCommunication(unittest.TestCase):
         self.assertTrue(fake_out.verify_output([sample_config, '\n']))
 
 
-class TestBasic(BaseTestCase):
+class TestBasicL3Out(BaseTestCase):
     """
-    Basic Inheritance test cases
+    Basic Inheritance test cases enabled on OutsideEPGs
     """
     def setup_tenant(self, apic):
         """
@@ -1595,6 +1595,285 @@ class TestContractFromTenantCommonUsedInTenant(BaseImportedContract):
         consumer_tenant_name = 'inheritanceautomatedtest-consumer'
         self.run_basic_test(provider_tenant_name, consumer_tenant_name, use_contract_if=False)
 
+
+class TestBasicAppProfile(BaseTestCase):
+    """
+    Basic Inheritance test cases enabled on Application Profile EPGs
+    """
+    def setup_tenant(self, apic):
+        """
+        Setup the tenant configuration
+        :param apic: Session instance assumed to be logged into the APIC
+        :return: None
+        """
+        tenant = Tenant('inheritanceautomatedtest')
+        context = Context('mycontext', tenant)
+        app = AppProfile('myapp', tenant)
+        parent_epg = EPG('parentepg', app)
+        child_epg = EPG('childepg', app)
+        contract = Contract('mycontract', tenant)
+        parent_epg.provide(contract)
+        entry = FilterEntry('webentry1',
+                            applyToFrag='no',
+                            arpOpc='unspecified',
+                            dFromPort='80',
+                            dToPort='80',
+                            etherT='ip',
+                            prot='tcp',
+                            sFromPort='1',
+                            sToPort='65535',
+                            tcpRules='unspecified',
+                            parent=contract)
+        resp = tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+
+    def verify_inherited(self, apic, not_inherited=False):
+        """
+        Verify that the contracts have properly been inherited (or not inherited)
+        :param apic: Session instance assumed to be logged into the APIC
+        :param not_inherited: Boolean to indicate whether to verify that the contracts have properly been inherited or not
+        :return: None
+        """
+        tenants = Tenant.get_deep(apic, names=['inheritanceautomatedtest'])
+        self.assertTrue(len(tenants) > 0)
+        tenant = tenants[0]
+        app = tenant.get_child(AppProfile, 'myapp')
+        self.assertIsNotNone(app)
+        childepg = app.get_child(EPG, 'childepg')
+        self.assertIsNotNone(childepg)
+        if not_inherited:
+            self.assertFalse(childepg.has_tag('inherited:fvRsProv:mycontract'))
+        else:
+            self.assertTrue(childepg.has_tag('inherited:fvRsProv:mycontract'))
+        contract = tenant.get_child(Contract, 'mycontract')
+        self.assertIsNotNone(contract)
+        if not_inherited:
+            self.assertFalse(childepg.does_provide(contract))
+        else:
+            self.assertTrue(childepg.does_provide(contract))
+
+    def verify_not_inherited(self, apic):
+        """
+        Verify that the contracts have not been inherited
+        :param apic: Session instance assumed to be logged into the APIC
+        :return: None
+        """
+        self.verify_inherited(apic, not_inherited=True)
+
+    def test_basic_inherit_contract(self):
+        """
+        Basic inherit contract test
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True,
+                    "inherit_from": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    }
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(4)
+
+        # Verify that the contract is now inherited by the child EPG
+        self.verify_inherited(apic)
+        tool.exit()
+        # self.delete_tenant()
+
+    def test_basic_inheritance_disallowed(self):
+        """
+        Basic test for when inheritance is disallowed
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": True
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": False,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        # Verify that the contract is now inherited by the child EPG
+        self.verify_not_inherited(apic)
+        # self.delete_tenant()
+        tool.exit()
+
+    def test_basic_inheritance_disabled(self):
+        """
+        Basic test for when inheritance is disabled
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        # Verify that the contract is now inherited by the child EPG
+        self.verify_not_inherited(apic)
+        tool.exit()
+        # self.delete_tenant()
+
+    def test_get_config(self):
+        """
+        Basic test for getting the configuration
+        """
+        config_json = {
+            "apic": {
+                "user_name": credentials.username,
+                "password": credentials.password,
+                "ip_address": credentials.ip_address,
+                "use_https": False
+            },
+            "inheritance_policies": [
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "childepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                },
+                {
+                    "epg": {
+                        "tenant": "inheritanceautomatedtest",
+                        "epg_container": {
+                            "name": "myapp",
+                            "container_type": "app"
+                        },
+                        "name": "parentepg"
+                    },
+                    "allowed": True,
+                    "enabled": False
+                }
+            ]
+        }
+        args = TestArgs()
+        apic = Session(credentials.url, credentials.username, credentials.password)
+        apic.login()
+        self.setup_tenant(apic)
+        tool = execute_tool(args)
+        tool.add_config(config_json)
+        time.sleep(2)
+
+        config = tool.get_config()
+        # Verify that the contract is now inherited by the child EPG
+        self.assertEqual(config, config_json)
+
+        tool.exit()
+
+
 credentials = ApicCredentials()
 
 if __name__ == '__main__':
@@ -1607,7 +1886,7 @@ if __name__ == '__main__':
                         choices=['verbose', 'warnings', 'critical'],
                         const='critical',
                         help='Enable debug messages.')
-    args = parser.parse_args()
+    args, unittest_args = parser.parse_known_args()
 
     # Deal with logging
     if args.debug is not None:
@@ -1642,9 +1921,10 @@ if __name__ == '__main__':
     # Run the tests
     live = unittest.TestSuite()
     live.addTest(unittest.makeSuite(TestWithoutApicCommunication))
-    live.addTest(unittest.makeSuite(TestBasic))
+    live.addTest(unittest.makeSuite(TestBasicL3Out))
     live.addTest(unittest.makeSuite(TestContractEvents))
     live.addTest(unittest.makeSuite(TestSubnetEvents))
     live.addTest(unittest.makeSuite(TestImportedContract))
     live.addTest(unittest.makeSuite(TestImportedContractFromTenantCommon))
-    unittest.main(defaultTest='live')
+    live.addTest(unittest.makeSuite(TestBasicAppProfile))
+    unittest.main(defaultTest='live', argv=sys.argv[:1] + unittest_args)

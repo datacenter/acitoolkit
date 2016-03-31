@@ -618,7 +618,7 @@ class Monitor(threading.Thread):
             tenants.append(tenant)
 
         # Find the EPG Container. Add if necessary
-        if epg.is_l3out:
+        if epg.is_l3out():
             epg_container_class = OutsideL3
         else:
             epg_container_class = AppProfile
@@ -632,7 +632,7 @@ class Monitor(threading.Thread):
             epg_container = epg_container_class(epg.epg_container_name, tenant)
 
         # Find the EPG. Add if necessary
-        if epg.is_l3out:
+        if epg.is_l3out():
             epg_class = OutsideEPG
         else:
             epg_class = EPG
@@ -712,7 +712,21 @@ class Monitor(threading.Thread):
         return relations
 
     def _calculate_relations_for_app_policy(self, inheritance_policy):
-        pass
+        logging.debug('policy: %s', inheritance_policy)
+        relations = []
+        # Check if this policy is even inheritance enabled
+        if not inheritance_policy.has_inherit_from():
+            logging.warning('EPG is not inheriting from a parent EPG')
+            return relations
+        # Get the EPG that this policy is inheriting from
+        parent_epg = inheritance_policy.inherit_from
+        # Is inheritance allowed on that EPG ?
+        if not self.cdb.is_inheritance_allowed(parent_epg):
+            logging.warning('Parent EPG policy does not allow inheritance')
+            return relations
+        # Get the relations belonging to that EPG
+        return self._relations.get_relations_for_epg(parent_epg)
+
 
     def calculate_relations(self):
         relations = {}
@@ -723,7 +737,7 @@ class Monitor(threading.Thread):
                 epg_relations = self._calculate_relations_for_l3out_policy(inheritance_policy)
             else:
                 # TODO: may eventually need to process l2out
-                self._calculate_relations_for_app_policy(inheritance_policy)
+                epg_relations = self._calculate_relations_for_app_policy(inheritance_policy)
             relations[inheritance_policy.epg.get_json()] = epg_relations
         return relations
 
