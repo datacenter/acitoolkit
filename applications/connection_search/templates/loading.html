@@ -1,0 +1,89 @@
+{#
+################################################################################
+#                                                                              #
+# Copyright (c) 2015 Cisco Systems                                             #
+# All Rights Reserved.                                                         #
+#                                                                              #
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
+#    not use this file except in compliance with the License. You may obtain   #
+#    a copy of the License at                                                  #
+#                                                                              #
+#         http://www.apache.org/licenses/LICENSE-2.0                           #
+#                                                                              #
+#    Unless required by applicable law or agreed to in writing, software       #
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
+#    License for the specific language governing permissions and limitations   #
+#    under the License.                                                        #
+#                                                                              #
+################################################################################
+#}
+{% extends 'admin/master.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+{%  block head %}
+    {{  super() }}
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='connectionSearch.css') }}">
+{% endblock %}
+{% block body %}
+    <script src="http://d3js.org/d3.v3.js"></script>
+    <script src="../static/spin.js"></script>
+    <script src="../static/connectionSearch.js"></script>
+    <script src="../static/connSearchResult.js"></script>
+
+
+    <script>
+        d3.select(".span10").select("#content")
+                .append("div")
+                .attr("id", "autoComplete");
+
+        d3.select(".span10").select("#content")
+                .append("div")
+                .attr('id','spinner-box')
+                .attr("class", "atk_object_view");
+
+        d3.select(".span10").select("#content")
+                .append("div")
+                .attr("id", "records");
+
+        var opts = {
+          lines: 11 // The number of lines to draw
+        , length: 23 // The length of each line
+        , width: 14 // The line thickness
+        , radius: 42 // The radius of the inner circle
+        , scale: 0.25 // Scales overall size of the spinner
+        , corners: 1 // Corner roundness (0..1)
+        , color: '#000' // #rgb or #rrggbb or array of colors
+        , opacity: 0.15 // Opacity of the lines
+        , rotate: 0 // The rotation offset
+        , direction: 1 // 1: clockwise, -1: counterclockwise
+        , speed: 1 // Rounds per second
+        , trail: 60 // Afterglow percentage
+        , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+        , zIndex: 2e9 // The z-index (defaults to 2000000000)
+        , className: 'spinner' // The CSS class to assign to the spinner
+        , top: '50%' // Top position relative to parent
+        , left: '50%' // Left position relative to parent
+        , shadow: false // Whether to render a shadow
+        , hwaccel: false // Whether to use hardware acceleration
+        , position: 'absolute' // Element positioning
+        }
+        // var spinner = new Spinner(opts);
+        var target;
+        target = document.getElementById('spinner-box');
+
+        var spinner = new Spinner(opts);//.spin(target);
+        var searchStatus = d3.select(".ac-searching");
+
+        function callBack(search_terms) {
+            renderSearch($.param({'first':search_terms}));
+        }
+
+        var cs = new connectionSearch(callBack);
+
+        function renderSearch(search_terms) {d3.json("/search/terms?" + search_terms, function (error, report){
+            showConnections(report);
+            })
+        }
+    </script>
+
+{% endblock %}
