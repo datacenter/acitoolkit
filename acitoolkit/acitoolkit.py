@@ -161,6 +161,8 @@ class Tenant(BaseACIObject):
 
         :param session: the instance of Session used for APIC communication
         :param names: list of strings containing the tenant names. If no list is given, all tenants will be collected.
+                      It should be noted that if relations extend across tenants, the relation will only be
+                      populated if the tenants are included in this list.
         :param limit_to: list of strings containing the APIC classes to limit the collection to i.e. ['fvTenant',
                          'fvBD']. If no list is given, all classes will be collected.
         :param subtree: String containing the rsp-subtree option. Default is 'full'.
@@ -1086,7 +1088,7 @@ class EPG(CommonEPG):
                             found = True
                     if not found:
                         for contract in objs:
-                            if contract.name == contract_name and contract.get_parent() == 'common':
+                            if contract.name == contract_name and contract.get_parent().name == 'common':
                                 self.provide(contract)
             elif 'fvRsCons' in child:
                 contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
@@ -1121,7 +1123,7 @@ class EPG(CommonEPG):
                                 found = True
                         if not found:
                             for contract in objs:
-                                if contract.name == contract_name and contract.get_parent() == 'common':
+                                if contract.name == contract_name and contract.get_parent().name == 'common':
                                     self.consume(contract)
 
             elif 'fvRsDomAtt' in child:
