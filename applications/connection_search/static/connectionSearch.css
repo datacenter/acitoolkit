@@ -1,4 +1,11 @@
-.connectionTable {
+table{
+    border-collapse:collapse;
+}
+
+tr.border_bottom th {
+  border-bottom:2pt solid black;
+
+}.connectionTable {
     border-spacing: 15px;
 }
 

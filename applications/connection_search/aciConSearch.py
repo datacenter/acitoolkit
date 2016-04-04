@@ -1107,8 +1107,19 @@ class FlowSpec(object):
         self.context_name = '*'
         self.protocol_filter = []
         self.source_epg = None
+        self.src_epg_type = None
         self.dest_epg = None
+        self.dst_epg_type = None
         self.contract = None
+        self.contract_tenant = None
+        self.src_tenant_name = None
+        self.src_app_profile = None
+        self.src_app_profile_type = None
+        self.dst_tenant_name = None
+        self.dst_app_profile = None
+        self.dst_app_profile_type = None
+
+
 
     def get_source(self):
         return SubFlowSpec(self.tenant_name, self.context_name, self.sip)
@@ -1580,13 +1591,31 @@ class SearchDb(object):
         result.dip = connection['dest']
         result.protocol_filter = matching_filters
         epg = connection['source_epg']
-        name = '{0}/{1}:{2}'.format(epg.get_parent().get_parent().name, epg.get_parent().name, epg.name)
-        result.source_epg = name
+        result.src_tenant_name = epg.get_parent().get_parent().name
+        result.src_app_profile = epg.get_parent().name
+        if isinstance(epg.get_parent(), AppProfile) :
+            result.src_app_profile_type = "AppProfile"
+        else:
+            result.src_app_profile_type = "Context"
 
+        result.source_epg = epg.name
+        if isinstance(epg, EPG) :
+            result.src_epg_type = "EPG"
+        else:
+            result.src_epg_type = "L3Out"
         epg = connection['dest_epg']
-        name = '{0}/{1}:{2}'.format(epg.get_parent().get_parent().name, epg.get_parent().name, epg.name)
-        result.dest_epg = name
-
+        result.dst_tenant_name = epg.get_parent().get_parent().name
+        result.dst_app_profile = epg.get_parent().name
+        if isinstance(epg.get_parent(), AppProfile) :
+            result.dst_app_profile_type = "AppProfile"
+        else:
+            result.dst_app_profile_type = "Context"
+        result.dest_epg = epg.name
+        if isinstance(epg, EPG) :
+            result.dst_epg_type = "EPG"
+        else:
+            result.dst_epg_type = "L3Out"
+        result.contract_tenant = connection['contract'][1].get_parent().name
         result.contract = connection['contract'][1].name
 
         return result
