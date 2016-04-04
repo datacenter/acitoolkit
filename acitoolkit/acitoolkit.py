@@ -1132,9 +1132,19 @@ class EPG(CommonEPG):
                 self._dom_resolution_immediacy = dom_attributes['resImedcy']
             elif 'fvRsConsIf' in child:
                 contract_if_name = child['fvRsConsIf']['attributes']['tnVzCPIfName']
-                contract_if = tenant.get_child(ContractInterface, contract_if_name)
-                if contract_if is not None:
-                    self.consume_cif(contract_if)
+                if ContractInterface in obj_dict:
+                    objs = obj_dict[ContractInterface]
+
+                    if len(objs):
+                        found = False
+                        for contract_if in objs:
+                            if contract_if.name == contract_if_name and contract_if.get_parent() == tenant:
+                                self.consume_cif(contract_if)
+                                found = True
+                        if not found:
+                            for contract_if in objs:
+                                if contract_if.name == contract_if_name and contract_if.get_parent().name == 'common':
+                                    self.consume_cif(contract_if)
 
         super(EPG, self)._extract_relationships(data, obj_dict)
 
@@ -1399,7 +1409,7 @@ class OutsideEPG(CommonEPG):
                                 found = True
                         if not found:
                             for contract in objs:
-                                if contract.name == contract_name and contract.get_parent() == 'common':
+                                if contract.name == contract_name and contract.get_parent().name == 'common':
                                     self.provide(contract)
 
             elif 'fvRsCons' in child:
@@ -1435,13 +1445,23 @@ class OutsideEPG(CommonEPG):
                                 found = True
                         if not found:
                             for contract in objs:
-                                if contract.name == contract_name and contract.get_parent() == 'common':
+                                if contract.name == contract_name and contract.get_parent().name == 'common':
                                     self.consume(contract)
             elif 'fvRsConsIf' in child:
                 contract_if_name = child['fvRsConsIf']['attributes']['tnVzCPIfName']
-                contract_if = tenant.get_child(ContractInterface, contract_if_name)
-                if contract_if is not None:
-                    self.consume_cif(contract_if)
+                if ContractInterface in obj_dict:
+                    objs = obj_dict[ContractInterface]
+
+                    if len(objs):
+                        found = False
+                        for contract_if in objs:
+                            if contract_if.name == contract_if_name and contract_if.get_parent() == tenant:
+                                self.consume_cif(contract_if)
+                                found = True
+                        if not found:
+                            for contract_if in objs:
+                                if contract_if.name == contract_if_name and contract_if.get_parent().name == 'common':
+                                    self.consume_cif(contract_if)
 
         super(OutsideEPG, self)._extract_relationships(data, obj_dict)
 
@@ -3476,7 +3496,7 @@ class ContractSubject(BaseACIObject):
                                                 if not found:
                                                     for specific_filter in all_filters:
                                                         if specific_filter.name == filt_name and \
-                                                                        specific_filter.get_parent() == 'common':
+                                                                        specific_filter.get_parent().name == 'common':
                                                             self.add_filter(specific_filter)
 
                         except KeyError:

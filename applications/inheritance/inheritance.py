@@ -599,11 +599,23 @@ class Monitor(threading.Thread):
         self.apic.subscribe(tag_query_url)
         self._inheritance_tag_subscriptions.append(tag_query_url)
 
-    def does_tenant_have_contract(self, tenant_name, contract_name):
-        logging.debug('does_tenant_have_contract tenant: %s contract: %s', tenant_name, contract_name)
-        query_url = '/api/mo/uni/tn-%s/brc-%s.json' % (tenant_name, contract_name)
+    def _does_tenant_have_contract(self, tenant_name, contract_name, contract_type='brc'):
+        logging.debug('tenant: %s contract: %s contract_type: %s',
+                      tenant_name, contract_name, contract_type)
+        query_url = '/api/mo/uni/tn-%s/%s-%s.json' % (tenant_name,
+                                                      contract_type,
+                                                      contract_name)
         resp = self.apic.get(query_url)
         return resp.ok and int(resp.json()['totalCount']) > 0
+
+    def does_tenant_have_contract_if(self, tenant_name, contract_if_name):
+        return self._does_tenant_have_contract(tenant_name,
+                                               contract_if_name,
+                                               contract_type='cif')
+
+    def does_tenant_have_contract(self, tenant_name, contract_name):
+        return self._does_tenant_have_contract(tenant_name,
+                                               contract_name)
 
     def _add_inherited_relation(self, tenants, epg, relation, deleted=False):
         tenant_found = False
@@ -831,6 +843,9 @@ class Monitor(threading.Thread):
             for child in tenant_json['fvTenant']['children']:
                 if 'vzBrCP' in child:
                     if not self.does_tenant_have_contract(tenant.name, child['vzBrCP']['attributes']['name']):
+                        tenant_json['fvTenant']['children'].remove(child)
+                elif 'vzCPIf' in child:
+                    if not self.does_tenant_have_contract_if(tenant.name, child['vzCPIf']['attributes']['name']):
                         tenant_json['fvTenant']['children'].remove(child)
             logging.debug('Pushing tenant configuration to the APIC: %s', tenant_json)
             resp = self.apic.push_to_apic(tenant.get_url(), tenant_json)
