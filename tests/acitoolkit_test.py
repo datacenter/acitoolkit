@@ -39,7 +39,8 @@ from acitoolkit.acitoolkit import (
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
     PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork,
-    AttributeCriterion, OutsideL2, TunnelInterface, FexInterface, VMM
+    AttributeCriterion, OutsideL2, TunnelInterface, FexInterface, VMM,
+    OutsideL2EPG
 )
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
@@ -2349,6 +2350,50 @@ class TestOutsideL2(unittest.TestCase):
             }
         }
         self.assertEqual(expected_json, tenant.get_json())
+
+
+class TestOutsideL2EPG(unittest.TestCase):
+    """
+    Test the OutsideL2EPG class
+    """
+    def test_create(self):
+        tenant = Tenant('test')
+        outside_l2 = OutsideL2('l2out', tenant)
+        outside_l2_epg = OutsideL2EPG('l2outepg', outside_l2)
+        self.assertEqual(outside_l2_epg.name, 'l2outepg')
+
+    def test_get_json(self):
+        tenant = Tenant('test')
+        outside_l2 = OutsideL2('l2out', tenant)
+        outside_l2_epg = OutsideL2EPG('l2outepg', outside_l2)
+        tenant_json = tenant.get_json()
+        expected_json = {
+            'fvTenant': {
+                'attributes': {
+                    'name': 'test'
+                },
+                'children': [
+                    {
+                        'l2extOut': {
+                            'attributes': {
+                                'name': 'l2out'
+                            },
+                            'children': [
+                                {'l2extInstP':
+                                     {
+                                         'attributes': {
+                                             'name': 'l2outepg'
+                                         },
+                                         'children': []
+                                     }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(tenant_json, expected_json)
 
 
 class TestPortChannel(unittest.TestCase):
