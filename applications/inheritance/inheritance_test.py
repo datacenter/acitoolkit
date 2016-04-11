@@ -1682,13 +1682,6 @@ class TestImportedContractInterfaceFromTenantCommon(unittest.TestCase):
         resp = apic.login()
         self.assertTrue(resp.ok)
 
-        # Delete the consumer tenant
-        consumer_tenant = Tenant('inheritanceautomatedtest-consumer')
-        consumer_tenant.mark_as_deleted()
-        resp = consumer_tenant.push_to_apic(apic)
-        self.assertTrue(resp.ok)
-        time.sleep(2)
-
         # Delete the tenant common ContractInterface
         common_tenant = Tenant('common')
         contract_if = ContractInterface('contract-a-exported', common_tenant)
@@ -1697,10 +1690,24 @@ class TestImportedContractInterfaceFromTenantCommon(unittest.TestCase):
         self.assertTrue(resp.ok)
         time.sleep(2)
 
+        # Delete the consumer tenant
+        consumer_tenant = Tenant('inheritanceautomatedtest-consumer')
+        consumer_tenant.mark_as_deleted()
+        resp = consumer_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        time.sleep(2)
+
         # Delete the provider tenant
         provider_tenant = Tenant('inheritanceautomatedtest-provider')
         provider_tenant.mark_as_deleted()
         resp = provider_tenant.push_to_apic(apic)
+        self.assertTrue(resp.ok)
+        time.sleep(2)
+
+        # Delete the consumer tenant
+        consumer_tenant = Tenant('inheritanceautomatedtest-consumer')
+        consumer_tenant.mark_as_deleted()
+        resp = consumer_tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
         time.sleep(2)
 
