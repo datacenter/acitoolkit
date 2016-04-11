@@ -1177,7 +1177,7 @@ class LocalSite(Site):
         :param tenant_name: String containing the tenant name
         :param app_name: String containing the application profile name
         :param epg_name: String containing the EPG name
-        :return: 
+        :return:
         """
         for policy in self.policy_db:
             if policy.tenant == tenant_name and policy.app == app_name and policy.epg == epg_name:

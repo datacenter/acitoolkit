@@ -16,7 +16,6 @@ else:
     import builtins
 import json
 import time
-from requests import ConnectionError
 
 try:
     from multisite_test_credentials import (SITE1_IPADDR, SITE1_LOGIN, SITE1_PASSWORD, SITE1_URL,
@@ -322,7 +321,9 @@ class BaseTestCase(unittest.TestCase):
         resp = site2.login()
         self.assertTrue(resp.ok)
 
-        query = ('/api/mo/uni/tn-%s/out-%s/instP-%s.json?query-target=children' % (tenant_name, l3out_name, remote_epg_name))
+        query = ('/api/mo/uni/tn-%s/out-%s/instP-%s.json?query-target=children' % (tenant_name,
+                                                                                   l3out_name,
+                                                                                   remote_epg_name))
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
@@ -610,7 +611,8 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         """
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_add_multiple_endpoint(self):
         """
@@ -622,8 +624,10 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_endpoint(self):
         """
@@ -632,9 +636,11 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
         """
@@ -646,12 +652,16 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
 
         self.remove_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
-        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
 
 
 class TestMultipleEPG(BaseTestCase):
@@ -764,13 +774,15 @@ class TestMultipleEPG(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app1-epg1'))
 
         time.sleep(2)
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app1', 'epg1')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app1-epg1'))
 
     def test_basic_add_multiple_endpoint(self):
         """
@@ -799,9 +811,12 @@ class TestMultipleEPG(BaseTestCase):
         self.add_endpoint(mac3, ip3, 'intersite-testsuite', 'app2', 'epg2')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app2-epg2'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac3, ip3, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app2-epg2'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app2-epg2'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac3, ip3, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app2-epg2'))
 
     def test_basic_remove_endpoint(self):
         """
@@ -818,10 +833,12 @@ class TestMultipleEPG(BaseTestCase):
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app1', 'epg1')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app1-epg1'))
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app1', 'epg1')
         time.sleep(2)
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app1-epg1'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app1-epg1'))
 
     def test_basic_remove_one_of_multiple_endpoint(self):
         """
@@ -872,7 +889,8 @@ class TestBasicExistingEndpoints(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
 
         resp = tenant.push_to_apic(site1)
@@ -937,7 +955,8 @@ class TestBasicExistingEndpoints(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_endpoint(self):
         """
@@ -952,10 +971,12 @@ class TestBasicExistingEndpoints(BaseTestCase):
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
 class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
@@ -977,7 +998,8 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
 
         resp = tenant.push_to_apic(site1)
@@ -1053,7 +1075,8 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg'))
 
     def test_basic_remove_endpoint(self):
         """
@@ -1069,13 +1092,15 @@ class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
         time.sleep(2)
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
+                                                          'intersite-testsuite-app-epg'))
 
         config = self.create_config_file()
         self.write_config_file(config, args)
         collector.reload_config()
         time.sleep(2)
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
+                                                           'intersite-testsuite-app-epg'))
 
 
 class TestExportPolicyRemoval(BaseTestCase):
@@ -1110,7 +1135,8 @@ class TestExportPolicyRemoval(BaseTestCase):
         epg2 = EPG('epg2', app)
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
+                                                           'intersite-testsuite-app-epg'))
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
 
         resp = tenant.push_to_apic(site1)
@@ -1232,18 +1258,24 @@ class TestExportPolicyRemoval(BaseTestCase):
         time.sleep(4)
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg2'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                           'l3out2', 'intersite-testsuite-app-epg2'))
 
         config = self.create_site_config()
         self.write_config_file(config, args)
         collector.reload_config()
 
         time.sleep(4)
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg2'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                            'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                            'l3out2', 'intersite-testsuite-app-epg2'))
 
     def test_basic_change_policy_name(self):
         """
@@ -1256,8 +1288,10 @@ class TestExportPolicyRemoval(BaseTestCase):
         self.write_config_file(config, args)
         collector = execute_tool(args, test_mode=True)
         time.sleep(4)
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
 
         config = self.create_diff_epg_config_file()
         self.write_config_file(config, args)
@@ -1265,10 +1299,14 @@ class TestExportPolicyRemoval(BaseTestCase):
 
         time.sleep(4)
 
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg2'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg2'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                            'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg2'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg2'))
 
 
 class TestBasicEndpointsWithContract(BaseTestCase):
@@ -1549,7 +1587,8 @@ class TestBasicEndpointMove(BaseTestCase):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg1'))
 
         time.sleep(2)
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg1')
@@ -1561,7 +1600,8 @@ class TestBasicEndpointMove(BaseTestCase):
         """
         mac, ip = self.setup_with_endpoint()
         time.sleep(2)
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg1'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg1'))
 
     def test_basic_add_multiple_endpoint(self):
         """
@@ -1766,7 +1806,8 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
             return False
 
         # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=subtree'
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out'
+                 '/instP-intersite-testsuite-app-epg.json?query-target=subtree')
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
@@ -1819,7 +1860,8 @@ class TestPolicyChangeProvidedContract(BaseTestCase):
             return False
 
         # Look for l3extSubnet
-        query = '/api/mo/uni/tn-intersite-testsuite/out-l3out/instP-intersite-testsuite-app-epg.json?query-target=subtree'
+        query = ('/api/mo/uni/tn-intersite-testsuite/out-l3out'
+                 '/instP-intersite-testsuite-app-epg.json?query-target=subtree')
         resp = site2.get(query)
         self.assertTrue(resp.ok)
 
@@ -1979,23 +2021,30 @@ class TestChangeL3Out(BaseTestCase):
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
         time.sleep(2)
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out1', 'intersite-testsuite-app-epg'))
 
         time.sleep(2)
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                           'l3out1', 'intersite-testsuite-app-epg'))
         config = self.create_config_file('l3out2')
         self.write_config_file(config, args)
         collector.reload_config()
         time.sleep(4)
 
-        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                            'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                           'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_add_endpoint_multiple_l3out(self):
         """
@@ -2016,26 +2065,36 @@ class TestChangeL3Out(BaseTestCase):
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
         time.sleep(2)
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out2', 'intersite-testsuite-app-epg'))
 
         time.sleep(2)
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1',
+                                                           'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2',
+                                                           'intersite-testsuite-app-epg'))
         config = self.create_config_file('l3out2')
         self.write_config_file(config, args)
         collector.reload_config()
         time.sleep(4)
 
-        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                            'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_policy('intersite-testsuite',
+                                                           'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_add_multiple_endpoint(self):
         """
@@ -2055,15 +2114,19 @@ class TestChangeL3Out(BaseTestCase):
         self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
+                                                          'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out1', 'intersite-testsuite-app-epg'))
 
         config = self.create_config_file('l3out2')
         self.write_config_file(config, args)
         collector.reload_config()
         time.sleep(2)
-        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
+                                                          'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out2', 'intersite-testsuite-app-epg'))
 
 # test basic install of a single EPG and 1 endpoint being pushed to other site
 # test remove EPG from policy and that
@@ -2217,7 +2280,8 @@ class TestDuplicates(BaseTestCase):
         for i in range(0, 5):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                               'l3out', 'intersite-testsuite-app-epg'))
             self.add_remote_duplicate_entry(ip)
 
         time.sleep(2)
@@ -2231,7 +2295,8 @@ class TestDuplicates(BaseTestCase):
         for i in range(0, 5):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                              'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_partial_duplicate(self):
         """
@@ -2245,7 +2310,8 @@ class TestDuplicates(BaseTestCase):
         for i in range(0, 7):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                               'l3out', 'intersite-testsuite-app-epg'))
             self.add_remote_duplicate_entry(ip)
 
         time.sleep(2)
@@ -2259,7 +2325,8 @@ class TestDuplicates(BaseTestCase):
         for i in range(4, 9):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out', 'intersite-testsuite-app-epg'))
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                              'l3out', 'intersite-testsuite-app-epg'))
 
 
 class SetupDuplicateTests(BaseTestCase):
@@ -2402,7 +2469,8 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                           'l3out1', 'intersite-testsuite-app-epg'))
         self.add_remote_duplicate_entry(ip)
 
         time.sleep(2)
@@ -2412,10 +2480,14 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
         self.add_endpoint(mac2, ip2, 'intersite-testsuite-local', 'app', 'epg')
 
         time.sleep(2)
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
-        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                          'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-remote',
+                                                          'l3out1', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                          'l3out2', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite-remote',
+                                                          'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_multiple_duplicate(self):
         """
@@ -2429,8 +2501,10 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
         for i in range(0, 5):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
-            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                               'l3out1', 'intersite-testsuite-app-epg'))
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                               'l3out2', 'intersite-testsuite-app-epg'))
             self.add_remote_duplicate_entry(ip)
 
         time.sleep(2)
@@ -2444,8 +2518,10 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
         for i in range(0, 5):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
-            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                              'l3out1', 'intersite-testsuite-app-epg'))
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                              'l3out2', 'intersite-testsuite-app-epg'))
 
     def test_basic_partial_duplicate(self):
         """
@@ -2459,8 +2535,10 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
         for i in range(0, 7):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
-            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                               'l3out1', 'intersite-testsuite-app-epg'))
+            self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                               'l3out2', 'intersite-testsuite-app-epg'))
             self.add_remote_duplicate_entry(ip)
 
         time.sleep(2)
@@ -2474,8 +2552,10 @@ class TestDuplicatesTwoL3Outs(SetupDuplicateTests):
         for i in range(4, 9):
             mac = '00:11:22:33:33:3' + str(i)
             ip = '3.4.3.' + str(i)
-            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out1', 'intersite-testsuite-app-epg'))
-            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote', 'l3out2', 'intersite-testsuite-app-epg'))
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                              'l3out1', 'intersite-testsuite-app-epg'))
+            self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-remote',
+                                                              'l3out2', 'intersite-testsuite-app-epg'))
 
 
 class TestDeletions(BaseEndpointTestCase):
@@ -2511,12 +2591,14 @@ class TestDeletions(BaseEndpointTestCase):
         remote_tenant.push_to_apic(site2)
 
         time.sleep(2)
-        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
 
         execute_tool(args, test_mode=True)
 
         time.sleep(2)
-        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
 def main_test():

@@ -921,12 +921,18 @@ class EPG(CommonEPG):
         Called from the base object when calling the classmethod get()
         """
         super(EPG, self)._populate_from_attributes(attributes)
-        self.match_type = str(attributes.get('matchT'))
-        self.class_id = str(attributes.get('pcTag'))
-        self.scope = str(attributes.get('scope'))
+        if 'matchT' in attributes:
+            self.match_type = str(attributes.get('matchT'))
+        if 'pcTag' in attributes:
+            self.class_id = str(attributes.get('pcTag'))
+        if 'scope' in attributes:
+            self.scope = str(attributes.get('scope'))
         if 'name' in attributes:
             self.name = str(attributes.get('name'))
-        self._is_attribute_based = str(attributes.get('isAttrBasedEPg'))
+        elif self.dn != '':
+            self.name = self._get_name_from_dn(self.dn)
+        if 'isAttrBasedEPg' in attributes:
+            self._is_attribute_based = str(attributes.get('isAttrBasedEPg'))
         if self._is_attribute_based.lower() in ['true', 'yes']:
             self._is_attribute_based = True
         else:
@@ -2743,8 +2749,10 @@ class BaseSubnet(BaseACIObject):
         Called from the base object when calling the classmethod get()
         """
         super(BaseSubnet, self)._populate_from_attributes(attributes)
-        self.set_addr(str(attributes.get('ip')))
-        self.set_scope(str(attributes.get('scope')))
+        if 'ip' in attributes:
+            self.set_addr(str(attributes.get('ip')))
+        if 'scope' in attributes:
+            self.set_scope(str(attributes.get('scope')))
 
     @property
     def addr(self):
@@ -2972,13 +2980,21 @@ class Context(BaseACIObject):
         Called from the base object when calling the classmethod get()
         """
         super(Context, self)._populate_from_attributes(attributes)
-        self.known_mcast = str(attributes.get('knwMcastAct'))
-        self.modified_time = str(attributes.get('modTs'))
-        self.name = str(attributes.get('name'))
-        self.class_id = str(attributes.get('pcTag'))
-        self.scope = str(attributes.get('scope'))
-        self.vnid = str(attributes.get('seg'))
         dn = attributes.get('dn')
+        if 'knwMcastAct' in attributes:
+            self.known_mcast = str(attributes.get('knwMcastAct'))
+        if 'modTs' in attributes:
+            self.modified_time = str(attributes.get('modTs'))
+        if 'name' in attributes:
+            self.name = str(attributes.get('name'))
+        elif self.dn != '':
+            self.name = self._get_name_from_dn(self.dn)
+        if 'pcTag' in attributes:
+            self.class_id = str(attributes.get('pcTag'))
+        if 'scope' in attributes:
+            self.scope = str(attributes.get('scope'))
+        if 'seg' in attributes:
+            self.vnid = str(attributes.get('seg'))
         if dn is not None:
             self.tenant = str(self._get_tenant_from_dn(dn))
         else:
@@ -3175,13 +3191,15 @@ class ContractInterface(BaseACIObject):
         Called from the base object when calling the classmethod get()
         """
         super(ContractInterface, self)._populate_from_attributes(attributes)
-        self.modified_time = attributes.get('modTs')
-        self.name = attributes.get('name')
         dn = attributes.get('dn')
         if dn is not None:
             self.tenant = self._get_tenant_from_dn(dn)
         else:
             self.tenant = None
+        self.modified_time = attributes.get('modTs')
+        self.name = attributes.get('name')
+        if self.name is None and self.dn != '':
+            self.name = self._get_name_from_dn(self.dn)
 
     def import_contract(self, contract):
         """
@@ -3842,7 +3860,13 @@ class FilterEntry(BaseACIObject):
         :return: object created from json dictionary
         """
         attributes = data['vzEntry']['attributes']
-        entry = cls(name=str(attributes.get('name')),
+        if 'name' in attributes:
+            name = str(attributes.get('name'))
+        elif 'dn' in attributes:
+            name = cls._get_name_from_dn(str(attributes.get('dn')))
+        else:
+            raise ValueError('Name not found in attributes')
+        entry = cls(name=name,
                     parent=parent)
         entry._populate_from_attributes(attributes)
         return entry
@@ -4186,13 +4210,18 @@ class Endpoint(BaseACIObject):
         if 'mac' not in attributes:
             return
         super(Endpoint, self)._populate_from_attributes(attributes)
-        self.mac = str(attributes.get('mac'))
-        self.ip = str(attributes.get('ip'))
-        self.encap = str(attributes.get('encap'))
-        life_cycle = str(attributes.get('lcC'))
+        if 'mac' in attributes:
+            self.mac = str(attributes.get('mac'))
+        if 'ip' in attributes:
+            self.ip = str(attributes.get('ip'))
+        if 'encap' in attributes:
+            self.encap = str(attributes.get('encap'))
+        if 'lcC' in attributes:
+            life_cycle = str(attributes.get('lcC'))
         if life_cycle is not '':
             self.life_cycle = life_cycle
-        self.type = str(attributes.get('type'))
+        if 'type' in attributes:
+            self.type = str(attributes.get('type'))
 
     def _populate_interface_info(self, working_data):
         for item in working_data[0]:
@@ -4287,16 +4316,19 @@ class Endpoint(BaseACIObject):
                 if class_name in event['imdata'][0]:
                     break
             attributes = event['imdata'][0][class_name]['attributes']
-            status = str(attributes.get('status'))
-            dn = str(attributes.get('dn'))
+            if 'status' in attributes:
+                status = str(attributes.get('status'))
+            if 'dn' in attributes:
+                dn = str(attributes.get('dn'))
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
-            if status == 'created':
+            if status == 'created' and 'mac' in attributes:
                 name = str(attributes.get('mac'))
             else:
                 name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)
             obj._populate_from_attributes(attributes)
-            obj.timestamp = str(attributes.get('modTs'))
+            if 'modTs' in attributes:
+                obj.timestamp = str(attributes.get('modTs'))
             if obj.mac is None:
                 obj.mac = name
             try:
@@ -4558,9 +4590,8 @@ class IPEndpoint(BaseACIObject):
 
     def _populate_from_attributes(self, attributes):
         super(IPEndpoint, self)._populate_from_attributes(attributes)
-        if 'addr' not in attributes:
-            return
-        self.ip = str(attributes.get('addr'))
+        if 'addr' in attributes:
+            self.ip = str(attributes.get('addr'))
 
     @classmethod
     def get_event(cls, session):
@@ -4573,8 +4604,10 @@ class IPEndpoint(BaseACIObject):
                 if class_name in event['imdata'][0]:
                     break
             attributes = event['imdata'][0][class_name]['attributes']
-            status = str(attributes.get('status'))
-            dn = str(attributes.get('dn'))
+            if 'status' in attributes:
+                status = str(attributes.get('status'))
+            if 'dn' in attributes:
+                dn = str(attributes.get('dn'))
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
             name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)

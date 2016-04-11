@@ -469,6 +469,7 @@ class TagDB(BaseDB):
         :return: None
         """
         assert isinstance(tag_event, TagEvent)
+        logging.debug('WTF: storing tag: %s', tag_event.event)
         epg = self._convert_policy_epg_to_db_epg(tag_event.epg)
         if epg not in self.db:
             self.db[epg] = []
@@ -478,6 +479,16 @@ class TagDB(BaseDB):
                 self.db[epg].remove(db_entry)
         else:
             self.db[epg].append(db_entry)
+
+    def get_relations(self):
+        relations = {}
+        for epg in self.db:
+            policy_epg = self._convert_db_epg_to_policy_epg(epg).get_json()
+            if policy_epg not in relations:
+                relations[policy_epg] = []
+            for relation in self.db[epg]:
+                relations[policy_epg].append(relation)
+        return relations
 
     def is_inherited(self, epg, relation):
         """
@@ -508,6 +519,7 @@ class Monitor(threading.Thread):
         self._relations = RelationDB()
         self._inheritance_tags = TagDB()
         self._subnets = SubnetDB()
+        self._old_relations = {}
         self.apic = None
 
     def exit(self):
@@ -540,6 +552,7 @@ class Monitor(threading.Thread):
 
     def connect_to_apic(self):
         logging.debug('Connecting to APIC...')
+        logging.debug('WTF Connecting to APIC...')
         # Connect to APIC
         apic_config = self.cdb.get_apic_config()
         url = apic_config.ip_address
@@ -553,6 +566,7 @@ class Monitor(threading.Thread):
         resp = self.apic.login()
 
         # TODO: need to clear out the databases first
+        assert len(self._inheritance_tags.db) == 0
 
         # Get all of the subnets
         query_url = '/api/mo/uni.json?query-target=subtree&target-subtree-class=l3extSubnet'
@@ -568,6 +582,8 @@ class Monitor(threading.Thread):
             tag_event = TagEvent(tag)
             # Create a database entry for the inherited relations
             self._inheritance_tags.store_tag(tag_event)
+        self._old_relations = self._inheritance_tags.get_relations()
+        logging.debug('OK SET OLD_RELATIONS TO: %s', self._old_relations)
 
         # Get all of the relations. We need this to track relations that are already present
         # i.e. configured but not through inheritance so that we can tell the difference
@@ -686,6 +702,7 @@ class Monitor(threading.Thread):
         tenant_epg.add_tag('inherited:%s:%s' % (relation_type, relation_name))
         if deleted:
             tenant_epg.delete_tag('inherited:%s:%s' % (relation_type, relation_name))
+            logging.debug('WTF delete tag')
         return tenants
 
     def add_inherited_relation(self, tenants, epg, relation):
@@ -739,7 +756,6 @@ class Monitor(threading.Thread):
         # Get the relations belonging to that EPG
         return self._relations.get_relations_for_epg(parent_epg)
 
-
     def calculate_relations(self):
         relations = {}
         for inheritance_policy in self.cdb.get_inheritance_policies():
@@ -770,6 +786,9 @@ class Monitor(threading.Thread):
     def _process_events(self, old_relations):
         while self.apic is None:
             pass
+
+        if old_relations is None:
+            old_relations = self._inheritance_tags.get_relations()
 
         # Check for any tag events
         for subscription in self._inheritance_tag_subscriptions:
@@ -814,22 +833,31 @@ class Monitor(threading.Thread):
                         continue
                     tenants = self.add_inherited_relation(tenants, EPGPolicy(json.loads(new_epg)), new_relation)
             else:
+                logging.debug('RELATION CHANGED')
                 # Handle any new added relations
                 for new_relation in new_relations[new_epg]:
                     if new_relation not in old_relations[new_epg]:
+                        logging.debug('RELATION ADDED')
                         if self._relations.has_relation_for_epg(EPGPolicy(json.loads(new_epg)), new_relation):
                             continue
                         tenants = self.add_inherited_relation(tenants, EPGPolicy(json.loads(new_epg)), new_relation)
                 # Handle any deleted relations
                 for old_relation in old_relations[new_epg]:
                     if old_relation not in new_relations[new_epg]:
-                        if self._inheritance_tags.is_inherited(EPGPolicy(json.loads(new_epg)), old_relation):
-                            tenants = self.remove_inherited_relation(tenants, EPGPolicy(json.loads(new_epg)), old_relation)
-                        else:
-                            # Must have been configured and manually deleted
-                            pass
+                        logging.debug('RELATION REMOVED')
+                        # if self._inheritance_tags.is_inherited(EPGPolicy(json.loads(new_epg)), old_relation):
+                        #     logging.debug('BYE BYE RELATION')
+                        tenants = self.remove_inherited_relation(tenants, EPGPolicy(json.loads(new_epg)), old_relation)
+                        # else:
+                        #     logging.debug('RELATION WTF ???? %s', os.getpid())
+                        #     logging.debug('WTF tags: %s', self._inheritance_tags.db)
+                        #     logging.debug('WTF old_relation: %s new_epg: %s', old_relation, new_epg)
+                        #     # Must have been configured and manually deleted
+                        #     # TODO: need to delete any that have inherited from it
+                        #     pass
         for old_epg in old_relations:
             if old_epg not in new_relations:
+                logging.debug('OH OH FOUND OLD EPG NOT IN NEW RELATIONS')
                 for old_relation in old_relations[old_epg]:
                     if self._inheritance_tags.is_inherited(EPGPolicy(json.loads(old_epg)), old_relation):
                         tenants = self.remove_inherited_relation(tenants, EPGPolicy(json.loads(old_epg)), old_relation)
@@ -858,10 +886,9 @@ class Monitor(threading.Thread):
     def run(self):
         loop_count = 0
         accelerated_cleanup_done = False
-        old_relations = {}
         while not self._exit:
             time.sleep(self._monitor_frequency)
-            old_relations = self._process_events(old_relations)
+            self._old_relations = self._process_events(self._old_relations)
             # if not accelerated_cleanup_done:
             #     if loop_count < 3:
             #         loop_count += 1
@@ -1088,6 +1115,7 @@ class InheritanceService(GenericService):
         if self.cdb.store_config(config_json) and self.cdb.has_apic_config():
             if self.monitor is not None:
                 self.monitor.exit()
+                time.sleep(2)
             self.monitor = Monitor(self.cdb)
             self.monitor.daemon = True
             self.monitor.start()

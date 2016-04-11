@@ -938,7 +938,6 @@ class BaseACIObject(AciSearch):
            Overridden by inheriting classes to provide the specific attributes
            when getting objects from the APIC.
         """
-
         # always get a dn
         self.dn = self.get_dn_from_attributes(attributes)
         self.descr = attributes.get('descr')
@@ -1357,9 +1356,6 @@ class BaseACIPhysModule(BaseACIPhysObject):
         self.descr = None
         self.bios = None
         self.firmware = None
-
-        # self._apic_class = None
-        self.dn = None
 
         if parent:
             if not isinstance(parent, str):

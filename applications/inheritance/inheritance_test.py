@@ -2402,8 +2402,8 @@ class TestBasicToolRestart(BaseTestCase):
         time.sleep(4)
 
         # Verify that the contract is now inherited by the child EPG
-        self.verify_inherited(apic)
         tool.exit()
+        self.verify_inherited(apic)
         time.sleep(4)
 
         # Remove the contract from the parent EPG
@@ -2417,8 +2417,8 @@ class TestBasicToolRestart(BaseTestCase):
         time.sleep(6)
 
         # Verify that the contract is no longer inherited by the child EPG
-        self.verify_not_inherited(apic)
         tool.exit()
+        self.verify_not_inherited(apic)
 
 
 credentials = ApicCredentials()

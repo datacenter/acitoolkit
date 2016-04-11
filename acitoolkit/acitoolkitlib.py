@@ -28,22 +28,7 @@
 #                                                                              #
 ################################################################################
 """
-Used to get the APIC and MySQL login credentials from the command
-line (--help gives usage).
-
-The login credentials are taken in the following order
-
-* Command line arguments
-* Environment variables
-* File named credentials.py
-* From an interactive prompt
-
-These are done in a per credential basis so it is possible to specify only
-some of the arguments.  For instance, the username and URL can be specified
-in credentials.py but the password can be taken from the user through the
-interactive prompt.  Another example is using the command line argument to
-override the URL specified in credentials.py to temporarily connect to a
-different APIC.
+Collection of utility classes to make getting credentials and configuration easier.
 """
 import argparse
 import getpass
@@ -52,7 +37,22 @@ import os
 
 class Credentials(object):
     """
-    Main class to derive the credentials from the user
+    Used to get the APIC and MySQL login credentials from the command
+    line (--help gives usage).
+
+    The login credentials are taken in the following order
+
+    * Command line arguments
+    * Environment variables
+    * File named credentials.py
+    * From an interactive prompt
+
+    These are done in a per credential basis so it is possible to specify only
+    some of the arguments.  For instance, the username and URL can be specified
+    in credentials.py but the password can be taken from the user through the
+    interactive prompt.  Another example is using the command line argument to
+    override the URL specified in credentials.py to temporarily connect to a
+    different APIC.
     """
     def __init__(self, qualifier='apic', description=''):
         def set_default(key):

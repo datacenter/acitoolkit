@@ -37,6 +37,7 @@ import acitoolkit.aciphysobject as ACI_PHYS
 import json
 from acitoolkit.acitoolkitlib import Credentials
 
+
 def main():
     """
     Main show Process routine
@@ -53,7 +54,6 @@ def main():
         print '%% Could not login to APIC'
         sys.exit(0)
 
-    
     cluster = ACI_PHYS.Cluster('Cluster')
     cluster_info = cluster.get(session)
 
@@ -68,8 +68,7 @@ def main():
             print json.dumps(apic,indent=4, sort_keys = True)
     else:
         print("PASS")
-    
-        
+
 
 if __name__ == '__main__':
     try:
