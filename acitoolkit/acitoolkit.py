@@ -924,7 +924,8 @@ class EPG(CommonEPG):
         self.match_type = str(attributes.get('matchT'))
         self.class_id = str(attributes.get('pcTag'))
         self.scope = str(attributes.get('scope'))
-        self.name = str(attributes.get('name'))
+        if 'name' in attributes:
+            self.name = str(attributes.get('name'))
         self._is_attribute_based = str(attributes.get('isAttrBasedEPg'))
         if self._is_attribute_based.lower() in ['true', 'yes']:
             self._is_attribute_based = True
