@@ -83,9 +83,9 @@ def main():
     # Login to APIC and push the config
     session = Session(args.url, args.login, args.password)
     session.login()
-
+    
     # Cleanup (uncomment the next line to delete the config)
-    tenant.mark_as_deleted()
+    #tenant.mark_as_deleted()
     resp = tenant.push_to_apic(session)
 
     if resp.ok:

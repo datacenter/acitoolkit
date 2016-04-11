@@ -42,8 +42,6 @@ app = AppProfile('myapp', tenant)
 # Create the EPG
 epg = EPG('myepg', app)
 
-criteria_epg = CriteriaBasedEPG('criteriaepg', epg)
-
 # Create a Context and BridgeDomain
 context = Context('myvrf', tenant)
 bd = BridgeDomain('mybd', tenant)
