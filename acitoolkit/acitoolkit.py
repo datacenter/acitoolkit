@@ -931,9 +931,7 @@ class EPG(CommonEPG):
             self.name = str(attributes.get('name'))
         elif self.dn != '':
             self.name = self._get_name_from_dn(self.dn)
-        if 'isAttrBasedEPg' in attributes:
-            self._is_attribute_based = str(attributes.get('isAttrBasedEPg'))
-        if self._is_attribute_based.lower() in ['true', 'yes']:
+        if str(attributes.get('isAttrBasedEPg')).lower() in ['true', 'yes']:
             self._is_attribute_based = True
         else:
             self._is_attribute_based = False
