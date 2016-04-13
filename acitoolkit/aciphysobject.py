@@ -2420,6 +2420,18 @@ class Interface(BaseInterface):
 
         return interface_type, pod, node, module, port
 
+    @staticmethod
+    def _parse_extpath_dn(dn):
+        pod = dn.partition('/pod-')[-1].split('/')[0]
+        node = dn.partition('/paths-')[-1].split('/')[0]
+        module = dn.partition('/extpaths-')[-1].split('/')[0]
+        interface = dn.partition('/pathep-[')[-1].partition(']')[0]
+        interface_type = interface[:3]
+        module = module + ':' + interface[3:].partition('/')[0]
+        port = interface[3:].partition('/')[-1]
+
+        return interface_type, pod, node, module, port
+
     @classmethod
     def parse_dn(cls, dn):
         """
@@ -2431,6 +2443,8 @@ class Interface(BaseInterface):
         """
         if 'sys' in dn.split('/'):
             return cls._parse_physical_dn(dn)
+        elif '/extpaths-' in dn:
+            return cls._parse_extpath_dn(dn)
         else:
             return cls._parse_path_dn(dn)
 
