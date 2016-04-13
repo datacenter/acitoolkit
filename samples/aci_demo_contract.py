@@ -53,6 +53,8 @@ def main():
     # Create the EPGs
     web_epg = EPG('web-frontend', app)
     db_epg = EPG('database-backend', app)
+    web_epg.set_intra_epg_isolation(False)
+    db_epg.set_intra_epg_isolation(True)
 
     # Create a Context and BridgeDomain
     # Place both EPGs in the Context and in the same BD

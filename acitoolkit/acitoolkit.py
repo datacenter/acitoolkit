@@ -831,6 +831,7 @@ class EPG(CommonEPG):
         self.class_id = None
         self.scope = None
         self._deployment_immediacy = None
+        self._intra_epg_isolation = False
         self._dom_deployment_immediacy = None
         self._dom_resolution_immediacy = None
         self._is_attribute_based = False
@@ -840,6 +841,8 @@ class EPG(CommonEPG):
         attributes = super(EPG, self)._generate_attributes()
         if self._is_attribute_based:
             attributes['isAttrBasedEPg'] = 'yes'
+        if self._intra_epg_isolation:
+            attributes['pcEnfPref'] = 'enforced'
         return attributes
 
     @property
@@ -935,6 +938,11 @@ class EPG(CommonEPG):
             self._is_attribute_based = True
         else:
             self._is_attribute_based = False
+        if attributes.get('pcEnfPref') == 'enforced':
+            self._intra_epg_isolation = True
+        else:
+            self._intra_epg_isolation = False
+
 
     # Infrastructure Domain references
     def add_infradomain(self, infradomain):
@@ -998,6 +1006,14 @@ class EPG(CommonEPG):
         :param immediacy: String containing either "immediate" or "lazy"
         """
         self._deployment_immediacy = immediacy
+
+    def set_intra_epg_isolation(self, isolation):
+        """
+        Set the intra-EPG isolation of the EPG
+
+        :param isolation: String containing either "unenforced" or "enforced"
+        """
+        self._intra_epg_isolation = isolation
 
     def set_dom_deployment_immediacy(self, immediacy):
         """
