@@ -48,6 +48,24 @@ from acitoolkit.aciphysobject import (
 import json
 import unittest
 
+class TestParser(unittest.TestCase):
+    def test_parse_dn(self):
+        dn = 'topology/pod-1/paths-102/pathep-[eth1/12]'
+        (interface_type, pod, node, module, port) = Interface.parse_dn(dn)
+        self.assertEqual(interface_type, 'eth')
+        self.assertEqual(pod, '1')
+        self.assertEqual(node, '102')
+        self.assertEqual(module, '1')
+        self.assertEqual(port, '12')
+
+        dn = 'topology/pod-1/paths-1012/pathep-[c01-nas-n06-IfPolGrp]'
+        (interface_type, pod, node, module, port) = Interface.parse_dn(dn)
+        self.assertEqual(interface_type, 'pol')
+        self.assertEqual(pod, '1')
+        self.assertEqual(node, '1012')
+        self.assertEqual(module, '')
+        self.assertEqual(port, 'c01-nas-n06-IfPolGrp')
+
 
 class TestPod(unittest.TestCase):
     """
