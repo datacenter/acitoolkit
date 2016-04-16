@@ -372,10 +372,10 @@ def prep_results(s_results):
                  'dst_epg_type': s_result.dst_epg_type,
                  'contract_tenant': s_result.contract_tenant,
                  'contract': s_result.contract}
-        for address in s_result.dip:
+        for address in sorted(s_result.dip):
             entry['dip'].append(str(address))
         entry['sip'] = []
-        for address in s_result.sip:
+        for address in sorted(s_result.sip):
             entry['sip'].append(str(address))
         entry['filter'] = []
         for aci_filter in s_result.protocol_filter:
@@ -395,7 +395,8 @@ def search_result_page(search_terms='1/101/1/49'):
     print 'search terms', terms
     flow_spec = build_flow_spec(terms)
     t1 = datetime.datetime.now()
-    result = sorted(sdb.search(flow_spec))
+    #result = sorted(sdb.search(flow_spec))
+    result = sdb.search(flow_spec)
     t2 = datetime.datetime.now()
     print "Search time:", t2 - t1
     return jsonify(result=prep_results(result))
