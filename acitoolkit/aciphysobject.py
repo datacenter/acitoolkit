@@ -2409,14 +2409,25 @@ class Interface(BaseInterface):
         """
         Handles DNs that look like the following:
         topology/pod-1/paths-102/pathep-[eth1/12]
+        topology/pod-1/paths-1012/pathep-[c01-nas-n06-IfPolGrp]
         """
-        name = dn.split('/')
-        pod = name[1].split('-')[1]
-        node = name[2].split('-')[1]
-        module = name[3].split('[')[1]
-        interface_type = module[:3]
-        module = module[3:]
-        port = name[4].split(']')[0]
+        pod = dn.partition('/pod-')[-1].split('/')[0]
+        node = dn.partition('/paths-')[-1].split('/')[0]
+        port_name = dn.partition('/pathep-[')[-1].split(']')[0]
+        if port_name[:3]=='eth':
+            module = port_name[3:].split('/')[0]
+            port = port_name[3:].split('/')[1]
+            interface_type = 'eth'
+        else:
+            module = ''
+            port = port_name
+            interface_type = 'pol'
+
+        # name = dn.split('/')
+        # module = name[3].split('[')[1]
+        # interface_type = module[:3]
+        # module = module[3:]
+        # port = name[4].split(']')[0]
 
         return interface_type, pod, node, module, port
 
