@@ -46,6 +46,9 @@ from wtforms.fields.html5 import DateField, DateTimeField
 from wtforms.validators import Required, IPAddress, NumberRange
 from wtforms.validators import ValidationError, Optional
 import difflib
+import json
+import os
+from flask import jsonify
 from acitoolkit.acitoolkit import Credentials
 
 # Create application
@@ -54,7 +57,7 @@ app = Flask(__name__, static_folder='static')
 # Cross site replay security
 app.config['SECRET_KEY'] = 'Dnit7qz7mfcP0YuelDrF8vLFvk0snhwP'
 app.config['CSRF_ENABLED'] = True
-CsrfProtect(app)
+csrf = CsrfProtect(app)
 
 bootstrap = Bootstrap(app)
 
@@ -312,7 +315,134 @@ class ScheduleSnapshot(BaseView):
                            lastsnapshot=cdb.get_latest_snapshot_time(),
                            nextsnapshot=cdb.get_next_snapshot_time(),
                            schedule=cdb.get_current_schedule())
-
+        
+class JsonInterface(BaseView): 
+    @csrf.exempt
+    @app.route('/login', methods=['POST'])
+    def login():
+        if request.method == 'POST':
+            data = request.json
+            session['ipaddr'] = data['ipaddr']
+            session['secure'] = data['secure']
+            session['username'] = data['username']
+            session['password'] = data['password']
+            if (session.get('ipaddr') is None or session.get('username') is None or session.get('password') is None):
+                return "please provide ipaddress, username,password"
+            
+            args = APICArgs(session.get('ipaddr'),
+                           session.get('username'),
+                           session.get('secure'),
+                           session.get('password'))
+            try:
+                resp = cdb.login(args)
+                if resp.ok is not True:
+                    return 'Unable to login to the APIC'
+            except Timeout:
+                return 'Connection timeout when trying to reach the APIC'
+        return 'loged in'
+        '''
+        method to login to aci config db
+        usage : curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/login --data @login.json
+        and the login.json structrue is
+        {"ipaddr":"","secure":"","username":"","password":""}
+        '''
+    @csrf.exempt
+    @app.route('/viewsnapshots', methods=['POST'])
+    def viewsnapshots():
+        if request.method == 'POST':
+            versions = cdb.get_versions(with_changes=True)
+            data = {}
+            Items = []
+            for (version, additions, deletions) in versions:
+                for (filename, adds, dels) in cdb.get_filenames(version,
+                                                        prev_version=None,
+                                                        with_changes=True):
+                    item = {}
+                    item['filename'] = filename
+                    item['version'] = version
+                    Items.append(item)
+                    data['items'] = Items
+            if request.data != None :
+                with open(request.data, 'w') as txtfile:
+                    json.dump(data, txtfile)
+            return jsonify(data=data)  
+            '''
+            this method is used to view all the snapshots and write it to a file in json format
+            usage : curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/viewsnapshots --data "filename"
+            '''
+    @csrf.exempt
+    @app.route('/viewfile', methods=['POST'])
+    def viewfile():
+        if request.method == 'POST':
+            files = []
+            data = request.json
+            version_needed = data['version']
+            name  = data['name']
+            return cdb.get_file(name, version_needed)
+        '''
+        this method is used to view a single snapshot given name and version in json format
+        usgae: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/viewfile -d '{"name":"snapshot_172.31.216.100_14.json","version":"2016-04-01_10.56.57"}'
+        displays the json content on terminal
+        '''
+    @csrf.exempt
+    @app.route('/logout')
+    def logout():
+        if cdb.is_logged_in():
+            session['ipaddr'] = None
+            session['secure'] = None
+            session['username'] = None
+            session['password'] = None
+            return 'logged out'
+        else:
+            return 'logged out'
+        '''
+        this method is used to logout. clears all session variables.
+        usage: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/logout
+        '''
+    @app.route('/cancelschedule', methods=['POST'])
+    def canselschedule():
+        if request.method == 'POST':
+            resp = cdb.cancel_schedule
+            return 'cansel schedule successfull'
+        '''
+        this method is used to cansel the latest scheduled snapshots
+        usage: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/cancelschedule
+        '''
+    @csrf.exempt
+    @app.route('/schedulesnapshot', methods=['POST'])
+    def schedulesnapshot():
+       if request.method == 'POST':
+            data = request.json
+            if cdb.is_logged_in():
+                if data.has_key('date'):
+                    date = datetime.datetime.strptime(data['date'], '%b %d %Y')
+                else:
+                    date = datetime.date.today()
+                if data.has_key('starttime'):
+                    starttime = datetime.datetime.strptime(data['starttime'], '%I:%M%p')
+                else:
+                    starttime = datetime.datetime.now()
+                if data.has_key("frequency") or data['frequency'] is "onetime" or data['frequency'] is "interval":
+                    if data['interval'] is "minutes" or data['interval'] is "hours" or data['interval'] is "days" :
+                        resp = cdb.schedule_snapshot(data['frequency'],
+                                  data['number'],
+                                  data['interval'],
+                                  date,
+                                  starttime,
+                                  build_db)
+                        if resp.ok is not True:
+                            return 'schedule failed'
+                return "Snapshot successfully scheduled\n"
+            else:
+                return 'please login'
+            '''
+            this method is used to schedule snapshots.
+            usage : curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/schedulesnapshot --data @sample.json
+            and the sample.json structure is 
+            {"frequency":"onetime","date":"Jun 1 2005","starttime":"1:33PM","number":"","interval":"minutes"}
+            interval supports minutes , hours, days
+            frequency supports onetime and ongoing
+            '''
 
 class CredentialsView(BaseView):
     @expose('/', methods=['GET', 'POST'])
