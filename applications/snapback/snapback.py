@@ -346,6 +346,7 @@ class JsonInterface(BaseView):
         and the login.json structrue is
         {"ipaddr":"","secure":"","username":"","password":""}
         '''
+
     @csrf.exempt
     @app.route('/viewsnapshots', methods=['POST'])
     def viewsnapshots():
