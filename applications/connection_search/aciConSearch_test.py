@@ -760,7 +760,7 @@ class TestImportAnyEPG(unittest.TestCase):
 
         any_epgs = self.get_all_anyepgs()
         self.assertEqual(len(any_epgs), 1)
-        self.assertTrue(any_epgs[0].name=='any-epg')
+        self.assertTrue(any_epgs[0].name == 'any-epg')
         self.assertTrue(isinstance(any_epgs[0], AnyEPG))
 
     def test_check_anyepg_in_radix(self):
@@ -1141,7 +1141,7 @@ class TestSearch(unittest.TestCase):
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
         flow_spec.sip = '10.30.2.0/25'
-        #self.assertTrue(result[0] == flow_spec)
+        # self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.22.1.2'
         flow_spec.sip = '10.30.2.127'
@@ -1542,7 +1542,6 @@ class TestSearch(unittest.TestCase):
         exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
 
-
         result = sorted(self.sdb.search(flow_spec))
         self.assertEqual(len(result), 1)
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
@@ -1559,7 +1558,7 @@ class TestSearchAnyEPG(unittest.TestCase):
         self.sdb = SearchDb()
         self.tenants = get_tree2()
         tenant = self.tenants[0]
-        context = tenant.get_child(Context,'ctx')
+        context = tenant.get_child(Context, 'ctx')
         any_epg = AnyEPG('any-epg', context)
         contract1 = Contract('contract-any1', tenant)
         entry1 = FilterEntry('entry_any_1',
@@ -1623,20 +1622,20 @@ class TestSearchAnyEPG(unittest.TestCase):
         for flow in result:
             epg_result.append((flow.source_epg, flow.contract, flow.dest_epg))
 
-        self.assertTrue(('t2_epg31','implied_contract_4','t2_epg31') in epg_result)
-        self.assertTrue(('t2_epg41','implied_contract_5','t2_epg41') in epg_result)
-        self.assertTrue(('t2_epg12','contract-1','t2_epg11') in epg_result)
-        self.assertTrue(('t2_epg12','contract-4','out_epg_3') in epg_result)
-        self.assertTrue(('t2_epg12','implied_contract_1','t2_epg12') in epg_result)
-        self.assertTrue(('t2_epg22','implied_contract_3','t2_epg22') in epg_result)
-        self.assertTrue(('out_epg_3','contract-4','t2_epg12') in epg_result)
-        self.assertTrue(('t2_epg21','contract-2','t2_epg22') in epg_result)
-        self.assertTrue(('t2_epg21','implied_contract_2','t2_epg21') in epg_result)
-        self.assertTrue(('t2_epg11','contract-1','t2_epg12') in epg_result)
-        self.assertTrue(('t2_epg11','implied_contract_0','t2_epg11') in epg_result)
+        self.assertTrue(('t2_epg31', 'implied_contract_4', 't2_epg31') in epg_result)
+        self.assertTrue(('t2_epg41', 'implied_contract_5', 't2_epg41') in epg_result)
+        self.assertTrue(('t2_epg12', 'contract-1', 't2_epg11') in epg_result)
+        self.assertTrue(('t2_epg12', 'contract-4', 'out_epg_3') in epg_result)
+        self.assertTrue(('t2_epg12', 'implied_contract_1', 't2_epg12') in epg_result)
+        self.assertTrue(('t2_epg22', 'implied_contract_3', 't2_epg22') in epg_result)
+        self.assertTrue(('out_epg_3', 'contract-4', 't2_epg12') in epg_result)
+        self.assertTrue(('t2_epg21', 'contract-2', 't2_epg22') in epg_result)
+        self.assertTrue(('t2_epg21', 'implied_contract_2', 't2_epg21') in epg_result)
+        self.assertTrue(('t2_epg11', 'contract-1', 't2_epg12') in epg_result)
+        self.assertTrue(('t2_epg11', 'implied_contract_0', 't2_epg11') in epg_result)
 
-        self.assertTrue(('any-epg','contract-any1','t2_epg31') in epg_result)
-        self.assertTrue(('t2_epg41','contract-any2','any-epg') in epg_result)
+        self.assertTrue(('any-epg', 'contract-any1', 't2_epg31') in epg_result)
+        self.assertTrue(('t2_epg41', 'contract-any2', 'any-epg') in epg_result)
 
     def test_AnyEPG_ip_membership(self):
         flow_spec = FlowSpec()
@@ -1675,7 +1674,6 @@ class TestSearchv6(unittest.TestCase):
         self.tenants = get_tree3()
         self.sdb.build(self.tenants)
 
-
     def test_full(self):
         flow_spec = FlowSpec()
         flow_spec.tenant_name = 'tenant3'
@@ -1695,27 +1693,33 @@ class TestSearchv6(unittest.TestCase):
         result = sorted(self.sdb.search(flow_spec))
         self.assertTrue(len(result) == 4)
 
-
-        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
-        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'),
+                             IpAddress('abcd:168:11::2/127')]
+        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'),
+                             IpAddress('abcd:168:11::2/127')]
         self.assertTrue(exp_flow_spec in result)
 
-
-        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
-        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'),
+                             IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'),
+                             IpAddress('abcd:168:11::2/127')]
         exp_filt1.dFromPort = 80
         exp_filt1.dToPort = 80
         exp_filt1.prot = 'tcp'
         self.assertTrue(exp_flow_spec in result)
 
-        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
-        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'),
+                             IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'),
+                             IpAddress('abcd:168:11::2/127')]
         exp_filt1.dFromPort = 80
         exp_filt1.dToPort = 80
         self.assertTrue(exp_flow_spec in result)
 
-        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
-        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'),
+                             IpAddress('abcd:169:12::2/127')]
+        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'),
+                             IpAddress('abcd:169:12::2/127')]
         exp_filt1.dFromPort = 'any'
         exp_filt1.dToPort = 'any'
         exp_filt1.prot = 'any'
@@ -1867,7 +1871,7 @@ class TestWildcardFields(unittest.TestCase):
         exp_flow_spec.protocol_filter.append(exp_filt1)
         exp_flow_spec.dip = [IpAddress('192.168.21.1/32'), IpAddress('192.168.21.4/32'), IpAddress('192.168.21.2/31')]
         exp_flow_spec.sip = [IpAddress('192.168.21.1/32'), IpAddress('192.168.21.4/32'), IpAddress('192.168.21.2/31')]
-        self.assertTrue(result[0]==exp_flow_spec)
+        self.assertTrue(result[0] == exp_flow_spec)
 
 
 class TestIpv4Address(unittest.TestCase):
@@ -2014,6 +2018,7 @@ class TestIpv6Address(unittest.TestCase):
     """
     Will check that IpAddress class works properly
     """
+
     def test_input_ipv6(self):
         ip1 = IpAddress('2004:1:2:1::1:0:8')
         self.assertEqual(str(ip1), '2004:1:2:1:0:1:0:8/128')
@@ -2627,6 +2632,7 @@ class TestRadix(unittest.TestCase):
     """
     Will test the radix library
     """
+
     def test_find_best(self):
         r = radix.Radix()
         r.add('1.2.3.4')
@@ -2643,25 +2649,25 @@ class TestRadix(unittest.TestCase):
         r.add('2.0.0.0/8')
         r.add('0.0.0.0/0')
 
-        self.assertEqual('1.2.3.4/32',r.search_best('1.2.3.4').prefix)
-        self.assertEqual('1.2.3.5/32',r.search_best('1.2.3.5').prefix)
-        self.assertEqual('1.2.3.6/32',r.search_best('1.2.3.6').prefix)
-        self.assertEqual('1.2.3.0/24',r.search_best('1.2.3.7').prefix)
-        self.assertEqual('1.2.4.4/32',r.search_best('1.2.4.4').prefix)
-        self.assertEqual('1.2.4.5/32',r.search_best('1.2.4.5').prefix)
-        self.assertEqual('1.2.4.6/32',r.search_best('1.2.4.6').prefix)
-        self.assertEqual('1.2.4.0/24',r.search_best('1.2.4.7').prefix)
+        self.assertEqual('1.2.3.4/32', r.search_best('1.2.3.4').prefix)
+        self.assertEqual('1.2.3.5/32', r.search_best('1.2.3.5').prefix)
+        self.assertEqual('1.2.3.6/32', r.search_best('1.2.3.6').prefix)
+        self.assertEqual('1.2.3.0/24', r.search_best('1.2.3.7').prefix)
+        self.assertEqual('1.2.4.4/32', r.search_best('1.2.4.4').prefix)
+        self.assertEqual('1.2.4.5/32', r.search_best('1.2.4.5').prefix)
+        self.assertEqual('1.2.4.6/32', r.search_best('1.2.4.6').prefix)
+        self.assertEqual('1.2.4.0/24', r.search_best('1.2.4.7').prefix)
 
-        self.assertEqual('1.2.3.0/24',r.search_best('1.2.3.0/24').prefix)
-        self.assertEqual('1.2.0.0/16',r.search_best('1.2.5.4/32').prefix)
-        self.assertEqual('1.2.0.0/16',r.search_best('1.2.6.0/24').prefix)
+        self.assertEqual('1.2.3.0/24', r.search_best('1.2.3.0/24').prefix)
+        self.assertEqual('1.2.0.0/16', r.search_best('1.2.5.4/32').prefix)
+        self.assertEqual('1.2.0.0/16', r.search_best('1.2.6.0/24').prefix)
 
-        self.assertEqual('1.3.0.0/16',r.search_best('1.3.6.0/24').prefix)
+        self.assertEqual('1.3.0.0/16', r.search_best('1.3.6.0/24').prefix)
 
-        self.assertEqual('1.0.0.0/8',r.search_best('1.4.6.0/24').prefix)
-        self.assertEqual('2.0.0.0/8',r.search_best('2.4.6.4').prefix)
+        self.assertEqual('1.0.0.0/8', r.search_best('1.4.6.0/24').prefix)
+        self.assertEqual('2.0.0.0/8', r.search_best('2.4.6.4').prefix)
 
-        self.assertEqual('0.0.0.0/0',r.search_best('3.4.6.4').prefix)
+        self.assertEqual('0.0.0.0/0', r.search_best('3.4.6.4').prefix)
 
     def test_find_covered(self):
         r = radix.Radix()
@@ -2681,88 +2687,88 @@ class TestRadix(unittest.TestCase):
 
         result = r.search_covered('1.2.3.4/32')
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].prefix,'1.2.3.4/32')
+        self.assertEqual(result[0].prefix, '1.2.3.4/32')
 
         result = r.search_covered('1.2.3.5/32')
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].prefix,'1.2.3.5/32')
+        self.assertEqual(result[0].prefix, '1.2.3.5/32')
 
         result = r.search_covered('1.2.3.6/24')
         self.assertEqual(len(result), 4)
-        self.assertEqual(result[0].prefix,'1.2.3.4/32')
-        self.assertEqual(result[1].prefix,'1.2.3.5/32')
-        self.assertEqual(result[2].prefix,'1.2.3.6/32')
-        self.assertEqual(result[3].prefix,'1.2.3.0/24')
+        self.assertEqual(result[0].prefix, '1.2.3.4/32')
+        self.assertEqual(result[1].prefix, '1.2.3.5/32')
+        self.assertEqual(result[2].prefix, '1.2.3.6/32')
+        self.assertEqual(result[3].prefix, '1.2.3.0/24')
 
         result = r.search_covered('1.2.3.7/24')
         self.assertEqual(len(result), 4)
-        self.assertEqual(result[0].prefix,'1.2.3.4/32')
-        self.assertEqual(result[1].prefix,'1.2.3.5/32')
-        self.assertEqual(result[2].prefix,'1.2.3.6/32')
-        self.assertEqual(result[3].prefix,'1.2.3.0/24')
+        self.assertEqual(result[0].prefix, '1.2.3.4/32')
+        self.assertEqual(result[1].prefix, '1.2.3.5/32')
+        self.assertEqual(result[2].prefix, '1.2.3.6/32')
+        self.assertEqual(result[3].prefix, '1.2.3.0/24')
 
         result = r.search_covered('1.2.4.4/24')
         self.assertEqual(len(result), 4)
-        self.assertEqual(result[0].prefix,'1.2.4.4/32')
-        self.assertEqual(result[1].prefix,'1.2.4.5/32')
-        self.assertEqual(result[2].prefix,'1.2.4.6/32')
-        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+        self.assertEqual(result[0].prefix, '1.2.4.4/32')
+        self.assertEqual(result[1].prefix, '1.2.4.5/32')
+        self.assertEqual(result[2].prefix, '1.2.4.6/32')
+        self.assertEqual(result[3].prefix, '1.2.4.0/24')
 
         result = r.search_covered('1.2.4.5/24')
         self.assertEqual(len(result), 4)
-        self.assertEqual(result[0].prefix,'1.2.4.4/32')
-        self.assertEqual(result[1].prefix,'1.2.4.5/32')
-        self.assertEqual(result[2].prefix,'1.2.4.6/32')
-        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+        self.assertEqual(result[0].prefix, '1.2.4.4/32')
+        self.assertEqual(result[1].prefix, '1.2.4.5/32')
+        self.assertEqual(result[2].prefix, '1.2.4.6/32')
+        self.assertEqual(result[3].prefix, '1.2.4.0/24')
 
         result = r.search_covered('1.2.4.6/24')
         self.assertEqual(len(result), 4)
-        self.assertEqual(result[0].prefix,'1.2.4.4/32')
-        self.assertEqual(result[1].prefix,'1.2.4.5/32')
-        self.assertEqual(result[2].prefix,'1.2.4.6/32')
-        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+        self.assertEqual(result[0].prefix, '1.2.4.4/32')
+        self.assertEqual(result[1].prefix, '1.2.4.5/32')
+        self.assertEqual(result[2].prefix, '1.2.4.6/32')
+        self.assertEqual(result[3].prefix, '1.2.4.0/24')
 
         result = r.search_covered('1.2.4.7/24')
         self.assertEqual(len(result), 4)
-        self.assertEqual(result[0].prefix,'1.2.4.4/32')
-        self.assertEqual(result[1].prefix,'1.2.4.5/32')
-        self.assertEqual(result[2].prefix,'1.2.4.6/32')
-        self.assertEqual(result[3].prefix,'1.2.4.0/24')
+        self.assertEqual(result[0].prefix, '1.2.4.4/32')
+        self.assertEqual(result[1].prefix, '1.2.4.5/32')
+        self.assertEqual(result[2].prefix, '1.2.4.6/32')
+        self.assertEqual(result[3].prefix, '1.2.4.0/24')
 
         result = r.search_covered('1.2.3.0/24')
         self.assertEqual(len(result), 4)
-        self.assertEqual(result[0].prefix,'1.2.3.4/32')
-        self.assertEqual(result[1].prefix,'1.2.3.5/32')
-        self.assertEqual(result[2].prefix,'1.2.3.6/32')
-        self.assertEqual(result[3].prefix,'1.2.3.0/24')
+        self.assertEqual(result[0].prefix, '1.2.3.4/32')
+        self.assertEqual(result[1].prefix, '1.2.3.5/32')
+        self.assertEqual(result[2].prefix, '1.2.3.6/32')
+        self.assertEqual(result[3].prefix, '1.2.3.0/24')
 
         result = r.search_covered('1.2.3.5/31')
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0].prefix,'1.2.3.4/32')
-        self.assertEqual(result[1].prefix,'1.2.3.5/32')
+        self.assertEqual(result[0].prefix, '1.2.3.4/32')
+        self.assertEqual(result[1].prefix, '1.2.3.5/32')
 
         result = r.search_covered('1.2.6.0/16')
         self.assertEqual(len(result), 9)
-        self.assertEqual(result[0].prefix,'1.2.3.4/32')
-        self.assertEqual(result[1].prefix,'1.2.3.5/32')
-        self.assertEqual(result[2].prefix,'1.2.3.6/32')
-        self.assertEqual(result[3].prefix,'1.2.3.0/24')
-        self.assertEqual(result[4].prefix,'1.2.4.4/32')
-        self.assertEqual(result[5].prefix,'1.2.4.5/32')
-        self.assertEqual(result[6].prefix,'1.2.4.6/32')
-        self.assertEqual(result[7].prefix,'1.2.4.0/24')
-        self.assertEqual(result[8].prefix,'1.2.0.0/16')
+        self.assertEqual(result[0].prefix, '1.2.3.4/32')
+        self.assertEqual(result[1].prefix, '1.2.3.5/32')
+        self.assertEqual(result[2].prefix, '1.2.3.6/32')
+        self.assertEqual(result[3].prefix, '1.2.3.0/24')
+        self.assertEqual(result[4].prefix, '1.2.4.4/32')
+        self.assertEqual(result[5].prefix, '1.2.4.5/32')
+        self.assertEqual(result[6].prefix, '1.2.4.6/32')
+        self.assertEqual(result[7].prefix, '1.2.4.0/24')
+        self.assertEqual(result[8].prefix, '1.2.0.0/16')
 
         result = r.search_covered('1.3.6.0/16')
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].prefix,'1.3.0.0/16')
+        self.assertEqual(result[0].prefix, '1.3.0.0/16')
 
         result = r.search_covered('1.4.6.0/16')
         self.assertEqual(len(result), 0)
 
         result = r.search_covered('2.4.6.4/8')
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].prefix,'2.0.0.0/8')
+        self.assertEqual(result[0].prefix, '2.0.0.0/8')
         result = r.search_covered('3.4.6.4/8')
         self.assertEqual(len(result), 0)
 
@@ -2787,7 +2793,7 @@ class TestRadix(unittest.TestCase):
         r.add("0.0.0.0/0")
         r.add("192.168.1.133/32")
         result = r.search_covered('192.168.0.0/16')
-        self.assertEqual(result[0].prefix,'192.168.1.133/32')
+        self.assertEqual(result[0].prefix, '192.168.1.133/32')
 
     def test_default_bug2(self):
         r = radix.Radix()
@@ -2803,7 +2809,8 @@ class TestRadix(unittest.TestCase):
         r.add('10.30.2.1/25')
 
         result = r.search_covered('10.30.2.64/32')
-        #self.assertEqual(len(result), 0)
+        self.assertEqual(len(result), 0)
+
 
 class TestFlowSpec(unittest.TestCase):
     def test_compare_tenant_context(self):
@@ -2956,10 +2963,12 @@ class TestFlowSpec(unittest.TestCase):
         self.assertFalse(f1 >= f2)
         self.assertFalse(f2 <= f1)
 
+
 class TestImportContract(unittest.TestCase):
     """
     Check that can handle imported contacts
     """
+
     def setUp(self):
         """
         creates two EPGs in different tenants
