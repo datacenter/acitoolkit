@@ -170,7 +170,7 @@ function showConnections(result) {
         .on("mouseout", function(d) {hideTip(d[1]);});
 
     tableRow.append('td')
-        .attr("style", "width:200px")
+        .attr("style", "width:300px")
         .html(function (d) { return d[2];})
         .on("mouseover", function(d, i) {showTip(d[2], 2);})
         .on("mouseout", function(d) {hideTip(d[2]);});
@@ -231,8 +231,8 @@ function showConnections(result) {
         .attr("transform", "rotate(-90)")
 
     svgContainer.append("text")
-        .text("Filter")
-        .attr("x", -180)
+        .text("Contract")
+        .attr("x", -193)
         .attr("y", 25)
         .attr("transform", "rotate(-90)")
 }

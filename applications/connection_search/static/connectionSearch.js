@@ -57,7 +57,7 @@ function SearchSplit(searchString) {
 }
 
 function AutoCompleteTerms() {
-    var keyWords = ["tenant", "context", "sip", "dip", "dport", "sport",
+    var keyWords = ["tenant", "context", "contract", "sip", "dip", "dport", "sport",
                     "prot", "etherT", "arpOpc", "applyToFrag", "tcpRules"];
 
     this.getMatches = function getMatches(term) {
