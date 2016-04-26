@@ -30,9 +30,6 @@
 """
 import sys
 from copy import copy
-
-import datetime
-
 import itertools
 import radix
 import re
@@ -41,6 +38,10 @@ from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, O
 from acitoolkit.aciphysobject import Session
 from acitoolkit.acitoolkit import BaseTerminal, InputTerminal, AnyEPG
 from acitoolkit.acitoolkitlib import Credentials
+
+if radix.__version__ < '0.9.5':
+    raise AssertionError("!!! Please upgrade your py-radix to a version later than 0.9.4.  "
+                         "You are running {0}!!!".format(radix.__version__))
 
 
 class LoginError(Exception):
@@ -92,15 +93,15 @@ class Ipv4Address(object):
                 self.addr = sections[0]
 
     @classmethod
-    def valid_ip(cls,address):
+    def valid_ip(cls, address):
         try:
             host_bytes = address.split('.')
-            if host_bytes[-1]=='':
+            if host_bytes[-1] == '':
                 host_bytes.pop()
             valid = [int(b) for b in host_bytes]
-            valid = [b for b in valid if b >= 0 and b<=255]
+            valid = [b for b in valid if 0 <= b <= 255]
             return len(host_bytes) == len(valid)
-        except:
+        except ValueError:
             return False
 
     @property
@@ -117,10 +118,9 @@ class Ipv4Address(object):
 
     @classmethod
     def parse_text(cls, input_ip):
-        result = 0
         if cls.valid_ip(input_ip):
             fields = input_ip.split('.')
-            if fields[-1]=='':
+            if fields[-1] == '':
                 fields.pop()
             result = int(fields[0]) << 8
             if len(fields) > 1:
@@ -239,13 +239,13 @@ class Ipv4Address(object):
                     if Ipv4Address.encompass(a, b):
                         try:
                             list2.remove(b)
-                        except:
+                        except ValueError:
                             pass
                         done = False
                     elif Ipv4Address.encompass(b, a):
                         try:
                             list2.remove(a)
-                        except:
+                        except ValueError:
                             pass
                         done = False
                 list1 = copy(list2)
@@ -426,6 +426,7 @@ class Ipv6Address(object):
 
         addr = [0, 0, 0, 0, 0, 0, 0, 0]
         fields = input_ip.split(':')
+        index = 0
         for index in range(len(fields)):
             if fields[index] == '':
                 break
@@ -533,7 +534,7 @@ class Ipv6Address(object):
         list2 = copy(list1)
         done = True
         for a, b in itertools.combinations(list1, 2):
-            if a==b:
+            if a == b:
                 if b in list2:
                     list2.remove(b)
             elif a.prefixlen == b.prefixlen:
@@ -554,8 +555,6 @@ class Ipv6Address(object):
         else:
             return cls.supernet(list2)
 
-
-
     @classmethod
     def combine(cls, ip_list):
         """
@@ -574,13 +573,13 @@ class Ipv6Address(object):
                     if Ipv4Address.encompass(a, b):
                         try:
                             list2.remove(b)
-                        except:
+                        except ValueError:
                             pass
                         done = False
                     elif Ipv4Address.encompass(b, a):
                         try:
                             list2.remove(a)
-                        except:
+                        except ValueError:
                             pass
                         done = False
                 list1 = copy(list2)
@@ -1031,9 +1030,9 @@ class ProtocolFilter(object):
         dport = '{0}-{1}'.format(self.dFromPort, self.dToPort)
         sport = '{0}-{1}'.format(self.sFromPort, self.sToPort)
         return '{0:4} {1:4} {2:11} {3:11} {4:4}'.format(self.etherT,
-                                                  self.arpOpc if self.etherT == 'arp' else self.prot,
-                                                  dport,
-                                                  sport, self.direction)
+                                                        self.arpOpc if self.etherT == 'arp' else self.prot,
+                                                        dport,
+                                                        sport, self.direction)
 
     def _port_equal(self, other):
         if self.dFromPort != other.dFromPort:
@@ -1062,7 +1061,7 @@ class ProtocolFilter(object):
         return True
 
     def __ne__(self, other):
-        return not self==other
+        return not self == other
 
     def __gt__(self, other):
         if self.dFromPort > other.dFromPort:
@@ -1092,7 +1091,7 @@ class ProtocolFilter(object):
         return not self >= other
 
     def __le__(self, other):
-        return self < other or self==other
+        return self < other or self == other
 
 
 class SubFlowSpec(object):
@@ -1132,8 +1131,6 @@ class FlowSpec(object):
         self.dst_tenant_name = None
         self.dst_app_profile = None
         self.dst_app_profile_type = None
-
-
 
     def get_source(self):
         return SubFlowSpec(self.tenant_name, self.context_name, self.sip, self.contract, self.contract_tenant)
@@ -1232,7 +1229,7 @@ class FlowSpec(object):
         return True
 
     def __ne__(self, other):
-        return not self==other
+        return not self == other
 
     def __gt__(self, other):
         """
@@ -1331,6 +1328,7 @@ class SearchDb(object):
         self.tenants_by_name = {}
         self.context_by_name = {}
         self.initialized = False
+        self.valid_tenants = None
 
     def build(self, tenants=None):
         """
@@ -1340,7 +1338,7 @@ class SearchDb(object):
         """
         if tenants is None:
             fabric = Fabric()
-            #tenants = Tenant.get_deep(self.session, parent=fabric, names=('mgmt', 'common'))
+            # tenants = Tenant.get_deep(self.session, parent=fabric, names=('mgmt', 'common'))
             tenants = Tenant.get_deep(self.session, parent=fabric)
 
         for tenant in tenants:
@@ -1378,8 +1376,6 @@ class SearchDb(object):
             eps = epg.get_children(Endpoint)
 
             ep_ips = [IpAddress(ep.ip) for ep in eps]
-            # if len(ep_ips)> 0:
-            #     ips = ep_ips[0].simplify(ep_ips)
             bridge_domain = epg.get_bd()
             any_epg = []
             if bridge_domain is not None:
@@ -1392,8 +1388,6 @@ class SearchDb(object):
             if context not in self.context_radix:
                 self.context_radix[context] = radix.Radix()
 
-            #for ep in eps:
-            #    ip = IpAddress(ep.ip)
             for ip in ep_ips:
                 node = self.context_radix[context].add(str(ip))
                 node.data['epg'] = epg
@@ -1553,6 +1547,7 @@ class SearchDb(object):
                         for filter_entry in filter_entries:
                             filter_entry.direction = filter_direction
                             self.contract_filter[(tenant, contract)].add(filter_entry)
+
     def show_contract_filter(self):
         for (tenant, contract) in self.contract_filter:
             filters = self.contract_filter[(tenant, contract)]
@@ -1590,38 +1585,43 @@ class SearchDb(object):
         for c_contract in consumed_contracts:
             for p_contract in provided_contracts:
                 if c_contract['contract'] == p_contract['contract']:
-                    if c_contract['epg']==p_contract['epg']:
+                    if c_contract['epg'] == p_contract['epg']:
                         try:
                             if c_contract['contract'][1].implied:
                                 connections.append({'source': c_contract['prefix'],
                                                     'source_epg': c_contract['epg'],
+                                                    'source_tenant': c_contract['tenant'],
                                                     'dest': p_contract['prefix'],
                                                     'dest_epg': p_contract['epg'],
+                                                    'dest_tenant': p_contract['tenant'],
                                                     'contract': c_contract['contract']})
                         except AttributeError:
                             pass
                     else:
                         connections.append({'source': c_contract['prefix'],
                                             'source_epg': c_contract['epg'],
+                                            'source_tenant': c_contract['tenant'],
                                             'dest': p_contract['prefix'],
                                             'dest_epg': p_contract['epg'],
+                                            'dest_tenant': p_contract['tenant'],
                                             'contract': c_contract['contract']})
 
         # t2 = datetime.datetime.now()
         # print 'connections done', t2-t1
         # t1=t2
         for connection in connections:
-            filters = self.contract_filter[connection['contract']]
-            matching_filters = []
-            for aci_filter in filters:
-                for fs_p_filter in flow_spec.protocol_filter:
-                    aci_protocol_filter = ProtocolFilter(aci_filter)
-                    overlap_filter = fs_p_filter.overlap(aci_protocol_filter)
-                    if overlap_filter is not None:
-                        matching_filters.append(aci_protocol_filter)
+            if connection['source_tenant'] in self.valid_tenants or connection['dest_tenant'] in self.valid_tenants:
+                filters = self.contract_filter[connection['contract']]
+                matching_filters = []
+                for aci_filter in filters:
+                    for fs_p_filter in flow_spec.protocol_filter:
+                        aci_protocol_filter = ProtocolFilter(aci_filter)
+                        overlap_filter = fs_p_filter.overlap(aci_protocol_filter)
+                        if overlap_filter is not None:
+                            matching_filters.append(aci_protocol_filter)
 
-            if len(matching_filters) > 0:
-                result.append(self._build_result_flow_spec(connection, matching_filters))
+                if len(matching_filters) > 0:
+                    result.append(self._build_result_flow_spec(connection, matching_filters))
         # t2 = datetime.datetime.now()
         # print 'search result done', t2-t1
         # t1=t2
@@ -1644,32 +1644,31 @@ class SearchDb(object):
         else:
             result.context_name = source_epg.get_bd().get_context().name
 
-
         result.sip = next(iter(connection['source'])).simplify(connection['source'])
         result.dip = next(iter(connection['dest'])).simplify(connection['dest'])
         result.protocol_filter = matching_filters
         epg = connection['source_epg']
         result.src_tenant_name = epg.get_parent().get_parent().name
         result.src_app_profile = epg.get_parent().name
-        if isinstance(epg.get_parent(), AppProfile) :
+        if isinstance(epg.get_parent(), AppProfile):
             result.src_app_profile_type = "AppProfile"
         else:
             result.src_app_profile_type = "Context"
 
         result.source_epg = epg.name
-        if isinstance(epg, EPG) :
+        if isinstance(epg, EPG):
             result.src_epg_type = "EPG"
         else:
             result.src_epg_type = "L3Out"
         epg = connection['dest_epg']
         result.dst_tenant_name = epg.get_parent().get_parent().name
         result.dst_app_profile = epg.get_parent().name
-        if isinstance(epg.get_parent(), AppProfile) :
+        if isinstance(epg.get_parent(), AppProfile):
             result.dst_app_profile_type = "AppProfile"
         else:
             result.dst_app_profile_type = "Context"
         result.dest_epg = epg.name
-        if isinstance(epg, EPG) :
+        if isinstance(epg, EPG):
             result.dst_epg_type = "EPG"
         else:
             result.dst_epg_type = "L3Out"
@@ -1687,27 +1686,27 @@ class SearchDb(object):
         :return:
         """
         # t1 = datetime.datetime.now()
-        tenants = set()
+        self.valid_tenants = set()
         tenant_search = '^' + subflow_spec.tenant_name.replace('*', '.*') + '$'
         for tenant_name in self.tenants_by_name:
             match_result = re.match(tenant_search, tenant_name)
             if match_result is not None:
-                tenants.add(tenant_name)
+                self.valid_tenants.add(tenant_name)
 
         # t2 = datetime.datetime.now()
         # print 'tenants done', t2-t1
         # t1=t2
 
-        #if 'common' not in tenants:
-        tenants.add('common')
+        # if 'common' not in tenants:
+        tenants = self.valid_tenants | {'common'}
         contexts = set()
         context_search = '^' + subflow_spec.context_name.replace('*', '.*') + '$'
         for (tenant_name, context_name) in self.context_by_name:
             if tenant_name in tenants:
                 match_result = re.match(context_search, context_name)
                 context = self.context_by_name[(tenant_name, context_name)]
-                #if context not in contexts:
-                    # todo: redundant entries are created
+                # if context not in contexts:
+                # todo: redundant entries are created
                 if match_result is not None:
                     contexts.add(context)
                 if tenant_name == 'common':
@@ -1723,7 +1722,6 @@ class SearchDb(object):
             if context in self.context_radix:
                 # cover both the case where what we are looking for is covered by a prefix
                 # and where it covers more than one address.
-                temp = self.context_radix[context]
 
                 for ip in subflow_spec.ip:
 
@@ -1740,11 +1738,7 @@ class SearchDb(object):
                     else:
                         for node2 in temp_nodes:
                             nodes.add(node2)
-                    # if node is not None:
-                    #     nodes.add(node)
-                    # temp_nodes = self.context_radix[context].search_covered(str(ip.prefix))
-                    # for node2 in temp_nodes:
-                    #     nodes.add(node2)
+
         # t2 = datetime.datetime.now()
         # print 'nodes done', t2-t1
         # t1=t2
@@ -1764,22 +1758,6 @@ class SearchDb(object):
                 except KeyError:
                     pass
 
-
-                # for ip in subflow_spec.ip:
-                #     ovlp = ip.overlap(IpAddress(node.prefix))
-                #
-                #     if node.data['epg'] not in epgs_prefix:
-                #         epgs_prefix[node.data['epg']] = set()
-                #     epgs_prefix[node.data['epg']].add(ovlp)
-                #
-                #     try:
-                #         if node.data['any_epg'] is not None:
-                #             if node.data['any_epg'] not in epgs_prefix:
-                #                 epgs_prefix[node.data['any_epg']] = set()
-                #             epgs_prefix[node.data['any_epg']].add(ovlp)
-                #     except KeyError:
-                #         pass
-
         # t2 = datetime.datetime.now()
         # print 'overlap done', t2-t1
         # t1=t2
@@ -1792,11 +1770,13 @@ class SearchDb(object):
                             if subflow_spec.contract == entry['contract'][1].name:
                                 result.append({'contract': entry['contract'],
                                                'prefix': epgs_prefix[epg],
-                                               'epg': epg})
+                                               'epg': epg,
+                                               'tenant': epg.get_parent().get_parent().name})
                         else:
                             result.append({'contract': entry['contract'],
                                            'prefix': epgs_prefix[epg],
-                                           'epg': epg})
+                                           'epg': epg,
+                                           'tenant': epg.get_parent().get_parent().name})
 
         # t2 = datetime.datetime.now()
         # print 'result done', t2-t1
