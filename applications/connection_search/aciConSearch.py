@@ -39,6 +39,7 @@ import re
 from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, OutsideEPG, ContractSubject, \
     FilterEntry, Context, OutsideNetwork, Fabric
 from acitoolkit.aciphysobject import Session
+from acitoolkit.acitoolkit import BaseTerminal, InputTerminal, AnyEPG
 from acitoolkit.acitoolkitlib import Credentials
 
 
@@ -181,15 +182,15 @@ class Ipv4Address(object):
         else:
             return None
 
-    @staticmethod
-    def simplify(ip_list):
+    @classmethod
+    def simplify(cls, ip_list):
         """
         Will combine and then supernet prefixes in list to
         come up with the most simple list
         :param ip_list:
         :return:
         """
-        return Ipv4Address.supernet(Ipv4Address.combine(ip_list))
+        return cls.supernet(cls.combine(ip_list))
 
     @staticmethod
     def supernet(ip_list):
@@ -744,6 +745,7 @@ class ProtocolFilter(object):
         self._sFromPort = 'any'
         self._sToPort = 'any'
         self._tcpRules = 'any'
+        self.direction = 'both'
         if aci_filter is not None:
             self.applyToFrag = aci_filter.applyToFrag
             self.arpOpc = aci_filter.arpOpc
@@ -754,6 +756,10 @@ class ProtocolFilter(object):
             self.sFromPort = aci_filter.sFromPort
             self.sToPort = aci_filter.sToPort
             self.tcpRules = aci_filter.tcpRules
+            try:
+                self.direction = aci_filter.direction
+            except AttributeError:
+                pass
 
     @property
     def applyToFrag(self):
@@ -1013,15 +1019,21 @@ class ProtocolFilter(object):
             if self.tcpRules != other.tcpRules:
                 return None
         result.tcpRules = other.tcpRules if self.tcpRules is 'any' else self.tcpRules
+
+        if self.direction is not 'both' and other.direction is not 'both':
+            if self.tcpRules != other.tcpRules:
+                return None
+        result.direction = other.direction if self.direction is 'both' else self.direction
+
         return result
 
     def __str__(self):
         dport = '{0}-{1}'.format(self.dFromPort, self.dToPort)
         sport = '{0}-{1}'.format(self.sFromPort, self.sToPort)
-        return '{0:4} {1:4} {2:11} {3:11}'.format(self.etherT,
+        return '{0:4} {1:4} {2:11} {3:11} {4:4}'.format(self.etherT,
                                                   self.arpOpc if self.etherT == 'arp' else self.prot,
                                                   dport,
-                                                  sport)
+                                                  sport, self.direction)
 
     def _port_equal(self, other):
         if self.dFromPort != other.dFromPort:
@@ -1088,10 +1100,12 @@ class SubFlowSpec(object):
     defines one side of a flow without the port numbers, i.e. either source or destination
     """
 
-    def __init__(self, tenant, context, ip):
+    def __init__(self, tenant, context, ip, contract, contract_tenant):
         self.tenant_name = tenant
         self.context_name = context
         self.ip = ip
+        self.contract = contract
+        self.contract_tenant = contract_tenant
 
 
 class FlowSpec(object):
@@ -1122,10 +1136,10 @@ class FlowSpec(object):
 
 
     def get_source(self):
-        return SubFlowSpec(self.tenant_name, self.context_name, self.sip)
+        return SubFlowSpec(self.tenant_name, self.context_name, self.sip, self.contract, self.contract_tenant)
 
     def get_dest(self):
-        return SubFlowSpec(self.tenant_name, self.context_name, self.dip)
+        return SubFlowSpec(self.tenant_name, self.context_name, self.dip, self.contract, self.contract_tenant)
 
     @property
     def sip(self):
@@ -1238,18 +1252,6 @@ class FlowSpec(object):
         if self.context_name < other.context_name:
             return False
 
-        num_comps = min(len(self.sip), len(other.sip))
-        for index in range(num_comps):
-            if sorted(self.sip)[index] > sorted(other.sip)[index]:
-                return True
-            elif sorted(self.sip)[index] < sorted(other.sip)[index]:
-                return False
-
-        if len(self.sip) > len(other.sip):
-            return True
-        elif len(self.sip) < len(other.sip):
-            return False
-
         num_comps = min(len(self.dip), len(other.dip))
         for index in range(num_comps):
             if sorted(self.dip)[index] > sorted(other.dip)[index]:
@@ -1260,6 +1262,18 @@ class FlowSpec(object):
         if len(self.dip) > len(other.dip):
             return True
         elif len(self.dip) < len(other.dip):
+            return False
+
+        num_comps = min(len(self.sip), len(other.sip))
+        for index in range(num_comps):
+            if sorted(self.sip)[index] > sorted(other.sip)[index]:
+                return True
+            elif sorted(self.sip)[index] < sorted(other.sip)[index]:
+                return False
+
+        if len(self.sip) > len(other.sip):
+            return True
+        elif len(self.sip) < len(other.sip):
             return False
 
         num_comps = min(len(self.protocol_filter), len(other.protocol_filter))
@@ -1326,6 +1340,7 @@ class SearchDb(object):
         """
         if tenants is None:
             fabric = Fabric()
+            #tenants = Tenant.get_deep(self.session, parent=fabric, names=('mgmt', 'common'))
             tenants = Tenant.get_deep(self.session, parent=fabric)
 
         for tenant in tenants:
@@ -1333,6 +1348,8 @@ class SearchDb(object):
             contexts = tenant.get_children(Context)
             for context in contexts:
                 self.context_by_name[(tenant.name, context.name)] = context
+                any_epgs = context.get_children(AnyEPG)
+                self.build_epg_contract(any_epgs)
 
             app_profiles = tenant.get_children(AppProfile)
             outside_l3s = tenant.get_children(OutsideL3)
@@ -1347,6 +1364,7 @@ class SearchDb(object):
                 self.build_epg_contract_outside_l3(outside_l3)
 
             contracts = tenant.get_children(Contract)
+
             self.build_contract_filter(contracts)
         self.initialized = True
 
@@ -1358,20 +1376,32 @@ class SearchDb(object):
         """
         for epg in epgs:
             eps = epg.get_children(Endpoint)
+
+            ep_ips = [IpAddress(ep.ip) for ep in eps]
+            # if len(ep_ips)> 0:
+            #     ips = ep_ips[0].simplify(ep_ips)
             bridge_domain = epg.get_bd()
+            any_epg = []
             if bridge_domain is not None:
                 context = bridge_domain.get_context()
+                if context is not None:
+                    any_epg = context.get_children(AnyEPG)
             else:
                 context = None
 
             if context not in self.context_radix:
                 self.context_radix[context] = radix.Radix()
 
-            for ep in eps:
-                ip = IpAddress(ep.ip)
-
+            #for ep in eps:
+            #    ip = IpAddress(ep.ip)
+            for ip in ep_ips:
                 node = self.context_radix[context].add(str(ip))
                 node.data['epg'] = epg
+                node.data['any_epg'] = None
+                if len(any_epg) > 0:
+                    if any_epg[0]._relations is not None:
+                        node.data['any_epg'] = any_epg[0]
+
                 node.data['location'] = 'internal'
 
     def build_ip_epg_outside_l3(self, outside_l3):
@@ -1402,16 +1432,19 @@ class SearchDb(object):
         :return:
         """
         for epg in epgs:
-            consumed_contracts = epg.get_all_consumed()
+            consumed_contracts = set(epg.get_all_consumed())
             consumed_cif = epg.get_all_consumed_cif()
             for contract_if in consumed_cif:
                 import_contracts = contract_if.get_import_contract()
+
                 if import_contracts is not None:
-                    consumed_contracts.extend(import_contracts)
-            provided_contracts = epg.get_all_provided()
-            implied_contract = self._get_implied_contract(epg.get_parent().get_parent())
-            consumed_contracts.append(implied_contract)
-            provided_contracts.append(implied_contract)
+                    consumed_contracts = consumed_contracts | set(import_contracts)
+            provided_contracts = set(epg.get_all_provided())
+
+            if isinstance(epg, EPG):
+                implied_contract = self._get_implied_contract(epg.get_parent().get_parent())
+                consumed_contracts.add(implied_contract)
+                provided_contracts.add(implied_contract)
             if epg not in self.epg_contract:
                 self.epg_contract[epg] = []
             for contract in consumed_contracts:
@@ -1449,6 +1482,7 @@ class SearchDb(object):
                     sToPort='unspecified',
                     tcpRules='unspecified',
                     parent=implied_contract)
+        implied_contract.implied = True
         return implied_contract
 
     def build_epg_contract_outside_l3(self, outside_l3):
@@ -1456,25 +1490,21 @@ class SearchDb(object):
         for outside_epg in outside_epgs:
             consumed_contracts = outside_epg.get_all_consumed()
             provided_contracts = outside_epg.get_all_provided()
-            # implied_contract = self._get_implied_contract(outside_l3.get_parent())
-            # consumed_contracts.append(implied_contract)
-            # provided_contracts.append(implied_contract)
-            full_epg = outside_epg
-            if full_epg not in self.epg_contract:
-                self.epg_contract[full_epg] = []
+            if outside_epg not in self.epg_contract:
+                self.epg_contract[outside_epg] = []
             for contract in consumed_contracts:
                 contract_tenant = contract.get_parent()
                 contract_record = {'pro_con': 'consume',
                                    'location': 'external',
                                    'contract': (contract_tenant, contract)}
-                self.epg_contract[full_epg].append(contract_record)
+                self.epg_contract[outside_epg].append(contract_record)
 
             for contract in provided_contracts:
                 contract_tenant = contract.get_parent()
                 contract_record = {'pro_con': 'provide',
                                    'location': 'external',
                                    'contract': (contract_tenant, contract)}
-                self.epg_contract[full_epg].append(contract_record)
+                self.epg_contract[outside_epg].append(contract_record)
 
     def show_epg_contract(self):
         """
@@ -1502,15 +1532,27 @@ class SearchDb(object):
             tenant = contract.get_parent()
             subjects = contract.get_children(ContractSubject)
             if (tenant, contract) not in self.contract_filter:
-                self.contract_filter[(tenant, contract)] = []
+                self.contract_filter[(tenant, contract)] = set()
             for subject in subjects:
                 filters = subject.get_filters()
                 for aci_filter in filters:
                     filter_entries = aci_filter.get_children(FilterEntry)
 
                     for filter_entry in filter_entries:
-                        self.contract_filter[(tenant, contract)].append(filter_entry)
-
+                        filter_entry.direction = 'both'
+                        self.contract_filter[(tenant, contract)].add(filter_entry)
+                terminals = subject.get_children(BaseTerminal)
+                for terminal in terminals:
+                    if isinstance(terminal, InputTerminal):
+                        filter_direction = 'in'
+                    else:
+                        filter_direction = 'out'
+                    filters = terminal.get_filters()
+                    for aci_filter in filters:
+                        filter_entries = aci_filter.get_children(FilterEntry)
+                        for filter_entry in filter_entries:
+                            filter_entry.direction = filter_direction
+                            self.contract_filter[(tenant, contract)].add(filter_entry)
     def show_contract_filter(self):
         for (tenant, contract) in self.contract_filter:
             filters = self.contract_filter[(tenant, contract)]
@@ -1548,11 +1590,22 @@ class SearchDb(object):
         for c_contract in consumed_contracts:
             for p_contract in provided_contracts:
                 if c_contract['contract'] == p_contract['contract']:
-                    connections.append({'source': c_contract['prefix'],
-                                        'source_epg': c_contract['epg'],
-                                        'dest': p_contract['prefix'],
-                                        'dest_epg': p_contract['epg'],
-                                        'contract': c_contract['contract']})
+                    if c_contract['epg']==p_contract['epg']:
+                        try:
+                            if c_contract['contract'][1].implied:
+                                connections.append({'source': c_contract['prefix'],
+                                                    'source_epg': c_contract['epg'],
+                                                    'dest': p_contract['prefix'],
+                                                    'dest_epg': p_contract['epg'],
+                                                    'contract': c_contract['contract']})
+                        except AttributeError:
+                            pass
+                    else:
+                        connections.append({'source': c_contract['prefix'],
+                                            'source_epg': c_contract['epg'],
+                                            'dest': p_contract['prefix'],
+                                            'dest_epg': p_contract['epg'],
+                                            'contract': c_contract['contract']})
 
         # t2 = datetime.datetime.now()
         # print 'connections done', t2-t1
@@ -1562,9 +1615,10 @@ class SearchDb(object):
             matching_filters = []
             for aci_filter in filters:
                 for fs_p_filter in flow_spec.protocol_filter:
-                    overlap_filter = fs_p_filter.overlap(ProtocolFilter(aci_filter))
+                    aci_protocol_filter = ProtocolFilter(aci_filter)
+                    overlap_filter = fs_p_filter.overlap(aci_protocol_filter)
                     if overlap_filter is not None:
-                        matching_filters.append(overlap_filter)
+                        matching_filters.append(aci_protocol_filter)
 
             if len(matching_filters) > 0:
                 result.append(self._build_result_flow_spec(connection, matching_filters))
@@ -1585,10 +1639,14 @@ class SearchDb(object):
         source_epg = connection['source_epg']
         if isinstance(source_epg, OutsideEPG):
             result.context_name = source_epg.get_parent().get_context().name
+        elif isinstance(source_epg, AnyEPG):
+            result.context_name = source_epg.get_parent().name
         else:
             result.context_name = source_epg.get_bd().get_context().name
-        result.sip = connection['source']
-        result.dip = connection['dest']
+
+
+        result.sip = next(iter(connection['source'])).simplify(connection['source'])
+        result.dip = next(iter(connection['dest'])).simplify(connection['dest'])
         result.protocol_filter = matching_filters
         epg = connection['source_epg']
         result.src_tenant_name = epg.get_parent().get_parent().name
@@ -1629,29 +1687,31 @@ class SearchDb(object):
         :return:
         """
         # t1 = datetime.datetime.now()
-        tenants = []
+        tenants = set()
         tenant_search = '^' + subflow_spec.tenant_name.replace('*', '.*') + '$'
         for tenant_name in self.tenants_by_name:
             match_result = re.match(tenant_search, tenant_name)
             if match_result is not None:
-                tenants.append(tenant_name)
+                tenants.add(tenant_name)
 
         # t2 = datetime.datetime.now()
         # print 'tenants done', t2-t1
         # t1=t2
 
-        tenants.append('common')
-        contexts = []
+        #if 'common' not in tenants:
+        tenants.add('common')
+        contexts = set()
         context_search = '^' + subflow_spec.context_name.replace('*', '.*') + '$'
         for (tenant_name, context_name) in self.context_by_name:
             if tenant_name in tenants:
                 match_result = re.match(context_search, context_name)
                 context = self.context_by_name[(tenant_name, context_name)]
-                if context not in contexts:
-                    if match_result is not None:
-                        contexts.append(context)
-                    if tenant_name == 'common':
-                        contexts.append(context)
+                #if context not in contexts:
+                    # todo: redundant entries are created
+                if match_result is not None:
+                    contexts.add(context)
+                if tenant_name == 'common':
+                    contexts.add(context)
 
         epgs_prefix = {}
         nodes = set()
@@ -1663,27 +1723,62 @@ class SearchDb(object):
             if context in self.context_radix:
                 # cover both the case where what we are looking for is covered by a prefix
                 # and where it covers more than one address.
+                temp = self.context_radix[context]
+
                 for ip in subflow_spec.ip:
 
                     node = self.context_radix[context].search_best(str(ip.prefix))
                     if node is not None:
                         nodes.add(node)
                     temp_nodes = self.context_radix[context].search_covered(str(ip.prefix))
-                    for node in temp_nodes:
-                        nodes.add(node)
+
+                    if node is not None:
+
+                        for node2 in temp_nodes:
+                            if node2.data['epg'] != node.data['epg']:
+                                nodes.add(node2)
+                    else:
+                        for node2 in temp_nodes:
+                            nodes.add(node2)
+                    # if node is not None:
+                    #     nodes.add(node)
+                    # temp_nodes = self.context_radix[context].search_covered(str(ip.prefix))
+                    # for node2 in temp_nodes:
+                    #     nodes.add(node2)
         # t2 = datetime.datetime.now()
         # print 'nodes done', t2-t1
         # t1=t2
         # now have all the nodes
         if nodes is not None:
             for node in nodes:
-                for ip in subflow_spec.ip:
-                    ovlp = ip.overlap(IpAddress(node.prefix))
-                    if ovlp is not None:
-                        if node.data['epg'] not in epgs_prefix:
-                            epgs_prefix[node.data['epg']] = set()
 
-                        epgs_prefix[node.data['epg']].add(ovlp)
+                if node.data['epg'] not in epgs_prefix:
+                    epgs_prefix[node.data['epg']] = set()
+                epgs_prefix[node.data['epg']].add(IpAddress(node.prefix))
+
+                try:
+                    if node.data['any_epg'] is not None:
+                        if node.data['any_epg'] not in epgs_prefix:
+                            epgs_prefix[node.data['any_epg']] = set()
+                        epgs_prefix[node.data['any_epg']].add(IpAddress(node.prefix))
+                except KeyError:
+                    pass
+
+
+                # for ip in subflow_spec.ip:
+                #     ovlp = ip.overlap(IpAddress(node.prefix))
+                #
+                #     if node.data['epg'] not in epgs_prefix:
+                #         epgs_prefix[node.data['epg']] = set()
+                #     epgs_prefix[node.data['epg']].add(ovlp)
+                #
+                #     try:
+                #         if node.data['any_epg'] is not None:
+                #             if node.data['any_epg'] not in epgs_prefix:
+                #                 epgs_prefix[node.data['any_epg']] = set()
+                #             epgs_prefix[node.data['any_epg']].add(ovlp)
+                #     except KeyError:
+                #         pass
 
         # t2 = datetime.datetime.now()
         # print 'overlap done', t2-t1
@@ -1693,9 +1788,16 @@ class SearchDb(object):
             if epg in self.epg_contract:
                 for entry in self.epg_contract[epg]:
                     if entry['pro_con'] == pro_con:
-                        result.append({'contract': entry['contract'],
-                                       'prefix': next(iter(epgs_prefix[epg])).simplify(epgs_prefix[epg]),
-                                       'epg': epg})
+                        if subflow_spec.contract is not None:
+                            if subflow_spec.contract == entry['contract'][1].name:
+                                result.append({'contract': entry['contract'],
+                                               'prefix': epgs_prefix[epg],
+                                               'epg': epg})
+                        else:
+                            result.append({'contract': entry['contract'],
+                                           'prefix': epgs_prefix[epg],
+                                           'epg': epg})
+
         # t2 = datetime.datetime.now()
         # print 'result done', t2-t1
         # t1=t2
@@ -1768,7 +1870,7 @@ def main():
     creds.add_argument('-arpOpc', type=str, default='any', help='ARP Opcode, e.g. "req", "ack". Default: "any"')
     creds.add_argument('-applyToFrag', type=str, default='any',
                        help='Apply to fragment, e.g. "yes", "no". Default: "any"')
-    creds.add_argument('-tcpRules', type=str, default='any', help='TCP rules, e.g. "syn", "fin". Default: "any"')
+    creds.add_argument('-tcpRules', type=str, default='any', help='TCP rules, e.g. "syn", "fin", "est". Default: "any"')
 
     args = creds.get()
 
