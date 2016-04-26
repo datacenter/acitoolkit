@@ -1054,10 +1054,17 @@ class EPG(CommonEPG):
                 #objs = tenant.find(bd_search)
                 if BridgeDomain in obj_dict:
                     objs = obj_dict[BridgeDomain]
+                    found = False
                     for bd in objs:
                         #if isinstance(bd, BridgeDomain):
                         if bd.name == bd_name and bd.get_parent() == tenant:
                             self.add_bd(bd)
+                            found = True
+                    if not found:
+                        for bd in objs:
+                            if bd.name == bd_name and bd.get_parent().name == 'common':
+                                self.add_bd(bd)
+
             elif 'fvRsPathAtt' in child:
                 int_attributes = child['fvRsPathAtt']['attributes']
                 int_dn = int_attributes['tDn']
@@ -1398,27 +1405,6 @@ class OutsideEPG(CommonEPG):
         for child in epg_children:
             if 'fvRsProv' in child:
                 contract_name = child['fvRsProv']['attributes']['tnVzBrCPName']
-                # contract_search = Search()
-                # contract_search.name = contract_name
-                # objs = tenant.find(contract_search)
-                # if len(objs):
-                #     for contract in objs:
-                #         if isinstance(contract, Contract):
-                #             self.provide(contract)
-                # else:
-                #     # Need to check tenant common (if available)
-                #     fabric = tenant.get_parent()
-                #     if fabric is not None:
-                #         tenant_search = Search()
-                #         tenant_search.name = 'common'
-                #         tenant_common = fabric.find(tenant_search)
-                #         if len(tenant_common):
-                #             objs = tenant_common[0].find(contract_search)
-                #             if len(objs):
-                #                 for contract in objs:
-                #                     if isinstance(contract, Contract):
-                #                         self.provide(contract)
-
                 if Contract in obj_dict:
                     objs = obj_dict[Contract]
 
@@ -1435,27 +1421,6 @@ class OutsideEPG(CommonEPG):
 
             elif 'fvRsCons' in child:
                 contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
-                # contract_search = Search()
-                # contract_search.name = contract_name
-                # objs = tenant.find(contract_search)
-                # if len(objs):
-                #     for contract in objs:
-                #         if isinstance(contract, Contract):
-                #             self.consume(contract)
-                # else:
-                #     # Need to check tenant common (if available)
-                #     fabric = tenant.get_parent()
-                #     if fabric is not None:
-                #         tenant_search = Search()
-                #         tenant_search.name = 'common'
-                #         tenant_common = fabric.find(tenant_search)
-                #         if len(tenant_common):
-                #             objs = tenant_common[0].find(contract_search)
-                #             if len(objs):
-                #                 for contract in objs:
-                #                     if isinstance(contract, Contract):
-                #                         self.consume(contract)
-
                 if Contract in obj_dict:
                     objs = obj_dict[Contract]
                     if len(objs):
@@ -1485,6 +1450,122 @@ class OutsideEPG(CommonEPG):
                                     self.consume_cif(contract_if)
 
         super(OutsideEPG, self)._extract_relationships(data, obj_dict)
+
+
+class AnyEPG(CommonEPG):
+    """
+    AnyEPG class, roughly equivalent to vz:Any
+    """
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['vzAny']
+
+    def get_json(self):
+        """
+        Returns json representation of the EPG
+
+        :returns: json dictionary of the EPG
+        """
+        children = self._get_common_json()
+        attr = self._generate_attributes()
+        return super(AnyEPG, self).get_json(self._get_apic_classes()[0],
+                                                attributes=attr,
+                                                children=children)
+
+    def _extract_relationships(self, data, obj_dict):
+        context = self.get_parent()
+        tenant = context.get_parent()
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                tenant_children = tenant_data['fvTenant']['children']
+        epg_children = []
+        for ctx in tenant_children:
+            if 'fvCtx' in ctx:
+                if ctx['fvCtx']['attributes']['name'] == context.name:
+                    for ctx_child in ctx['fvCtx']['children']:
+                        if 'vzAny' in ctx_child:
+                            if 'children' in ctx_child['vzAny']:
+                                epg_children = ctx_child['vzAny']['children']
+                    break
+        for child in epg_children:
+            if 'vzRsAnyToProv' in child:
+                contract_name = child['vzRsAnyToProv']['attributes']['tnVzBrCPName']
+
+                if Contract in obj_dict:
+                    objs = obj_dict[Contract]
+                else:
+                    objs = []
+                if len(objs):
+                    found = False
+                    for contract in objs:
+                        if contract.name == contract_name and contract.get_parent() == tenant:
+                            self.provide(contract)
+                            found = True
+                    if not found:
+                        for contract in objs:
+                            if contract.name == contract_name and contract.get_parent().name == 'common':
+                                self.provide(contract)
+            elif 'vzRsAnyToCons' in child:
+                contract_name = child['vzRsAnyToCons']['attributes']['tnVzBrCPName']
+                if Contract in obj_dict:
+                    objs = obj_dict[Contract]
+
+                    if len(objs):
+                        found = False
+                        for contract in objs:
+                            if contract.name == contract_name and contract.get_parent() == tenant:
+                                self.consume(contract)
+                                found = True
+                        if not found:
+                            for contract in objs:
+                                if contract.name == contract_name and contract.get_parent().name == 'common':
+                                    self.consume(contract)
+
+            elif 'vzRsAnyToConsIf' in child:
+                contract_if_name = child['vzRsAnyToConsIf']['attributes']['tnVzCPIfName']
+                if ContractInterface in obj_dict:
+                    objs = obj_dict[ContractInterface]
+
+                    if len(objs):
+                        found = False
+                        for contract_if in objs:
+                            if contract_if.name == contract_if_name and contract_if.get_parent() == tenant:
+                                self.consume_cif(contract_if)
+                                found = True
+                        if not found:
+                            for contract_if in objs:
+                                if contract_if.name == contract_if_name and contract_if.get_parent().name == 'common':
+                                    self.consume_cif(contract_if)
+
+        super(AnyEPG, self)._extract_relationships(data, obj_dict)
+
+    def _get_common_json(self):
+        """Internal routine to generate JSON common to EPGs and Outside EPGs"""
+        children = []
+        for contract in self.get_all_provided():
+            text = {'vzRsAnyToProv': {'attributes': {'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract in self.get_all_consumed():
+            text = {'vzRsAnyToCons': {'attributes': {'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract_interface in self.get_all_consumed_cif():
+            text = {'vzRsAnyToConsIf': {'attributes': {'tnVzCPIfName': contract_interface.name}}}
+            children.append(text)
+        for contract in self.get_all_provided(deleted=True):
+            text = {'vzRsAnyToProv': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract in self.get_all_consumed(deleted=True):
+            text = {'vzRsAnyToCons': {'attributes': {'status': 'deleted', 'tnVzBrCPName': contract.name}}}
+            children.append(text)
+        for contract_interface in self.get_all_consumed_cif(deleted=True):
+            text = {'vzRsAnyToConsIf': {'attributes': {'status': 'deleted', 'tnVzCPIfName': contract_interface.name}}}
+            children.append(text)
+        return children
 
 
 class OutsideL2EPG(CommonEPG):
@@ -2959,7 +3040,7 @@ class Context(BaseACIObject):
 
         :returns: dict of APIC class names to acitoolkit classes
         """
-        return {}
+        return {'vzAny':AnyEPG}
 
     @staticmethod
     def _get_parent_class():
@@ -3180,6 +3261,8 @@ class ContractInterface(BaseACIObject):
             for contract in provider_tenant.get_children(only_class=Contract):
                 if contract.name == imported_contract_name:
                     self.import_contract(contract)
+
+        super(ContractInterface, self)._extract_relationships(data, obj_dict)
 
     @staticmethod
     def _get_parent_dn(dn):
@@ -3442,16 +3525,25 @@ class Contract(BaseContract):
         return attributes
 
     @classmethod
-    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
-        contract_data = working_data[0]['vzBrCP']
-        contract = Contract(str(contract_data['attributes']['name']),
-                            parent)
-        contract._populate_from_attributes(contract_data['attributes'])
-        for child in contract_data.get('children', ()):
-            if 'vzSubj' in child:
-                # subject = child['vzSubj']
-                subj = ContractSubject(child['vzSubj']['attributes']['name'], contract)
-                subj._populate_from_attributes(child['vzSubj']['attributes'])
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+        These are the children objects
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {'vzSubj': ContractSubject,}
+
+    # @classmethod
+    # def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
+    #     contract_data = working_data[0]['vzBrCP']
+    #     contract = Contract(str(contract_data['attributes']['name']),
+    #                         parent)
+    #     contract._populate_from_attributes(contract_data['attributes'])
+    #     for child in contract_data.get('children', ()):
+    #         if 'vzSubj' in child:
+    #             # subject = child['vzSubj']
+    #             subj = ContractSubject(child['vzSubj']['attributes']['name'], contract)
+    #             subj._populate_from_attributes(child['vzSubj']['attributes'])
 
     @classmethod
     def get(cls, session, tenant):
@@ -3491,6 +3583,25 @@ class ContractSubject(BaseACIObject):
     def __init__(self, subject_name, parent=None):
         super(ContractSubject, self).__init__(subject_name, parent)
 
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return ['vzSubj']
+
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+        These are the children objects
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {'vzInTerm': InputTerminal,
+                'vzOutTerm': OutputTerminal}
+
     def _extract_relationships(self, data, obj_dict):
         """
         Extracts and rebuild the relationships between the ContractSubject
@@ -3510,13 +3621,6 @@ class ContractSubject(BaseACIObject):
                                 for filt in subj['vzSubj']['children']:
                                     if 'vzRsSubjFiltAtt' in filt:
                                         filt_name = filt['vzRsSubjFiltAtt']['attributes']['tnVzFilterName']
-                                        # filt_search = Search()
-                                        # filt_search.name = filt_name
-                                        # objs = tenant.find(filt_search)
-                                        # for specific_filt in objs:
-                                        #     if isinstance(specific_filt, Filter):
-                                        #         self.add_filter(specific_filt)
-
                                         if Filter in obj_dict:
                                             all_filters = obj_dict[Filter]
                                             if len(all_filters):
@@ -3531,9 +3635,10 @@ class ContractSubject(BaseACIObject):
                                                         if specific_filter.name == filt_name and \
                                                                         specific_filter.get_parent().name == 'common':
                                                             self.add_filter(specific_filter)
-
                         except KeyError:
                             pass
+
+        super(ContractSubject, self)._extract_relationships(data, obj_dict)
 
     @staticmethod
     def _get_parent_class():
@@ -3559,6 +3664,14 @@ class ContractSubject(BaseACIObject):
             filt = {'vzRsSubjFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
             filters.append(filt)
         resp_json['vzSubj']['children'] = filters
+
+        terminals = []
+        for entry in self.get_children():
+            if isinstance(entry, BaseTerminal):
+                terminal = entry.get_json()
+                terminals.append(terminal)
+        resp_json['vzSubj']['children'].extend(terminals)
+
         return resp_json
 
     def add_filter(self, filter_obj):
@@ -3930,6 +4043,156 @@ class FilterEntry(BaseACIObject):
                 'prot', 'sFromPort', 'sToPort', 'tcpRules', 'stateful')
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
+
+
+class BaseTerminal(BaseACIObject):
+    """
+    Base class for Input terminal and output terminal
+    """
+    def __init__(self, terminal_name, parent=None):
+        super(BaseTerminal, self).__init__(terminal_name, parent)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return ContractSubject
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        return [cls._get_terminal_code()]
+
+    def get_json(self):
+        """
+        Returns json representation of the Terminal Object
+
+        :returns: json dictionary of the ContractSubject
+        """
+        attr = self._generate_attributes()
+        apic_object_type = self._get_terminal_code()
+        resp_json = super(BaseTerminal, self).get_json(apic_object_type,
+                                                          attributes=attr,
+                                                          get_children=False)
+        filters = []
+        for entry in self.get_filters():
+            filt = {'vzRsFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
+            filters.append(filt)
+        resp_json[apic_object_type]['children'] = filters
+        return resp_json
+
+    def _extract_relationships(self, data, obj_dict):
+        """
+        Extracts and rebuild the relationships between the ContractSubject
+        and Filter objects.
+        """
+        contract_subject = self.get_parent()
+        contract = contract_subject.get_parent()
+        tenant = contract.get_parent()
+        for tenant_data in data:
+            if 'fvTenant' in tenant_data and tenant_data['fvTenant']['attributes']['name'] == tenant.name:
+                contract_data = tenant_data['fvTenant']['children']
+        if len(contract_data):
+            for child in contract_data:
+                if 'vzBrCP' in child and 'children' in child['vzBrCP'] and \
+                                child['vzBrCP']['attributes']['name']== contract.name:
+                    for subj in child['vzBrCP']['children']:
+                        if 'vzSubj' in subj and 'children' in subj['vzSubj']:
+                            for subj_child in subj['vzSubj']['children']:
+                                try:
+                                    if 'vzInTerm' in subj_child or 'vzOutTerm' in subj_child:
+                                        for filt in subj_child[self._get_terminal_code()]['children']:
+                                            if 'vzRsFiltAtt' in filt:
+
+                                                filt_name = filt['vzRsFiltAtt']['attributes']['tnVzFilterName']
+                                                if Filter in obj_dict:
+                                                    all_filters = obj_dict[Filter]
+                                                    if len(all_filters):
+                                                        found = False
+                                                        for specific_filter in all_filters:
+                                                            if specific_filter.name == filt_name and \
+                                                                            specific_filter.get_parent() == tenant:
+                                                                self.add_filter(specific_filter)
+                                                                found = True
+                                                        if not found:
+                                                            for specific_filter in all_filters:
+                                                                if specific_filter.name == filt_name and \
+                                                                        specific_filter.get_parent().name == 'common':
+                                                                    self.add_filter(specific_filter)
+                                except KeyError:
+                                    pass
+
+        super(BaseTerminal, self)._extract_relationships(data, obj_dict)
+
+    def add_filter(self, filter_obj):
+        """
+        Add Filter to the Terminal, roughly equivalent to vzRsFiltAtt
+
+        :param filter_obj:   Instance of Filter class. Represents\
+                             a Filter that is added to the Terminal.\
+                             Multiple Filters can be assigned to a single\
+                             Terminal.
+        """
+        if not isinstance(filter_obj, Filter):
+            raise TypeError('add_filter not called with Filter')
+        self._add_relation(filter_obj)
+
+    def get_filters(self):
+        """
+        Get all of the filters that are attached to this Terminal.
+
+        :returns: List of Filter objects
+        """
+        resp = []
+        for relation in self._relations:
+            if isinstance(relation.item, Filter):
+                resp.append(relation.item)
+        return resp
+
+    @staticmethod
+    def _get_terminal_code():
+        """
+        Abstract method that should be over ridden
+
+        :returns: String containing APIC class name for this type of terminal.
+        """
+        assert NotImplemented('This method needs to be implemented')
+
+
+class InputTerminal(BaseTerminal):
+    """
+    Input terminal for a graph.  It is input with respect to the
+    provider
+    """
+    @staticmethod
+    def _get_terminal_code():
+        """
+        Returns the APIC class name for this type of terminal.
+
+        :returns: String containing APIC class name for this type of terminal.
+        """
+        return 'vzInTerm'
+
+class OutputTerminal(BaseTerminal):
+    """
+    Input terminal for a graph.  It is input with respect to the
+    provider
+    """
+    @staticmethod
+    def _get_terminal_code():
+        """
+        Returns the APIC class name for this type of terminal.
+
+        :returns: String containing APIC class name for this type of terminal.
+        """
+        return 'vzOutTerm'
 
 
 class TunnelInterface(object):
