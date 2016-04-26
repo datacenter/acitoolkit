@@ -40,8 +40,8 @@ from acitoolkit.acitoolkit import (
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
     PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork,
     AttributeCriterion, OutsideL2, TunnelInterface, FexInterface, VMM,
-    OutsideL2EPG
-)
+    OutsideL2EPG,
+    AnyEPG, InputTerminal, OutputTerminal)
 # TODO: resolve circular dependencies and order-dependent import
 from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
 import unittest
@@ -1213,12 +1213,110 @@ class TestContractSubject(unittest.TestCase):
         """
         cs_name = 'ContractSubject'
         cs = ContractSubject(cs_name)
+
         filt_name = 'Filter'
         filt = Filter(filt_name)
         cs.add_filter(filt)
+
+        input_terminal_name = 'InputTerminal'
+        it = InputTerminal(input_terminal_name, cs)
+
+        output_terminal_name = 'OutTerminal'
+        ot = OutputTerminal(output_terminal_name, cs)
+
         cs_json = cs.get_json()
         self.assertTrue('vzRsSubjFiltAtt' in cs_json['vzSubj']['children'][0])
         self.assertEqual(cs_json['vzSubj']['children'][0]['vzRsSubjFiltAtt']['attributes']['tnVzFilterName'],
+                         filt_name)
+
+        self.assertTrue('vzInTerm' in cs_json['vzSubj']['children'][1])
+        self.assertEqual(cs_json['vzSubj']['children'][1]['vzInTerm']['attributes']['name'],input_terminal_name)
+
+        self.assertTrue('vzOutTerm' in cs_json['vzSubj']['children'][2])
+        self.assertEqual(cs_json['vzSubj']['children'][2]['vzOutTerm']['attributes']['name'],output_terminal_name)
+
+
+class TestInputTerminal(unittest.TestCase):
+    """
+    Test InputTerminal Class
+    """
+    def test_create(self):
+        """
+        Test basic ContractSubject class creation
+        """
+        input_terminal = InputTerminal('InputTerminal')
+        self.assertTrue(isinstance(input_terminal, InputTerminal))
+
+    def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
+        self.assertEquals(InputTerminal._get_parent_class(), ContractSubject)
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        it_name = 'InputTerminal'
+        it = InputTerminal(it_name)
+        it_json = it.get_json()
+        self.assertTrue('vzInTerm' in it_json)
+        self.assertEqual(it_json['vzInTerm']['attributes']['name'], it_name)
+
+    def test_get_json_with_children(self):
+        """
+        Test get_json method with Filter children
+        """
+        it_name = 'InputTerminal'
+        it = InputTerminal(it_name)
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        it.add_filter(filt)
+        it_json = it.get_json()
+        self.assertTrue('vzRsFiltAtt' in it_json['vzInTerm']['children'][0])
+        self.assertEqual(it_json['vzInTerm']['children'][0]['vzRsFiltAtt']['attributes']['tnVzFilterName'],
+                         filt_name)
+
+
+class TestOutputTerminal(unittest.TestCase):
+    """
+    Test OutputTerminal Class
+    """
+    def test_create(self):
+        """
+        Test basic ContractSubject class creation
+        """
+        Output_terminal = OutputTerminal('OutputTerminal')
+        self.assertTrue(isinstance(Output_terminal, OutputTerminal))
+
+    def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
+        self.assertEquals(OutputTerminal._get_parent_class(), ContractSubject)
+
+    def test_get_json(self):
+        """
+        Test get_json method
+        """
+        ot_name = 'OutputTerminal'
+        ot = OutputTerminal(ot_name)
+        ot_json = ot.get_json()
+        self.assertTrue('vzOutTerm' in ot_json)
+        self.assertEqual(ot_json['vzOutTerm']['attributes']['name'], ot_name)
+
+    def test_get_json_with_children(self):
+        """
+        Test get_json method with Filter children
+        """
+        it_name = 'OutputTerminal'
+        it = OutputTerminal(it_name)
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        it.add_filter(filt)
+        it_json = it.get_json()
+        self.assertTrue('vzRsFiltAtt' in it_json['vzOutTerm']['children'][0])
+        self.assertEqual(it_json['vzOutTerm']['children'][0]['vzRsFiltAtt']['attributes']['tnVzFilterName'],
                          filt_name)
 
 
@@ -1882,6 +1980,70 @@ class TestOutsideEPG(unittest.TestCase):
         tenant = Tenant('cisco')
         outside_l3 = OutsideL3('internet', tenant)
         self.assertTrue('l3extOut' in str(outside_l3.get_json()))
+
+
+class TestAnyEPG(unittest.TestCase):
+    """
+    Test AnyEPG class
+    """
+    def test_create(self):
+        """
+        Test basic AnyEPG creation
+        """
+        context = Context('cisco-ctx')
+        any_epg = AnyEPG('internet', context)
+        self.assertTrue(isinstance(any_epg, AnyEPG))
+        self.assertEqual(any_epg.get_parent(), context)
+
+    def test_invalid_create(self):
+        """
+        Test invalid AnyEPG creation
+        """
+        self.assertRaises(TypeError, AnyEPG, 'internet', 'cisco')
+
+    def test_basic_json(self):
+        """
+        Test AnyEPG JSON creation
+        """
+        context = Context('cisco-ctx')
+        any_epg = AnyEPG('internet', context)
+        self.assertTrue('vzAny' in str(any_epg.get_json()))
+
+    def test_provide_contract(self):
+        """
+        Test that AnyEPG can provide a contract
+        :return:
+        """
+        context = Context('cisco-ctx')
+        any_epg = AnyEPG('any', context)
+        contract = Contract('contract-1')
+        any_epg.provide(contract)
+        contracts = any_epg.get_all_provided()
+        self.assertTrue(len(contracts), 1)
+        self.assertEqual(contracts[0], contract)
+        json = any_epg.get_json()
+        self.assertEqual(json['vzAny']['attributes']['name'], 'any')
+        for child in json['vzAny']['children']:
+            self.assertTrue('vzRsAnyToProv' in child)
+            self.assertTrue(child['vzRsAnyToProv']['attributes']['tnVzBrCPName']=='contract-1')
+
+    def test_consume_contract(self):
+        """
+        Test that AnyEPG can provide a contract
+        :return:
+        """
+        context = Context('cisco-ctx')
+        any_epg = AnyEPG('any', context)
+        contract = Contract('contract-1')
+        any_epg.consume(contract)
+        contracts = any_epg.get_all_consumed()
+        self.assertTrue(len(contracts), 1)
+        self.assertEqual(contracts[0], contract)
+        json = any_epg.get_json()
+        self.assertEqual(json['vzAny']['attributes']['name'], 'any')
+        for child in json['vzAny']['children']:
+            self.assertTrue('vzRsAnyToCons' in child)
+            self.assertTrue(child['vzRsAnyToCons']['attributes']['tnVzBrCPName']=='contract-1')
 
 
 class TestEndpoint(unittest.TestCase):
