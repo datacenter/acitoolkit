@@ -138,20 +138,22 @@ The Attributes are as follows:
     attribute would typically be used in conjunction with the *tenant* attribute, but that is not
     required.
 
+    **contract**: The name of a contract can be specified and only connections that use contract(s) with that
+    name will be selected.  Note that the contact name cannot be further qualified with the tenant name.  However,
+    the tenant name can be one of the attributes, but that will limit the result to only endpoints that are
+    under that tenant.
+
     **sip**: The source IP address or source subnet.  When entering an address, it should be in the defacto
     standard form of *a.b.c.d*.  For example, 10.2.5.8.  When entering a subnet, it should take the form
     of *a.b.c.d/s* where "s" is the length of the subnet mask.  Any of the prefix digits that are omitted are
     assumed to be zero.  For example, *192/8* is equivalent to *192.0.0.0/8* and *192/16* is equivalent to
     *192.0.0.0/16*.  The *sip* attribute does not accept the "*" wild-card.
 
-    Note that when doing a search for a specific IP or subnet and a match with a *less* or *more* specific subnet
-    or address is found, only the portion of the two values that overlap are displayed. For example, if the search
-    is for *sip=192.168/16* and the configuration has a source subnet equal to *0/0*, the results will display
-    *192.168.0.0/16* in the first column.  Similarly, if the configuration has a source IP equal to *192.168.5.4*,
-    the results will display *192.168.5.4/32* in the first column.
-
-    In general, only the overlap of the search criteria and the configuration will be displayed for addresses and
-    filters in the results.
+    Note that when doing a search where the matching criteria can be either more or less specific than the
+    field in the policy, the result displayed with be value in the policy.  For example, if a search is done for
+    *sip=1.2.3.0/24* and there is a L3Out that has the address *1.2/16* that matches that *sip*, the output
+    result will show *1.2/16*.  Similarly, if there is an EPG with addresses *1.2.3.4/32* and *1.2.3.89/32*,
+    the result displayed in the source column will be *1.2.3.4/32* and *1.2.3.89/32*.
 
     **dip**: The destination IP address or destination subnet.  See **sip** above for how this attribute works.
 
@@ -161,10 +163,6 @@ The Attributes are as follows:
     *dport=80* or *dport=20-45*.  A limited set of common protocol acronyms can also be used.  The currently
     supported set is:
             'http', 'https', 'ftp-data', 'smtp', 'dns', 'pop3', 'rtsp', and 'any'
-
-    Like the *sip* and *dip* attributes, the results will display the overlap between the search criteria and the
-    configured filters.  For example, if the search is for *dport=300-400* and there is a filter that has a range of
-    *any-any*, the results will display *300-400* because that is the range that overlaps.
 
     **sport**: The layer 4 source port or port range.  This attribute works just like the *dport* attribute above.
 
@@ -195,8 +193,7 @@ The Attributes are as follows:
     FilterEntry object.  If *tcpRules* are specified, then the *prot* attribute is assumed to be *tcp*.
 
 When the search results are displayed, placing the cursor over a table cell will cause a fully qualified name of the
-EPG or OutsideEPG to be displayed.  If the cursor is placed over the filters, the name of the contract will be
-displayed.
+EPG or OutsideEPG to be displayed and the contract.
 
 For communication within an EPG, i.e. between two end-points that are in the same EPG, Connection Search will create an
 "implied" contract that is both provided and consumed by that EPG.  The filter in that contract will allow all
@@ -216,8 +213,9 @@ Find all the connections whose source IP address is in the subnet "192.0.0.0/8".
 Here we see how the search is contructed, ``sip=192/8``.  This tells the application to find all connections whose
 source IP address has the first 8-bits equal to "192".
 
-The results show two connections.  The first is from the entire subnet that was searched for going to the default route
-of 0/0.  This connection is for all TCP traffice.  The filter says ``ip tcp any-any any-any`` which should be
+The results show three connections.  The first shows traffic from ``0.0.0.0/0`` to ``0.0.0.0/0``.  This shows that all
+traffic from the ``mgmt`` tenant can be switched to ``Tenant1`` ``L3Out-FW-outside`` as long as it is ``TCP`` traffic.
+It has a filter of ``ip tcp any-any any-any both`` which should be
 interpreted as:
 
 * EtherType = IP
@@ -226,31 +224,24 @@ interpreted as:
 * L4 destination port maximum = any
 * L4 source port minimum = any
 * L4 source port maximum = any
+* Direction with respect to destination = both
 
-The second connection indicates the same subnet going to the host address ``192.168.1.133/32``.  Here there are 4
-filters.  The first says all ``icmp`` traffic is allowed.  The next two show destination ports ``80`` and ``443``
-are allowed which corresponds to "http" and "https" traffic respectively.  The last filter shows that all
-``arp`` traffic is allowed, i.e. both requests and responses.
+The following two rows show connections from ``Tenant1`` to ``Tenant1``, i.e. they correspond to different traffic
+than the first row.
 
 Note that there were additional results that are not shown in the above image.
 
 Example 2
 ^^^^^^^^^
 This next example shows a search looking for traffic in a tenant named "Tenant1", whose destination is to anything
-in the ``192.168.0.0/16`` subnet on any layer 4 destination port number in the range of ``100`` to ``500``.
+in the ``192.168.0.0/16`` subnet on any layer 4 destination port number in the range of ``80`` to ``500``.
 
 .. image:: connection-search-example2.png
 
-The results show 4 connection groups.  The first one is from a host IP of ``0.0.0.0/32``.  This looks funny and is
-probably a configuration error in the APIC.  The destination here is ``192.168.0.0/16`` and the filter is for any
-TCP traffic that has a destination port in the range of ``100`` to ``500``.  Here the results are showing just the
-overlap of the destination address range.   The full range of addressed configured in the APIC is ``0/0``, but the
-search criteria indicates that the user was looking for the specific range of ``192.168/16``, so that is the only
-range shown in the result.
-
-In a similar fashion, the filter shows that TCP ports ``100`` to ``500`` are allowed.  The actual filter in the APIC
-is for ``any-any``, but the result only shows the overlapping ports because that is what the query was for.
-
+The results show 3 connection groups.  The first one is from a host IP of ``0.0.0.0/32``.  This looks funny and is
+probably a configuration error in the APIC.  The destination here is ``0.0.0.0/0`` and the filter is for any
+TCP traffic. ``0.0.0.0/0`` in the destination column covers the search criteria of ``dip=192.168.0.0/16``,
+and the filter of any-any for the destination port range covers the search criteria of ``dport=80-500``.
 
 Example 3
 ^^^^^^^^^
@@ -261,10 +252,9 @@ can send traffic to.
 
 Here there are two results.  The first shows that this host can send traffic to default route of ``0/0`` for any TCP
 traffic.  The second row shows that this host can communicate with itself using any protocol.  This second one
-has a fully open filter of ``any any any-any any-any``.  When we place the cursor over this filter we can see that
+has a fully open filter of ``any any any-any any-any both``.  When we place the cursor over this row we can see that
 this was an "implied" filter.  The implied filter is created by the connection search tool to show that end-points
-within an EPG can communicate with each other without any constraint.  In this particular case, it shows that end-points
-can send traffic to themselves.
+within an EPG can communicate with each other without any constraint.
 
 
 About
