@@ -20,9 +20,10 @@
 Search test
 """
 import unittest
-from acitoolkit import BridgeDomain, Filter
+from acitoolkit import BridgeDomain, Filter, ContractInterface
 from aciConSearch import *
 import radix
+import copy
 
 LIVE_TEST = False
 
@@ -690,6 +691,155 @@ class TestImportData(unittest.TestCase):
             self.assertTrue(filter_entry in test_filters)
 
 
+class TestImportAnyEPG(unittest.TestCase):
+    """
+    Checks that the object model is correctly setup
+    Is different from TestImportData in that
+    it adds AnyEPG to the setup
+    """
+
+    def setUp(self):
+        self.sdb = SearchDb()
+        self.tenants = get_tree()
+        contracts = self.tenants[0].get_children(Contract)
+        context = self.tenants[0].get_children(Context)[0]
+        any_epg = AnyEPG('any-epg', context)
+        any_epg.consume(contracts[0])
+        any_epg.provide(contracts[1])
+
+        self.sdb.build(self.tenants)
+
+    def get_all_anyepgs(self):
+        """
+        will return list of all AnyEPGs as a list
+        :return:
+        """
+        any_epgs = []
+        for tenant in self.tenants:
+            for context in tenant.get_children(Context):
+                for any_epg in context.get_children(AnyEPG):
+                    any_epgs.append(any_epg)
+        return any_epgs
+
+    def get_all_outside_epgs(self):
+        result = []
+        for tenant in self.tenants:
+            outside_l3s = tenant.get_children(OutsideL3)
+            for outside_l3 in outside_l3s:
+                outside_epg = outside_l3.get_children(OutsideEPG)
+                for epg in outside_epg:
+                    result.append(epg)
+        return result
+
+    def get_all_contracts(self):
+        """
+        Will get a list of all contracts returned as tuple (tenant, contract)
+        :return:
+        """
+        result = []
+        for tenant in self.tenants:
+            contracts = tenant.get_children(Contract)
+            for contract in contracts:
+                result.append((tenant, contract))
+        return result
+
+    def get_all_filter_entries(self):
+
+        result = []
+        contracts = self.get_all_contracts()
+        for (tenant, contract) in contracts:
+            result.extend(contract.get_children(FilterEntry))
+            subjects = contract.get_children(ContractSubject)
+            for subject in subjects:
+                filters = subject.get_filters()
+                for aci_filter in filters:
+                    result.extend(aci_filter.get_children(FilterEntry))
+        return result
+
+    def test_anyepg_in_context(self):
+
+        any_epgs = self.get_all_anyepgs()
+        self.assertEqual(len(any_epgs), 1)
+        self.assertTrue(any_epgs[0].name=='any-epg')
+        self.assertTrue(isinstance(any_epgs[0], AnyEPG))
+
+    def test_check_anyepg_in_radix(self):
+
+        any_epgs = set(self.get_all_anyepgs())
+        radix_epgs = set()
+        for context in self.sdb.context_radix:
+            for node in self.sdb.context_radix[context]:
+                if node.data['location'] == 'internal':
+                    radix_epgs.add(node.data['any_epg'])
+
+        difference = any_epgs ^ radix_epgs
+        self.assertTrue(len(difference) == 0)
+
+    def test_check_epg_in_epg_contract(self):
+        """
+        will check that all AnyEPGs are indicies to epg_contract
+        :return:
+        """
+        epgs = set(self.get_all_anyepgs())
+        test_epgs = set()
+        for epg in self.sdb.epg_contract:
+            if isinstance(epg, AnyEPG):
+                for contract_record in self.sdb.epg_contract[epg]:
+                    if contract_record['location'] == 'internal':
+                        test_epgs.add(epg)
+
+        difference = epgs ^ test_epgs
+        self.assertTrue(len(difference) == 0)
+
+    def test_check_all_contracts_in_epg_contract(self):
+        contracts = set(self.get_all_contracts())
+        test_contracts = set()
+        for epg in self.sdb.epg_contract:
+            for contract_record in self.sdb.epg_contract[epg]:
+                test_contracts.add(contract_record['contract'])
+        difference = contracts ^ test_contracts
+        self.assertTrue(len(difference) == 0)
+
+    def test_epg_consume_provide(self):
+        """
+        will test that epg_contract has all the consume relations correct
+        :return:
+        """
+        epgs = self.get_all_anyepgs()
+        epg_consume = set()
+        for epg in epgs:
+            contracts = epg.get_all_consumed()
+            for contract in contracts:
+                tenant = contract.get_parent()
+                epg_consume.add((tenant, contract))
+        epg_provide = set()
+        for epg in epgs:
+            contracts = epg.get_all_provided()
+            for contract in contracts:
+                tenant = contract.get_parent()
+                epg_provide.add((tenant, contract))
+
+        test_consume = set()
+        test_provide = set()
+        for epg in self.sdb.epg_contract:
+
+            if isinstance(epg, AnyEPG):
+                for contract_record in self.sdb.epg_contract[epg]:
+                    if contract_record['pro_con'] == 'consume':
+                        test_consume.add((contract_record['contract']))
+
+                    if contract_record['pro_con'] == 'provide':
+                        test_provide.add((contract_record['contract']))
+
+        difference = epg_consume ^ test_consume
+
+        # the difference should only be implied contracts - one per epg internal
+        self.assertEqual(len(difference), 0)
+
+        difference = epg_provide ^ test_provide
+        self.assertEqual(len(difference), 0)
+
+
 class TestSearch(unittest.TestCase):
     """
     Checks that the object model is correctly setup
@@ -752,6 +902,7 @@ class TestSearch(unittest.TestCase):
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0] == flow_spec)
+        filt1.dPort = 'any'
         self.assertTrue(result[1] == flow_spec)
 
     def test_exact_search2(self):
@@ -774,6 +925,7 @@ class TestSearch(unittest.TestCase):
         flow_spec.dip = '192.168.22.1.2'
 
         result = self.sdb.search(flow_spec)
+        filt1.dPort = 'any'
         self.assertTrue(len(result) == 1)
         self.assertTrue(result[0] == flow_spec)
 
@@ -813,6 +965,7 @@ class TestSearch(unittest.TestCase):
 
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.sip = '10.10.1.0/24'
         self.assertTrue(result[0] == flow_spec)
 
     def test_exact_outside_epg_1(self):
@@ -829,18 +982,14 @@ class TestSearch(unittest.TestCase):
         flow_spec.dip = '192.168.12.1.2'
         flow_spec.sip = '10.10.2.1'
         result = self.sdb.search(flow_spec)
-        self.assertTrue(len(result) == 1)
-        self.assertTrue(result[0] == flow_spec)
-
-        flow_spec.dip = '192.168.12.1.2'
-        flow_spec.sip = '10.10.2.1'
-        result = self.sdb.search(flow_spec)
+        flow_spec.sip = '10.10.2.0/24'
         self.assertTrue(len(result) == 1)
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.12.1.2'
         flow_spec.sip = '10.10.3.1'
         result = self.sdb.search(flow_spec)
+        flow_spec.sip = '10.10.0.0/16'
         self.assertTrue(len(result) == 1)
         self.assertTrue(result[0] == flow_spec)
 
@@ -883,6 +1032,7 @@ class TestSearch(unittest.TestCase):
         flow_spec.sip = '192.168.12.1.2'
         flow_spec.dip = '10.21.2.1'
         result = self.sdb.search(flow_spec)
+        filt1.dToPort = 25
         self.assertTrue(len(result) == 1)
         self.assertTrue(result[0] == flow_spec)
 
@@ -942,18 +1092,21 @@ class TestSearch(unittest.TestCase):
         flow_spec.dip = '10.30.3.1'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.dip = '10.30.3.0/24'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.sip = '192.168.12.1.2'
         flow_spec.dip = '10.30.3.255'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.dip = '10.30.3.0/24'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.sip = '192.168.12.1.2'
         flow_spec.dip = '10.30.2.10'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.dip = '10.30.2.0/25'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.12.1.2'
@@ -966,45 +1119,53 @@ class TestSearch(unittest.TestCase):
         flow_spec.sip = '10.30.3.1'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.sip = '10.30.3.0/24'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.12.1.2'
         flow_spec.sip = '10.30.3.255'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.sip = '10.30.3.0/24'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.12.1.2'
         flow_spec.sip = '10.30.2.10'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.sip = '10.30.2.0/25'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.11.1.2'
         flow_spec.sip = '10.30.2.127'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
-        self.assertTrue(result[0] == flow_spec)
+        flow_spec.sip = '10.30.2.0/25'
+        #self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.22.1.2'
         flow_spec.sip = '10.30.2.127'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.sip = '10.30.2.0/25'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.sip = '192.168.11.1.2'
         flow_spec.dip = '10.30.2.127'
         result = self.sdb.search(flow_spec)
+        flow_spec.sip = '10.30.2.0/25'
         self.assertTrue(len(result) == 0)
 
         flow_spec.sip = '192.168.22.1.2'
         flow_spec.dip = '10.30.2.127'
         result = self.sdb.search(flow_spec)
+        flow_spec.sip = '10.30.2.0/25'
         self.assertTrue(len(result) == 0)
 
         flow_spec.dip = '192.168.22.1.2'
         flow_spec.sip = '10.30.2.128'
         result = self.sdb.search(flow_spec)
+        flow_spec.sip = '10.30.2.0/25'
         self.assertTrue(len(result) == 0)
 
     def test_nonexact_outside_epg1(self):
@@ -1040,12 +1201,14 @@ class TestSearch(unittest.TestCase):
         flow_spec.sip = '10.10.1.255/25'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.sip = '10.10.1.0/24'
         self.assertTrue(result[0] == flow_spec)
 
         flow_spec.dip = '192.168.12.1.2'
         flow_spec.sip = '10.10.2.0/23'
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
+        flow_spec.sip = '10.10.0.0/16'
         self.assertTrue(result[0] == flow_spec)
 
         exp_flow_spec = FlowSpec()
@@ -1102,8 +1265,9 @@ class TestSearch(unittest.TestCase):
         exp_filt1.etherT = 'ip'
         exp_filt1.prot = 'tcp'
         exp_filt1.dFromPort = 20
-        exp_filt1.dToPort = 20
-        exp_flow_spec.protocol_filter.append(exp_filt1)
+        exp_filt1.dToPort = 25
+        exp_filt = exp_filt1
+        exp_flow_spec.protocol_filter.append(exp_filt)
 
         flow_spec.sip = '192.168.12.1.2'
         flow_spec.dip = '10.21.2.0/24'
@@ -1180,7 +1344,7 @@ class TestSearch(unittest.TestCase):
         exp_flow_spec.dip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
-        self.assertTrue(result[0] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         flow_spec.dip = '192.168.12.1.2/24'
         flow_spec.sip = '10.30.2.0/16'
@@ -1188,7 +1352,7 @@ class TestSearch(unittest.TestCase):
         exp_flow_spec.sip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
-        self.assertTrue(result[0] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         flow_spec.dip = '192.168.11.1.2/24'
         flow_spec.sip = '10.30.2.0/16'
@@ -1196,7 +1360,7 @@ class TestSearch(unittest.TestCase):
         exp_flow_spec.sip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
-        self.assertTrue(result[0] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         flow_spec.sip = '192.168.11.1.2/24'
         flow_spec.dip = '10.30.2.0/16'
@@ -1209,7 +1373,7 @@ class TestSearch(unittest.TestCase):
         exp_flow_spec.sip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
         result = self.sdb.search(flow_spec)
         self.assertTrue(len(result) == 1)
-        self.assertTrue(result[0] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         flow_spec.sip = '192.168.22.1.2/24'
         flow_spec.dip = '10.30.2.0/16'
@@ -1265,104 +1429,241 @@ class TestSearch(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
-        exp_filt1.etherT = 'ip'
-        exp_filt1.prot = 'tcp'
+        exp_filt1.etherT = 'any'
+        exp_filt1.prot = 'any'
         exp_flow_spec.protocol_filter.append(exp_filt1)
 
         flow_spec.sip = '0/0'
         flow_spec.dip = '0/0'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 17)
-
-
-        exp_flow_spec.sip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
-        exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
-        exp_filt1.prot = 'tcp'
-        self.assertTrue(result[1] == exp_flow_spec)
+        self.assertTrue(len(result) == 14)
 
         exp_flow_spec.sip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
-        exp_filt1.prot = 'tcp'
-        exp_filt1.dPort = 80
-        self.assertTrue(result[0] == exp_flow_spec)
+        exp_filt1.prot = 'any'
+        exp_filt1.dPort = 'any'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('10.21.2.1/32'), IpAddress('10.22.2.1/32'), IpAddress('10.23.2.1/32')]
         exp_filt1.dFromPort = 20
         exp_filt1.dToPort = 25
-        self.assertTrue(result[2] == exp_flow_spec)
+        exp_filt1.prot = 'tcp'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
-        exp_filt1.dFromPort = 'any'
-        exp_filt1.dToPort = 'any'
-        self.assertTrue(result[4] == exp_flow_spec)
+        exp_filt1.dPort = 80
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
-        exp_filt1.dFromPort = 80
-        exp_filt1.dToPort = 80
-        self.assertTrue(result[3] == exp_flow_spec)
+        exp_filt1.dPort = 'any'
+        exp_filt1.prot = 'tcp'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_filt1.dFromPort = 'any'
         exp_filt1.dToPort = 'any'
-        self.assertTrue(result[5] == exp_flow_spec)
-
-        exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
-        exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
-        self.assertTrue(result[6] == exp_flow_spec)
+        exp_filt1.prot = 'any'
+        exp_filt1.etherT = 'any'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.22.1/32'), IpAddress('192.168.22.4/32'), IpAddress('192.168.22.2/31')]
-        self.assertTrue(result[7] == exp_flow_spec)
+        exp_filt1.prot = 'tcp'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_flow_spec.dip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
-        self.assertTrue(result[8] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.21.1/32'), IpAddress('192.168.21.4/32'), IpAddress('192.168.21.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_filt1.dFromPort = 443
         exp_filt1.dToPort = 443
-        self.assertTrue(result[9] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.21.1/32'), IpAddress('192.168.21.4/32'), IpAddress('192.168.21.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.21.1/32'), IpAddress('192.168.21.4/32'), IpAddress('192.168.21.2/31')]
-        exp_filt1.dFromPort = 'any'
-        exp_filt1.dToPort = 'any'
-        self.assertTrue(result[10] == exp_flow_spec)
+        exp_filt1.dPort = 'any'
+        exp_filt1.prot = 'any'
+        exp_filt1.etherT = 'any'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('192.168.22.1/32'), IpAddress('192.168.22.4/32'), IpAddress('192.168.22.2/31')]
         exp_flow_spec.dip = [IpAddress('192.168.22.1/32'), IpAddress('192.168.22.4/32'), IpAddress('192.168.22.2/31')]
         exp_filt1.dFromPort = 'any'
         exp_filt1.dToPort = 'any'
-        self.assertTrue(result[11] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
         exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
         exp_filt1.dFromPort = 'any'
         exp_filt1.dToPort = 'any'
-        self.assertTrue(result[12] == exp_flow_spec)
+        exp_filt1.prot = 'tcp'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
         exp_flow_spec.dip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
-        self.assertTrue(result[13] == exp_flow_spec)
+
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
         exp_flow_spec.dip = [IpAddress('192.168.22.1/32'), IpAddress('192.168.22.4/32'), IpAddress('192.168.22.2/31')]
-        self.assertTrue(result[14] == exp_flow_spec)
-
-        exp_flow_spec.sip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
-        exp_flow_spec.dip = [IpAddress('10.30.2.0/25'), IpAddress('10.30.3.0/24')]
-        self.assertTrue(result[15] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = '10.10.0.0/16'
         exp_flow_spec.dip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
         exp_filt1.dFromPort = 443
         exp_filt1.dToPort = 443
-        self.assertTrue(result[16] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
+
+    def test_by_contract(self):
+        """
+        Will test that we can search by contract name
+        :return:
+        """
+        flow_spec = FlowSpec()
+        flow_spec.tenant_name = 'tenant'
+        flow_spec.context_name = 'ctx'
+        flow_spec.contract = 'contract-1'
+        filt1 = ProtocolFilter()
+        flow_spec.protocol_filter.append(filt1)
+
+        exp_flow_spec = FlowSpec()
+        exp_flow_spec.tenant_name = 'tenant'
+        exp_flow_spec.context_name = 'ctx'
+        exp_filt1 = ProtocolFilter()
+        exp_flow_spec.protocol_filter.append(exp_filt1)
+        exp_filt1.dFromPort = 80
+        exp_filt1.dToPort = 80
+        exp_filt1.etherT = 'ip'
+        exp_filt1.prot = 'tcp'
+
+
+        result = sorted(self.sdb.search(flow_spec))
+        self.assertEqual(len(result), 1)
+        exp_flow_spec.dip = [IpAddress('192.168.11.1/32'), IpAddress('192.168.11.4/32'), IpAddress('192.168.11.2/31')]
+        exp_flow_spec.sip = [IpAddress('192.168.12.1/32'), IpAddress('192.168.12.4/32'), IpAddress('192.168.12.2/31')]
+        self.assertTrue(result[0] == exp_flow_spec)
+
+
+class TestSearchAnyEPG(unittest.TestCase):
+    """
+    Checks that search works properly with AnyEPG
+    """
+
+    def setUp(self):
+        self.sdb = SearchDb()
+        self.tenants = get_tree2()
+        tenant = self.tenants[0]
+        context = tenant.get_child(Context,'ctx')
+        any_epg = AnyEPG('any-epg', context)
+        contract1 = Contract('contract-any1', tenant)
+        entry1 = FilterEntry('entry_any_1',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='5000',
+                             dToPort='5005',
+                             etherT='ip',
+                             prot='udp',
+                             sFromPort='unspecified',
+                             sToPort='unspecified',
+                             tcpRules='unspecified',
+                             parent=contract1)
+
+        contract2 = Contract('contract-any2', tenant)
+        entry2 = FilterEntry('entry_any_2',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='6000',
+                             dToPort='6005',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='unspecified',
+                             sToPort='unspecified',
+                             tcpRules='unspecified',
+                             parent=contract2)
+
+        any_epg.consume(contract1)
+        any_epg.provide(contract2)
+
+        ap1 = AppProfile('t2_app3', tenant)
+        epg31 = EPG('t2_epg31', ap1)
+        epg41 = EPG('t2_epg41', ap1)
+        for index in range(1, 3):
+            ep = Endpoint('t2_endpoint_31_' + str(index), epg31)
+            ep.ip = '192.170.31.' + str(index)
+
+        for index in range(1, 3):
+            ep = Endpoint('t2_endpoint_31_' + str(index), epg41)
+            ep.ip = '192.170.41.' + str(index)
+
+        bd1 = BridgeDomain('bdany-1', tenant)
+        bd1.add_context(context)
+
+        epg31.add_bd(bd1)
+        epg41.add_bd(bd1)
+
+        epg31.provide(contract1)
+        epg41.consume(contract2)
+
+        self.sdb.build(self.tenants)
+
+    def test_search_all(self):
+        flow_spec = FlowSpec()
+        filt1 = ProtocolFilter()
+        flow_spec.protocol_filter.append(filt1)
+
+        result = self.sdb.search(flow_spec)
+        self.assertEqual(len(result), 13)
+        epg_result = []
+        for flow in result:
+            epg_result.append((flow.source_epg, flow.contract, flow.dest_epg))
+
+        self.assertTrue(('t2_epg31','implied_contract_4','t2_epg31') in epg_result)
+        self.assertTrue(('t2_epg41','implied_contract_5','t2_epg41') in epg_result)
+        self.assertTrue(('t2_epg12','contract-1','t2_epg11') in epg_result)
+        self.assertTrue(('t2_epg12','contract-4','out_epg_3') in epg_result)
+        self.assertTrue(('t2_epg12','implied_contract_1','t2_epg12') in epg_result)
+        self.assertTrue(('t2_epg22','implied_contract_3','t2_epg22') in epg_result)
+        self.assertTrue(('out_epg_3','contract-4','t2_epg12') in epg_result)
+        self.assertTrue(('t2_epg21','contract-2','t2_epg22') in epg_result)
+        self.assertTrue(('t2_epg21','implied_contract_2','t2_epg21') in epg_result)
+        self.assertTrue(('t2_epg11','contract-1','t2_epg12') in epg_result)
+        self.assertTrue(('t2_epg11','implied_contract_0','t2_epg11') in epg_result)
+
+        self.assertTrue(('any-epg','contract-any1','t2_epg31') in epg_result)
+        self.assertTrue(('t2_epg41','contract-any2','any-epg') in epg_result)
+
+    def test_AnyEPG_ip_membership(self):
+        flow_spec = FlowSpec()
+        filt1 = ProtocolFilter()
+        flow_spec.protocol_filter.append(filt1)
+
+        result = self.sdb.search(flow_spec)
+        self.assertEqual(len(result), 13)
+        sips = []
+        for flow in result:
+            if flow.source_epg == 'any-epg':
+                sips = flow.sip
+                break
+
+        text_sips = [str(sip) for sip in sips]
+
+        self.assertTrue('192.169.12.4/32' in text_sips)
+        self.assertTrue('192.170.41.2/32' in text_sips)
+        self.assertTrue('192.170.41.1/32' in text_sips)
+        self.assertTrue('192.170.31.1/32' in text_sips)
+        self.assertTrue('192.170.31.2/32' in text_sips)
+        self.assertTrue('192.168.11.1/32' in text_sips)
+        self.assertTrue('192.168.11.4/32' in text_sips)
+        self.assertTrue('192.169.12.1/32' in text_sips)
+        self.assertTrue('192.169.12.3/31' in text_sips)
+        self.assertTrue('192.168.11.3/31' in text_sips)
+
 
 class TestSearchv6(unittest.TestCase):
     """
@@ -1387,62 +1688,39 @@ class TestSearchv6(unittest.TestCase):
         exp_flow_spec.tenant_name = 'tenant3'
         exp_flow_spec.context_name = 'ctx'
         exp_filt1 = ProtocolFilter()
-        exp_filt1.etherT = 'ip'
-        exp_filt1.prot = 'tcp'
         exp_flow_spec.protocol_filter.append(exp_filt1)
 
         flow_spec.sip = '::/0'
         flow_spec.dip = '::/0'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 7)
+        self.assertTrue(len(result) == 4)
 
 
         exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
         exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
-        exp_filt1.prot = 'tcp'
-        self.assertTrue(result[1] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
-        exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
-        exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
-        exp_filt1.prot = 'tcp'
-        exp_filt1.dPort = 80
-        self.assertTrue(result[0] == exp_flow_spec)
 
         exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_flow_spec.sip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
         exp_filt1.dFromPort = 80
         exp_filt1.dToPort = 80
-        self.assertTrue(result[2] == exp_flow_spec)
+        exp_filt1.prot = 'tcp'
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_flow_spec.dip = [IpAddress('abcd:168:11::1/128'), IpAddress('abcd:168:11::4/128'), IpAddress('abcd:168:11::2/127')]
         exp_filt1.dFromPort = 80
         exp_filt1.dToPort = 80
-        self.assertTrue(result[3] == exp_flow_spec)
+        self.assertTrue(exp_flow_spec in result)
 
         exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
         exp_filt1.dFromPort = 'any'
         exp_filt1.dToPort = 'any'
-        self.assertTrue(result[6] == exp_flow_spec)
-
-        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
-        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
-        exp_filt1.dFromPort = 80
-        exp_filt1.dToPort = 80
-        self.assertTrue(result[4] == exp_flow_spec)
-
-        exp_flow_spec.dip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
-        exp_flow_spec.sip = [IpAddress('abcd:169:12::1/128'), IpAddress('abcd:169:12::4/128'), IpAddress('abcd:169:12::2/127')]
-        exp_filt1.dFromPort = 443
-        exp_filt1.dToPort = 443
-        exp_filt2 = ProtocolFilter()
-        exp_filt2.prot = 'tcp'
-        exp_flow_spec.protocol_filter.append(exp_filt2)
-        exp_filt2.dFromPort = 80
-        exp_filt2.dToPort = 80
-        self.assertTrue(result[5] == exp_flow_spec)
-
+        exp_filt1.prot = 'any'
+        exp_filt1.etherT = 'any'
+        self.assertTrue(exp_flow_spec in result)
 
 
 class TestWildcardFields(unittest.TestCase):
@@ -1502,19 +1780,19 @@ class TestWildcardFields(unittest.TestCase):
         flow_spec.sip = '0/0'
         flow_spec.dip = '0/0'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 10)
+        self.assertEqual(len(result), 6)
 
         flow_spec.tenant_name = '*'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 27)
+        self.assertEqual(len(result), 20)
         self.assertEqual(result[0].tenant_name, 'tenant')
-        self.assertEqual(result[20].tenant_name, 'tenant2')
+        self.assertEqual(result[19].tenant_name, 'tenant2')
 
         flow_spec.tenant_name = 'tenant*'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 27)
+        self.assertEqual(len(result), 20)
         self.assertEqual(result[0].tenant_name, 'tenant')
-        self.assertEqual(result[20].tenant_name, 'tenant2')
+        self.assertEqual(result[19].tenant_name, 'tenant2')
 
     def test_any_context(self):
         flow_spec = FlowSpec()
@@ -1526,9 +1804,9 @@ class TestWildcardFields(unittest.TestCase):
         flow_spec.sip = '0/0'
         flow_spec.dip = '0/0'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 13)
+        self.assertEqual(len(result), 9)
         self.assertEqual(result[0].context_name, 'ctx')
-        self.assertEqual(result[10].context_name, 'ctx2')
+        self.assertEqual(result[8].context_name, 'ctx2')
 
         flow_spec.context_name = 'ctx2'
         result = sorted(self.sdb.search(flow_spec))
@@ -1537,14 +1815,14 @@ class TestWildcardFields(unittest.TestCase):
 
         flow_spec.context_name = 'ctx'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 10)
+        self.assertEqual(len(result), 6)
         self.assertEqual(result[0].context_name, 'ctx')
 
         flow_spec.context_name = '*'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 13)
+        self.assertEqual(len(result), 9)
         self.assertEqual(result[0].context_name, 'ctx')
-        self.assertEqual(result[10].context_name, 'ctx2')
+        self.assertEqual(result[8].context_name, 'ctx2')
 
     def test_all_wild(self):
         flow_spec = FlowSpec()
@@ -1556,7 +1834,7 @@ class TestWildcardFields(unittest.TestCase):
         flow_spec.sip = '0/0'
         flow_spec.dip = '0/0'
         result = sorted(self.sdb.search(flow_spec))
-        self.assertTrue(len(result) == 30)
+        self.assertEqual(len(result), 23)
 
     def test_empty_epg_result(self):
         flow_spec = FlowSpec()
@@ -1589,7 +1867,6 @@ class TestWildcardFields(unittest.TestCase):
         exp_flow_spec.protocol_filter.append(exp_filt1)
         exp_flow_spec.dip = [IpAddress('192.168.21.1/32'), IpAddress('192.168.21.4/32'), IpAddress('192.168.21.2/31')]
         exp_flow_spec.sip = [IpAddress('192.168.21.1/32'), IpAddress('192.168.21.4/32'), IpAddress('192.168.21.2/31')]
-
         self.assertTrue(result[0]==exp_flow_spec)
 
 
@@ -1731,6 +2008,7 @@ class TestIpv4Address(unittest.TestCase):
     def test_null_init(self):
         ip1 = IpAddress('')
         self.assertEqual(str(ip1), '0.0.0.0/0')
+
 
 class TestIpv6Address(unittest.TestCase):
     """
@@ -1975,6 +2253,7 @@ class TestIpv6Address(unittest.TestCase):
         result = Ipv6Address.supernet([ip1, ip2, ip3, ip4, ip5])
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], IpAddress('1:2:0::/46'))
+
 
 class TestProtocolFilter(unittest.TestCase):
     def test_load_aci_filter(self):
@@ -2343,6 +2622,7 @@ class TestArgs(unittest.TestCase):
         self.assertEqual(flow_spec.protocol_filter[0].sFromPort, 443)
         self.assertEqual(flow_spec.protocol_filter[0].sToPort, 1000)
 
+
 class TestRadix(unittest.TestCase):
     """
     Will test the radix library
@@ -2502,7 +2782,6 @@ class TestRadix(unittest.TestCase):
         self.assertEqual(result[11].prefix, '2.0.0.0/8')
         self.assertEqual(result[12].prefix, '0.0.0.0/0')
 
-
     def test_default_bug(self):
         r = radix.Radix()
         r.add("0.0.0.0/0")
@@ -2517,6 +2796,14 @@ class TestRadix(unittest.TestCase):
 
         result = r.search_covered('10.0.0.1')
         self.assertEqual(len(result), 0)
+
+    def test_find_covered2(self):
+        r = radix.Radix()
+        r.add('10.30.2.1/32')
+        r.add('10.30.2.1/25')
+
+        result = r.search_covered('10.30.2.64/32')
+        #self.assertEqual(len(result), 0)
 
 class TestFlowSpec(unittest.TestCase):
     def test_compare_tenant_context(self):
@@ -2669,8 +2956,112 @@ class TestFlowSpec(unittest.TestCase):
         self.assertFalse(f1 >= f2)
         self.assertFalse(f2 <= f1)
 
+class TestImportContract(unittest.TestCase):
+    """
+    Check that can handle imported contacts
+    """
+    def setUp(self):
+        """
+        creates two EPGs in different tenants
+        One is made available to the other
+        :return:
+        """
+        tenant1 = Tenant('tenant1')
+        tenant2 = Tenant('tenant2')
 
+        app1 = AppProfile('app1', tenant1)
+        app2 = AppProfile('app2', tenant2)
 
+        epg1 = EPG('epg1', app1)
+        epg2 = EPG('epg2', app1)
+        for index in range(1, 5):
+            ep = Endpoint('endpoint_' + str(index), epg1)
+            ep.ip = '10.0.0.' + str(index)
+        for index in range(1, 5):
+            ep = Endpoint('endpoint_' + str(index), epg2)
+            ep.ip = '11.0.0.' + str(index)
+
+        bd1 = BridgeDomain('bd1', tenant1)
+        bd2 = BridgeDomain('bd2', tenant1)
+        epg1.add_bd(bd1)
+        epg2.add_bd(bd2)
+
+        context = Context('ctx', tenant1)
+        bd1.add_context(context)
+        bd2.add_context(context)
+
+        self.contract1 = Contract('contract-1', tenant1)
+        entry1 = FilterEntry('entry1',
+                             applyToFrag='no',
+                             arpOpc='unspecified',
+                             dFromPort='80',
+                             dToPort='80',
+                             etherT='ip',
+                             prot='tcp',
+                             sFromPort='unspecified',
+                             sToPort='unspecified',
+                             tcpRules='unspecified',
+                             parent=self.contract1)
+
+        self.contract_interface = ContractInterface('contract_if', tenant1)
+        epg1.consume_cif(self.contract_interface)
+        epg2.provide(self.contract1)
+        self.tenants = [tenant1, tenant2]
+
+    def test_cif(self):
+        self.contract_interface.import_contract(self.contract1)
+        self.sdb = SearchDb()
+        self.sdb.build(self.tenants)
+        flow_spec = FlowSpec()
+        filt1 = ProtocolFilter()
+        filt = filt1
+        flow_spec.protocol_filter.append(filt)
+        filt2 = ProtocolFilter()
+        filt2.dPort = 80
+        filt2.prot = 'tcp'
+        result = sorted(self.sdb.search(flow_spec))
+        exp_flow = copy.deepcopy(flow_spec)
+        exp_flow.tenant_name = 'tenant1'
+        exp_flow.context_name = 'ctx'
+        exp_flow.dip = []
+        exp_flow.sip = [IpAddress('11.0.0.1/32'), IpAddress('11.0.0.4/32'), IpAddress('11.0.0.2/31')]
+        exp_flow.dip = [IpAddress('11.0.0.1/32'), IpAddress('11.0.0.4/32'), IpAddress('11.0.0.2/31')]
+        exp_flow.protocol_filter = [filt1]
+        self.assertTrue(len(result) == 3)
+        self.assertTrue(result[2] == exp_flow)
+        exp_flow.dip = [IpAddress('11.0.0.1/32'), IpAddress('11.0.0.4/32'), IpAddress('11.0.0.2/31')]
+        exp_flow.sip = [IpAddress('10.0.0.1/32'), IpAddress('10.0.0.4/32'), IpAddress('10.0.0.2/31')]
+        exp_flow.protocol_filter = [filt2]
+        self.assertTrue(result[1] == exp_flow)
+        exp_flow.protocol_filter = [filt1]
+        exp_flow.sip = [IpAddress('10.0.0.1/32'), IpAddress('10.0.0.4/32'), IpAddress('10.0.0.2/31')]
+        exp_flow.dip = [IpAddress('10.0.0.1/32'), IpAddress('10.0.0.4/32'), IpAddress('10.0.0.2/31')]
+        self.assertTrue(result[0] == exp_flow)
+
+    def test_empty_cif(self):
+        # self.contract_interface.import_contract(self.contract1)
+        self.sdb = SearchDb()
+        self.sdb.build(self.tenants)
+        flow_spec = FlowSpec()
+        filt1 = ProtocolFilter()
+        filt = filt1
+        flow_spec.protocol_filter.append(filt)
+        filt2 = ProtocolFilter()
+        filt2.dPort = 80
+        filt2.prot = 'tcp'
+        result = sorted(self.sdb.search(flow_spec))
+        self.assertTrue(len(result) == 2)
+        exp_flow = copy.deepcopy(flow_spec)
+        exp_flow.tenant_name = 'tenant1'
+        exp_flow.context_name = 'ctx'
+        exp_flow.dip = []
+        exp_flow.sip = [IpAddress('11.0.0.1/32'), IpAddress('11.0.0.4/32'), IpAddress('11.0.0.2/31')]
+        exp_flow.dip = [IpAddress('11.0.0.1/32'), IpAddress('11.0.0.4/32'), IpAddress('11.0.0.2/31')]
+        exp_flow.protocol_filter = [filt1]
+        self.assertTrue(result[1] == exp_flow)
+        exp_flow.sip = [IpAddress('10.0.0.1/32'), IpAddress('10.0.0.4/32'), IpAddress('10.0.0.2/31')]
+        exp_flow.dip = [IpAddress('10.0.0.1/32'), IpAddress('10.0.0.4/32'), IpAddress('10.0.0.2/31')]
+        self.assertTrue(result[0] == exp_flow)
 
 
 @unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
