@@ -108,7 +108,8 @@ class BaseConnSearchView(BaseView):
         try:
             apic_args = APICArgs(session['ipaddr'], session['username'], session['secure'], session['password'])
         except KeyError:
-            return redirect(url_for('credentialsview.index'))
+            return False
+            # return redirect(url_for('credentialsview.index'))
 
         # apic_session = Session(apic_args.url, apic_args.login, apic_args.password)
         # resp = apic_session.login()
@@ -269,6 +270,9 @@ def build_flow_spec(terms):
         if keyword == 'context':
             flow_spec.context_name = value
 
+        if keyword == 'contract':
+            flow_spec.contract = value
+
         if keyword == 'dip':
             flow_spec.dip = value
 
@@ -311,7 +315,7 @@ def input_parser(in_string):
     :param in_string:
     :return:
     """
-    keywords = ["tenant", "context", "sip", "dip", "dport", "sport",
+    keywords = ["tenant", "context", "contract", "sip", "dip", "dport", "sport",
                 "prot", "etherT", "arpOpc", "applyToFrag", "tcpRules"]
 
     result = {}
@@ -425,4 +429,4 @@ if __name__ == '__main__':
 
     # Start app
     # app.run(debug=True, host=args.ip, port=int(args.port))
-    app.run(debug=True, host=args.ip, port=5001)
+    app.run(debug=True, use_reloader=False, host=args.ip, port=5001)
