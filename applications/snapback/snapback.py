@@ -182,8 +182,8 @@ class StackedDiffs(BaseView):
                                                                 default=session.get('diffstartversion'),
                                                                 choices=start_choices),
                                    'end_version': SelectField('End Version',
-                                                                default=session.get('diffendversion'),
-                                                                choices=end_choices)})
+                                                              default=session.get('diffendversion'),
+                                                              choices=end_choices)})
         form = MyStackedDiffsForm()
         f = open('static/data.csv', 'w')
         f.write('Version,Deletions,Additions\n')
@@ -204,7 +204,7 @@ class StackedDiffs(BaseView):
 
     @expose('/showhide', methods=['GET', 'POST'])
     def showhide(self):
-        #form = StackedDiffsForm()
+        # form = StackedDiffsForm()
         if session.get('hideall') is False:
             session['hideall'] = True
         else:
@@ -318,10 +318,11 @@ class ScheduleSnapshot(BaseView):
                            nextsnapshot=cdb.get_next_snapshot_time(),
                            schedule=cdb.get_current_schedule())
 
-def DiffFiles(diffList,data):
+
+def DiffFiles(diffList, data):
     diff = ""
     versions_exist = cdb.get_versions()
-    versions_needed = [diffList[0].get('version'),diffList[1].get('version')]
+    versions_needed = [diffList[0].get('version'), diffList[1].get('version')]
     if all(x in versions_exist for x in versions_needed):
         file1 = str(cdb.get_file(diffList[0].get('filename'),
                          diffList[0].get('version'))).split('\n')
@@ -331,7 +332,8 @@ def DiffFiles(diffList,data):
         diff = d.compare(file1, file2)
     return diff
 
-def ViewFile(viewList,data):
+
+def ViewFile(viewList, data):
     files = ""
     for snapshot_needed in viewList:
         for snapshot in data['snapshots']:
@@ -340,14 +342,16 @@ def ViewFile(viewList,data):
                 files += snapshot_file.encode('utf-8').decode('unicode_escape')
     return files
 
-def DeleteFiles(deleteList,data):
+
+def DeleteFiles(deleteList, data):
     for delete_snapshot in deleteList:
         for snapshot in data['snapshots']:
             if (snapshot['filename'] == delete_snapshot['filename']) and (snapshot['version'] == delete_snapshot['version']) and (snapshot['latest'] == delete_snapshot['latest']):
                 data['snapshots'].remove(snapshot)
     return data
 
-def Filtering(filter_key_item,filter_args,data):
+
+def Filtering(filter_key_item, filter_args, data):
     if filter_key_item == 'Version':
         filter_key = 'version'
     elif filter_key_item == 'Filename':
@@ -355,11 +359,11 @@ def Filtering(filter_key_item,filter_args,data):
     elif filter_key_item == 'Latest':
         filter_key = 'latest'
     filtered = []
-    if filter_key_item in filter_args :
+    if filter_key_item in filter_args:
         filter_key_args_list = filter_args[filter_key_item]
         for filter_args in filter_key_args_list:
             filtered = []
-            for snapshot in data['snapshots'] :
+            for snapshot in data['snapshots']:
                 match = filter_args['match']
                 if filter_key in filter_args:
                     needed = filter_args[filter_key]
@@ -368,26 +372,26 @@ def Filtering(filter_key_item,filter_args,data):
                     if match == "not equal" and needed != snapshot[filter_key]:
                         filtered.append(snapshot)
                     if match == "contains":
-                        prog = re.search(needed,snapshot[filter_key])
+                        prog = re.search(needed, snapshot[filter_key])
                         if prog is not None:
                             filtered.append(snapshot)
                     if match == "not contains":
-                        prog = re.search(needed,snapshot[filter_key])
+                        prog = re.search(needed, snapshot[filter_key])
                         if prog is None:
                             filtered.append(snapshot)
                     if match == "in list":
-                        if  type(filter_args[filter_key]) is list:
+                        if type(filter_args[filter_key]) is list:
                             if snapshot[filter_key] in filter_args[filter_key]:
                                 filtered.append(snapshot)
-                        else :
+                        else:
                             needed = filter_args[filter_key]
                             if needed == snapshot[filter_key]:
                                 filtered.append(snapshot)
                     if match == "not in list":
-                        if  type(filter_args[filter_key]) is list:
+                        if type(filter_args[filter_key]) is list:
                             if snapshot[filter_key] not in filter_args[filter_key]:
                                 filtered.append(snapshot)
-                        else :
+                        else:
                             needed = filter_args[filter_key]
                             if needed != snapshot[filter_key]:
                                 filtered.append(snapshot)
@@ -401,9 +405,9 @@ def Filtering(filter_key_item,filter_args,data):
                             break
                         else:
                             filtered.append(snapshot)
-                if (match == "equals" or match == "not equal") and  filter_key == "latest":
+                if (match == "equals" or match == "not equal") and filter_key == "latest":
                     if "match_for" in filter_args:
-                       match_for = filter_args['match_for']
+                        match_for = filter_args['match_for']
                     else:
                         match_for = True
                     if (match == "equals" and snapshot['latest'] is match_for):
@@ -411,20 +415,21 @@ def Filtering(filter_key_item,filter_args,data):
                     if (match == "not equal" and snapshot['latest'] is not match_for):
                         filtered.append(snapshot)
             data['snapshots'] = filtered
-    else :
+    else:
         filtered = data['snapshots']
     return data
 
-def FilterFunction(filter_args,data):
+
+def FilterFunction(filter_args, data):
     filtered = []
-    if 'Version' in filter_args :
-        filtered = Filtering('Version',filter_args,data)
+    if 'Version' in filter_args:
+        filtered = Filtering('Version', filter_args, data)
         data = filtered
-    if 'Filename' in filter_args :
-        filtered = Filtering('Filename',filter_args,data)
+    if 'Filename' in filter_args:
+        filtered = Filtering('Filename', filter_args, data)
         data = filtered
-    if 'Latest' in filter_args :
-        filtered = Filtering('Latest',filter_args,data)
+    if 'Latest' in filter_args:
+        filtered = Filtering('Latest', filter_args, data)
         data = filtered
     return data
 
@@ -441,7 +446,7 @@ class JsonInterface(BaseView):
             session['password'] = data['password']
             if (session.get('ipaddr') is None or session.get('username') is None or session.get('password') is None):
                 return"please provide ipaddress, username,password"
-            
+
             args = APICArgs(session.get('ipaddr'),
                            session.get('username'),
                            session.get('secure'),
@@ -459,7 +464,7 @@ class JsonInterface(BaseView):
         and the login.json structrue is
         {"ipaddr":"","secure":"","username":"","password":""}
         '''
-    
+
     @csrf.exempt
     @app.route('/viewsnapshots', methods=['POST'])
     def viewsnapshots():
@@ -481,30 +486,30 @@ class JsonInterface(BaseView):
             if len(data['snapshots']) is 0:
                 return "no snapshots"
             if request.headers['Content-Type'] == 'application/json':
-                if request.json.has_key('filter') and request.json['filter'] != None :
+                if 'filter' in request.json and request.json['filter'] is not None:
                     filter_args = {}
                     filter_args = request.json['filter']
-                    data = FilterFunction(filter_args,data)
+                    data = FilterFunction(filter_args, data)
                 '''
                 this method is used to filter snapshots based on version, filename,latest
                 usage : curl H "Content-Type: application/json" --X POST http://127.0.0.1:5000/viewsnapshot -d '{"filter":{"Version" : [{"version":"2016-04-22_14.33.39","match":"equals"}],"Filename" : [{"filename":"snapshot_172.31.216.100_10.json","match":"equals"}],"Latest":[{"match":"not equal","match_for":false}]}}'
                 return all the snapshots matching this criteria as a json
                 '''
-                if request.json.has_key('outputfile') and request.json['outputfile'] != None :
+                if 'outputfile' in request.json and request.json['outputfile'] is not None:
                     with open(request.json['outputfile'], 'w') as txtfile:
                         json.dump(data, txtfile)
                 '''
                 this method is used to write all the snapshots in json format in the given outputfile
                 usage : curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/viewsnapshots -d '{"outputfile":"final.txt"}'
                 '''
-                if request.json.has_key('action') :
+                if 'action' in request.json:
                     action = request.json['action']
                     if 'View' in action:
                         if len(action['View']) is 0:
                             return "Please select at least one record"
-                        else :
+                        else:
                             data_for_view = {}
-                            data_for_view['snapshots'] = ViewFile(action['View'],data)
+                            data_for_view['snapshots'] = ViewFile(action['View'], data)
                             return data_for_view['snapshots']
                     '''
                     this method is used to view a single snapshot given name and version in json format
@@ -515,7 +520,7 @@ class JsonInterface(BaseView):
                         if len(action['Delete']) is 0:
                             return "Please select at least one record."
                         else:
-                            data = DeleteFiles(action['Delete'],data)
+                            data = DeleteFiles(action['Delete'], data)
                     '''
                     this method is used to delete a snapshots given name and version in json format
                     usgae: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/viewsnapshots -d '{"action":{"Delete" : [{"filename":"snapshot_172.31.216.100_10.json","version":"2016-04-22_14.33.39","latest":true},{"filename":"snapshot_172.31.216.100_10.json","version":"2016-04-22_14.33.39","latest":true}]}}'
@@ -526,10 +531,10 @@ class JsonInterface(BaseView):
                             return "Please select at least one record"
                         elif len(action['View Diffs']) is 1:
                             return "Please select 2 snapshots to view diffs"
-                        elif len(action['View Diffs'])>2 :
+                        elif len(action['View Diffs']) > 2:
                             return "Please select only 2 snapshots to view diffs"
                         else:
-                            diff = DiffFiles(action['View Diffs'],data)
+                            diff = DiffFiles(action['View Diffs'], data)
                             return '\n'.join(diff)
                     '''
                     this method is used to diff 2 snapshots given name and version in json format
@@ -541,7 +546,7 @@ class JsonInterface(BaseView):
             this method is used to view all the snapshots and write it to a file in json format
             usage : curl -X POST http://127.0.0.1:5000/viewsnapshots
         '''
-    
+
     @csrf.exempt
     @app.route('/logout')
     def logout():
@@ -568,28 +573,28 @@ class JsonInterface(BaseView):
             usage: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/cancelschedule
             '''
     @csrf.exempt
-    @app.route('/schedulesnapshot', methods=['POST'])   
+    @app.route('/schedulesnapshot', methods=['POST'])
     def schedulesnapshot():
-       if request.method == 'POST':
+        if request.method == 'POST':
             data = request.json
             if cdb.is_logged_in():
-                if data.has_key('date'):
+                if 'date' in data:
                     date = datetime.datetime.strptime(data['date'], '%b %d %Y')
                 else:
                     date = datetime.date.today()
-                if data.has_key('starttime'):
+                if 'starttime' in data:
                     starttime = datetime.datetime.strptime(data['starttime'], '%I:%M%p')
                 else:
                     starttime = datetime.datetime.now()
-                if data.has_key("frequency") and (data['frequency']=="onetime"or data['frequency']=="interval"):
-                    if data.has_key('interval') and (data['interval']=="minutes"or data['interval']=="hours"or data['interval']=="days") :
+                if 'frequency' in data and (data['frequency'] == "onetime" or data['frequency'] == "interval"):
+                    if 'interval' in data and (data['interval'] == "minutes" or data['interval'] == "hours" or data['interval'] == "days"):
                         cdb.schedule_snapshot(data['frequency'],
-                                  data['number'],
-                                  data['interval'],
-                                  date,
-                                  starttime,
-                                  build_db)
-                
+                                              data['number'],
+                                              data['interval'],
+                                              date,
+                                              starttime,
+                                              build_db)
+
                 versions = cdb.get_versions(with_changes=True)
                 data = {}
                 Snapshots = []
@@ -610,11 +615,12 @@ class JsonInterface(BaseView):
             '''
             this method is used to schedule snapshots.
             usage : curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/schedulesnapshot --data @sample.json
-            and the sample.json structure is 
+            and the sample.json structure is
             {"frequency":"onetime","date":"Jun 1 2005","starttime":"1:33PM","number":"","interval":"minutes"}
             interval supports minutes , hours, days
             frequency supports onetime and ongoing
             '''
+
 
 class CredentialsView(BaseView):
     @expose('/', methods=['GET', 'POST'])
@@ -726,6 +732,7 @@ class SnapshotsAdmin(CustomView):
 class RollbackForm(Form):
     version = SelectField('Version', coerce=int)
     rollback = SubmitField('Rollback')
+
 
 class RollbackView(BaseView):
     @expose('/', methods=['GET', 'POST'])
