@@ -64,6 +64,7 @@ class CredentialsError(Exception):
         Exception.__init__(self,"Session Credentials Error:{0}".format(message))
         self.message = message
 
+
 class Login(threading.Thread):
     """
     Login thread responsible for refreshing the APIC login before timeout.
@@ -416,7 +417,7 @@ class Session(object):
        This class is responsible for all communication with the APIC.
     """
     def __init__(self, url, uid, pwd, verify_ssl=False,
-                 subscription_enabled=True):
+                 subscription_enabled=True, proxies=None):
         """
         :param url:  String containing the APIC URL such as ``https://1.2.3.4``
         :param uid: String containing the username that will be used as\
@@ -426,8 +427,9 @@ class Session(object):
         :param verify_ssl:  Used only for SSL connections with the APIC.\
         Indicates whether SSL certificates must be verified.  Possible\
         values are True and False with the default being False.
+        :param proxies: Optional dictionary containing the proxies passed
+        directly to the Requests library
         """
-
         if not isinstance(url,str) and not isinstance(url, unicode) :
             raise CredentialsError("The URL or APIC address must be a string")
         if not isinstance(uid, str) and not isinstance(url, unicode) :
@@ -451,6 +453,7 @@ class Session(object):
         self.login_error = False
         self._logged_in = False
         self._subscription_enabled = subscription_enabled
+        self._proxies = proxies
         if subscription_enabled:
             self.subscription_thread = Subscriber(self)
             self.subscription_thread.daemon = True
@@ -614,7 +617,8 @@ class Session(object):
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)
 
-        resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl, timeout=timeout)
+        resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
+                                 timeout=timeout, proxies=self._proxies)
         if resp.status_code == 403:
             logging.error(resp.text)
             logging.error('Trying to login again....')
@@ -622,7 +626,8 @@ class Session(object):
             self.resubscribe()
             logging.error('Trying post again...')
             logging.debug(post_url)
-            resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl, timeout=timeout)
+            resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
+                                     timeout=timeout, proxies=self._proxies)
         logging.debug('Response: %s %s', resp, resp.text)
         return resp
 
@@ -639,7 +644,7 @@ class Session(object):
         get_url = self.api + url
         logging.debug(get_url)
 
-        resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl)
+        resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
         if resp.status_code == 403:
             logging.error(resp.text)
             logging.error('Trying to login again....')
@@ -647,7 +652,7 @@ class Session(object):
             self.resubscribe()
             logging.error('Trying get again...')
             logging.debug(get_url)
-            resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl)
+            resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
         logging.debug(resp)
         logging.debug(resp.text)
         return resp
