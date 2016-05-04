@@ -3,13 +3,19 @@ Standalone command line application to push the configuration to the APIC
 """
 from apicservice import execute_tool, get_arg_parser
 import json
+import argparse
 
 
 def main():
     """
     Main execution routine
     """
-    parser = get_arg_parser()
+    parser = argparse.ArgumentParser(description='ACI Configuration Deployment Tool')
+    parser.add_argument('--maxlogfiles', type=int, default=10, help='Maximum number of log files (default is 10)')
+    parser.add_argument('--debug', nargs='?',
+                        choices=['verbose', 'warnings', 'critical'],
+                        const='critical',
+                        help='Enable debug messages.')
     parser.add_argument('--config', default=None, help='Configuration file')
     parser.add_argument('-u', '--url',
                         default=None,

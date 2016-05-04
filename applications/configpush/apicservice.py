@@ -182,6 +182,14 @@ class NodePolicy(PolicyObject):
         """
         return self._policy['ip']
 
+    @property
+    def prefix_len(self):
+        """
+        Node IP prefix length
+        :return: Integer containing the prefix length
+        """
+        return self._policy['prefix_len']
+
 
 class EPGPolicy(PolicyObject):
     """
@@ -764,16 +772,24 @@ class ApicService(GenericService):
         for epg_policy in self.cdb.get_epg_policies():
             epg = EPG(epg_policy.id, app)
 
-            # Add all of the IP addresses
-            epg.is_attributed_based = True
-            epg.set_base_epg(base_epg)
-            criterion = AttributeCriterion('criterion', epg)
+            # Check if the policy has the default 0.0.0.0 IP address
+            no_default_endpoint = True
             for node_policy in epg_policy.get_node_policies():
-                ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
-                if ipaddr.is_multicast:
-                    # Skip multicast addresses. They cannot be IP based EPGs
-                    continue
-                criterion.add_ip_address(node_policy.ip)
+                if node_policy.ip == '0.0.0.0' and node_policy.prefix_len == 0:
+                    no_default_endpoint = False
+                    epg.add_bd(bd)
+
+            # Add all of the IP addresses
+            if no_default_endpoint:
+                epg.is_attributed_based = True
+                epg.set_base_epg(base_epg)
+                criterion = AttributeCriterion('criterion', epg)
+                for node_policy in epg_policy.get_node_policies():
+                    ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
+                    if ipaddr.is_multicast:
+                        # Skip multicast addresses. They cannot be IP based EPGs
+                        continue
+                    criterion.add_ip_address(node_policy.ip)
 
             epg.descr = epg_policy.name
             # Consume and provide all of the necessary contracts
@@ -858,7 +874,7 @@ def execute_tool(args):
     log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
     log_file = 'apicservice.%s.log' % str(os.getpid())
     my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5 * 1024 * 1024,
-                                     backupCount=args.max_log_files, encoding=None, delay=0)
+                                     backupCount=args.maxlogfiles, encoding=None, delay=0)
     my_handler.setLevel(level)
     my_handler.setFormatter(log_formatter)
     logger = logging.getLogger()
@@ -867,8 +883,11 @@ def execute_tool(args):
 
     logging.info('Starting the tool....')
     # Handle generating sample configuration
-    if args.generateconfig:
-        raise NotImplementedError
+    try:
+        if args.generateconfig:
+            raise NotImplementedError
+    except AttributeError:
+        pass
 
     tool = ApicService()
     tool.displayonly = args.displayonly
