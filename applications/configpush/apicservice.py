@@ -647,7 +647,7 @@ class ApicService(GenericService):
         self.monitor = None
         super(ApicService, self).__init__()
         self.set_json_schema('json_schema.json')
-        self._tenant_name = 'acitoolkit'
+        self._tenant_name = ''
         self._app_name = 'acitoolkitapp'
 
     def set_tenant_name(self, name):
@@ -673,8 +673,10 @@ class ApicService(GenericService):
         :return: Requests Response instance indicating success or not
         """
         # Set the tenant name correctly
-        if self.cdb.has_context_config():
+        if self._tenant_name == '' and self.cdb.has_context_config():
             self.set_tenant_name(self.cdb.get_context_config().tenant_name)
+        elif self._tenant_name == '':
+            self.set_tenant_name('acitoolkit')
 
         # Find all the unique contract providers
         unique_providers = {}
