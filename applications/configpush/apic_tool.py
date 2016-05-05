@@ -75,6 +75,8 @@ def main():
     if resp == 'OK':
         if not args.displayonly:
             print 'Success'
+    else:
+        print resp
 
 
 if __name__ == '__main__':

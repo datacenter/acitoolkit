@@ -714,8 +714,8 @@ class ApicService(GenericService):
         # Push all of the Contracts
         tenant = Tenant(self._tenant_name)
         for contract_policy in self.cdb.get_contract_policies():
-            name = contract_policy.src_id + '::' + contract_policy.dst_id
-            descr = contract_policy.src_name + '::' + contract_policy.dst_name
+            descr = contract_policy.src_id + '::' + contract_policy.dst_id
+            name = contract_policy.src_name + '::' + contract_policy.dst_name
             contract = Contract(name, tenant)
             contract.descr = descr
             for whitelist_policy in contract_policy.get_whitelist_policies():
@@ -772,7 +772,7 @@ class ApicService(GenericService):
 
         # Create the Attribute based EPGs
         for epg_policy in self.cdb.get_epg_policies():
-            epg = EPG(epg_policy.id, app)
+            epg = EPG(epg_policy.name, app)
 
             # Check if the policy has the default 0.0.0.0 IP address
             no_default_endpoint = True
@@ -793,7 +793,7 @@ class ApicService(GenericService):
                         continue
                     criterion.add_ip_address(node_policy.ip)
 
-            epg.descr = epg_policy.name
+            epg.descr = epg_policy.id
             # Consume and provide all of the necessary contracts
             for contract_policy in self.cdb.get_contract_policies():
                 contract = None
@@ -824,10 +824,13 @@ class ApicService(GenericService):
             validate(config_json, self._json_schema, format_checker=FormatChecker())
         except ValidationError as e:
             logging.error('JSON configuration validation failed: %s', e.message)
-            return 'NOTOK'
+            return 'ERROR: JSON configuration validation failed'
         if self.cdb.store_config(config_json) and (self.cdb.has_apic_config() or self.displayonly):
-            self.push_config_to_apic()
-        return 'OK'
+            resp = self.push_config_to_apic()
+        if self.displayonly or resp.ok:
+            return 'OK'
+        else:
+            return 'ERROR:' + resp.text
 
 
 def get_arg_parser():
