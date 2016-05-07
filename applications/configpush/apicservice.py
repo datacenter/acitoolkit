@@ -798,11 +798,11 @@ class ApicService(GenericService):
             for contract_policy in self.cdb.get_contract_policies():
                 contract = None
                 if epg_policy.id in contract_policy.src_ids:
-                    name = contract_policy.src_id + '::' + contract_policy.dst_id
+                    name = contract_policy.src_name + '::' + contract_policy.dst_name
                     contract = Contract(name, tenant)
                     epg.consume(contract)
                 if epg_policy.id in contract_policy.dst_ids:
-                    name = contract_policy.src_id + '::' + contract_policy.dst_id
+                    name = contract_policy.src_name + '::' + contract_policy.dst_name
                     if contract is None:
                         contract = Contract(name, tenant)
                     epg.provide(contract)
