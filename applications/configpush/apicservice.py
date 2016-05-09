@@ -824,7 +824,7 @@ class ApicService(GenericService):
             validate(config_json, self._json_schema, format_checker=FormatChecker())
         except ValidationError as e:
             logging.error('JSON configuration validation failed: %s', e.message)
-            return 'ERROR: JSON configuration validation failed'
+            return 'ERROR: JSON configuration validation failed: %s' % e.message
         if self.cdb.store_config(config_json) and (self.cdb.has_apic_config() or self.displayonly):
             resp = self.push_config_to_apic()
         if self.displayonly or resp.ok:
