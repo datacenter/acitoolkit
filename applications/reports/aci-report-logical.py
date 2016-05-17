@@ -123,7 +123,8 @@ def render_text_tenant(tenant):
                 for subj_filter in subj_filters:
                     subj_filt_entries = subj_filter.get_children(only_class=ACI.FilterEntry)
                     for subj_filt_entry in subj_filt_entries:
-                        filters.append(subj_filt_entry)
+                        if subj_filt_entry not in filters:
+                            filters.append(subj_filt_entry)
 
         tables = ACI.FilterEntry.get_table(filters, title)
         for table in tables:
