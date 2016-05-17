@@ -143,14 +143,18 @@
                   "name": "port",
                   "items": {
                     "type": "integer",
-                    "description": "port number"
+                    "description": "port number",
+                    "minimum": 0,
+                    "maximum": 65535
                   }
                 },
                 "proto": {
                   "id": "proto",
                   "type": "integer",
                   "title": "Proto schema.",
-                  "description": "IP Protocol number, e.g. 1 for ICMP, 6 for TCP and 17 for UDP."
+                  "description": "IP Protocol number, e.g. 1 for ICMP, 6 for TCP and 17 for UDP.",
+                  "minimum": 0,
+                  "maximum": 255
                 }
               }
             }
