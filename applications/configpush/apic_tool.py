@@ -29,6 +29,9 @@ def main():
     parser.add_argument('--displayonly', action='store_true', default=False,
                         help=('Only display the JSON configuration. '
                               'Do not actually push to the APIC.'))
+    parser.add_argument('--useipepgs', action='store_true', default=False,
+                        help=('Use IP based microsegmented EPGS to '
+                              'assign the endpoint to the EPG.'))
     parser.add_argument('--tenant',
                         default='acitoolkitpush',
                         help='Tenant name for the configuration')

@@ -48,10 +48,7 @@
           "name": {
             "id": "name",
             "type": "string",
-            "title": "Cluster Name",
-            "minLength": 1,
-            "maxLength": 63,
-            "pattern": "^[a-zA-Z0-9_.:-]+$"
+            "title": "Cluster Name"
           },
           "id": {
             "id": "id",

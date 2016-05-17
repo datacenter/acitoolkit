@@ -76,6 +76,24 @@ class PolicyObject(object):
     def __str__(self):
         return str(self._policy)
 
+    @staticmethod
+    def _replace_invalid_chars(name, valid_char_set):
+        stripped_name = ''
+        for char in name:
+            if char not in valid_char_set and not char.isalnum():
+                stripped_name += '_'
+            else:
+                stripped_name += char
+        return stripped_name
+
+    def replace_invalid_name_chars(self, name):
+        valid_char_set = set('_.:-')
+        return self._replace_invalid_chars(name, valid_char_set)
+
+    def replace_invalid_descr_chars(self, name):
+        valid_char_set = set('\\!#$%()*,-./:;@ _{|}~?&+')
+        return self._replace_invalid_chars(name, valid_char_set)
+
 
 class ApicPolicy(PolicyObject):
     """
@@ -224,9 +242,23 @@ class EPGPolicy(PolicyObject):
         """
         return self._policy['name']
 
+    @name.setter
+    def name(self, value):
+        self._policy['name'] = value
+
     @property
-    def src_name(self):
-        return self._policy['src_name']
+    def descr(self):
+        """
+        EPG Description
+        :return: String containing EPG Description
+        """
+        if 'descr' not in self._policy:
+            return ''
+        return self._policy['descr']
+
+    @descr.setter
+    def descr(self, value):
+        self._policy['descr'] = value
 
     def get_node_policies(self):
         """
@@ -317,6 +349,10 @@ class ContractPolicy(PolicyObject):
         """
         return self._policy['src_name']
 
+    @src_name.setter
+    def src_name(self, value):
+        self._policy['src_name'] = value
+
     @property
     def dst_name(self):
         """
@@ -324,6 +360,24 @@ class ContractPolicy(PolicyObject):
         :return: String containing the destination name
         """
         return self._policy['dst_name']
+
+    @dst_name.setter
+    def dst_name(self, value):
+        self._policy['dst_name'] = value
+
+    @property
+    def descr(self):
+        """
+        EPG Description
+        :return: String containing EPG Description
+        """
+        if 'descr' not in self._policy:
+            return ''
+        return self._policy['descr']
+
+    @descr.setter
+    def descr(self, value):
+        self._policy['descr'] = value
 
     def get_whitelist_policies(self):
         """
@@ -649,6 +703,7 @@ class ApicService(GenericService):
         self.set_json_schema('json_schema.json')
         self._tenant_name = ''
         self._app_name = 'acitoolkitapp'
+        self._use_ip_epgs = False
 
     def set_tenant_name(self, name):
         """
@@ -666,12 +721,16 @@ class ApicService(GenericService):
         """
         self._app_name = name
 
+    def use_ip_epgs(self):
+        self._use_ip_epgs = True
+
     def push_config_to_apic(self):
         """
         Push the configuration to the APIC
 
         :return: Requests Response instance indicating success or not
         """
+        THROTTLE_SIZE = 500000 / 8
         # Set the tenant name correctly
         if self._tenant_name == '' and self.cdb.has_context_config():
             self.set_tenant_name(self.cdb.get_context_config().tenant_name)
@@ -679,14 +738,17 @@ class ApicService(GenericService):
             self.set_tenant_name('acitoolkit')
 
         # Find all the unique contract providers
+        logging.debug('Finding the unique contract providers')
         unique_providers = {}
         for provided_policy in self.cdb.get_contract_policies():
             if provided_policy.dst_id not in unique_providers:
                 unique_providers[provided_policy.dst_id] = 0
             else:
                 unique_providers[provided_policy.dst_id] += 1
+        logging.debug('Found %s unique contract providers', len(unique_providers))
 
         # Find any duplicate contracts that this provider is providing (remove)
+        logging.debug('Finding any duplicate contracts')
         duplicate_policies = []
         for provider in unique_providers:
             for provided_policy in self.cdb.get_contract_policies():
@@ -699,7 +761,9 @@ class ApicService(GenericService):
                         if other_policy.dst_ids == provided_policy.dst_ids and other_policy.has_same_permissions(provided_policy):
                             provided_policy.src_ids = provided_policy.src_ids + other_policy.src_ids
                             duplicate_policies.append(other_policy)
+                            logging.debug('duplicate_policies now has %s entries', len(duplicate_policies))
 
+        logging.debug('Removing duplicate contracts')
         for duplicate_policy in duplicate_policies:
             self.cdb.remove_contract_policy(duplicate_policy)
 
@@ -711,13 +775,14 @@ class ApicService(GenericService):
             if not resp.ok:
                 return resp
 
+        logging.debug('Generating JSON....')
         # Push all of the Contracts
+        logging.debug('Pushing contracts. # of Contract policies: %s', len(self.cdb.get_contract_policies()))
         tenant = Tenant(self._tenant_name)
         for contract_policy in self.cdb.get_contract_policies():
-            descr = contract_policy.src_id + '::' + contract_policy.dst_id
             name = contract_policy.src_name + '::' + contract_policy.dst_name
             contract = Contract(name, tenant)
-            contract.descr = descr
+            contract.descr = contract_policy.descr[0:127 - (contract_policy.descr.count('"') + contract_policy.descr.count("'") + contract_policy.descr.count('/'))]
             for whitelist_policy in contract_policy.get_whitelist_policies():
                 entry_name = whitelist_policy.proto + '.' + whitelist_policy.port_min + '.' + whitelist_policy.port_max
                 if whitelist_policy.proto == '6' or whitelist_policy.proto == '17':
@@ -739,79 +804,130 @@ class ApicService(GenericService):
                                         etherT='ip',
                                         prot=whitelist_policy.proto,
                                         parent=contract)
+            if not self.displayonly:
+                if len(str(tenant.get_json())) > THROTTLE_SIZE:
+                    logging.debug('Throttling contracts. Pushing config...')
+                    resp = tenant.push_to_apic(apic)
+                    if not resp.ok:
+                        return resp
+                    tenant = Tenant(self._tenant_name)
+
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
         else:
+            logging.debug('Pushing remaining contracts')
             resp = tenant.push_to_apic(apic)
             if not resp.ok:
                 return resp
 
         # Push all of the EPGs
+        logging.debug('Pushing EPGs')
         if not self.displayonly:
             tenant = Tenant(self._tenant_name)
         app = AppProfile(self._app_name, tenant)
-        # Create a Base EPG
-        base_epg = EPG('base', app)
-        if self.cdb.has_context_config():
-            context_name = self.cdb.get_context_config().name
-        else:
-            context_name = 'vrf1'
-        context = Context(context_name, tenant)
-        bd = BridgeDomain('bd', tenant)
-        bd.add_context(context)
-        base_epg.add_bd(bd)
-        if self.displayonly:
-            # If display only, just deploy the EPG to leaf 101
-            base_epg.add_static_leaf_binding('101', 'vlan', '1', encap_mode='untagged')
-        else:
-            # Deploy the EPG to all of the leaf switches
-            nodes = Node.get(apic)
-            for node in nodes:
-                if node.role == 'leaf':
-                    base_epg.add_static_leaf_binding(node.node, 'vlan', '1', encap_mode='untagged')
 
-        # Create the Attribute based EPGs
-        for epg_policy in self.cdb.get_epg_policies():
-            epg = EPG(epg_policy.name, app)
+        if self._use_ip_epgs:
+            # Create a Base EPG
+            base_epg = EPG('base', app)
+            if self.cdb.has_context_config():
+                context_name = self.cdb.get_context_config().name
+            else:
+                context_name = 'vrf1'
+            context = Context(context_name, tenant)
+            bd = BridgeDomain('bd', tenant)
+            bd.add_context(context)
+            base_epg.add_bd(bd)
+            if self.displayonly:
+                # If display only, just deploy the EPG to leaf 101
+                base_epg.add_static_leaf_binding('101', 'vlan', '1', encap_mode='untagged')
+            else:
+                # Deploy the EPG to all of the leaf switches
+                nodes = Node.get(apic)
+                for node in nodes:
+                    if node.role == 'leaf':
+                        base_epg.add_static_leaf_binding(node.node, 'vlan', '1', encap_mode='untagged')
 
-            # Check if the policy has the default 0.0.0.0 IP address
-            no_default_endpoint = True
-            for node_policy in epg_policy.get_node_policies():
-                if node_policy.ip == '0.0.0.0' and node_policy.prefix_len == 0:
-                    no_default_endpoint = False
-                    epg.add_bd(bd)
+            # Create the Attribute based EPGs
+            logging.debug('Creating Attribute Based EPGs')
+            for epg_policy in self.cdb.get_epg_policies():
+                epg = EPG(epg_policy.name, app)
 
-            # Add all of the IP addresses
-            if no_default_endpoint:
-                epg.is_attributed_based = True
-                epg.set_base_epg(base_epg)
-                criterion = AttributeCriterion('criterion', epg)
+                # Check if the policy has the default 0.0.0.0 IP address
+                no_default_endpoint = True
                 for node_policy in epg_policy.get_node_policies():
-                    ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
-                    if ipaddr.is_multicast:
-                        # Skip multicast addresses. They cannot be IP based EPGs
-                        continue
-                    criterion.add_ip_address(node_policy.ip)
+                    if node_policy.ip == '0.0.0.0' and node_policy.prefix_len == 0:
+                        no_default_endpoint = False
+                        epg.add_bd(bd)
 
-            epg.descr = epg_policy.id
-            # Consume and provide all of the necessary contracts
-            for contract_policy in self.cdb.get_contract_policies():
-                contract = None
-                if epg_policy.id in contract_policy.src_ids:
-                    name = contract_policy.src_name + '::' + contract_policy.dst_name
-                    contract = Contract(name, tenant)
-                    epg.consume(contract)
-                if epg_policy.id in contract_policy.dst_ids:
-                    name = contract_policy.src_name + '::' + contract_policy.dst_name
-                    if contract is None:
+                # Add all of the IP addresses
+                if no_default_endpoint:
+                    epg.is_attributed_based = True
+                    epg.set_base_epg(base_epg)
+                    criterion = AttributeCriterion('criterion', epg)
+                    for node_policy in epg_policy.get_node_policies():
+                        ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
+                        if ipaddr.is_multicast:
+                            # Skip multicast addresses. They cannot be IP based EPGs
+                            continue
+                        criterion.add_ip_address(node_policy.ip)
+                epg.descr = epg_policy.descr[0:127]
+                # Consume and provide all of the necessary contracts
+                for contract_policy in self.cdb.get_contract_policies():
+                    contract = None
+                    if epg_policy.id in contract_policy.src_ids:
+                        name = contract_policy.src_name + '::' + contract_policy.dst_name
                         contract = Contract(name, tenant)
-                    epg.provide(contract)
+                        epg.consume(contract)
+                    if epg_policy.id in contract_policy.dst_ids:
+                        name = contract_policy.src_name + '::' + contract_policy.dst_name
+                        if contract is None:
+                            contract = Contract(name, tenant)
+                        epg.provide(contract)
+        else:
+            logging.debug('Creating EPGs')
+            for epg_policy in self.cdb.get_epg_policies():
+                epg = EPG(epg_policy.name, app)
+                epg.descr = epg_policy.descr[0:127]
+                # Consume and provide all of the necessary contracts
+                for contract_policy in self.cdb.get_contract_policies():
+                    contract = None
+                    if epg_policy.id in contract_policy.src_ids:
+                        name = contract_policy.src_name + '::' + contract_policy.dst_name
+                        contract = Contract(name, tenant)
+                        epg.consume(contract)
+                    if epg_policy.id in contract_policy.dst_ids:
+                        name = contract_policy.src_name + '::' + contract_policy.dst_name
+                        if contract is None:
+                            contract = Contract(name, tenant)
+                        epg.provide(contract)
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
         else:
             resp = tenant.push_to_apic(apic)
             return resp
+
+    def mangle_names(self):
+        unique_id = 0
+        name_db_by_id = {}
+        for epg_policy in self.cdb.get_epg_policies():
+            epg_policy.descr = epg_policy.name + ':' + epg_policy.id
+            epg_policy.descr = epg_policy.replace_invalid_descr_chars(epg_policy.descr)
+            if epg_policy.id in name_db_by_id:
+                epg_policy.name = name_db_by_id[epg_policy.id]
+            else:
+                epg_policy.name = epg_policy.replace_invalid_name_chars(epg_policy.name)
+                end_string = '-' + str(unique_id)
+                epg_policy.name = epg_policy.name[0:30 - len(end_string)] + end_string
+                unique_id += 1
+                name_db_by_id[epg_policy.id] =  epg_policy.name
+
+        for contract_policy in self.cdb.get_contract_policies():
+            contract_policy.descr = contract_policy.src_name + ':' + contract_policy.dst_name + '::'
+            contract_policy.descr += contract_policy.src_id + ':' + contract_policy.dst_id
+            contract_policy.descr = contract_policy.replace_invalid_descr_chars(contract_policy.descr)
+            contract_policy.src_name = name_db_by_id[contract_policy.src_id]
+            contract_policy.dst_name = name_db_by_id[contract_policy.dst_id]
 
     def add_config(self, config_json):
         """
@@ -826,6 +942,7 @@ class ApicService(GenericService):
             logging.error('JSON configuration validation failed: %s', e.message)
             return 'ERROR: JSON configuration validation failed: %s' % e.message
         if self.cdb.store_config(config_json) and (self.cdb.has_apic_config() or self.displayonly):
+            self.mangle_names()
             resp = self.push_config_to_apic()
         if self.displayonly or resp.ok:
             return 'OK'
@@ -900,6 +1017,8 @@ def execute_tool(args):
         tool.set_tenant_name(args.tenant)
     if args.app:
         tool.set_app_name(args.app)
+    if args.useipepgs:
+        tool.use_ip_epgs()
     return tool
 
 if __name__ == '__main__':
