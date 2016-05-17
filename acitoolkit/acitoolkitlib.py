@@ -85,7 +85,7 @@ class Credentials(object):
             DEFAULT_PASSWORD = set_default('password')
             self._parser.add_argument('-u', '--url',
                                       default=DEFAULT_URL,
-                                      help='APIC IP address.')
+                                      help='APIC URL e.g. http://1.2.3.4')
             self._parser.add_argument('-l', '--login',
                                       default=DEFAULT_LOGIN,
                                       help='APIC login ID.')
