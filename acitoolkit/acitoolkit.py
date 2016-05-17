@@ -3572,7 +3572,18 @@ class Contract(BaseContract):
                     contract.get_scope(),
                     filter.name,
                 ])
-
+            for subject in contract.get_children(ContractSubject):
+                for subj_filter in subject.get_filters():
+                    subj_filt_entries = subj_filter.get_children(only_class=FilterEntry)
+                    for subj_filt_entry in subj_filt_entries:
+                        entry = [
+                            contract.get_parent().name,
+                            contract.name,
+                            contract.get_scope(),
+                            subj_filt_entry.name,
+                        ]
+                        if entry not in data:
+                            data.append(entry)
             result.append(Table(data, headers, title=title + 'Contract:{0}'.format(contract.name)))
         return result
 
