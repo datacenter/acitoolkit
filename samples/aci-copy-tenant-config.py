@@ -63,8 +63,8 @@ def push_config_to_apic(session, tenant_name, filename):
     """
     tenant = Tenant(tenant_name)
     with open(filename) as input_file:
-        temp = json.load(input_file)
-       # tenant_json = temp['fvTenant']['attributes']['name'] = tenant_name
+        tenant_json = json.load(input_file)
+    tenant_json['fvTenant']['attributes']['name'] = tenant_name
     resp = session.push_to_apic(tenant.get_url(), tenant_json)
     if resp.ok:
         print 'Successfully pushed configuration to APIC.'
