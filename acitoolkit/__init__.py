@@ -32,7 +32,7 @@ from .aciSearch import AciSearch, Searchable  # noqa
 from .acisession import EventHandler, Login, Session, Subscriber  # noqa
 from .aciTable import Table  # noqa
 from .acitoolkit import (  # noqa
-    AppProfile, AttributeCriterion, BGPSession, BridgeDomain, CollectionPolicy,
+    AnyEPG, AppProfile, AttributeCriterion, BGPSession, BridgeDomain, CollectionPolicy,
     CommonEPG, Context, Contract, ContractInterface, ContractSubject, Endpoint,
     EPG, EPGDomain, FexInterface, Filter, FilterEntry, IPEndpoint, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, LogicalModel, MonitorPolicy,
