@@ -850,6 +850,20 @@ class ApicService(GenericService):
             # Create the Attribute based EPGs
             logging.debug('Creating Attribute Based EPGs')
             for epg_policy in self.cdb.get_epg_policies():
+                if not self.displayonly:
+                    # Check if we need to throttle very large configs
+                    if len(str(tenant.get_json())) > THROTTLE_SIZE:
+                        resp = tenant.push_to_apic(apic)
+                        if not resp.ok:
+                            return resp
+                        tenant = Tenant(self._tenant_name)
+                        app = AppProfile(self._app_name, tenant)
+                        context = Context(context_name, tenant)
+                        bd = BridgeDomain('bd', tenant)
+                        bd.add_context(context)
+                        if self._use_ip_epgs:
+                            base_epg = EPG('base', app)
+                            base_epg.add_bd(bd)
                 epg = EPG(epg_policy.name, app)
 
                 # Check if the policy has the default 0.0.0.0 IP address
@@ -920,7 +934,7 @@ class ApicService(GenericService):
                 end_string = '-' + str(unique_id)
                 epg_policy.name = epg_policy.name[0:30 - len(end_string)] + end_string
                 unique_id += 1
-                name_db_by_id[epg_policy.id] =  epg_policy.name
+                name_db_by_id[epg_policy.id] = epg_policy.name
 
         for contract_policy in self.cdb.get_contract_policies():
             contract_policy.descr = contract_policy.src_name + ':' + contract_policy.dst_name + '::'
@@ -941,6 +955,8 @@ class ApicService(GenericService):
         except ValidationError as e:
             logging.error('JSON configuration validation failed: %s', e.message)
             return 'ERROR: JSON configuration validation failed: %s' % e.message
+        else:
+            logging.info('JSON Validation passed')
         if self.cdb.store_config(config_json) and (self.cdb.has_apic_config() or self.displayonly):
             self.mangle_names()
             resp = self.push_config_to_apic()
