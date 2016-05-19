@@ -3056,6 +3056,15 @@ class PhysicalModel(BaseACIObject):
         self._session = session
 
     @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Fabric
+
+    @staticmethod
     def _get_children_classes():
         """
         Get the acitoolkit class of the children of this object.
@@ -3110,6 +3119,15 @@ class Fabric(BaseACIObject):
 
         self._session = session
         self.dn = '/'
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return None
 
     @classmethod
     def get(cls, session):

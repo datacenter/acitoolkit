@@ -14,6 +14,8 @@
 
 import sys
 import os
+from acitoolkit_diagram_builder import build_graphs
+
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     html_theme = 'default'
@@ -28,6 +30,8 @@ else:
 sys.path.insert(0, os.path.abspath('../../applications/cableplan'))
 sys.path.append(os.path.abspath('../acitoolkit'))
 
+build_graphs()
+
 # -- General configuration ------------------------------------------------
 
 autoclass_content = 'both'
@@ -40,6 +44,7 @@ autoclass_content = 'both'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.graphviz'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

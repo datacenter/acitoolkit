@@ -72,6 +72,15 @@ class Tenant(BaseACIObject):
     object model.  In the APIC model, this class is roughly equivalent to
     the fvTenant class.
     """
+    def __init__(self, name, parent=None):
+        """
+        :param name: String containing the Tenant name
+        :param parent: None or An instance of Fabric class representing the Pod
+                       which contains this Tenant.
+        """
+        if parent is not None and not isinstance(parent, Fabric):
+            raise TypeError('Parent must be None or an instance of Fabric class')
+        super(Tenant, self).__init__(name, parent)
 
     @classmethod
     def _get_apic_classes(cls):
@@ -89,7 +98,7 @@ class Tenant(BaseACIObject):
 
         :returns: class of parent object
         """
-        return None
+        return LogicalModel
 
     def _get_instance_subscription_urls(self):
         url = '/api/mo/uni/tn-{}.json?subscription=yes'.format(self.name)
@@ -750,6 +759,15 @@ class AttributeCriterion(BaseACIObject):
         self._match = 'any'
         self._ip_addresses = []
 
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return EPG
+
     @property
     def match(self):
         """
@@ -1356,6 +1374,15 @@ class OutsideEPG(CommonEPG):
     """
     OutsideEPG class, roughly equivalent to l3ext:InstP
     """
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return OutsideL3
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -1456,6 +1483,15 @@ class AnyEPG(CommonEPG):
     """
     AnyEPG class, roughly equivalent to vz:Any
     """
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Context
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -1630,6 +1666,15 @@ class OutsideL3(BaseACIObject):
         if not isinstance(parent, Tenant):
             raise TypeError('Parent is not set to Tenant')
         super(OutsideL3, self).__init__(l3out_name, parent)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Tenant
 
     def has_context(self):
         """
@@ -2890,6 +2935,15 @@ class Subnet(BaseSubnet):
             raise TypeError('Parent of Subnet class must be BridgeDomain')
         super(Subnet, self).__init__(subnet_name, parent)
 
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return BridgeDomain
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -2966,6 +3020,15 @@ class OutsideNetwork(BaseSubnet):
     """
     def __init__(self, name, parent):
         super(OutsideNetwork, self).__init__(name, parent)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return OutsideEPG
 
     def _generate_attributes(self):
         attributes = super(OutsideNetwork, self)._generate_attributes()
@@ -3731,6 +3794,15 @@ class Filter(BaseACIObject):
         """
         return ['vzFilter']
 
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return [ContractSubject, Tenant]
+
     @classmethod
     def get(cls, session, tenant):
         """Gets all of the Filters for the current tenant from the APIC.
@@ -3920,6 +3992,15 @@ class FilterEntry(BaseACIObject):
         self.sToPort = str(attributes['sToPort'])
         self.tcpRules = str(attributes['tcpRules'])
         self.stateful = str(attributes['stateful'])
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return [Contract, Filter]
 
     def get_json(self):
         """
@@ -6602,6 +6683,15 @@ class LogicalModel(BaseACIObject):
 
         self._session = session
         self.dn = 'logical'
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Fabric
 
     @classmethod
     def get(cls, session=None, parent=None):
