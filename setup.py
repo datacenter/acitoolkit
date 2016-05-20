@@ -31,7 +31,8 @@ setup(
                       "pymysql",
                       "tabulate",
                       "py-radix",
-                      "jsonschema"],
+                      "jsonschema",
+                      "graphviz"],
     tests_requires=["mock"],
     description="This library allows basic Cisco ACI APIC configuration.",
 )
