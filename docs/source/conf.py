@@ -14,7 +14,7 @@
 
 import sys
 import os
-from acitoolkit_diagram_builder import build_graphs
+from acitoolkit import AcitoolkitGraphBuilder
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
@@ -30,7 +30,8 @@ else:
 sys.path.insert(0, os.path.abspath('../../applications/cableplan'))
 sys.path.append(os.path.abspath('../acitoolkit'))
 
-build_graphs()
+graphs = AcitoolkitGraphBuilder()
+graphs.build_graphs()
 
 # -- General configuration ------------------------------------------------
 
