@@ -3721,7 +3721,7 @@ class ContractSubject(BaseACIObject):
 
         :returns: class of parent object
         """
-        return Contract
+        return [Contract, Taboo]
 
     def get_json(self):
         """
@@ -4000,7 +4000,7 @@ class FilterEntry(BaseACIObject):
 
         :returns: class of parent object
         """
-        return [Contract, Filter]
+        return [Contract, Filter, Taboo]
 
     def get_json(self):
         """

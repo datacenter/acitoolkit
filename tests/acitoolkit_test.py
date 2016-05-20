@@ -1195,7 +1195,7 @@ class TestContractSubject(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(ContractSubject._get_parent_class(), Contract)
+        self.assertEquals(ContractSubject._get_parent_class(), [Contract, Taboo])
 
     def test_get_json(self):
         """
