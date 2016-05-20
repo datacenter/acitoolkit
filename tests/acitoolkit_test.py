@@ -275,7 +275,7 @@ class TestTenant(unittest.TestCase):
         """
         Ensure class has the correct parent class
         """
-        self.assertEquals(Tenant._get_parent_class(), None)
+        self.assertEquals(Tenant._get_parent_class(), LogicalModel)
 
     def test_get_name_from_dn(self):
         """
