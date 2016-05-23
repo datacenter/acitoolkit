@@ -43,11 +43,9 @@ from flask.ext.wtf import Form, CsrfProtect
 from wtforms import StringField, SubmitField, PasswordField, BooleanField
 from wtforms import RadioField, IntegerField, TextAreaField, SelectField
 from wtforms.fields.html5 import DateField, DateTimeField
-from wtforms.validators import Required, IPAddress, NumberRange
+from wtforms.validators import Required, IPAddress
 from wtforms.validators import ValidationError, Optional
-import difflib
 import json
-import os
 import re
 from flask import jsonify
 from acitoolkit.acitoolkit import Credentials
@@ -77,6 +75,9 @@ versions = cdb.get_versions()
 
 # Credentials
 class CredentialsForm(Form):
+    """
+    Form to collect APIC credentials
+    """
     ipaddr = StringField('APIC IP Address:',
                          validators=[Required(), IPAddress()])
     secure = BooleanField('Use secure connection', validators=[])
@@ -86,19 +87,36 @@ class CredentialsForm(Form):
 
 
 class ResetForm(Form):
+    """
+    Form to hold reset button
+    """
     reset = SubmitField('Reset')
 
 
 class CancelSchedule(Form):
+    """
+    Form to hold cancel schedule
+    """
     cancel = SubmitField('Cancel Schedule')
 
 
 class DiffView(BaseView):
+    """
+    View for the JSON diffs
+    """
     def is_visible(self):
+        """
+        Indicates whether the view is visible
+        :return: False
+        """
         return False
 
     @expose('/')
     def index(self):
+        """
+        Main diff routine
+        :return: Rendered view
+        """
         files = []
         (file1_id, file2_id) = session.get('diff_files')
         file1_obj = Snapshots.query.get(file1_id)
@@ -113,6 +131,9 @@ class DiffView(BaseView):
 
 
 class FileView(BaseView):
+    """
+    View for the JSON Files
+    """
     def is_visible(self):
         return False
 
@@ -128,6 +149,9 @@ class FileView(BaseView):
 
 
 class FeedbackForm(Form):
+    """
+    Form for feedback
+    """
     category = SelectField('', choices=[('bug', 'Bug'),
                                         ('enhancement', 'Enhancement Request'),
                                         ('question', 'General Question'),
@@ -137,19 +161,34 @@ class FeedbackForm(Form):
 
 
 class Feedback(BaseView):
+    """
+    View for feedback
+    """
     @expose('/')
     def index(self):
+        """
+        View for feedback
+        """
         form = FeedbackForm()
         return self.render('feedback.html', form=form)
 
 
 class About(BaseView):
+    """
+    View for About
+    """
     @expose('/')
     def index(self):
+        """
+        View for About
+        """
         return self.render('about.html')
 
 
 class StackedDiffsForm(Form):
+    """
+    Form for stacked diffs of JSON file lines
+    """
     show = SubmitField('Show versions with no diffs')
     hide = SubmitField('Hide versions with no diffs')
     start_version = SelectField('Start Version')
@@ -158,8 +197,14 @@ class StackedDiffsForm(Form):
 
 
 class StackedDiffs(BaseView):
+    """
+    View for stacked diffs of JSON file lines
+    """
     @expose('/')
     def index(self):
+        """
+        View for stacked diffs of JSON file lines
+        """
         if session.get('hideall') is None:
             session['hideall'] = False
         changes = cdb.get_versions(with_changes=True)
@@ -204,6 +249,9 @@ class StackedDiffs(BaseView):
 
     @expose('/showhide', methods=['GET', 'POST'])
     def showhide(self):
+        """
+        Hide or show the stacked diffs of JSON file lines
+        """
         # form = StackedDiffsForm()
         if session.get('hideall') is False:
             session['hideall'] = True
@@ -214,18 +262,27 @@ class StackedDiffs(BaseView):
 
     @expose('/setstartenddiffs', methods=['GET', 'POST'])
     def setstartenddiffs(self):
+        """
+        Set the start and end of diffs
+        """
         session['diffstartversion'] = request.form['start_version']
         session['diffendversion'] = request.form['end_version']
         return redirect(url_for('stackeddiffs.index'))
 
     @expose('/data.csv')
     def data(self):
+        """
+        Get the data
+        """
         with open('static/data.csv', 'r') as data_file:
             data = data_file.read()
         return data
 
 
 class ScheduleSnapshotForm(Form):
+    """
+    Form for scheduling the snapshot
+    """
     frequency = RadioField('Frequency',
                            choices=[('onetime', 'One time'),
                                     ('interval', 'Every')],
@@ -249,6 +306,9 @@ class ScheduleSnapshotForm(Form):
 
 
 class APICArgs(object):
+    """
+    Class to hold the APIC credentials
+    """
     def __init__(self, ipaddr, username, secure, password):
         self.login = username
         self.password = password
@@ -259,8 +319,14 @@ class APICArgs(object):
 
 
 class ScheduleSnapshot(BaseView):
+    """
+    View to schedule the snapshot
+    """
     @expose('/', methods=['GET', 'POST'])
     def index(self):
+        """
+        View to schedule the snapshot
+        """
         form = ScheduleSnapshotForm()
         cancel_form = CancelSchedule()
         if cancel_form.cancel.data:
@@ -320,6 +386,9 @@ class ScheduleSnapshot(BaseView):
 
 
 def DiffFiles(diffList, data):
+    """
+    Get the diff between snapshots
+    """
     diff = ""
     versions_exist = cdb.get_versions()
     versions_needed = [diffList[0].get('version'), diffList[1].get('version')]
@@ -334,6 +403,9 @@ def DiffFiles(diffList, data):
 
 
 def ViewFile(viewList, data):
+    """
+    Get the list of files
+    """
     files = ""
     for snapshot_needed in viewList:
         for snapshot in data['snapshots']:
@@ -344,6 +416,9 @@ def ViewFile(viewList, data):
 
 
 def DeleteFiles(deleteList, data):
+    """
+    Delete the list of snapshots
+    """
     for delete_snapshot in deleteList:
         for snapshot in data['snapshots']:
             if (snapshot['filename'] == delete_snapshot['filename']) and (snapshot['version'] == delete_snapshot['version']) and (snapshot['latest'] == delete_snapshot['latest']):
@@ -352,6 +427,9 @@ def DeleteFiles(deleteList, data):
 
 
 def Filtering(filter_key_item, filter_args, data):
+    """
+    Filter the snapshot list
+    """
     if filter_key_item == 'Version':
         filter_key = 'version'
     elif filter_key_item == 'Filename':
@@ -421,6 +499,9 @@ def Filtering(filter_key_item, filter_args, data):
 
 
 def FilterFunction(filter_args, data):
+    """
+    Filter the snapshots
+    """
     filtered = []
     if 'Version' in filter_args:
         filtered = Filtering('Version', filter_args, data)
@@ -435,9 +516,12 @@ def FilterFunction(filter_args, data):
 
 
 class JsonInterface(BaseView):
+    """
+    JSON interface to program the tool
+    """
     @csrf.exempt
     @app.route('/login', methods=['POST'])
-    def login():
+    def login(self):
         if request.method == 'POST':
             data = request.json
             session['ipaddr'] = data['ipaddr']
@@ -461,13 +545,16 @@ class JsonInterface(BaseView):
         '''
         method to login to aci config db
         usage : curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/login --data @login.json
-        and the login.json structrue is
+        and the login.json structure is
         {"ipaddr":"","secure":"","username":"","password":""}
         '''
 
     @csrf.exempt
     @app.route('/viewsnapshots', methods=['POST'])
-    def viewsnapshots():
+    def viewsnapshots(self):
+        """
+        View the snapshots
+        """
         if request.method == 'POST':
             versions = cdb.get_versions(with_changes=True)
             data = {}
@@ -549,7 +636,11 @@ class JsonInterface(BaseView):
 
     @csrf.exempt
     @app.route('/logout')
-    def logout():
+    def logout(self):
+        """
+        this method is used to logout. clears all session variables.
+        usage: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/logout
+        """
         if cdb.is_logged_in():
             session['ipaddr'] = None
             session['secure'] = None
@@ -558,23 +649,24 @@ class JsonInterface(BaseView):
             return 'logged out'
         else:
             return 'logged out'
-        '''
-        this method is used to logout. clears all session variables.
-        usage: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/logout
-        '''
+
     @csrf.exempt
     @app.route('/cancelschedule', methods=['POST'])
-    def cansel_schedule():
+    def cansel_schedule(self):
+        """
+        this method is used to cansel the latest scheduled snapshots
+        usage: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/cancelschedule
+        """
         if request.method == 'POST':
             resp = cdb.cancel_schedule
             return'cansel schedule successfull'
-            '''
-            this method is used to cansel the latest scheduled snapshots
-            usage: curl -H "Content-Type: application/json" -X POST http://127.0.0.1:5000/cancelschedule
-            '''
+
     @csrf.exempt
     @app.route('/schedulesnapshot', methods=['POST'])
-    def schedulesnapshot():
+    def schedulesnapshot(self):
+        """
+        Schedule the snapshot
+        """
         if request.method == 'POST':
             data = request.json
             if cdb.is_logged_in():
@@ -623,8 +715,14 @@ class JsonInterface(BaseView):
 
 
 class CredentialsView(BaseView):
+    """
+    View for the APIC credentials
+    """
     @expose('/', methods=['GET', 'POST'])
     def index(self):
+        """
+        View for the APIC credentials
+        """
         form = CredentialsForm()
         reset_form = ResetForm()
         if form.validate_on_submit() and form.submit.data:
@@ -656,6 +754,9 @@ class CredentialsView(BaseView):
 
 # Models
 class Snapshots(db.Model):
+    """
+    Database model for the snapshots
+    """
     id = db.Column(db.Integer, primary_key=True)
     version = db.Column(db.Unicode(64))
     filename = db.Column(db.Unicode(64))
@@ -668,10 +769,16 @@ class Snapshots(db.Model):
 
 # Customized admin interface
 class CustomView(ModelView):
+    """
+    Custom list view
+    """
     list_template = 'list.html'
 
 
 class SnapshotsAdmin(CustomView):
+    """
+    Snapshot view
+    """
     can_create = False
     can_edit = False
     column_searchable_list = ('version', 'filename')
@@ -712,6 +819,9 @@ class SnapshotsAdmin(CustomView):
 
     @action('view_diffs', 'View Diffs')
     def view_diffs(*args, **kwargs):
+        """
+        View the snapshot diffs
+        """
         if len(args[1]) != 2:
             if len(args[1]) > 2:
                 flash('Please select only 2 snapshots to view diffs')
@@ -723,6 +833,9 @@ class SnapshotsAdmin(CustomView):
 
     @action('view', 'View')
     def view(*args, **kwargs):
+        """
+        View the snapshot
+        """
         for arg in args[1]:
             obj = Snapshots.query.get(arg)
         session['viewfiles'] = args[1]
@@ -730,13 +843,22 @@ class SnapshotsAdmin(CustomView):
 
 
 class RollbackForm(Form):
+    """
+    Form for the rollback
+    """
     version = SelectField('Version', coerce=int)
     rollback = SubmitField('Rollback')
 
 
 class RollbackView(BaseView):
+    """
+    View for the rollback
+    """
     @expose('/', methods=['GET', 'POST'])
     def index(self):
+        """
+        View for the rollback
+        """
         if session.get('ipaddr') is None:
             flash('APIC Credentials have not been entered', 'error')
             return redirect(url_for('rollbackview.index'))
