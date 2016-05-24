@@ -4,6 +4,8 @@ aciphysobject module
 API Reference
 ---------------------
 
+.. include:: acitoolkit-hierarchy.PhysicalModel.gv
+
 .. automodule:: acitoolkit.aciphysobject
     :members:
     :inherited-members:
