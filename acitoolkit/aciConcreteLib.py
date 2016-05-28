@@ -152,6 +152,28 @@ class ConcreteArp(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/arp/inst')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/arp/inst')[1].split('/')[0]
+        return name
 
     @staticmethod
     def _get_children_concrete_classes():
@@ -277,6 +299,28 @@ class ConcreteArpDomain(CommonConcreteObject):
         :returns: class of parent object
         """
         return ConcreteArp
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/dom-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/dom-')[1].split('/')[0]
+        return name
 
     @staticmethod
     def _get_children_concrete_classes():
@@ -381,6 +425,28 @@ class ConcreteArpEntry(CommonConcreteObject) :
         resp = ['arpAdjEp','arpDb']
 
         return resp
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/adj-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/adj-')[1].split('/')[0]
+        return name
 
     @classmethod
     def get(cls, working_data, parent):
@@ -438,6 +504,28 @@ class ConcreteVpc(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/vpc')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/vpc')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -768,6 +856,39 @@ class ConcreteContext(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        if '/inst-' in dn :
+            return dn.split('/sys/inst-')[0]
+        elif '/ctx-' in dn :
+            return dn.split('/sys/ctx-')[0]
+        else:
+            return None
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        if '/inst-' in dn :
+            name = dn.split('/sys/inst-')[1].split('/')[0]
+            return name
+        elif '/ctx-' in dn :
+            name = dn.split('/sys/ctx-')[1].split('/')[0]
+            return name
+        else:
+            return None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -900,6 +1021,28 @@ class ConcreteSVI(CommonConcreteObject):
         :returns: class of parent object
         """
         return ConcreteBD
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/svi-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/svi-')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1026,6 +1169,28 @@ class ConcreteLoopback(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/lb-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/lb-')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1111,6 +1276,28 @@ class ConcreteBD(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/-')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1546,6 +1733,29 @@ class ConcreteFilter(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/actrl/filt-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/actrl/filt-')[1].split('/')[0]
+        return name
+
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1809,6 +2019,31 @@ class ConcreteEp(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/ctx-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/ctx-')[1].split('/')[0]
+        return name
+    
+    
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2182,6 +2417,28 @@ class ConcretePortChannel(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/aggr-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/aggr-')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2393,6 +2650,28 @@ class ConcreteTunnel(CommonConcreteObject):
         :returns: class of parent object
         """
         return ConcreteOverlay
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/tunnel-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/tunnel-')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2537,6 +2816,29 @@ class ConcreteOverlay(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
+    
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/overlay')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/overlay')[1].split('/')[0]
+        return name
 
     @staticmethod
     def _get_children_concrete_classes():

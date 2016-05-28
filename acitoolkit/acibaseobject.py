@@ -353,7 +353,15 @@ class BaseACIObject(AciSearch):
         parent_class = cls._get_parent_class()
         if parent_class is None:
             return None
-        parent_name = parent_class._get_name_from_dn(dn)
+        if type(parent_class) is list :
+            for parent_class_name in parent_class:
+                if not parent_class_name._get_name_from_dn(dn) is None:
+                    parent_name = parent_class_name._get_name_from_dn(dn)
+                    if parent_name != None:
+                        parent_class = parent_class_name
+                        break
+        else :
+            parent_name = parent_class._get_name_from_dn(dn)
         parent_dn = cls._get_parent_dn(dn)
         parent_obj = parent_class(parent_name,
                                   parent_class._get_parent_from_dn(parent_dn))
@@ -413,8 +421,8 @@ class BaseACIObject(AciSearch):
             resp = session.subscribe(url, only_new=only_new)
             if resp is not None:
                 if not resp.ok:
-                    return resp
-        return resp
+                    return False
+        return True
 
     @classmethod
     def get_event(cls, session):
@@ -718,6 +726,23 @@ class BaseACIObject(AciSearch):
                 child.populate_children(deep, include_concrete)
 
         return self._children
+    
+    def update_db(self, session,subscribed_classes,deep=False):
+        for child_class in self._get_children_classes():
+            child_class.subscribe(session,only_new=True)
+            if not child_class in subscribed_classes:
+                subscribed_classes.append(child_class)
+        for child_class in self._get_toolkit_to_apic_classmap():
+            subscribed_classes.append(self._get_toolkit_to_apic_classmap().get(child_class))
+            self._get_toolkit_to_apic_classmap().get(child_class).subscribe(session,only_new=True)
+        if deep:
+            if len(self._children) >0 :
+                for child in self._children:
+                    subscribed_classes = child.update_db(session,subscribed_classes,deep)
+            else :
+                subscribed_classes.append(self)
+                self.subscribe(session,only_new=True)
+        return subscribed_classes
 
     def get_parent(self):
         """
