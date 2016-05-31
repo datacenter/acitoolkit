@@ -225,15 +225,34 @@ class Credentials(object):
 
 
 class AcitoolkitGraphBuilder(object):
+    """
+    Class to build class hierarchy diagrams for the ACI toolkit Physical and Logical Models
+    """
     @staticmethod
     def build_graph_from_parent(root_parent_name):
+        """
+        Create a graph starting from the root class name
+        :param root_parent_name: String containing the class name to use as the root of the class hierarchy graph
+        :return: None
+        """
         def clean_name(name):
+            """
+            Convert invalid names to valid names for graphviz
+            :param name: String containing the name to convert
+            :return: String containing the valid name, converted if necessary
+            """
             graphviz_illegal_node_names = ['Node']
             if name in graphviz_illegal_node_names:
                 name += '_'
             return name
 
         def get_child_edges(edges, parent_name):
+            """
+            Get the child edges for the specified parent class name
+            :param edges: List of edges
+            :param parent_name: String containing the parent class name
+            :return: List of (parentname, childname) edges
+            """
             resp = []
             for edge in edges:
                 (edge_parent_name, child_class_name) = edge
@@ -302,6 +321,9 @@ class AcitoolkitGraphBuilder(object):
         output_file.close()
 
     def build_graphs(self):
+        """
+        Build the graphs starting with the various parent class names
+        """
         self.build_graph_from_parent('Fabric')
         self.build_graph_from_parent('PhysicalModel')
         self.build_graph_from_parent('LogicalModel')
