@@ -78,8 +78,8 @@ class Tenant(BaseACIObject):
         :param parent: None or An instance of Fabric class representing the Pod
                        which contains this Tenant.
         """
-        if parent is not None and not isinstance(parent, Fabric):
-            raise TypeError('Parent must be None or an instance of Fabric class')
+        if parent is not None and not isinstance(parent, Fabric) and not isinstance(parent, LogicalModel):
+            raise TypeError('Parent must be None or an instance of Fabric class. Parent given as %s' % type(parent))
         super(Tenant, self).__init__(name, parent)
 
     @classmethod
@@ -6662,7 +6662,7 @@ class CollectionPolicy(BaseMonitorClass):
 
 class LogicalModel(BaseACIObject):
     """
-    This is the root class for the logical part of the network.  It's corrolary is the PhysicalModel class.
+    This is the root class for the logical part of the network.  Its corollary is the PhysicalModel class.
     It is a container that can hold all of logical model instances such as Tenants.
 
     From this class, you can populate all of the children classes.
@@ -6692,6 +6692,28 @@ class LogicalModel(BaseACIObject):
         :returns: class of parent object
         """
         return Fabric
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Parse the name out of a dn string.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing name
+        """
+        return None
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return None
 
     @classmethod
     def get(cls, session=None, parent=None):

@@ -142,6 +142,7 @@ class BaseACIObject(AciSearch):
         self._parent = parent
         self.descr = None
         self.dn = ''
+        self._session = None
         # self.subscribe = self._instance_subscribe
         # self.unsubscribe = self._instance_unsubscribe
         # self.has_events = self._instance_has_events
@@ -355,8 +356,11 @@ class BaseACIObject(AciSearch):
             return None
         parent_name = parent_class._get_name_from_dn(dn)
         parent_dn = cls._get_parent_dn(dn)
-        parent_obj = parent_class(parent_name,
-                                  parent_class._get_parent_from_dn(parent_dn))
+        if parent_name is None:
+            parent_obj = parent_class()
+        else:
+            parent_obj = parent_class(parent_name,
+                                      parent_class._get_parent_from_dn(parent_dn))
         return parent_obj
 
     @classmethod
@@ -1101,7 +1105,7 @@ class BaseACIObject(AciSearch):
         """
 
         if not isinstance(session, Session):
-            raise TypeError('An instance of Session class is required')
+            raise TypeError('An instance of Session class is required.  Type %s given' % type(session))
 
     def get_attributes(self, name=None):
         """

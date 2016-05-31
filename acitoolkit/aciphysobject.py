@@ -2153,6 +2153,7 @@ class Interface(BaseInterface):
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.module + '/' + self.port
         super(Interface, self).__init__(self.if_name, None)
+        self._session = session
         self.porttype = ''
         self.adminstatus = ''  # up or down
         self.speed = '10G'  # 100M, 1G, 10G or 40G
@@ -3126,6 +3127,28 @@ class Fabric(BaseACIObject):
         Gets the class of the parent object
 
         :returns: class of parent object
+        """
+        return None
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Parse the name out of a dn string.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing name
+        """
+        return None
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
         """
         return None
 
