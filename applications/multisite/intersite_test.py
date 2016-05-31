@@ -508,6 +508,7 @@ class BaseTestCase(unittest.TestCase):
         # Push the endpoint
         resp = tenant.push_to_apic(site1)
         self.assertTrue(resp.ok)
+        time.sleep(1)
 
 
 class BaseEndpointTestCase(BaseTestCase):
@@ -1628,7 +1629,6 @@ class TestBasicEndpointMove(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
                                                           'intersite-testsuite-app-epg1'))
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg1')
-        time.sleep(1)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
                                                            'intersite-testsuite-app-epg1'))
 
