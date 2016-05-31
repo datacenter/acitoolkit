@@ -1628,6 +1628,7 @@ class TestBasicEndpointMove(BaseTestCase):
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
                                                           'intersite-testsuite-app-epg1'))
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg1')
+        time.sleep(1)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
                                                            'intersite-testsuite-app-epg1'))
 
