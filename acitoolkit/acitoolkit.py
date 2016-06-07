@@ -112,7 +112,7 @@ class Tenant(BaseACIObject):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
-        name = dn.split('uni/tn-')[1].split('/')[0]
+        name = dn.split('/tn-')[1].split('/')[0]
         return name
 
     @staticmethod
@@ -123,7 +123,8 @@ class Tenant(BaseACIObject):
         :param dn: string containing the distinguished name URL
         :return: None
         """
-        return None
+        return dn.split('/tn-')[0]
+
 
     def get_json(self):
         """
@@ -343,6 +344,12 @@ class AppProfile(BaseACIObject):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/ap-')[0]
 
     @staticmethod
@@ -767,6 +774,27 @@ class AttributeCriterion(BaseACIObject):
         :returns: class of parent object
         """
         return EPG
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/crtrn')[0]
+    
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/crtrn')[1].split('/')[0]
+        return name
 
     @property
     def match(self):
@@ -926,6 +954,12 @@ class EPG(CommonEPG):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/epg-')[0]
 
     @staticmethod
@@ -1477,6 +1511,27 @@ class OutsideEPG(CommonEPG):
                                     self.consume_cif(contract_if)
 
         super(OutsideEPG, self)._extract_relationships(data, obj_dict)
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/instP-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/instP-')[1].split('/')[0]
+        return name
 
 
 class AnyEPG(CommonEPG):
@@ -1602,6 +1657,27 @@ class AnyEPG(CommonEPG):
             text = {'vzRsAnyToConsIf': {'attributes': {'status': 'deleted', 'tnVzCPIfName': contract_interface.name}}}
             children.append(text)
         return children
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/any')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/any')[1].split('/')[0]
+        return name
 
 
 class OutsideL2EPG(CommonEPG):
@@ -1640,10 +1716,22 @@ class OutsideL2EPG(CommonEPG):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/instP-')[0]
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
         return dn.split('/instP-')[1].split('/')[0]
 
     def _extract_relationships(self, data, obj_dict):
@@ -1816,6 +1904,26 @@ class OutsideL3(BaseACIObject):
         return super(OutsideL3, self).get_json('l3extOut',
                                                attributes=attr,
                                                children=children)
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/out-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        return dn.split('/out-')[1].split('/')[0]
 
 
 class OutsideL2(BaseACIObject):
@@ -1841,6 +1949,12 @@ class OutsideL2(BaseACIObject):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/l2out-')[0]
 
     @staticmethod
@@ -2424,10 +2538,22 @@ class BridgeDomain(BaseACIObject):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/BD-')[0]
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
         return dn.split('/BD-')[1].split('/')[0]
 
     def set_unknown_mac_unicast(self, unicast):
@@ -3012,7 +3138,60 @@ class Subnet(BaseSubnet):
         result['addr'] = self.get_addr()
         result['scope'] = self.get_scope()
         return result
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
 
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/subnet-[')[0]
+    
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/subnet-[')[1].split('/')[0]
+        return name
+    
+    @classmethod
+    def get_event(cls, session):
+        """
+        Gets the event that is pending for this class.  Events are
+        returned in the form of objects.  Objects that have been deleted
+        are marked as such.
+
+        :param session:  the instance of Session used for APIC communication
+        """
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in cls._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0][class_name]['attributes']
+            status = str(attributes['status'])
+            dn = str(attributes['dn'])
+            if not "/BD-" in cls._get_parent_dn(dn):
+                return
+            parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
+            if status == 'created':
+                name = str(attributes['name'])
+            else:
+                name = cls._get_name_from_dn(dn)
+            obj = cls(name, parent=parent)
+            obj._populate_from_attributes(attributes)
+            if status == 'deleted':
+                obj.mark_as_deleted()
+            return obj
 
 class OutsideNetwork(BaseSubnet):
     """
@@ -3029,6 +3208,28 @@ class OutsideNetwork(BaseSubnet):
         :returns: class of parent object
         """
         return OutsideEPG
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/extsubnet-[')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/extsubnet-[')[1].split('/')[0]
+        return name
+
 
     def _generate_attributes(self):
         attributes = super(OutsideNetwork, self)._generate_attributes()
@@ -3116,10 +3317,22 @@ class Context(BaseACIObject):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/ctx-')[0]
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
         return dn.split('/ctx-')[1].split('/')[0]
 
     @staticmethod
@@ -3329,10 +3542,22 @@ class ContractInterface(BaseACIObject):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/cif-')[0]
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
         return dn.split('/cif-')[1].split('/')[0]
 
     @staticmethod
@@ -3575,13 +3800,37 @@ class Contract(BaseContract):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/brc-')[0]
 
     @staticmethod
     def _get_name_from_dn(dn):
-        name = dn.split('/brc-')[1].split('/')[0]
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        if '/brc-' in dn :
+            name = dn.split('/brc-')[1].split('/')[0]
+        elif '/oobbrc-' in dn :
+            name = dn.split('/oobbrc-')[1].split('/')[0]
         return name
 
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return Tenant
+    
     def _generate_attributes(self):
         attributes = super(Contract, self)._generate_attributes()
         attributes['scope'] = self.get_scope()
@@ -3772,6 +4021,30 @@ class ContractSubject(BaseACIObject):
             if isinstance(relation.item, Filter):
                 resp.append(relation.item)
         return resp
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/subj-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        if '/subj-' in dn :
+            name = dn.split('/subj-')[1].split('/')[0]
+            return name
+        else :
+            return None
 
 
 class Filter(BaseACIObject):
@@ -3853,6 +4126,27 @@ class Filter(BaseACIObject):
         resp_json['vzFilter']['children'] = filter_entries
         return resp_json
 
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/flt-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/flt-')[1].split('/')[0]
+        return name
+
 
 class Taboo(BaseContract):
     """ Taboo :  Class for Taboos """
@@ -3879,10 +4173,22 @@ class Taboo(BaseContract):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/taboo-')[0]
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
         name = dn.split('/taboo-')[1].split('/')[0]
         return name
 
@@ -4135,6 +4441,38 @@ class FilterEntry(BaseACIObject):
                 'prot', 'sFromPort', 'sToPort', 'tcpRules', 'stateful')
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/e-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/e-')[1].split('/')[0]
+        return name
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by the acitoolkit class.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: list of strings containing APIC class names
+        """
+        return []
 
 
 class BaseTerminal(BaseACIObject):
@@ -4271,6 +4609,37 @@ class InputTerminal(BaseTerminal):
         :returns: String containing APIC class name for this type of terminal.
         """
         return 'vzInTerm'
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/intmnl')[0]
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return ContractSubject
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/intmnl')[1].split('/')[0]
+        return name
+
 
 class OutputTerminal(BaseTerminal):
     """
@@ -4285,6 +4654,36 @@ class OutputTerminal(BaseTerminal):
         :returns: String containing APIC class name for this type of terminal.
         """
         return 'vzOutTerm'
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split('/outtmnl')[0]
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return ContractSubject
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/outtmnl')[1].split('/')[0]
+        return name
 
 
 class TunnelInterface(object):
@@ -4559,6 +4958,12 @@ class Endpoint(BaseACIObject):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         if '/stcep-' in dn:
             return dn.split('/stcep-')[0]
         else:
@@ -4948,10 +5353,22 @@ class IPEndpoint(BaseACIObject):
 
     @staticmethod
     def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
         return dn.split('/ip-')[0]
 
     @staticmethod
     def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
         return dn.split('/ip-[')[1].split(']')[0]
 
     def get_json(self):
@@ -5702,15 +6119,6 @@ class EPGDomain(BaseACIObject):
             attributes['childAction'] = self.childAction
 
         return attributes
-
-    @classmethod
-    def _get_apic_classes(cls):
-        """
-        Get the APIC classes used by this acitoolkit class.
-
-        :returns: list of strings containing APIC class names
-        """
-        return ['fvRsDomAtt']
 
     def get_parent(self):
         """
@@ -6692,7 +7100,7 @@ class LogicalModel(BaseACIObject):
         :returns: class of parent object
         """
         return Fabric
-
+    
     @staticmethod
     def _get_name_from_dn(dn):
         """
@@ -6735,6 +7143,17 @@ class LogicalModel(BaseACIObject):
         :return: list of classes
         """
         return [Tenant]
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by the acitoolkit class.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: list of strings containing APIC class names
+        """
+        return []
 
     def populate_children(self, deep=False, include_concrete=False):
         """
@@ -6755,7 +7174,7 @@ class LogicalModel(BaseACIObject):
                 child_class.get(self._session, self)
 
         return self._children
-
+    
     def _define_searchables(self):
         """
         Create all of the searchable terms
