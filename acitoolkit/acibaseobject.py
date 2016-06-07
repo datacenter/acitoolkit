@@ -277,6 +277,10 @@ class BaseACIObject(AciSearch):
         for child in self.get_children():
             child._extract_relationships(data, obj_dict)
 
+    @classmethod
+    def mask_class_from_graphs(cls):
+        return False
+
     def has_tag(self, tag):
         """
         Checks whether this object has a particular tag assigned.

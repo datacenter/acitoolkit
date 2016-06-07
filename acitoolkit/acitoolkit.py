@@ -3502,6 +3502,11 @@ class BaseContract(BaseACIObject):
         """
         return Tenant
 
+    @classmethod
+    def mask_class_from_graphs(cls):
+        # Returns True if called for BaseContract
+        return cls.__name__ == 'BaseContract'
+
     def set_scope(self, scope):
         """Set the scope of this contract.
            Valid values are 'context', 'global', 'tenant', and
@@ -4143,6 +4148,11 @@ class BaseTerminal(BaseACIObject):
     """
     def __init__(self, terminal_name, parent=None):
         super(BaseTerminal, self).__init__(terminal_name, parent)
+
+    @classmethod
+    def mask_class_from_graphs(cls):
+        # Returns True if called for BaseTerminal
+        return cls.__name__ == 'BaseTerminal'
 
     @staticmethod
     def _get_parent_class():
