@@ -731,21 +731,21 @@ class BaseACIObject(AciSearch):
 
         return self._children
     
-    def update_db(self, session,subscribed_classes,deep=False):
+    def update_db(self, session, subscribed_classes, deep=False):
         for child_class in self._get_children_classes():
-            child_class.subscribe(session,only_new=True)
-            if not child_class in subscribed_classes:
+            child_class.subscribe(session, only_new=True)
+            if child_class not in subscribed_classes:
                 subscribed_classes.append(child_class)
         for child_class in self._get_toolkit_to_apic_classmap():
             subscribed_classes.append(self._get_toolkit_to_apic_classmap().get(child_class))
-            self._get_toolkit_to_apic_classmap().get(child_class).subscribe(session,only_new=True)
+            self._get_toolkit_to_apic_classmap().get(child_class).subscribe(session, only_new=True)
         if deep:
-            if len(self._children) >0 :
+            if len(self._children) > 0:
                 for child in self._children:
-                    subscribed_classes = child.update_db(session,subscribed_classes,deep)
-            else :
+                    subscribed_classes = child.update_db(session, subscribed_classes, deep)
+            else:
                 subscribed_classes.append(self)
-                self.subscribe(session,only_new=True)
+                self.subscribe(session, only_new=True)
         return subscribed_classes
 
     def get_parent(self):
