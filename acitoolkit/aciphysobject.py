@@ -83,6 +83,28 @@ class Systemcontroller(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/ch/bslot/board')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/ch/bslot/board')[1].split('/')[0]
+        return name
 
     @classmethod
     def get(cls, session, parent=None):
@@ -286,6 +308,17 @@ class Linecard(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/lc-')[0]
 
     @staticmethod
     def _get_children_classes():
@@ -412,6 +445,28 @@ class Supervisorcard(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/ch/supslot-1/sup')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/ch/supslot-1/sup')[1].split('/')[0]
+        return name
 
     @classmethod
     def get(cls, session, parent_node=None):
@@ -536,6 +591,28 @@ class Fantray(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/ft-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/ft-')[1].split('/')[0]
+        return name
 
     @staticmethod
     def _get_children_classes():
@@ -679,6 +756,28 @@ class Fan(BaseACIPhysModule):
         """
         return Fantray
 
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/fan-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/fan-')[1].split('/')[0]
+        return name
+    
     @classmethod
     def get(cls, session, parent=None):
         """Gets all of the fans from the APIC.  If parent
@@ -830,6 +929,28 @@ class Powersupply(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/psu-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/psu-')[1].split('/')[0]
+        return name
 
     @classmethod
     def get(cls, session, parent=None):
@@ -940,7 +1061,7 @@ class Pod(BaseACIPhysObject):
             self.atomic_counters = AtomicCountersOnGoing(self, dn)
         if parent:
             self._parent = parent
-            self._parent.add_child(pod)
+            self._parent.add_child(self)
 
     @staticmethod
     def _get_parent_class():
@@ -952,6 +1073,28 @@ class Pod(BaseACIPhysObject):
         :returns: class of parent object
         """
         return PhysicalModel
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/pod-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/pod-')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1015,7 +1158,7 @@ class Pod(BaseACIPhysObject):
 class Node(BaseACIPhysObject):
     """Node :  roughly equivalent to fabricNode """
 
-    def __init__(self, pod=None, node=None, name=None, role=None, parent=None):
+    def __init__(self,name=None, pod=None, node=None, role=None, parent=None):
         """
             :param pod: String representation of the pod number
             :param node: String representation of the node number
@@ -1084,6 +1227,104 @@ class Node(BaseACIPhysObject):
         :returns: class of parent object
         """
         return Pod
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/node-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/node-')[1].split('/')[0]
+        return name
+    
+    @classmethod
+    def get_event(cls, session):
+        """
+        Gets the event that is pending for this class.  Events are
+        returned in the form of objects.  Objects that have been deleted
+        are marked as such.
+
+        :param session:  the instance of Session used for APIC communication
+        """
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in cls._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0][class_name]['attributes']
+            status = str(attributes['status'])
+            dn = str(attributes['dn'])
+            pod_id,node_id = Node._parse_dn(dn)
+            
+            node_dn = 'topology/pod-{0}/node-{1}'.format(pod_id, node_id)
+            base_url = '/api/mo/' + node_dn + '.json?'
+            working_data = WorkingData(session, Node, base_url)
+
+            parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
+
+            data = working_data.get_class('fabricNode')
+            for apic_node in data:
+                if 'fabricNode' in apic_node:
+                    dist_name = str(apic_node['fabricNode']['attributes']['dn'])
+                    node_name = str(apic_node['fabricNode']['attributes']['name'])
+                    (pod, node_id) = cls._parse_dn(dist_name)
+                    node_role = str(apic_node['fabricNode']['attributes']['role'])
+                    node = cls(pod, node_id, node_name, node_role)
+                    node._session = session
+                    node._populate_from_attributes(apic_node['fabricNode']['attributes'])
+                    node._get_topsystem_info(working_data)
+
+                    # check for pod match if specified
+                    pod_match = False
+                    if parent:
+                        if isinstance(parent, Pod):
+                            if node.pod == parent.pod:
+                                pod_match = True
+                                node._parent = parent
+                        else:
+                            # pod is a number string
+                            if node.pod == parent:
+                                pod_match = True
+                    else:
+                        pod_match = True
+
+                    # check for node match if specified
+                    node_match = False
+                    if node_id:
+                        if node_id == node.node:
+                            node_match = True
+                    else:
+                        node_match = True
+
+                    if node_match and pod_match:
+                        if node.role == 'leaf':
+                            node._add_vpc_info(working_data)
+                        node.get_health()
+                        node.get_firmware(working_data)
+
+                        if isinstance(parent, Pod):
+                            node._parent.add_child(node)
+
+                    if status == 'deleted':
+                        node.mark_as_deleted()
+                    return node
+
 
     @staticmethod
     def _get_children_classes():
@@ -1605,7 +1846,7 @@ class ExternalSwitch(BaseACIPhysObject):
     to create this class comes from LLDP.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self,name=None, parent=None):
         super(ExternalSwitch, self).__init__(name='', parent=parent)
         self.name = None
 
@@ -1639,6 +1880,28 @@ class ExternalSwitch(BaseACIPhysObject):
         :returns: class of parent object
         """
         return Pod
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        if 'comp/' in dn:
+            return dn.split('comp/prov-VMware/ctrlr-[DC1]-vcenter1/hv-')[0]
+        else:
+            return dn.split('topology/lsnode-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        if 'comp/' in dn:
+            name = dn.split('comp/prov-VMware/ctrlr-[DC1]-vcenter1/hv-')[1]
+        else:
+            name = dn.split('topology/lsnode-')[1]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -1674,6 +1937,39 @@ class ExternalSwitch(BaseACIPhysObject):
         if value not in valid_roles:
             raise ValueError("role must be one of " + str(valid_roles) + ' found ' + str(value))
         self._role = value
+        
+    @classmethod
+    def get_event(cls, session):
+        """
+        not yet fully implemented
+        """
+        urls = cls._get_subscription_urls()
+        for url in urls:
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in cls._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            if class_name == "fabricLooseNode" or class_name == "compHv":
+                attributes = event['imdata'][0][class_name]['attributes']
+                status = str(attributes['status'])
+                dn = str(attributes['dn'])
+                if status == 'created':
+                    name = str(attributes['name'])
+                else:
+                    name = cls._get_name_from_dn(dn)
+                obj = cls(name, parent=None)
+                if url == "/api/class/fabricLooseNode.json?subscription=yes" :
+                    obj._populate_physical_from_attributes(attributes)
+                elif url == "/api/class/compHv.json?subscription=yes" :
+                    obj._populate_virtual_from_attributes(attributes)
+                obj._get_system_info(session)
+                if status == 'deleted':
+                    obj.mark_as_deleted()
+                return obj
+            return
+
 
     @classmethod
     def _get_physical_switches(cls, session, parent):
@@ -1850,7 +2146,7 @@ class ExternalSwitch(BaseACIPhysObject):
 class Link(BaseACIPhysObject):
     """Link class, equivalent to the fabricLink object in APIC"""
 
-    def __init__(self, parent=None):
+    def __init__(self,name=None, parent=None):
         """
             :param parent: optional parent object
 
@@ -2130,6 +2426,28 @@ class Link(BaseACIPhysObject):
         link = str(name[2].split('-')[1])
 
         return pod, link
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/lnkcnt-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/lnkcnt-')[1].split('/')[0]
+        return name
 
 
 class Interface(BaseInterface):
@@ -2533,6 +2851,28 @@ class Interface(BaseInterface):
         :returns: class of parent object
         """
         return Linecard
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/phys-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/phys-')[1].split('/')[0]
+        return name
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2762,11 +3102,11 @@ class WorkingData(object):
             self.rawjson = ret.json()['imdata']
         else:
             self.rawjson = None
+        if not self.rawjson is None:
+            if 'error' not in self.rawjson:
+                self._index_objects()
 
-        if 'error' not in self.rawjson:
-            self._index_objects()
-
-            self.build_vnid_dictionary()
+                self.build_vnid_dictionary()
 
     def _index_objects(self):
         """
@@ -3064,6 +3404,28 @@ class PhysicalModel(BaseACIObject):
         :returns: class of parent object
         """
         return Fabric
+    
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('topology')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('topology')[1].split('/')[0]
+        return name
 
     @staticmethod
     def _get_children_classes():
@@ -3074,6 +3436,17 @@ class PhysicalModel(BaseACIObject):
         :return: list of classes
         """
         return [Pod]
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by the acitoolkit class.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: list of strings containing APIC class names
+        """
+        return []
 
     @classmethod
     def get(cls, session=None, parent=None):
@@ -3108,13 +3481,13 @@ class Fabric(BaseACIObject):
     From this class, you can populate all of the children classes.
     """
 
-    def __init__(self, session=None):
+    def __init__(self, session=None,parent=None):
         """
         Initialization method that sets up the Fabric.
         :return:
         """
-        if session:
-            assert isinstance(session, Session)
+        #if session:
+        #  assert isinstance(session, Session)
 
         super(Fabric, self).__init__(name='', parent=None)
 
@@ -3129,6 +3502,37 @@ class Fabric(BaseACIObject):
         :returns: class of parent object
         """
         return None
+    
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        return 'Fabric'
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return None
+    
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by the acitoolkit class.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: list of strings containing APIC class names
+        """
+        return []
 
     @staticmethod
     def _get_name_from_dn(dn):

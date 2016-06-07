@@ -34,6 +34,7 @@ from acitoolkit.aciphysobject import Session, Fabric
 from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 import sqlite3
+import threading
 
 SQL = True
 APIC = False  # opposite of toolkit
@@ -365,7 +366,7 @@ class SearchIndexLookup(object):
         conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
 
         self.cursor = conn.cursor()
-
+ 
         # index searchables by keyword, value and keyword/value
         for searchable in searchables:
             count += 1
@@ -381,13 +382,53 @@ class SearchIndexLookup(object):
                 v = v.replace('\n', ' ').replace('\r', '')
 
                 # add sql entry
-
                 sql_command = "INSERT INTO avc VALUES ('{0}', '{1}', '{2}', '{3}')".format(a, v, atk_class, uid)
-
                 self.cursor.execute(sql_command)
         conn.commit()
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
+        
+    def _index_searchables_sql_for_local_update(self, searchables,status):
+
+        """
+        index all the searchable items by attr, value, and class
+        :param searchables: List of searchable objects
+        """
+        t1 = datetime.datetime.now()
+        count = 0
+        conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
+        
+        # index searchables by keyword, value and keyword/value
+        for searchable in searchables:
+            #print searchable
+            count += 1
+            if count % 1000 == 0:
+                print count
+            atk_class = searchable.object_class
+            atk_attr_values = searchable.attr_value
+            uid = searchable.primary.get_attributes()['dn']
+
+            # index by attr & value and by class, attr, value
+            if not status is True:
+                for atk_attr_value in atk_attr_values:
+                    (a, v) = atk_attr_value
+                    v = v.replace('\n', ' ').replace('\r', '')
+                   
+                    # add sql entry
+                    sql_command = "INSERT into avc(attribute,value,class,uid) SELECT '{0}', '{1}', '{2}', '{3}' WHERE NOT EXISTS(SELECT 1 FROM avc WHERE attribute='{0}' and value='{1}' and class='{2}' and uid='{3}')".format(a, v, atk_class, uid)
+                    conn.cursor().execute(sql_command)
+            else :
+                for atk_attr_value in atk_attr_values:
+                    (a, v) = atk_attr_value
+                    v = v.replace('\n', ' ').replace('\r', '')
+                    print "attribute ",a," value ",v
+
+                    # add sql entry
+                
+                    sql_command = "DELETE From avc WHERE attribute='{0}' and value='{1}' and class='{2}' and uid='{3}'".format(a, v, atk_class, uid)
+                    conn.cursor().execute(sql_command)
+        conn.commit()
+        t2 = datetime.datetime.now()
 
     def add_atk_objects(self, root):
         """
@@ -396,6 +437,19 @@ class SearchIndexLookup(object):
         """
         searchables = root.get_searchable()
         self._index_searchables(searchables)
+        pass
+    
+    def add_atk_objects_for_local_update(self, root):
+        """
+        Will add all the objects recursively from the root down into the index
+        :param root:
+        """
+        searchables = root.get_searchable()
+        if root._deleted is True:
+            status = True
+        else :
+            status = False
+        self._index_searchables_sql_for_local_update(searchables,status)
         pass
 
     def search(self, term_string):
@@ -652,6 +706,7 @@ class SearchObjectStore(object):
         guid = attrs['dn']
         if guid in self.object_directory:
             print 'Duplicate guid', guid
+            return
 
         self.object_directory[guid] = root
         for child in root.get_children():
@@ -991,15 +1046,26 @@ class SearchDb(object):
         # fabric = Fabric.get_deep(self.session.session)[0]
         # fabric.populate_children(deep=True, include_concrete=True)
 
-        if not APIC:
-            fabric = Fabric.get_deep(self.session.session, include_concrete=True)[0]
-            self.index.add_atk_objects(fabric)
-            self.store.add_atk_objects(fabric)
-            self.initialized = True
-        else:
-            self.index.session = self.session.session
-            self.store.session = self.session.session
-
+        fabric = None
+        if not self.initialized :
+            if not APIC:
+                fabric = Fabric.get_deep(self.session.session, include_concrete=True)[0]
+                self.index.add_atk_objects(fabric)
+                self.store.add_atk_objects(fabric)
+                self.initialized = True
+            else:
+                self.index.session = self.session.session
+                self.store.session = self.session.session
+        print "done loading initial database"
+        self.update_db_thread = Update_db_on_event(self)
+        self.update_db_thread.subscribed_classes = []
+        self.update_db_thread.session = self.session.session
+        self.update_db_thread.index = self.index
+        self.update_db_thread.store = self.store
+        self.update_db_thread.subscribed_classes = fabric.update_db(self.session.session,self.update_db_thread.subscribed_classes ,True)
+        self.update_db_thread.daemon = True
+        self.update_db_thread.start()
+        
     def search(self, terms):
         (results, total) = self.index.search(terms)
         for result in results:
@@ -1016,6 +1082,31 @@ class SearchDb(object):
         """
         return self.index.term_complete(terms)
 
+class Update_db_on_event(threading.Thread):
+    """
+    Thread responsible for websocket communication.
+    Receives events through the websocket and places them into a database
+    """
+    def __init__(self,session):
+        threading.Thread.__init__(self)
+        self._exit = False
+        self.session = session
+
+    def exit(self):
+        """
+        Indicate that the thread should exit.
+        """
+        self._exit = True
+
+    def run(self):
+        while not self._exit:
+                for cls in self.subscribed_classes:
+                    if cls.has_events(self.session):
+                        event = cls.get_event(self.session)
+                        if not event is None:
+                            self.index.add_atk_objects_for_local_update(event)
+                            self.store._add_dir_entry(event)
+                            self.store._cross_reference_objects()
 
 def main():
     """
