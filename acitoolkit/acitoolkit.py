@@ -125,7 +125,6 @@ class Tenant(BaseACIObject):
         """
         return dn.split('/tn-')[0]
 
-
     def get_json(self):
         """
         Returns json representation of the fvTenant object
@@ -774,7 +773,7 @@ class AttributeCriterion(BaseACIObject):
         :returns: class of parent object
         """
         return EPG
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -784,7 +783,7 @@ class AttributeCriterion(BaseACIObject):
         :return: None
         """
         return dn.split('/crtrn')[0]
-    
+
     @staticmethod
     def _get_name_from_dn(dn):
         """
@@ -995,7 +994,6 @@ class EPG(CommonEPG):
         else:
             self._intra_epg_isolation = False
 
-
     # Infrastructure Domain references
     def add_infradomain(self, infradomain):
         """
@@ -1103,12 +1101,12 @@ class EPG(CommonEPG):
                 bd_name = child['fvRsBd']['attributes']['tnFvBDName']
                 # bd_search = Search()
                 # bd_search.name = bd_name
-                #objs = tenant.find(bd_search)
+                # objs = tenant.find(bd_search)
                 if BridgeDomain in obj_dict:
                     objs = obj_dict[BridgeDomain]
                     found = False
                     for bd in objs:
-                        #if isinstance(bd, BridgeDomain):
+                        # if isinstance(bd, BridgeDomain):
                         if bd.name == bd_name and bd.get_parent() == tenant:
                             self.add_bd(bd)
                             found = True
@@ -1511,7 +1509,7 @@ class OutsideEPG(CommonEPG):
                                     self.consume_cif(contract_if)
 
         super(OutsideEPG, self)._extract_relationships(data, obj_dict)
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1565,8 +1563,8 @@ class AnyEPG(CommonEPG):
         children = self._get_common_json()
         attr = self._generate_attributes()
         return super(AnyEPG, self).get_json(self._get_apic_classes()[0],
-                                                attributes=attr,
-                                                children=children)
+                                            attributes=attr,
+                                            children=children)
 
     def _extract_relationships(self, data, obj_dict):
         context = self.get_parent()
@@ -1657,7 +1655,7 @@ class AnyEPG(CommonEPG):
             text = {'vzRsAnyToConsIf': {'attributes': {'status': 'deleted', 'tnVzCPIfName': contract_interface.name}}}
             children.append(text)
         return children
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1904,7 +1902,7 @@ class OutsideL3(BaseACIObject):
         return super(OutsideL3, self).get_json('l3extOut',
                                                attributes=attr,
                                                children=children)
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -3138,7 +3136,7 @@ class Subnet(BaseSubnet):
         result['addr'] = self.get_addr()
         result['scope'] = self.get_scope()
         return result
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -3148,7 +3146,7 @@ class Subnet(BaseSubnet):
         :return: None
         """
         return dn.split('/subnet-[')[0]
-    
+
     @staticmethod
     def _get_name_from_dn(dn):
         """
@@ -3159,7 +3157,7 @@ class Subnet(BaseSubnet):
         """
         name = dn.split('/subnet-[')[1].split('/')[0]
         return name
-    
+
     @classmethod
     def get_event(cls, session):
         """
@@ -3180,7 +3178,7 @@ class Subnet(BaseSubnet):
             attributes = event['imdata'][0][class_name]['attributes']
             status = str(attributes['status'])
             dn = str(attributes['dn'])
-            if not "/BD-" in cls._get_parent_dn(dn):
+            if "/BD-" not in cls._get_parent_dn(dn):
                 return
             parent = cls._get_parent_from_dn(cls._get_parent_dn(dn))
             if status == 'created':
@@ -3192,6 +3190,7 @@ class Subnet(BaseSubnet):
             if status == 'deleted':
                 obj.mark_as_deleted()
             return obj
+
 
 class OutsideNetwork(BaseSubnet):
     """
@@ -3208,7 +3207,7 @@ class OutsideNetwork(BaseSubnet):
         :returns: class of parent object
         """
         return OutsideEPG
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -3229,7 +3228,6 @@ class OutsideNetwork(BaseSubnet):
         """
         name = dn.split('/extsubnet-[')[1].split('/')[0]
         return name
-
 
     def _generate_attributes(self):
         attributes = super(OutsideNetwork, self)._generate_attributes()
@@ -3304,7 +3302,7 @@ class Context(BaseACIObject):
 
         :returns: dict of APIC class names to acitoolkit classes
         """
-        return {'vzAny':AnyEPG}
+        return {'vzAny': AnyEPG}
 
     @staticmethod
     def _get_parent_class():
@@ -3821,9 +3819,9 @@ class Contract(BaseContract):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
-        if '/brc-' in dn :
+        if '/brc-' in dn:
             name = dn.split('/brc-')[1].split('/')[0]
-        elif '/oobbrc-' in dn :
+        elif '/oobbrc-' in dn:
             name = dn.split('/oobbrc-')[1].split('/')[0]
         return name
 
@@ -3835,7 +3833,7 @@ class Contract(BaseContract):
         :returns: class of parent object
         """
         return Tenant
-    
+
     def _generate_attributes(self):
         attributes = super(Contract, self)._generate_attributes()
         attributes['scope'] = self.get_scope()
@@ -3848,7 +3846,7 @@ class Contract(BaseContract):
         These are the children objects
         :returns: dict of APIC class names to acitoolkit classes
         """
-        return {'vzSubj': ContractSubject,}
+        return {'vzSubj': ContractSubject, }
 
     # @classmethod
     # def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
@@ -4026,7 +4024,7 @@ class ContractSubject(BaseACIObject):
             if isinstance(relation.item, Filter):
                 resp.append(relation.item)
         return resp
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -4045,10 +4043,10 @@ class ContractSubject(BaseACIObject):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
-        if '/subj-' in dn :
+        if '/subj-' in dn:
             name = dn.split('/subj-')[1].split('/')[0]
             return name
-        else :
+        else:
             return None
 
 
@@ -4446,7 +4444,7 @@ class FilterEntry(BaseACIObject):
                 'prot', 'sFromPort', 'sToPort', 'tcpRules', 'stateful')
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -4467,7 +4465,7 @@ class FilterEntry(BaseACIObject):
         """
         name = dn.split('/e-')[1].split('/')[0]
         return name
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -4519,8 +4517,8 @@ class BaseTerminal(BaseACIObject):
         attr = self._generate_attributes()
         apic_object_type = self._get_terminal_code()
         resp_json = super(BaseTerminal, self).get_json(apic_object_type,
-                                                          attributes=attr,
-                                                          get_children=False)
+                                                       attributes=attr,
+                                                       get_children=False)
         filters = []
         for entry in self.get_filters():
             filt = {'vzRsFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
@@ -4542,7 +4540,7 @@ class BaseTerminal(BaseACIObject):
         if len(contract_data):
             for child in contract_data:
                 if 'vzBrCP' in child and 'children' in child['vzBrCP'] and \
-                                child['vzBrCP']['attributes']['name']== contract.name:
+                                child['vzBrCP']['attributes']['name'] == contract.name:
                     for subj in child['vzBrCP']['children']:
                         if 'vzSubj' in subj and 'children' in subj['vzSubj']:
                             for subj_child in subj['vzSubj']['children']:
@@ -4619,7 +4617,7 @@ class InputTerminal(BaseTerminal):
         :returns: String containing APIC class name for this type of terminal.
         """
         return 'vzInTerm'
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -4664,7 +4662,7 @@ class OutputTerminal(BaseTerminal):
         :returns: String containing APIC class name for this type of terminal.
         """
         return 'vzOutTerm'
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -7110,7 +7108,7 @@ class LogicalModel(BaseACIObject):
         :returns: class of parent object
         """
         return Fabric
-    
+
     @staticmethod
     def _get_name_from_dn(dn):
         """
@@ -7153,7 +7151,7 @@ class LogicalModel(BaseACIObject):
         :return: list of classes
         """
         return [Tenant]
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -7184,7 +7182,7 @@ class LogicalModel(BaseACIObject):
                 child_class.get(self._session, self)
 
         return self._children
-    
+
     def _define_searchables(self):
         """
         Create all of the searchable terms

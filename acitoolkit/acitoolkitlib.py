@@ -243,7 +243,7 @@ class AcitoolkitGraphBuilder(object):
             """
             graphviz_illegal_node_names = ['Node']
             if name in graphviz_illegal_node_names:
-                name += '_'
+                name += ' '
             return name
 
         def get_child_edges(edges, parent_name):
