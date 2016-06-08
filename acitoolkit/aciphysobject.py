@@ -1158,7 +1158,7 @@ class Pod(BaseACIPhysObject):
 class Node(BaseACIPhysObject):
     """Node :  roughly equivalent to fabricNode """
 
-    def __init__(self,name=None, pod=None, node=None, role=None, parent=None):
+    def __init__(self, name=None, pod=None, node=None, role=None, parent=None):
         """
             :param pod: String representation of the pod number
             :param node: String representation of the node number
@@ -1180,6 +1180,7 @@ class Node(BaseACIPhysObject):
         self.node = node
         self.role = role
         self.type = 'node'
+        super(Node, self).__init__(name=name, pod=pod, parent=parent)
         self._session = None
         self.fabricSt = None
         self.ipAddress = None
@@ -1214,7 +1215,6 @@ class Node(BaseACIPhysObject):
         self.dynamic_load_balancing_mode = None
         logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' +
                       str(self.pod) + '/node-' + str(self.node))
-        super(Node, self).__init__(name=name, pod=pod, parent=parent)
         # self._common_init(parent)
 
     @staticmethod
@@ -1461,7 +1461,7 @@ class Node(BaseACIPhysObject):
                 node_name = str(apic_node['fabricNode']['attributes']['name'])
                 (pod, node_id) = cls._parse_dn(dist_name)
                 node_role = str(apic_node['fabricNode']['attributes']['role'])
-                node = cls(pod, node_id, node_name, node_role)
+                node = cls(node_name, pod, node_id, node_role)
                 node._session = session
                 node._populate_from_attributes(apic_node['fabricNode']['attributes'])
                 node._get_topsystem_info(working_data)
@@ -1846,10 +1846,7 @@ class ExternalSwitch(BaseACIPhysObject):
     to create this class comes from LLDP.
     """
 
-    def __init__(self,name=None, parent=None):
-        super(ExternalSwitch, self).__init__(name='', parent=parent)
-        self.name = None
-
+    def __init__(self, name=None, parent=None):
         self.check_parent(parent)
         self._parent = parent
 
@@ -1869,6 +1866,7 @@ class ExternalSwitch(BaseACIPhysObject):
         self.state = None
         self.guid = None
         self.oid = None
+        super(ExternalSwitch, self).__init__(name=name, parent=parent)
 
     @classmethod
     def _get_parent_class(cls):
@@ -1987,7 +1985,7 @@ class ExternalSwitch(BaseACIPhysObject):
 
         for apic_node in lnode_data:
             if 'fabricLooseNode' in apic_node:
-                external_switch = cls()
+                external_switch = cls(apic_node['fabricLooseNode']['attributes']['sysName'])
                 external_switch._populate_physical_from_attributes(apic_node['fabricLooseNode']['attributes'])
                 external_switch._get_system_info(session)
 
@@ -2021,7 +2019,7 @@ class ExternalSwitch(BaseACIPhysObject):
         for apic_node in vnode_data:
 
             if 'compHv' in apic_node:
-                external_switch = cls()
+                external_switch = cls(apic_node['compHv']['attributes']['name'])
                 external_switch._populate_virtual_from_attributes(apic_node['compHv']['attributes'])
                 external_switch._get_system_info(session)
 
@@ -2318,7 +2316,7 @@ class Link(BaseACIPhysObject):
         target_node = {1: self.node1, 2: self.node2}[node_number]
         matching_nodes = (
             node for node in self._parent.get_children(Node)
-            if node.node == target_node
+            if node == target_node
         )
         return next(matching_nodes, None)
 

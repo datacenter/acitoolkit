@@ -185,7 +185,7 @@ class TestNode(unittest.TestCase):
 
         :return: None
         """
-        node = Node('1', '2', 'Leaf1', role='leaf')
+        node = Node('Leaf1', '1', '2', role='leaf')
         self.assertEqual(node.get_pod(), '1')
         self.assertEqual(node.get_node(), '2')
         self.assertEqual(node.get_name(), 'Leaf1')
@@ -197,7 +197,7 @@ class TestNode(unittest.TestCase):
         :return: None
         """
         node_name = 1
-        self.assertRaises(TypeError, Node, '1', '2', node_name, 'leaf')
+        self.assertRaises(TypeError, Node, node_name, '1', '2', 'leaf')
 
     def test_node_role(self):
         """
@@ -344,8 +344,9 @@ class TestLink(unittest.TestCase):
         port2 = '7'
         link = '101'
 
-        link1 = Link(pod)
-        link1.pod = pod.pod
+        link1 = Link('link1', pod)
+        #link1.pod = pod.pod
+        link1.pod = pod
         link1.link = link
         link1.node1 = node1
         link1.slot1 = slot1
@@ -353,7 +354,7 @@ class TestLink(unittest.TestCase):
         link1.node2 = node2
         link1.slot2 = slot2
         link1.port2 = port2
-        self.assertEqual(link1.pod, pod.pod)
+        self.assertEqual(link1.pod, pod)
         self.assertEqual(link1.link, link)
         self.assertEqual(link1.node1, node1)
         self.assertEqual(link1.slot1, slot1)
@@ -363,8 +364,8 @@ class TestLink(unittest.TestCase):
         self.assertEqual(link1.port2, port2)
         self.assertEqual(link1.get_parent(), pod)
 
-        self.assertEqual(link1.get_port_id1(), '1/2/4/6')
-        self.assertEqual(link1.get_port_id2(), '1/3/5/7')
+        self.assertEqual(link1.get_port_id1(), 'pod-1/2/4/6')
+        self.assertEqual(link1.get_port_id2(), 'pod-1/3/5/7')
 
     def test_link_bad_parent(self):
         pod = '1'
@@ -398,8 +399,8 @@ class TestLink(unittest.TestCase):
         link_id = '101'
 
         pod = Pod(pod_id)
-        node1 = Node(pod_id, node1_id, 'Spine', 'spine', pod)
-        node2 = Node(pod_id, node2_id, 'Leaf', 'leaf', pod)
+        node1 = Node('Spine', pod_id, node1_id, role='spine', parent=pod)
+        node2 = Node('Leaf', pod_id, node2_id, role='leaf', parent=pod)
         linecard1 = Linecard(slot1_id, node1)
         linecard2 = Linecard(slot2_id, node2)
         interface1 = Interface(interface_type='eth', pod=pod_id,
@@ -408,13 +409,16 @@ class TestLink(unittest.TestCase):
         interface2 = Interface(interface_type='eth', pod=pod_id,
                                node=node2_id, module=slot2_id,
                                port=port2_id, parent=linecard2)
-        link1 = Link(pod)
-        link1.pod = pod_id
+        link1 = Link('link1', parent=pod)
+        #link1.pod = pod_id
+        link1.pod = pod
         link1.link = link_id
-        link1.node1 = node1_id
+        #link1.node1 = node1_id
+        link1.node1 = node1
         link1.slot1 = slot1_id
         link1.port1 = port1_id
-        link1.node2 = node2_id
+        #link1.node2 = node2_id
+        link1.node2 = node2
         link1.slot2 = slot2_id
         link1.port2 = port2_id
 
@@ -573,23 +577,23 @@ class TestSystemcontroller(unittest.TestCase):
 
 class TestExternalSwitch(unittest.TestCase):
     def test_external_switch_name(self):
-        node = ExternalSwitch(parent=None)
+        node = ExternalSwitch('testswitch', parent=None)
         node.name = 'testEnode'
         self.assertEqual(node.name, 'testEnode')
 
     def test_external_switch_role(self):
-        node = ExternalSwitch()
+        node = ExternalSwitch('testswitch')
         node.role = 'external_switch'
         self.assertEqual(node.getRole(), 'external_switch')
 
-        node = ExternalSwitch()
+        node = ExternalSwitch('testswitch')
         self.assertEqual(node.getRole(), 'external_switch')
 
         self.assertRaises(ValueError, setattr, node, "role", "switch")
 
     def test_eNode_parent(self):
         pod = Pod('1')
-        node = ExternalSwitch(parent=pod)
+        node = ExternalSwitch('test-switch', parent=pod)
         self.assertEqual(node.role, 'external_switch')
         self.assertEqual(node._parent, pod)
         children = pod.get_children()
@@ -1111,8 +1115,8 @@ class TestFind(unittest.TestCase):
         port2_id = '7'
 
         pod = Pod(pod_id)
-        node1 = Node(pod_id, node1_id, 'Spine', 'spine', pod)
-        node2 = Node(pod_id, node2_id, 'Leaf', 'leaf', pod)
+        node1 = Node('Spine', pod_id, node1_id, 'spine', pod)
+        node2 = Node('Leaf', pod_id, node2_id, 'leaf', pod)
         linecard1 = Linecard(slot1_id, node1)
         linecard2 = Linecard(slot2_id, node2)
         linecard1.serial = 'SerialNumber1'
