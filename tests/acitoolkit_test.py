@@ -3375,11 +3375,6 @@ class TestLiveOutsideEPG(TestLiveAPIC):
         resp = tenant.push_to_apic(session)
         self.assertTrue(resp.ok)
 
-    def getObject(self, obj_name):
-        obj_search = Search()
-        obj_search.name = obj_name
-        return t.find(obj_search)[0]
-
     def test_attach_outside_epg_to_outside_l3(self):
         # Set up the tenant, epg_out and l3_out
         (session, tenant, epg_out, l3_out) = self.base_test_setup()
