@@ -33,6 +33,7 @@ from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain
 from acitoolkit.acitoolkit import Credentials, Session
 from acitoolkit.acifakeapic import FakeSession
 import argparse
+import ipaddr
 
 
 class Checker(object):
@@ -318,6 +319,73 @@ class Checker(object):
                                                     "is providing contract to secure EPG '%s'" % (nonsecure_epg.name,
                                                                                                   tenant.name,
                                                                                                   secure_epg.name))
+
+    def error_005(self):
+        """
+        E005: Overlapping subnets are defined in a single context. Note: Only subnets inside the fabric are inspected.
+        """
+        for tenant in self.tenants:
+            context_info = {}
+            for bd in tenant.get_children(BridgeDomain):
+                current_context = bd.get_context()
+                if not current_context:
+                    # BridgeDomain has no Context so ignore it.
+                    continue
+                if current_context not in context_info:
+                    context_info[current_context] = {'v4list': [], 'v6list': []}
+                for subnet in bd.get_subnets():
+                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
+                    index = 0
+                    index_to_insert = 0
+                    if ip_subnet.version == 4:
+                        address_list = context_info[current_context]['v4list']
+                    else:
+                        address_list = context_info[current_context]['v6list']
+
+                    while index < len(address_list):
+                        if ip_subnet == address_list[index]['addr']:
+                            index_to_insert = index
+                            if bd.name != address_list[index]['bd']:
+                                # Because sometimes they are equal...
+                                self.output_handler("Error 005: In tenant/context '%s/%s': subnet %s in BridgeDomain "
+                                                    "'%s' duplicated by subnet %s in BridgeDomain '%s'" % (
+                                                            tenant.name,
+                                                            current_context,
+                                                            ip_subnet.with_prefixlen,
+                                                            bd.name,
+                                                            address_list[index]['addr'].with_prefixlen,
+                                                            address_list[index]['bd']))
+                        elif ip_subnet < address_list[index]['addr']:
+                            index_to_insert = index+1
+                            if ip_subnet.Contains(address_list[index]['addr']):
+                                self.output_handler(
+                                    "Error 005: In tenant/context '%s/%s': subnet %s in BridgeDomain '%s' "
+                                    "contains subnet %s in BridgeDomain '%s'" % (tenant.name,
+                                                                                 current_context,
+                                                                                 ip_subnet.with_prefixlen,
+                                                                                 bd.name,
+                                                                                 address_list[index - 1][
+                                                                                         'addr'].with_prefixlen,
+                                                                                 address_list[index - 1]['bd'],
+                                                                                 ))
+                            else:
+                                break
+                        elif address_list[index]['addr'].Contains(ip_subnet):
+                            index_to_insert = index
+                            self.output_handler(
+                                "Error 005: In tenant/context '%s/%s': subnet %s in BridgeDomain '%s' "
+                                "contains subnet %s in BridgeDomain '%s'" % (tenant.name,
+                                                                             current_context,
+                                                                             address_list[index]['addr'].with_prefixlen,
+                                                                             address_list[index]['bd'],
+                                                                             ip_subnet.with_prefixlen,
+                                                                             bd.name))
+                            break
+                        index += 1
+                    if index_to_insert:
+                        address_list.insert(index_to_insert, {'addr': ip_subnet, 'bd': bd.name})
+                    else:
+                        address_list.insert(index, {'addr': ip_subnet, 'bd': bd.name})
 
     def execute(self, methods):
         for method in methods:
