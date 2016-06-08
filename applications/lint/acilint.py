@@ -349,12 +349,12 @@ class Checker(object):
                                 # Because sometimes they are equal...
                                 self.output_handler("Error 005: In tenant/context '%s/%s': subnet %s in BridgeDomain "
                                                     "'%s' duplicated by subnet %s in BridgeDomain '%s'" % (
-                                                            tenant.name,
-                                                            current_context,
-                                                            ip_subnet.with_prefixlen,
-                                                            bd.name,
-                                                            address_list[index]['addr'].with_prefixlen,
-                                                            address_list[index]['bd']))
+                                                        tenant.name,
+                                                        current_context,
+                                                        ip_subnet.with_prefixlen,
+                                                        bd.name,
+                                                        address_list[index]['addr'].with_prefixlen,
+                                                        address_list[index]['bd']))
                         elif ip_subnet < address_list[index]['addr']:
                             index_to_insert = index+1
                             if ip_subnet.Contains(address_list[index]['addr']):
@@ -365,9 +365,9 @@ class Checker(object):
                                                                                  ip_subnet.with_prefixlen,
                                                                                  bd.name,
                                                                                  address_list[index - 1][
-                                                                                         'addr'].with_prefixlen,
+                                                                                     'addr'].with_prefixlen,
                                                                                  address_list[index - 1]['bd'],
-                                                                                 ))
+                                                                                ))
                             else:
                                 break
                         elif address_list[index]['addr'].Contains(ip_subnet):
