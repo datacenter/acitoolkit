@@ -3532,28 +3532,6 @@ class Fabric(BaseACIObject):
         """
         return []
 
-    @staticmethod
-    def _get_name_from_dn(dn):
-        """
-        Parse the name out of a dn string.
-        Meant to be overridden by inheriting classes.
-        Raises exception if not overridden.
-
-        :returns: string containing name
-        """
-        return None
-
-    @staticmethod
-    def _get_parent_dn(dn):
-        """
-        Gets the dn of the parent object
-        Meant to be overridden by inheriting classes.
-        Raises exception if not overridden.
-
-        :returns: string containing dn
-        """
-        return None
-
     @classmethod
     def get(cls, session):
         """
