@@ -38,7 +38,23 @@ from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 # Create application
 from Forms import FeedbackForm, CredentialsForm, ResetForm
-from aciSearchDb import LoginError, SearchDb
+from aciSearchDb import LoginError, SearchDb, get_arg_parser 
+
+DEFAULT_PORT = 5001
+DEFAULT_IPADDRESS = '127.0.0.1'
+
+parser = get_arg_parser()
+parser.add_argument('--ip',
+                    default=DEFAULT_IPADDRESS,
+                    help='IP address to listen on.')
+parser.add_argument('--port',
+                    default=DEFAULT_PORT,
+                    help='Port number to listen on.')
+parser.add_argument('--update',
+                    help='update local static database in sync with MIT on server continuously',
+                    action='store_true')
+
+args = parser.parse_args()
 
 # start the flask application and tell it the static folder is called 'static'
 app = Flask(__name__, static_folder='static')
@@ -127,7 +143,7 @@ class AciToolkitSearchView(BaseView):
             except ConnectionError:
                 flash('Connection failure.  Perhaps \'secure\' setting is wrong')
                 return redirect(url_for('credentialsview.index'))
-            sdb.load_db(apic_args)
+            sdb.load_db(apic_args,args.update)
 
         if apic_object_dn is not None:
 
@@ -302,14 +318,5 @@ def presearch_result_page(terms='1/101/1/49'):
     return jsonify(result=result, total_hits=total_hits)
 
 if __name__ == '__main__':
-    description = 'ACI Search Tool.'
-    creds = Credentials('server', description)
-    creds.add_argument('--force',
-                       action="store_true",
-                       default=False,
-                       help='Force a rebuild of the search index')
-    args = creds.get()
-
     # Start app
-    # app.run(debug=True, host=args.ip, port=int(args.port))
-    app.run(debug=True, host=args.ip, port=5001)
+    app.run(debug=True, host=args.ip, port=args.port)
