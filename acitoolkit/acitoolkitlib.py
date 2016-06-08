@@ -275,6 +275,8 @@ class AcitoolkitGraphBuilder(object):
             if inspect.isclass(class_obj):
                 get_parent_class = getattr(class_obj, "_get_parent_class", None)
                 if callable(get_parent_class):
+                    if class_obj.mask_class_from_graphs():
+                        continue
                     try:
                         parent_class = class_obj._get_parent_class()
                         if class_name not in nodes:
