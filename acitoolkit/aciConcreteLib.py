@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 ################################################################################
-# #
+#                                                                              #
 ################################################################################
-# #
+#                                                                              #
 # Copyright (c) 2015 Cisco Systems                                             #
 # All Rights Reserved.                                                         #
-# #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may   #
-# not use this file except in compliance with the License. You may obtain   #
-# a copy of the License at                                                  #
-# #
-# http://www.apache.org/licenses/LICENSE-2.0                           #
-# #
-# Unless required by applicable law or agreed to in writing, software       #
+#                                                                              #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may      #
+# not use this file except in compliance with the License. You may obtain      #
+# a copy of the License at                                                     #
+#                                                                              #
+# http://www.apache.org/licenses/LICENSE-2.0                                   #
+#                                                                              #
+# Unless required by applicable law or agreed to in writing, software          #
 #    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
 #    License for the specific language governing permissions and limitations   #
@@ -39,7 +39,7 @@ class CommonConcreteObject(BaseACIPhysObject):
     """
 
     def __init__(self, parent=None):
-        self.attr = {'dn':'', 'name':''}
+        self.attr = {'dn': '', 'name': ''}
         super(CommonConcreteObject, self).__init__(parent=parent)
 
     def populate_children(self, deep=False, include_concrete=False):
@@ -75,7 +75,6 @@ class CommonConcreteObject(BaseACIPhysObject):
             else:
                 if self.attr[attr] is not None:
                     print('Wrong Instance Type %s %s found %s' % (attr, self.__class__.__name__, type(self.attr[attr])))
-                    
         return results
 
     @property
@@ -119,6 +118,7 @@ class CommonConcreteObject(BaseACIPhysObject):
         node = str(name[2].split('-')[1])
         return pod, node
 
+
 class ConcreteArp(CommonConcreteObject):
     """
     This class is for the ARP state on a switch.  It is organized into two data structures.
@@ -152,7 +152,7 @@ class ConcreteArp(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -299,7 +299,7 @@ class ConcreteArpDomain(CommonConcreteObject):
         :returns: class of parent object
         """
         return ConcreteArp
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -339,7 +339,7 @@ class ConcreteArpDomain(CommonConcreteObject):
 
         :returns: list of strings containing APIC class names
         """
-        resp = ['arpDom','arpDomStatsAdj', 'arpDomStatsRx', 'arpDomStatsTx',]
+        resp = ['arpDom', 'arpDomStatsAdj', 'arpDomStatsRx', 'arpDomStatsTx', ]
 
         return resp
 
@@ -352,7 +352,7 @@ class ConcreteArpDomain(CommonConcreteObject):
         cls.check_parent(parent)
 
         resp = []
-        node_data = working_data.get_subtree('arpDom',parent.dn)
+        node_data = working_data.get_subtree('arpDom', parent.dn)
         for domain in node_data:
             concrete_arp_domain = cls()
             concrete_arp_domain._top = working_data
@@ -402,7 +402,7 @@ class ConcreteArpDomain(CommonConcreteObject):
         return {}
 
 
-class ConcreteArpEntry(CommonConcreteObject) :
+class ConcreteArpEntry(CommonConcreteObject):
 
     @staticmethod
     def _get_parent_class():
@@ -422,10 +422,10 @@ class ConcreteArpEntry(CommonConcreteObject) :
 
         :returns: list of strings containing APIC class names
         """
-        resp = ['arpAdjEp','arpDb']
+        resp = ['arpAdjEp', 'arpDb']
 
         return resp
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -471,9 +471,9 @@ class ConcreteArpEntry(CommonConcreteObject) :
         return resp
 
     def _populate_from_attributes(self, attributes):
-        self.interface_id= str(attributes['ifId'])
-        self.ip= str(attributes['ip'])
-        self.mac= str(attributes['mac'])
+        self.interface_id = str(attributes['ifId'])
+        self.ip = str(attributes['ip'])
+        self.mac = str(attributes['mac'])
         self.physical_interface = str(attributes['physIfId'])
         self.oper_st = str(attributes['operSt'])
         self.dn = str(attributes['dn'])
@@ -504,7 +504,7 @@ class ConcreteVpc(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -856,7 +856,7 @@ class ConcreteContext(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -866,9 +866,9 @@ class ConcreteContext(CommonConcreteObject):
 
         :returns: string containing dn
         """
-        if '/inst-' in dn :
+        if '/inst-' in dn:
             return dn.split('/sys/inst-')[0]
-        elif '/ctx-' in dn :
+        elif '/ctx-' in dn:
             return dn.split('/sys/ctx-')[0]
         else:
             return None
@@ -881,10 +881,10 @@ class ConcreteContext(CommonConcreteObject):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
-        if '/inst-' in dn :
+        if '/inst-' in dn:
             name = dn.split('/sys/inst-')[1].split('/')[0]
             return name
-        elif '/ctx-' in dn :
+        elif '/ctx-' in dn:
             name = dn.split('/sys/ctx-')[1].split('/')[0]
             return name
         else:
@@ -1021,7 +1021,7 @@ class ConcreteSVI(CommonConcreteObject):
         :returns: class of parent object
         """
         return ConcreteBD
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1169,7 +1169,7 @@ class ConcreteLoopback(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1276,7 +1276,7 @@ class ConcreteBD(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1569,16 +1569,18 @@ class ConcreteAccCtrlRule(CommonConcreteObject):
                 rule._parent = parent
                 rule._parent.add_child(rule)
         return result
+
     def _set_name(self):
         """
         Will create a name if one does not exist
         :return:
         """
-        if self.attr['name'] =='':
+        if self.attr['name'] == '':
             self.attr['name'] = '{3}_{0}_{1}_{2}'.format(self.attr['s_epg'],
-                                                     self.attr['d_epg'],
-                                                     self.attr['filter_id'],
-                                                     self.attr['tenant'])
+                                                         self.attr['d_epg'],
+                                                         self.attr['filter_id'],
+                                                         self.attr['tenant'])
+
     def _populate_from_attributes(self, attr):
         """
         This will populate the object from the APIC attribute
@@ -1733,7 +1735,7 @@ class ConcreteFilter(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1755,7 +1757,6 @@ class ConcreteFilter(CommonConcreteObject):
         """
         name = dn.split('/sys/actrl/filt-')[1].split('/')[0]
         return name
-
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2019,8 +2020,7 @@ class ConcreteEp(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -2042,8 +2042,6 @@ class ConcreteEp(CommonConcreteObject):
         """
         name = dn.split('/sys/ctx-')[1].split('/')[0]
         return name
-    
-    
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2395,6 +2393,7 @@ class ConcreteEp(CommonConcreteObject):
         results[0].add_term('ipv4', str(self.attr.get('ip', '')))
         return results
 
+
 class ConcretePortChannel(CommonConcreteObject):
     """
     This gets the port channels for the switch
@@ -2417,7 +2416,7 @@ class ConcretePortChannel(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -2650,7 +2649,7 @@ class ConcreteTunnel(CommonConcreteObject):
         :returns: class of parent object
         """
         return ConcreteOverlay
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -2703,7 +2702,6 @@ class ConcreteTunnel(CommonConcreteObject):
             if apic_class in obj:
                 tunnel._populate_from_attributes(obj[apic_class]['attributes'])
 
-
             if parent:
                 tunnel._parent = parent
                 tunnel._parent.add_child(tunnel)
@@ -2723,8 +2721,8 @@ class ConcreteTunnel(CommonConcreteObject):
         :param attr: Attributes of the APIC object
         """
         self.attr['src_tep_ip'] = str(attr['src']).split('/')[0]
-        self.attr['dest_tep_ip']= str(attr['dest'])
-        self.attr['id']= str(attr['id'])
+        self.attr['dest_tep_ip'] = str(attr['dest'])
+        self.attr['id'] = str(attr['id'])
         self.attr['oper_st'] = str(attr['operSt'])
         self.attr['oper_st_qual'] = str(attr['operStQual'])
         self.attr['context'] = str(attr['vrfName'])
@@ -2816,8 +2814,7 @@ class ConcreteOverlay(CommonConcreteObject):
         :returns: class of parent object
         """
         return Node
-    
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """

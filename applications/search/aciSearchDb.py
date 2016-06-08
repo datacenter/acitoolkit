@@ -366,7 +366,7 @@ class SearchIndexLookup(object):
         conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
 
         self.cursor = conn.cursor()
- 
+
         # index searchables by keyword, value and keyword/value
         for searchable in searchables:
             count += 1
@@ -387,8 +387,8 @@ class SearchIndexLookup(object):
         conn.commit()
         t2 = datetime.datetime.now()
         print 'elapsed time', t2 - t1
-        
-    def _index_searchables_sql_for_local_update(self, searchables,status):
+
+    def _index_searchables_sql_for_local_update(self, searchables, status):
 
         """
         index all the searchable items by attr, value, and class
@@ -397,10 +397,9 @@ class SearchIndexLookup(object):
         t1 = datetime.datetime.now()
         count = 0
         conn = sqlite3.connect("searchdatabase.db")  # or use :memory: to put it in RAM
-        
+
         # index searchables by keyword, value and keyword/value
         for searchable in searchables:
-            #print searchable
             count += 1
             if count % 1000 == 0:
                 print count
@@ -409,22 +408,22 @@ class SearchIndexLookup(object):
             uid = searchable.primary.get_attributes()['dn']
 
             # index by attr & value and by class, attr, value
-            if not status is True:
+            if status is not True:
                 for atk_attr_value in atk_attr_values:
                     (a, v) = atk_attr_value
                     v = v.replace('\n', ' ').replace('\r', '')
-                   
+
                     # add sql entry
                     sql_command = "INSERT into avc(attribute,value,class,uid) SELECT '{0}', '{1}', '{2}', '{3}' WHERE NOT EXISTS(SELECT 1 FROM avc WHERE attribute='{0}' and value='{1}' and class='{2}' and uid='{3}')".format(a, v, atk_class, uid)
                     conn.cursor().execute(sql_command)
-            else :
+            else:
                 for atk_attr_value in atk_attr_values:
                     (a, v) = atk_attr_value
                     v = v.replace('\n', ' ').replace('\r', '')
-                    print "attribute ",a," value ",v
+                    print "attribute ", a, " value ", v
 
                     # add sql entry
-                
+
                     sql_command = "DELETE From avc WHERE attribute='{0}' and value='{1}' and class='{2}' and uid='{3}'".format(a, v, atk_class, uid)
                     conn.cursor().execute(sql_command)
         conn.commit()
@@ -438,7 +437,7 @@ class SearchIndexLookup(object):
         searchables = root.get_searchable()
         self._index_searchables(searchables)
         pass
-    
+
     def add_atk_objects_for_local_update(self, root):
         """
         Will add all the objects recursively from the root down into the index
@@ -447,9 +446,9 @@ class SearchIndexLookup(object):
         searchables = root.get_searchable()
         if root._deleted is True:
             status = True
-        else :
+        else:
             status = False
-        self._index_searchables_sql_for_local_update(searchables,status)
+        self._index_searchables_sql_for_local_update(searchables, status)
         pass
 
     def search(self, term_string):
@@ -1047,7 +1046,7 @@ class SearchDb(object):
         # fabric.populate_children(deep=True, include_concrete=True)
 
         fabric = None
-        if not self.initialized :
+        if not self.initialized:
             if not APIC:
                 fabric = Fabric.get_deep(self.session.session, include_concrete=True)[0]
                 self.index.add_atk_objects(fabric)
@@ -1062,10 +1061,10 @@ class SearchDb(object):
         self.update_db_thread.session = self.session.session
         self.update_db_thread.index = self.index
         self.update_db_thread.store = self.store
-        self.update_db_thread.subscribed_classes = fabric.update_db(self.session.session,self.update_db_thread.subscribed_classes ,True)
+        self.update_db_thread.subscribed_classes = fabric.update_db(self.session.session, self.update_db_thread.subscribed_classes, True)
         self.update_db_thread.daemon = True
         self.update_db_thread.start()
-        
+
     def search(self, terms):
         (results, total) = self.index.search(terms)
         for result in results:
@@ -1082,12 +1081,13 @@ class SearchDb(object):
         """
         return self.index.term_complete(terms)
 
+
 class Update_db_on_event(threading.Thread):
     """
     Thread responsible for websocket communication.
     Receives events through the websocket and places them into a database
     """
-    def __init__(self,session):
+    def __init__(self, session):
         threading.Thread.__init__(self)
         self._exit = False
         self.session = session
@@ -1103,10 +1103,11 @@ class Update_db_on_event(threading.Thread):
                 for cls in self.subscribed_classes:
                     if cls.has_events(self.session):
                         event = cls.get_event(self.session)
-                        if not event is None:
+                        if event is not None:
                             self.index.add_atk_objects_for_local_update(event)
                             self.store._add_dir_entry(event)
                             self.store._cross_reference_objects()
+
 
 def main():
     """
