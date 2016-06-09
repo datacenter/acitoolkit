@@ -30,6 +30,7 @@ acilint - A static configuration analysis tool for examining ACI Fabric
 """
 import sys
 from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain, Contract
+from acitoolkit.acitoolkit import OutsideL3, OutsideEPG, OutsideNetwork
 from acitoolkit.acitoolkit import Credentials, Session
 from acitoolkit.acifakeapic import FakeSession
 import argparse
@@ -346,6 +347,57 @@ class Checker(object):
                         address_list.insert(index_to_insert, {'addr': ip_subnet, 'bd': bd.name})
                     else:
                         address_list.insert(index, {'addr': ip_subnet, 'bd': bd.name})
+
+    def error_006(self):
+        """
+        E006: Check for duplicated subnets in ExternalNetworks.
+
+        Check to ensure that the same subnet is not defined in two separate ExternalNetworks or between an
+        ExternalNetwork and a BD within a single VRF. Overlapping but not the equal subnets are not a problem.
+        """
+        for tenant in self.tenants:
+            context_set = {}
+            for l3out in tenant.get_children(OutsideL3):
+                current_ctxt = l3out.get_context()
+                if not current_ctxt:
+                    # OutsideL3 Network has no Context so ignore it.
+                    continue
+                if current_ctxt.name not in context_set:
+                    context_set[current_ctxt.name] = {}
+                current_subnets = context_set[current_ctxt.name]
+
+                for extnet in l3out.get_children(OutsideEPG):
+                    for subnet in extnet.get_children(OutsideNetwork):
+                        if subnet.addr in current_subnets:
+                            current_subnets[subnet.addr].append("%s/%s/%s/%s" % (tenant.name, current_ctxt.name,
+                                                                                 l3out.name, extnet.name))
+                        else:
+                            current_subnets[subnet.addr] = ["%s/%s/%s/%s" % (tenant.name, current_ctxt.name,
+                                                                             l3out.name, extnet.name)]
+            for current_ctxt in context_set:
+                for subnet in  context_set[current_ctxt]:
+                    if 1 < len(context_set[current_ctxt][subnet]):
+                        for subnet_info in context_set[current_ctxt][subnet]:
+                            self.output_handler("Error 006: In Tenant/Context/L3Out/ExtEPG '%s' found "
+                                                "duplicate subnet %s." % (subnet_info, subnet))
+
+            for bd in tenant.get_children(BridgeDomain):
+                bd_ctxt = bd.get_context()
+                if not bd_ctxt:
+                    # BridgeDomain has no Context so ignore it.
+                    continue
+                if bd_ctxt.name not in context_set:
+                    # BridgeDomain Context has no associated ExternalNetworks.
+                    continue
+                for subnet in bd.get_subnets():
+                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
+                    ip_subnet_str = "%s/%s" % (ip_subnet.network, ip_subnet.prefixlen)
+                    if ip_subnet_str in context_set[bd_ctxt.name]:
+                        for subnet_info in context_set[bd_ctxt.name][ip_subnet_str]:
+                            self.output_handler("Error 006: Subnet %s in Tenant/Context/BridgeDomain "
+                                                "'%s/%s/%s' conflicts with subnet %s in Tenant/Context/L3Out/ExtEPG "
+                                                "'%s'." % (ip_subnet.with_prefixlen, tenant.name, bd_ctxt.name,
+                                                           bd.name, ip_subnet_str, subnet_info))
 
     def critical_001(self):
         """
