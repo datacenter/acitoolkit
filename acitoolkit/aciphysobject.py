@@ -83,7 +83,7 @@ class Systemcontroller(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -182,6 +182,7 @@ class Systemcontroller(BaseACIPhysModule):
         if self.type == 'unknown':
             self.type = 'systemctrlcard'
 
+
 class Cluster(BaseACIObject):
     """
     Represents the global settings of the Cluster
@@ -198,30 +199,28 @@ class Cluster(BaseACIObject):
         self.apics = []
 
     def get(self, session, parent=None):
-        """Gets all of the Clusters from the APIC.                                                                                       
-                                                                                                                                         
-        :returns: list of Clusterss.                                                                                                     
+        """Gets all of the Clusters from the APIC.
+
+        :returns: list of Clusters.
         """
-        # start at top                                                                                                                   
+        # start at top
         infra_query_url = '/api/node/class/infraCont.json'
         ret = session.get(infra_query_url)
         cluster_info = ret.json()['imdata']
         infra_cluster_url = '/api/node/class/infraClusterPol.json'
         ret = session.get(infra_cluster_url)
-        ret_cluster= ret.json()['imdata']
-        self.config_size=ret_cluster[0]['infraClusterPol']['attributes']['size']
+        ret_cluster = ret.json()['imdata']
+        self.config_size = ret_cluster[0]['infraClusterPol']['attributes']['size']
         for apic in cluster_info:
             self.apics.append(apic['infraCont']['attributes']['dn'])
         self._populate_from_attributes(cluster_info[0]['infraCont']['attributes'])
         return cluster_info
 
     def _populate_from_attributes(self, attributes):
-        """"Fills in an object with desired attributes.                                                                                  
+        """"Fills in an object with desired attributes.
         """
-        self.cluster_size=str(attributes['size'])
-        self.name=str(attributes['fbDmNm'])
-
-
+        self.cluster_size = str(attributes['size'])
+        self.name = str(attributes['fbDmNm'])
 
     def get_config_size(self, session):
         """
@@ -308,7 +307,7 @@ class Linecard(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -445,7 +444,7 @@ class Supervisorcard(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -591,7 +590,7 @@ class Fantray(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -777,7 +776,7 @@ class Fan(BaseACIPhysModule):
         """
         name = dn.split('/fan-')[1].split('/')[0]
         return name
-    
+
     @classmethod
     def get(cls, session, parent=None):
         """Gets all of the fans from the APIC.  If parent
@@ -929,7 +928,7 @@ class Powersupply(BaseACIPhysModule):
         :returns: class of parent object
         """
         return Node
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1073,7 +1072,7 @@ class Pod(BaseACIPhysObject):
         :returns: class of parent object
         """
         return PhysicalModel
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1227,7 +1226,7 @@ class Node(BaseACIPhysObject):
         :returns: class of parent object
         """
         return Pod
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1249,7 +1248,7 @@ class Node(BaseACIPhysObject):
         """
         name = dn.split('/node-')[1].split('/')[0]
         return name
-    
+
     @classmethod
     def get_event(cls, session):
         """
@@ -1270,8 +1269,8 @@ class Node(BaseACIPhysObject):
             attributes = event['imdata'][0][class_name]['attributes']
             status = str(attributes['status'])
             dn = str(attributes['dn'])
-            pod_id,node_id = Node._parse_dn(dn)
-            
+            pod_id, node_id = Node._parse_dn(dn)
+
             node_dn = 'topology/pod-{0}/node-{1}'.format(pod_id, node_id)
             base_url = '/api/mo/' + node_dn + '.json?'
             working_data = WorkingData(session, Node, base_url)
@@ -1324,7 +1323,6 @@ class Node(BaseACIPhysObject):
                     if status == 'deleted':
                         node.mark_as_deleted()
                     return node
-
 
     @staticmethod
     def _get_children_classes():
@@ -1878,7 +1876,7 @@ class ExternalSwitch(BaseACIPhysObject):
         :returns: class of parent object
         """
         return Pod
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -1935,7 +1933,7 @@ class ExternalSwitch(BaseACIPhysObject):
         if value not in valid_roles:
             raise ValueError("role must be one of " + str(valid_roles) + ' found ' + str(value))
         self._role = value
-        
+
     @classmethod
     def get_event(cls, session):
         """
@@ -1958,16 +1956,15 @@ class ExternalSwitch(BaseACIPhysObject):
                 else:
                     name = cls._get_name_from_dn(dn)
                 obj = cls(name, parent=None)
-                if url == "/api/class/fabricLooseNode.json?subscription=yes" :
+                if url == "/api/class/fabricLooseNode.json?subscription=yes":
                     obj._populate_physical_from_attributes(attributes)
-                elif url == "/api/class/compHv.json?subscription=yes" :
+                elif url == "/api/class/compHv.json?subscription=yes":
                     obj._populate_virtual_from_attributes(attributes)
                 obj._get_system_info(session)
                 if status == 'deleted':
                     obj.mark_as_deleted()
                 return obj
             return
-
 
     @classmethod
     def _get_physical_switches(cls, session, parent):
@@ -2144,7 +2141,7 @@ class ExternalSwitch(BaseACIPhysObject):
 class Link(BaseACIPhysObject):
     """Link class, equivalent to the fabricLink object in APIC"""
 
-    def __init__(self,name=None, parent=None):
+    def __init__(self, name=None, parent=None):
         """
             :param parent: optional parent object
 
@@ -2264,11 +2261,11 @@ class Link(BaseACIPhysObject):
         self.pod = pod
         self.link = link
         self.name = 'n{0}/s{1}/p{2}_n{3}/s{4}/p{5}'.format(self.node1,
-                                                      self.slot1,
-                                                      self.port1,
-                                                      self.node2,
-                                                      self.slot2,
-                                                      self.port2)
+                                                           self.slot1,
+                                                           self.port1,
+                                                           self.node2,
+                                                           self.slot2,
+                                                           self.port2)
 
     def __str__(self):
         text = 'n%s/s%s/p%s-n%s/s%s/p%s' % (self.node1, self.slot1,
@@ -2424,7 +2421,7 @@ class Link(BaseACIPhysObject):
         link = str(name[2].split('-')[1])
 
         return pod, link
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -2731,7 +2728,7 @@ class Interface(BaseInterface):
         pod = dn.partition('/pod-')[-1].split('/')[0]
         node = dn.partition('/paths-')[-1].split('/')[0]
         port_name = dn.partition('/pathep-[')[-1].split(']')[0]
-        if port_name[:3]=='eth':
+        if port_name[:3] == 'eth':
             module = port_name[3:].split('/')[0]
             port = port_name[3:].split('/')[1]
             interface_type = 'eth'
@@ -2849,7 +2846,7 @@ class Interface(BaseInterface):
         :returns: class of parent object
         """
         return Linecard
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -3100,7 +3097,7 @@ class WorkingData(object):
             self.rawjson = ret.json()['imdata']
         else:
             self.rawjson = None
-        if not self.rawjson is None:
+        if self.rawjson is not None:
             if 'error' not in self.rawjson:
                 self._index_objects()
 
@@ -3402,7 +3399,7 @@ class PhysicalModel(BaseACIObject):
         :returns: class of parent object
         """
         return Fabric
-    
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -3434,7 +3431,7 @@ class PhysicalModel(BaseACIObject):
         :return: list of classes
         """
         return [Pod]
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
@@ -3478,13 +3475,12 @@ class Fabric(BaseACIObject):
 
     From this class, you can populate all of the children classes.
     """
-
-    def __init__(self, session=None,parent=None):
+    def __init__(self, session=None, parent=None):
         """
         Initialization method that sets up the Fabric.
         :return:
         """
-        #if session:
+        # if session:
         #  assert isinstance(session, Session)
 
         super(Fabric, self).__init__(name='', parent=None)
@@ -3500,7 +3496,7 @@ class Fabric(BaseACIObject):
         :returns: class of parent object
         """
         return None
-    
+
     @staticmethod
     def _get_name_from_dn(dn):
         """
@@ -3520,7 +3516,7 @@ class Fabric(BaseACIObject):
         :return: None
         """
         return None
-    
+
     @classmethod
     def _get_apic_classes(cls):
         """
