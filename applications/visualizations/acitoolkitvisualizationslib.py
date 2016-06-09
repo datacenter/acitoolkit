@@ -122,18 +122,21 @@ def regenerate_sunburst_data(MYSQL_USERID, MYSQL_PASSWORD, MYSQL_IP):
                         database='endpointtracker')
     c = cnx.cursor()
     c.execute('USE endpointtracker;')
-    query = """select distinct mac,tenant,app,epg from endpoints;"""
+    query = """select distinct mac,ip,tenant,app,epg from endpoints;"""
     c.execute(query)
 
     endpoints = {}
-    for (mac, tenant, app, epg) in c:
+    for (mac, ip, tenant, app, epg) in c:
         if tenant not in endpoints:
             endpoints[tenant] = {}
         if app not in endpoints[tenant]:
             endpoints[tenant][app] = {}
         if epg not in endpoints[tenant][app]:
             endpoints[tenant][app][epg] = []
-        endpoints[tenant][app][epg].append(mac)
+        if ip == '0.0.0.0':
+            endpoints[tenant][app][epg].append(mac)
+        else:
+            endpoints[tenant][app][epg].append(ip)
 
     f = open('static/sunburst.json', 'w')
     f.write('{"name": "root", "children":[')
