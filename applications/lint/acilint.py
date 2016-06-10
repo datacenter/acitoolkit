@@ -328,7 +328,7 @@ class Checker(object):
                                                                                  address_list[index - 1][
                                                                                      'addr'].with_prefixlen,
                                                                                  address_list[index - 1]['bd'],
-                                                                                ))
+                                                                                 ))
                             else:
                                 break
                         elif address_list[index]['addr'].Contains(ip_subnet):
@@ -375,7 +375,7 @@ class Checker(object):
                             current_subnets[subnet.addr] = ["%s/%s/%s/%s" % (tenant.name, current_ctxt.name,
                                                                              l3out.name, extnet.name)]
             for current_ctxt in context_set:
-                for subnet in  context_set[current_ctxt]:
+                for subnet in context_set[current_ctxt]:
                     if 1 < len(context_set[current_ctxt][subnet]):
                         for subnet_info in context_set[current_ctxt][subnet]:
                             self.output_handler("Error 006: In Tenant/Context/L3Out/ExtEPG '%s' found "
@@ -387,7 +387,7 @@ class Checker(object):
                     # BridgeDomain has no Context so ignore it.
                     continue
                 if bd_ctxt.name not in context_set:
-                    # BridgeDomain Context has no associated ExternalNetworks.
+                    # BridgeDomain Context has no associated ExternalNetworks so ignore it.
                     continue
                 for subnet in bd.get_subnets():
                     ip_subnet = ipaddr.IPNetwork(subnet.addr)
