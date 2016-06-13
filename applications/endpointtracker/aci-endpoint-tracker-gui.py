@@ -33,6 +33,7 @@
 """
 ACI Endpoint Tracker GUI
 """
+import socket
 from flask import Flask, render_template
 try:
     import mysql.connector as mysql
@@ -50,6 +51,9 @@ def populate_data(mysql_ip, mysql_username, mysql_password):
     :param mysql_password: String containing password to login to the MySQL server
     :return: String containing the data in HTML format
     """
+    # Cache lookups to speed things up a bit.
+    ipCache = {'0.0.0.0': ''}
+
     # Create the MySQL database
     cnx = mysql.connect(user=mysql_username, password=mysql_password,
                         host=mysql_ip,
@@ -63,7 +67,12 @@ def populate_data(mysql_ip, mysql_username, mysql_password):
         if timestop is None:
             timestop = '0000-00-00 00:00:00'
         data = data + '<tr> <td>' + mac + '</td> '
-        data = data + '<td>' + ip + '</td> '
+        if ip not in ipCache:
+            try:
+                ipCache[ip] = ' [' + socket.gethostbyaddr(ip)[0] + ']'
+            except socket.error as error:
+                ipCache[ip] = ''
+        data = data + '<td>' + ip + ipCache[ip] + '</td> '
         data = data + '<td>' + tenant + '</td> '
         data = data + '<td>' + app + '</td> '
         data = data + '<td>' + epg + '</td> '

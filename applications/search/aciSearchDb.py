@@ -35,6 +35,8 @@ from acitoolkit.acitoolkitlib import Credentials
 from requests import Timeout, ConnectionError
 import sqlite3
 import threading
+import time
+import argparse
 
 SQL = True
 APIC = False  # opposite of toolkit
@@ -1040,7 +1042,7 @@ class SearchDb(object):
         self.session.set_login_credentials(args)
         return self.session.session
 
-    def load_db(self, args):
+    def load_db(self, args, sync_database):
         self.session.set_login_credentials(args)
         # fabric = Fabric.get_deep(self.session.session)[0]
         # fabric.populate_children(deep=True, include_concrete=True)
@@ -1056,14 +1058,16 @@ class SearchDb(object):
                 self.index.session = self.session.session
                 self.store.session = self.session.session
         print "done loading initial database"
-        self.update_db_thread = Update_db_on_event(self)
-        self.update_db_thread.subscribed_classes = []
-        self.update_db_thread.session = self.session.session
-        self.update_db_thread.index = self.index
-        self.update_db_thread.store = self.store
-        self.update_db_thread.subscribed_classes = fabric.update_db(self.session.session, self.update_db_thread.subscribed_classes, True)
-        self.update_db_thread.daemon = True
-        self.update_db_thread.start()
+        if sync_database is True:
+            print "in updating"
+            self.update_db_thread = Update_db_on_event(self)
+            self.update_db_thread.subscribed_classes = []
+            self.update_db_thread.session = self.session.session
+            self.update_db_thread.index = self.index
+            self.update_db_thread.store = self.store
+            self.update_db_thread.subscribed_classes = fabric.update_db(self.session.session, self.update_db_thread.subscribed_classes, True)
+            self.update_db_thread.daemon = True
+            self.update_db_thread.start()
 
     def search(self, terms):
         (results, total) = self.index.search(terms)
@@ -1100,13 +1104,14 @@ class Update_db_on_event(threading.Thread):
 
     def run(self):
         while not self._exit:
-                for cls in self.subscribed_classes:
-                    if cls.has_events(self.session):
-                        event = cls.get_event(self.session)
-                        if event is not None:
-                            self.index.add_atk_objects_for_local_update(event)
-                            self.store._add_dir_entry(event)
-                            self.store._cross_reference_objects()
+            time.sleep(10)
+            for cls in self.subscribed_classes:
+                if cls.has_events(self.session):
+                    event = cls.get_event(self.session)
+                    if event is not None:
+                        self.index.add_atk_objects_for_local_update(event)
+                        self.store._add_dir_entry(event)
+                        self.store._cross_reference_objects()
 
 
 def main():
@@ -1147,6 +1152,19 @@ def main():
         count += 1
         print res
 
+
+def get_arg_parser():
+    """
+    Get the parser with the necessary arguments
+
+    :return: Instance of argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(description='ACI Search Tool.')
+    parser.add_argument('--force',
+                        action="store_true",
+                        default=False,
+                        help='Force a rebuild of the search index')
+    return parser
 
 if __name__ == '__main__':
     try:
