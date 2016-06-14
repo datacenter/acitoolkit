@@ -29,8 +29,9 @@ acilint - A static configuration analysis tool for examining ACI Fabric
           configuration for potential problems and unused configuration.
 """
 import sys
-from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain, Contract
+from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain
 from acitoolkit.acitoolkit import OutsideL3, OutsideEPG, OutsideNetwork
+from acitoolkit.acitoolkit import  Contract, ContractSubject, InputTerminal, OutputTerminal, Filter
 from acitoolkit.acitoolkit import Credentials, Session
 from acitoolkit.acifakeapic import FakeSession
 import argparse
@@ -253,6 +254,35 @@ class Checker(object):
                             self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
                                                 "where it is being consumed for"
                                                 " tenant '%s'" % (contract.name, context.name, tenant.name))
+
+    def warning_011(self):
+        """
+        W011: Contract has Bidirectional TCP Subjects.
+        """
+        for tenant in self.tenants:
+            contracts = []
+            for contract in tenant.get_children(Contract):
+                print ">>>", tenant.name + ":" + contract.name
+                for subject in contract.get_children(ContractSubject):
+                    print "subject:", subject.name
+                    for subjfilter in subject.get_children(InputTerminal):
+                        print "InTerminal:", subjfilter.info()
+                        for terminal in subjfilter.get_children(Filter):
+                            print "In child filter:", terminal.info()
+                        for terminal in subjfilter.get_all_attached(Filter):
+                            print "In attached filter:", terminal.info()
+                        for terminal in subjfilter.get_all_attachments(Filter):
+                            print "In attachment filter:", terminal.info()
+                    for subjfilter in subject.get_children(OutputTerminal):
+                        print "OutTerminal:", subjfilter.info()
+                        for terminal in subjfilter.get_children(Filter):
+                            print "Out child filter:", terminal.info()
+                        for terminal in subjfilter.get_all_attached(Filter):
+                            print "Out attached filter:", terminal.info()
+                        for terminal in subjfilter.get_all_attachments(Filter):
+                            print "Out attachment filter:", terminal.info()
+                break
+            break
 
     def error_001(self):
         """
