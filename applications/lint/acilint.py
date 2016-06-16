@@ -30,9 +30,11 @@ acilint - A static configuration analysis tool for examining ACI Fabric
 """
 import sys
 from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain, Contract
+from acitoolkit.acitoolkit import OutsideL3, OutsideEPG, OutsideNetwork
 from acitoolkit.acitoolkit import Credentials, Session
 from acitoolkit.acifakeapic import FakeSession
 import argparse
+import ipaddr
 
 
 class Checker(object):
@@ -48,6 +50,11 @@ class Checker(object):
         print 'Processing configuration....'
 
     def output_handler(self, msg):
+        """
+        Print the supplied string in a format appropriate to the output medium.
+
+        :param msg: The message to be printed.
+        """
         if self.output == 'console':
             print msg
         elif self.output == 'html':
@@ -126,16 +133,6 @@ class Checker(object):
                 self.output_handler("Warning 004: Context '%s' in Tenant '%s' has no "
                                     "BridgeDomains." % (context, tenant.name))
 
-    def error_001(self):
-        """
-        E001: BridgeDomain has no Context
-        """
-        for tenant in self.tenants:
-            for bd in tenant.get_children(BridgeDomain):
-                if not bd.has_context():
-                    self.output_handler("Error 001: BridgeDomain '%s' in tenant '%s' "
-                                        "has no Context assigned." % (bd.name, tenant.name))
-
     def warning_005(self):
         """
         W005: BridgeDomain has no EPGs assigned
@@ -189,23 +186,6 @@ class Checker(object):
             for contract in contracts:
                 self.output_handler("Warning 007: Contract '%s' in Tenant '%s' is not"
                                     " consumed at all." % (contract, tenant.name))
-
-    def error_002(self):
-        """
-        E002: EPG has no BD assigned.
-        """
-        for tenant in self.tenants:
-            for app in tenant.get_children(AppProfile):
-                for epg in app.get_children(EPG):
-                    if not epg.has_bd():
-                        self.output_handler("Error 002: EPG '%s' in Tenant '%s', "
-                                            "AppProfile '%s' has no BridgeDomain "
-                                            "assigned." % (epg.name, tenant.name,
-                                                           app.name))
-
-    def error_004(self):
-        # E004: EPG not assigned to an interface or VMM domain
-        pass
 
     def warning_008(self):
         """
@@ -273,6 +253,151 @@ class Checker(object):
                             self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
                                                 "where it is being consumed for"
                                                 " tenant '%s'" % (contract.name, context.name, tenant.name))
+
+    def error_001(self):
+        """
+        E001: BridgeDomain has no Context
+        """
+        for tenant in self.tenants:
+            for bd in tenant.get_children(BridgeDomain):
+                if not bd.has_context():
+                    self.output_handler("Error 001: BridgeDomain '%s' in tenant '%s' "
+                                        "has no Context assigned." % (bd.name, tenant.name))
+
+    def error_002(self):
+        """
+        E002: EPG has no BD assigned.
+        """
+        for tenant in self.tenants:
+            for app in tenant.get_children(AppProfile):
+                for epg in app.get_children(EPG):
+                    if not epg.has_bd():
+                        self.output_handler("Error 002: EPG '%s' in Tenant '%s', "
+                                            "AppProfile '%s' has no BridgeDomain "
+                                            "assigned." % (epg.name, tenant.name,
+                                                           app.name))
+
+    def error_004(self):
+        # E004: EPG not assigned to an interface or VMM domain
+        pass
+
+    def error_005(self):
+        """
+        E005: Overlapping subnets are defined in a single context. Note: Only subnets inside the fabric are inspected.
+        """
+        for tenant in self.tenants:
+            context_info = {}
+            for bd in tenant.get_children(BridgeDomain):
+                current_context = bd.get_context()
+                if not current_context:
+                    # BridgeDomain has no Context so ignore it.
+                    continue
+                if current_context not in context_info:
+                    context_info[current_context] = {'v4list': [], 'v6list': []}
+                for subnet in bd.get_subnets():
+                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
+                    index = 0
+                    index_to_insert = 0
+                    if ip_subnet.version == 4:
+                        address_list = context_info[current_context]['v4list']
+                    else:
+                        address_list = context_info[current_context]['v6list']
+
+                    while index < len(address_list):
+                        if ip_subnet == address_list[index]['addr']:
+                            index_to_insert = index
+                            if bd.name != address_list[index]['bd']:
+                                # Because sometimes they are equal...
+                                self.output_handler("Error 005: In tenant/context '%s/%s': subnet %s in BridgeDomain "
+                                                    "'%s' duplicated by subnet %s in BridgeDomain '%s'" % (
+                                                        tenant.name,
+                                                        current_context,
+                                                        ip_subnet.with_prefixlen,
+                                                        bd.name,
+                                                        address_list[index]['addr'].with_prefixlen,
+                                                        address_list[index]['bd']))
+                        elif ip_subnet < address_list[index]['addr']:
+                            index_to_insert = index+1
+                            if ip_subnet.Contains(address_list[index]['addr']):
+                                self.output_handler(
+                                    "Error 005: In tenant/context '%s/%s': subnet %s in BridgeDomain '%s' "
+                                    "contains subnet %s in BridgeDomain '%s'" % (tenant.name,
+                                                                                 current_context,
+                                                                                 ip_subnet.with_prefixlen,
+                                                                                 bd.name,
+                                                                                 address_list[index - 1][
+                                                                                     'addr'].with_prefixlen,
+                                                                                 address_list[index - 1]['bd'],
+                                                                                 ))
+                            else:
+                                break
+                        elif address_list[index]['addr'].Contains(ip_subnet):
+                            index_to_insert = index
+                            self.output_handler(
+                                "Error 005: In tenant/context '%s/%s': subnet %s in BridgeDomain '%s' "
+                                "contains subnet %s in BridgeDomain '%s'" % (tenant.name,
+                                                                             current_context,
+                                                                             address_list[index]['addr'].with_prefixlen,
+                                                                             address_list[index]['bd'],
+                                                                             ip_subnet.with_prefixlen,
+                                                                             bd.name))
+                            break
+                        index += 1
+                    if index_to_insert:
+                        address_list.insert(index_to_insert, {'addr': ip_subnet, 'bd': bd.name})
+                    else:
+                        address_list.insert(index, {'addr': ip_subnet, 'bd': bd.name})
+
+    def error_006(self):
+        """
+        E006: Check for duplicated subnets in ExternalNetworks.
+
+        Check to ensure that the same subnet is not defined in two separate ExternalNetworks or between an
+        ExternalNetwork and a BD within a single VRF. Overlapping but not the equal subnets are not a problem.
+        """
+        for tenant in self.tenants:
+            context_set = {}
+            for l3out in tenant.get_children(OutsideL3):
+                current_ctxt = l3out.get_context()
+                if not current_ctxt:
+                    # OutsideL3 Network has no Context so ignore it.
+                    continue
+                if current_ctxt.name not in context_set:
+                    context_set[current_ctxt.name] = {}
+                current_subnets = context_set[current_ctxt.name]
+
+                for extnet in l3out.get_children(OutsideEPG):
+                    for subnet in extnet.get_children(OutsideNetwork):
+                        if subnet.addr in current_subnets:
+                            current_subnets[subnet.addr].append("%s/%s/%s/%s" % (tenant.name, current_ctxt.name,
+                                                                                 l3out.name, extnet.name))
+                        else:
+                            current_subnets[subnet.addr] = ["%s/%s/%s/%s" % (tenant.name, current_ctxt.name,
+                                                                             l3out.name, extnet.name)]
+            for current_ctxt in context_set:
+                for subnet in context_set[current_ctxt]:
+                    if 1 < len(context_set[current_ctxt][subnet]):
+                        for subnet_info in context_set[current_ctxt][subnet]:
+                            self.output_handler("Error 006: In Tenant/Context/L3Out/ExtEPG '%s' found "
+                                                "duplicate subnet %s." % (subnet_info, subnet))
+
+            for bd in tenant.get_children(BridgeDomain):
+                bd_ctxt = bd.get_context()
+                if not bd_ctxt:
+                    # BridgeDomain has no Context so ignore it.
+                    continue
+                if bd_ctxt.name not in context_set:
+                    # BridgeDomain Context has no associated ExternalNetworks so ignore it.
+                    continue
+                for subnet in bd.get_subnets():
+                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
+                    ip_subnet_str = "%s/%s" % (ip_subnet.network, ip_subnet.prefixlen)
+                    if ip_subnet_str in context_set[bd_ctxt.name]:
+                        for subnet_info in context_set[bd_ctxt.name][ip_subnet_str]:
+                            self.output_handler("Error 006: Subnet %s in Tenant/Context/BridgeDomain "
+                                                "'%s/%s/%s' conflicts with subnet %s in Tenant/Context/L3Out/ExtEPG "
+                                                "'%s'." % (ip_subnet.with_prefixlen, tenant.name, bd_ctxt.name,
+                                                           bd.name, ip_subnet_str, subnet_info))
 
     def critical_001(self):
         """
