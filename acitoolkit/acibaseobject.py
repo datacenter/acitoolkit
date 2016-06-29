@@ -761,6 +761,7 @@ class BaseACIObject(AciSearch):
     def set_parent(self, parent_obj):
         """
         Set the parent object
+
         :param parent_obj: Instance of the parent object
         :return: None
         """
@@ -769,6 +770,7 @@ class BaseACIObject(AciSearch):
     def has_parent(self):
         """
         returns True if this object has a parent
+
         :return: bool
         """
         return self._parent is not None
@@ -980,8 +982,9 @@ class BaseACIObject(AciSearch):
         Will get the dn from the attributes or construct it
         using the dn of the parent plus the rn.
         Failing those, it will return None
-        :rtype : dn string
+
         :param attributes:
+        :returns: String containing dn or None
         """
 
         if attributes is not None:
@@ -1119,6 +1122,7 @@ class BaseACIObject(AciSearch):
         """
         Abstract method that should be replaced by a version that is specific to
         the object
+
         :param aci_object:
         :param title:
         :return: list of Table objects
@@ -1129,6 +1133,7 @@ class BaseACIObject(AciSearch):
     def check_session(session):
         """
         This will check that the session is of type Session and raise exception if it not
+
         :param session: the session to check
         :return:
         """

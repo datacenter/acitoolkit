@@ -49,6 +49,7 @@ from .acitoolkitlib import Credentials
 def cmdline_login_to_apic(description=''):
     """
     Get credentials to login to APIC
+
     :param description: String containing description
     :return: Session instance
     """
@@ -281,6 +282,7 @@ class Tenant(BaseACIObject):
     def get_table(tenants, title=''):
         """
         Will create table of switch context information
+
         :param title:
         :param tenants:
         """
@@ -389,6 +391,7 @@ class AppProfile(BaseACIObject):
     def get_table(app_profiles, title=''):
         """
         Will create table of app_profile information for a given tenant
+
         :param title:
         :param app_profiles:
         """
@@ -830,6 +833,7 @@ class AttributeCriterion(BaseACIObject):
     def add_ip_address(self, ip_addr):
         """
         Add an IP address as an attribute
+
         :param ip_addr: String containing the IP address
         :return: None
         """
@@ -1351,6 +1355,7 @@ class EPG(CommonEPG):
     def get_table(epgs, title=''):
         """
         Will create table of EPG information for a given tenant
+
         :param epgs:
         :param title:
         """
@@ -1851,6 +1856,7 @@ class OutsideL3(BaseACIObject):
     def add_l3extdom(self, extdom):
         """
         Set the L3ExternalDomain for this BD
+
         :param extdom:
         """
         if not isinstance(extdom, L3ExtDomain):
@@ -2044,6 +2050,7 @@ class OutsideL2(BaseACIObject):
     def add_l2extdom(self, extdom):
         """
         Set the L2ExternalDomain for this BD
+
         :param extdom:
         """
         if not isinstance(extdom, L2ExtDomain):
@@ -2325,6 +2332,7 @@ class OSPFRouter(BaseACIObject):
     def set_router_id(self, rid):
         """
         Sets the router id of the object
+
         :param rid: String containing the router id
 
         """
@@ -2339,6 +2347,7 @@ class OSPFRouter(BaseACIObject):
     def set_node_id(self, node):
         """
         Sets the router id of the object
+
         :param node: String containing the node id
 
         """
@@ -2781,6 +2790,7 @@ class BridgeDomain(BaseACIObject):
     def add_l3out(self, l3out):
         """
         Set the L3Out for this BD
+
         :param l3out: OutsideL3 to assign this BridgeDomain
 
         """
@@ -2893,6 +2903,7 @@ class BridgeDomain(BaseACIObject):
     def get_table(bridge_domains, title=''):
         """
         Will create table of context information
+
         :param title:
         :param bridge_domains:
         """
@@ -3002,6 +3013,7 @@ class BaseSubnet(BaseACIObject):
     def set_scope(self, scope):
         """
         Set the subnet scope
+
         :param scope: String containing the subnet scope
         :return: None
         """
@@ -3022,6 +3034,7 @@ class BaseSubnet(BaseACIObject):
     def addr(self):
         """
         Subnet address
+
         :return: String containing the Subnet address
         """
         return self._addr
@@ -3423,6 +3436,7 @@ class Context(BaseACIObject):
     def get_table(contexts, title=''):
         """
         Will create table of context information
+
         :param title:
         :param contexts:
         """
@@ -3731,10 +3745,12 @@ class BaseContract(BaseACIObject):
         return cls.__name__ == 'BaseContract'
 
     def set_scope(self, scope):
-        """Set the scope of this contract.
-           Valid values are 'context', 'global', 'tenant', and
-           'application-profile'
-           :param scope:
+        """
+        Set the scope of this contract.
+        Valid values are 'context', 'global', 'tenant', and 'application-profile'
+
+        :param scope: String containing one of the following 'context', 'global',
+                      'tenant', or 'application-profile'
         """
         if scope not in ('context', 'global', 'tenant', 'application-profile'):
             raise ValueError
@@ -3863,6 +3879,7 @@ class Contract(BaseContract):
     @classmethod
     def get(cls, session, tenant):
         """Gets all of the Contracts from the APIC for a particular tenant.
+
         :param tenant:
         :param session:
         """
@@ -3873,6 +3890,7 @@ class Contract(BaseContract):
     def get_table(contracts, title=''):
         """
         Will create of each contract
+
         :param title:
         :param contracts:
         """
@@ -4199,6 +4217,7 @@ class Taboo(BaseContract):
     def get_table(taboos, title=''):
         """
         Will create table of taboo information for a given tenant
+
         :param title:
         :param taboos:
         """
@@ -4334,7 +4353,6 @@ class FilterEntry(BaseACIObject):
         :param parent:  Object to assign as the parent to the created objects.
         :param tenant:  Tenant object to assign the created objects.
         """
-
         apic_class = 'vzRsSubjFiltAtt'
 
         if isinstance(tenant, str):
@@ -4403,6 +4421,7 @@ class FilterEntry(BaseACIObject):
     def get_table(filters, title=''):
         """
         Will create table of filter information for a given tenant
+
         :param title:
         :param filters:
         """
@@ -4769,6 +4788,7 @@ class PortChannel(BaseInterface):
     def create_from_dn(cls, dn):
         """
         Create a PortChannel instance based on the specified DN
+
         :param dn: String containing the DN
         :return: Instance of PortChannel class
         """
@@ -4778,6 +4798,7 @@ class PortChannel(BaseInterface):
 
     def attach(self, interface):
         """Attach an interface to this PortChannel
+
         :param interface:
         """
         if interface not in self._interfaces:
@@ -4786,6 +4807,7 @@ class PortChannel(BaseInterface):
 
     def detach(self, interface):
         """Detach an interface from this PortChannel
+
         :param interface:
         """
         if interface in self._interfaces:
@@ -4844,6 +4866,7 @@ class PortChannel(BaseInterface):
         if no format parameter is specified, the format will be 'json'
         otherwise it will return '/api/mo/uni.' with the format string
         appended.
+
         :param fmt: optional format string, default is 'json'
         :returns: URL string
         """
@@ -4905,6 +4928,7 @@ class PortChannel(BaseInterface):
     @staticmethod
     def get(session):
         """Gets all of the port channel interfaces from the APIC
+
         :param session:
         """
         if not isinstance(session, Session):
@@ -5199,6 +5223,7 @@ class Endpoint(BaseACIObject):
     @staticmethod
     def get(session, endpoint_name=None):
         """Gets all of the endpoints connected to the fabric from the APIC
+
         :param endpoint_name:
         :param session: Session instance used to communicate with the APIC. Assumed to be logged in
         """
@@ -5268,6 +5293,7 @@ class Endpoint(BaseACIObject):
     def get_table(endpoints, title=''):
         """
         Will create table of taboo information for a given tenant
+
         :param title:
         :param endpoints:
         """
@@ -5443,6 +5469,7 @@ class IPEndpoint(BaseACIObject):
     @staticmethod
     def get(session):
         """Gets all of the IP endpoints connected to the fabric from the APIC
+
         :param session: Session instance assumed to be logged into the APIC
         :return: List of IPEndpoint instances
         """
@@ -5459,6 +5486,7 @@ class IPEndpoint(BaseACIObject):
     def get_all_by_epg(cls, session, tenant_name, app_name, epg_name):
         """
         Get all of the IP Endpoints for the specified EPG
+
         :param session: Session instance assumed to be logged into the APIC
         :param tenant_name: String containing the Tenant name that holds the EPG
         :param app_name: String containing the AppProfile name that holds the EPG
@@ -6498,7 +6526,7 @@ class BaseMonitorClass(object):
         """
         Add a collection policy.
 
-        :param coll_obj :  A collection policy object of type CollectionPolicy
+        :param coll_obj:  A collection policy object of type CollectionPolicy
         """
         self.collection_policy[coll_obj.granularity] = coll_obj
         self.modified = True
@@ -7134,10 +7162,11 @@ class LogicalModel(BaseACIObject):
     @classmethod
     def get(cls, session=None, parent=None):
         """
-        Method to get all of the PhysicalModels.  It will get one and return it in a list.
+        Method to get all of the LogicalModels.  It will get one and return it in a list.
+
         :param session:
         :param parent:
-        :return: list of PhysicalModel
+        :return: list of LogicalModel
         """
         logical_model = LogicalModel(session=session, parent=parent)
         return [logical_model]
@@ -7197,6 +7226,7 @@ class LogicalModel(BaseACIObject):
 def build_object_dictionary(objs):
     """
     Will build a dictionary indexed by object class that contains all the objects of that class
+
     :param objs:
     :return:
     """
