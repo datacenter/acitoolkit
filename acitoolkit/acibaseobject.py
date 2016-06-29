@@ -798,6 +798,13 @@ class BaseACIObject(AciSearch):
             return
         relation = BaseRelation(obj, 'attached', relation_type)
         self._relations.append(relation)
+        obj._attachments.append(BaseRelation(self, 'attached', relation_type))
+
+    def _remove_attachment(self, obj, relation_type=None):
+        removal_attachment = BaseRelation(obj, 'attached', relation_type)
+        for attachment in self._attachments:
+            if attachment == removal_attachment:
+                attachment.set_as_detached()
 
     def _remove_relation(self, obj, relation_type=None):
         """Remove a relation from the object"""
@@ -805,6 +812,7 @@ class BaseACIObject(AciSearch):
         for relation in self._relations:
             if relation == removal:
                 relation.set_as_detached()
+                obj._remove_attachment(relation.item, relation_type)
         return True
 
     def _remove_all_relation(self, obj_class, relation_type=None):
@@ -815,6 +823,7 @@ class BaseACIObject(AciSearch):
             attached = relation.is_attached()
             if same_obj_class and same_relation_type and attached:
                 relation.set_as_detached()
+                relation.item._remove_attachment(self, relation_type)
 
     def _get_any_relation(self, obj_class, relation_type=None):
         """Return a single relation belonging to a particular class.
@@ -867,7 +876,7 @@ class BaseACIObject(AciSearch):
         return resp
 
     def _get_all_relations_by_class(self, relations, attached_class,
-                                    status='attached'):
+                                    status='attached', relation_type=None):
         """
         Internal function to get relations or attachments for a given class.
 
@@ -880,11 +889,12 @@ class BaseACIObject(AciSearch):
         for relation in relations:
             same_class = isinstance(relation.item, attached_class)
             same_status = relation.status == status
-            if same_class and same_status:
+            same_relation_type = (relation.relation_type == relation_type) or relation_type is None
+            if same_relation_type and same_class and same_status:
                 resp.append(relation.item)
         return resp
 
-    def get_all_attached(self, attached_class, status='attached'):
+    def get_all_attached(self, attached_class, status='attached', relation_type=None):
         """
         Get all of the relations of objects belonging to the
         specified class with the specified status.
@@ -895,9 +905,10 @@ class BaseACIObject(AciSearch):
         """
         return self._get_all_relations_by_class(self._relations,
                                                 attached_class,
-                                                status)
+                                                status=status,
+                                                relation_type=relation_type)
 
-    def get_all_attachments(self, attached_class, status='attached'):
+    def get_all_attachments(self, attached_class, status='attached', relation_type=None):
         """
         Get all of the attachments to an object belonging to the
         specified class with the specified status.
@@ -908,7 +919,8 @@ class BaseACIObject(AciSearch):
         """
         return self._get_all_relations_by_class(self._attachments,
                                                 attached_class,
-                                                status)
+                                                status=status,
+                                                relation_type=relation_type)
 
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""
@@ -1137,7 +1149,6 @@ class BaseACIObject(AciSearch):
         :param session: the session to check
         :return:
         """
-
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required.  Type %s given' % type(session))
 

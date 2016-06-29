@@ -678,7 +678,9 @@ class CommonEPG(BaseACIObject):
         """
         Get all of the Taboos protecting this EPG
 
-        :param deleted:
+        :param deleted: Boolean indicating whether to get Taboos that are protected
+                        or that the protected was marked as deleted
+
         :returns: List of Taboo objects that are protecting the EPG.
         """
         if deleted:
@@ -3860,6 +3862,7 @@ class Contract(BaseContract):
         """
         Gets the APIC class to an acitoolkit class mapping dictionary
         These are the children objects
+
         :returns: dict of APIC class names to acitoolkit classes
         """
         return {'vzSubj': ContractSubject, }
@@ -3919,6 +3922,46 @@ class Contract(BaseContract):
                             data.append(entry)
             result.append(Table(data, headers, title=title + 'Contract:{0}'.format(contract.name)))
         return result
+
+    def _get_all_epgs(self, relation_type, deleted=False):
+        """
+        Internal function used by get_all_providing_epgs and get_all_consuming_epgs
+
+        :param relation_type: String containing either 'provided' or 'consumed'
+        :param deleted: Boolean indicating whether to get EPGs that are providing/consuming
+                        or that the providing/consuming relationship was marked as deleted
+        :return: List of EPG instances
+        """
+        assert relation_type in ['provided', 'consumed']
+        resp = []
+        if deleted:
+            status = 'detached'
+        else:
+            status = 'attached'
+        for epg in self.get_all_attachments(EPG, status=status, relation_type=relation_type):
+            resp.append(epg)
+        return resp
+
+    def get_all_providing_epgs(self, deleted=False):
+        """
+        Get all of the EPGs providing this contract
+
+        :param deleted: Boolean indicating whether to get EPGs that are providing
+                        or that the providing relationship was marked as deleted
+        :return: List of EPG instances
+        """
+        return self._get_all_epgs('provided', deleted)
+
+
+    def get_all_consuming_epgs(self, deleted=False):
+        """
+        Get all of the EPGs consuming this contract
+
+        :param deleted: Boolean indicating whether to get EPGs that are consuming
+                        or that the consuming relationship was marked as deleted
+        :return: List of EPG instances
+        """
+        return self._get_all_epgs('consumed', deleted)
 
 
 class ContractSubject(BaseACIObject):
@@ -4073,11 +4116,14 @@ class Filter(BaseACIObject):
     def __init__(self, filter_name, parent=None):
         # Backward compatibility, allows the use of Filters that are attached to
         # ContractSubject instead of Tenants
+        contract_subject_parent = None
         if isinstance(parent, ContractSubject):
             logging.warning('The parent of a Filter should be a Tenant Object!')
-            parent.add_filter(self)
+            contract_subject_parent = parent
             parent = parent.get_parent().get_parent()
         super(Filter, self).__init__(filter_name, parent)
+        if contract_subject_parent:
+            contract_subject_parent.add_filter(self)
 
     @classmethod
     def _get_apic_classes(cls):
