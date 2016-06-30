@@ -534,6 +534,8 @@ class Session(object):
         """
         refresh_url = '/api/aaaRefresh.json'
         resp = self.get(refresh_url, timeout=timeout)
+        ret_data = json.loads(resp.text)['imdata'][0]
+        self.token = str(ret_data['aaaLogin']['attributes']['token'])
         return resp
 
     def close(self):

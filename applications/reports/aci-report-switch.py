@@ -39,7 +39,7 @@ import acitoolkit as ACI
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'Simple application that logs on to the APIC and displays reports for the switches.'
-creds = ACI.Credentials('apic', description)
+creds = ACI.Credentials('apic, nosnapshotfiles', description)
 creds.add_argument('-s', '--switch',
                    type=str,
                    default=None,

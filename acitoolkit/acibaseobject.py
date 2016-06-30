@@ -761,6 +761,7 @@ class BaseACIObject(AciSearch):
     def set_parent(self, parent_obj):
         """
         Set the parent object
+
         :param parent_obj: Instance of the parent object
         :return: None
         """
@@ -769,6 +770,7 @@ class BaseACIObject(AciSearch):
     def has_parent(self):
         """
         returns True if this object has a parent
+
         :return: bool
         """
         return self._parent is not None
@@ -796,6 +798,13 @@ class BaseACIObject(AciSearch):
             return
         relation = BaseRelation(obj, 'attached', relation_type)
         self._relations.append(relation)
+        obj._attachments.append(BaseRelation(self, 'attached', relation_type))
+
+    def _remove_attachment(self, obj, relation_type=None):
+        removal_attachment = BaseRelation(obj, 'attached', relation_type)
+        for attachment in self._attachments:
+            if attachment == removal_attachment:
+                attachment.set_as_detached()
 
     def _remove_relation(self, obj, relation_type=None):
         """Remove a relation from the object"""
@@ -803,6 +812,7 @@ class BaseACIObject(AciSearch):
         for relation in self._relations:
             if relation == removal:
                 relation.set_as_detached()
+                obj._remove_attachment(relation.item, relation_type)
         return True
 
     def _remove_all_relation(self, obj_class, relation_type=None):
@@ -813,6 +823,7 @@ class BaseACIObject(AciSearch):
             attached = relation.is_attached()
             if same_obj_class and same_relation_type and attached:
                 relation.set_as_detached()
+                relation.item._remove_attachment(self, relation_type)
 
     def _get_any_relation(self, obj_class, relation_type=None):
         """Return a single relation belonging to a particular class.
@@ -865,7 +876,7 @@ class BaseACIObject(AciSearch):
         return resp
 
     def _get_all_relations_by_class(self, relations, attached_class,
-                                    status='attached'):
+                                    status='attached', relation_type=None):
         """
         Internal function to get relations or attachments for a given class.
 
@@ -878,11 +889,12 @@ class BaseACIObject(AciSearch):
         for relation in relations:
             same_class = isinstance(relation.item, attached_class)
             same_status = relation.status == status
-            if same_class and same_status:
+            same_relation_type = (relation.relation_type == relation_type) or relation_type is None
+            if same_relation_type and same_class and same_status:
                 resp.append(relation.item)
         return resp
 
-    def get_all_attached(self, attached_class, status='attached'):
+    def get_all_attached(self, attached_class, status='attached', relation_type=None):
         """
         Get all of the relations of objects belonging to the
         specified class with the specified status.
@@ -893,9 +905,10 @@ class BaseACIObject(AciSearch):
         """
         return self._get_all_relations_by_class(self._relations,
                                                 attached_class,
-                                                status)
+                                                status=status,
+                                                relation_type=relation_type)
 
-    def get_all_attachments(self, attached_class, status='attached'):
+    def get_all_attachments(self, attached_class, status='attached', relation_type=None):
         """
         Get all of the attachments to an object belonging to the
         specified class with the specified status.
@@ -906,7 +919,8 @@ class BaseACIObject(AciSearch):
         """
         return self._get_all_relations_by_class(self._attachments,
                                                 attached_class,
-                                                status)
+                                                status=status,
+                                                relation_type=relation_type)
 
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""
@@ -980,8 +994,9 @@ class BaseACIObject(AciSearch):
         Will get the dn from the attributes or construct it
         using the dn of the parent plus the rn.
         Failing those, it will return None
-        :rtype : dn string
+
         :param attributes:
+        :returns: String containing dn or None
         """
 
         if attributes is not None:
@@ -1119,6 +1134,7 @@ class BaseACIObject(AciSearch):
         """
         Abstract method that should be replaced by a version that is specific to
         the object
+
         :param aci_object:
         :param title:
         :return: list of Table objects
@@ -1129,10 +1145,10 @@ class BaseACIObject(AciSearch):
     def check_session(session):
         """
         This will check that the session is of type Session and raise exception if it not
+
         :param session: the session to check
         :return:
         """
-
         if not isinstance(session, Session):
             raise TypeError('An instance of Session class is required.  Type %s given' % type(session))
 
