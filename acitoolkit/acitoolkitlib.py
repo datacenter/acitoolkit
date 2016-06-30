@@ -232,6 +232,7 @@ class AcitoolkitGraphBuilder(object):
     def build_graph_from_parent(root_parent_name):
         """
         Create a graph starting from the root class name
+
         :param root_parent_name: String containing the class name to use as the root of the class hierarchy graph
         :return: None
         """

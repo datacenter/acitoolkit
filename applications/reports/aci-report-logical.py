@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 ################################################################################
-# _    ____ ___   ____                       _                   #
-# / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
-# / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
+#               _    ____ ___   ____                       _                   #
+#              / \  / ___|_ _| |  _ \ ___ _ __   ___  _ __| |_ ___             #
+#             / _ \| |    | |  | |_) / _ \ '_ \ / _ \| '__| __/ __|            #
 #            / ___ \ |___ | |  |  _ <  __/ |_) | (_) | |  | |_\__ \            #
 #           /_/   \_\____|___| |_| \_\___| .__/ \___/|_|   \__|___/            #
 #                                        |_|                                   #
@@ -37,7 +37,7 @@ import acitoolkit.acitoolkit as ACI
 # Take login credentials from the command line if provided
 # Otherwise, take them from your environment variables file ~/.profile
 description = 'Simple application that logs on to the APIC and displays reports for the logical model.'
-creds = ACI.Credentials('apic', description)
+creds = ACI.Credentials('apic, nosnapshotfiles', description)
 creds.add_argument('-t', '--tenant',
                    type=str,
                    default=None,
