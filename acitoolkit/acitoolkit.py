@@ -4607,7 +4607,9 @@ class BaseTerminal(BaseACIObject):
                 if 'vzBrCP' in child and 'children' in child['vzBrCP'] and \
                                 child['vzBrCP']['attributes']['name'] == contract.name:
                     for subj in child['vzBrCP']['children']:
-                        if 'vzSubj' in subj and 'children' in subj['vzSubj']:
+                        if 'vzSubj' in subj and \
+                                subj['vzSubj']['attributes']['name'] == contract_subject.name and \
+                                'children' in subj['vzSubj']:
                             for subj_child in subj['vzSubj']['children']:
                                 try:
                                     if 'vzInTerm' in subj_child or 'vzOutTerm' in subj_child:
