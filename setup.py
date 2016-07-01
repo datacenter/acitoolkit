@@ -33,7 +33,8 @@ setup(
                       "py-radix",
                       "jsonschema",
                       "graphviz",
-                      "ipaddr"],
+                      "ipaddr",
+                      "ipaddress"],
     tests_requires=["mock"],
     description="This library allows basic Cisco ACI APIC configuration.",
 )
