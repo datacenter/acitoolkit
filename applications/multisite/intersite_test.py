@@ -16,6 +16,7 @@ else:
     import builtins
 import json
 import time
+import logging
 
 try:
     from multisite_test_credentials import (SITE1_IPADDR, SITE1_LOGIN, SITE1_PASSWORD, SITE1_URL,
@@ -583,7 +584,7 @@ class BaseEndpointTestCase(BaseTestCase):
         config['config'].append(export_policy)
         return config
 
-    def setup_with_endpoint(self):
+    def setup_with_endpoint(self, mac='00:11:22:33:33:33'):
         """
         Set up the configuration with an endpoint
         :return: 2 strings containing the MAC and IP address of the endpoint
@@ -593,7 +594,6 @@ class BaseEndpointTestCase(BaseTestCase):
 
         execute_tool(args, test_mode=True)
 
-        mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out', 'intersite-testsuite-app-epg'))
 
@@ -662,6 +662,41 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
                                                            'l3out', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+
+class TestBasicMacMove(BaseEndpointTestCase):
+    """
+    Basic test for MAC move.
+    i.e. the same IP address appears with a different MAC address.  This case can appear in failovers such as redundant
+    loadbalancers
+    """
+    def test_basic_mac_move(self):
+        """
+        Test basic MAC move
+        """
+
+        args = self.get_args()
+        self.write_config_file(self.create_config_file(), args)
+
+        execute_tool(args, test_mode=True)
+
+        ip = '3.4.3.4'
+        mac = '00:11:22:33:33:33'
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite', 'l3out',
+                                                           'intersite-testsuite-app-epg'))
+
+        time.sleep(2)
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+        mac = '00:11:22:33:44:44'
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        self.remove_endpoint('00:11:22:33:33:33', ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
