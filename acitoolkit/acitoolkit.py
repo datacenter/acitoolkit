@@ -3952,7 +3952,6 @@ class Contract(BaseContract):
         """
         return self._get_all_epgs('provided', deleted)
 
-
     def get_all_consuming_epgs(self, deleted=False):
         """
         Get all of the EPGs consuming this contract
@@ -4607,7 +4606,9 @@ class BaseTerminal(BaseACIObject):
                 if 'vzBrCP' in child and 'children' in child['vzBrCP'] and \
                                 child['vzBrCP']['attributes']['name'] == contract.name:
                     for subj in child['vzBrCP']['children']:
-                        if 'vzSubj' in subj and 'children' in subj['vzSubj']:
+                        if 'vzSubj' in subj and \
+                                subj['vzSubj']['attributes']['name'] == contract_subject.name and \
+                                'children' in subj['vzSubj']:
                             for subj_child in subj['vzSubj']['children']:
                                 try:
                                     if 'vzInTerm' in subj_child or 'vzOutTerm' in subj_child:
@@ -5397,6 +5398,7 @@ class IPEndpoint(BaseACIObject):
         #     raise TypeError('Parent must be of EPG class')
         super(IPEndpoint, self).__init__(name, parent=parent)
         self.ip = None
+        self.mac = None
 
     @classmethod
     def _get_apic_classes(cls):
@@ -5459,6 +5461,24 @@ class IPEndpoint(BaseACIObject):
         if 'addr' in attributes:
             self.ip = str(attributes.get('addr'))
 
+    @staticmethod
+    def _get_mac_from_dn(dn):
+        """
+        Extract the MAC address from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: String containing the MAC address or None if not found
+        """
+        # Handle static IP addresses
+        if '/stcep-' in dn:
+            return str(dn.split('/stcep-')[1].partition('-type-')[0])
+        # Handle dynamic IP addresses
+        if '/cep-' in dn:
+            return str(dn.split('/cep-')[1].partition('/')[0])
+        if '/epdef-' in dn:
+            return str(dn.split('/cep-')[1].partition('/')[0])
+        return None
+
     @classmethod
     def get_event(cls, session):
         urls = cls._get_subscription_urls()
@@ -5478,6 +5498,7 @@ class IPEndpoint(BaseACIObject):
             name = cls._get_name_from_dn(dn)
             obj = cls(name, parent=parent)
             obj._populate_from_attributes(attributes)
+            obj.mac = obj._get_mac_from_dn(dn)
             if status == 'deleted':
                 obj.mark_as_deleted()
             return obj
@@ -5509,6 +5530,7 @@ class IPEndpoint(BaseACIObject):
             epg = EPG(ep_dn.split('/')[3][4:], app_profile)
             endpoint = IPEndpoint(ep_addr, parent=epg)
             endpoint.ip = ep_addr
+            endpoint.mac = IPEndpoint._get_mac_from_dn(ep_dn)
             endpoints.append(endpoint)
         return endpoints
 
@@ -5566,6 +5588,7 @@ class IPEndpoint(BaseACIObject):
                 epg = EPG(ep_dn.split('/')[3][4:], app_profile)
                 endpoint = IPEndpoint(ep_addr, parent=epg)
                 endpoint.ip = ep_addr
+                endpoint.mac = IPEndpoint._get_mac_from_dn(ep_dn)
                 endpoints.append(endpoint)
         return endpoints
 

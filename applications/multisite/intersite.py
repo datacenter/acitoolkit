@@ -127,6 +127,7 @@ class EndpointHandler(object):
     def __init__(self, my_monitor):
         self.db = {}  # Indexed by remote site
         self.addresses = {}
+        self.mac_tracker = {}
         self.endpoint_add_events = 0
         self.endpoint_del_events = 0
         self._monitor = my_monitor
@@ -241,6 +242,19 @@ class EndpointHandler(object):
         # Ignore events without IP addresses
         if endpoint.ip == '0.0.0.0':
             return
+
+        # Ignore MAC moves i.e. Same IP address appears on different MAC address.
+        # This is the case in situations such as loadbalancer failover.
+        if (tenant.name, app.name, epg.name, endpoint.name) in self.mac_tracker:
+            expected_mac = self.mac_tracker[(tenant.name, app.name, epg.name, endpoint.name)]
+            if endpoint.mac != expected_mac and endpoint.is_deleted():
+                # Ignore this event since it is the old MAC being deleted on a MAC move
+                return
+        if endpoint.is_deleted():
+            if (tenant.name, app.name, epg.name, endpoint.name) in self.mac_tracker:
+                del self.mac_tracker[(tenant.name, app.name, epg.name, endpoint.name)]
+        else:
+            self.mac_tracker[(tenant.name, app.name, epg.name, endpoint.name)] = endpoint.mac
 
         # Track the IP to (Tenant, App, EPG)
         # This is in case the IPs are moving from 1 EPG to another EPG then we want to
@@ -1849,42 +1863,47 @@ def execute_tool(args, test_mode=False):
     logging.info('Starting the tool....')
     # Handle generating sample configuration
     if args.generateconfig:
-        config = {'config': [
-                                {'site': {'name': '',
-                                          'ip_address': '',
-                                          'username': '',
-                                          'password': '',
-                                          'use_https': '',
-                                          'local': ''}},
-                                {
-                                    "export": {
-                                        "tenant": "",
-                                        "app": "",
-                                        "epg": "",
-                                        "remote_epg": "",
-                                        "remote_sites": [
-                                            {
-                                                "site": {
-                                                    "name": "",
-                                                    "interfaces": [
-                                                        {
-                                                            "l3out": {
-                                                                "name": "",
-                                                                "tenant": "",
-                                                                "provides": [{"contract_name": ""}],
-                                                                "consumes": [{"contract_name": ""}],
-                                                                "protected_by": [{"taboo_name": ""}],
-                                                                "consumes_interface": [{"cif_name": ""}]
-                                                            }
-                                                        }
-                                                    ]
-                                                }
+        config = {
+            'config': [
+                {
+                    'site': {
+                        'name': '',
+                        'ip_address': '',
+                        'username': '',
+                        'password': '',
+                        'use_https': '',
+                        'local': ''
+                    }
+                },
+                {
+                    "export": {
+                        "tenant": "",
+                        "app": "",
+                        "epg": "",
+                        "remote_epg": "",
+                        "remote_sites": [
+                            {
+                                "site": {
+                                    "name": "",
+                                    "interfaces": [
+                                        {
+                                            "l3out": {
+                                                "name": "",
+                                                "tenant": "",
+                                                "provides": [{"contract_name": ""}],
+                                                "consumes": [{"contract_name": ""}],
+                                                "protected_by": [{"taboo_name": ""}],
+                                                "consumes_interface": [{"cif_name": ""}]
                                             }
-                                        ]
-                                    }
+                                        }
+                                    ]
                                 }
-                    ]
+                            }
+                        ]
+                    }
                 }
+            ]
+        }
 
         json_data = json.dumps(config, indent=4, separators=(',', ': '))
         config_file = open('sample_config.json', 'w')
