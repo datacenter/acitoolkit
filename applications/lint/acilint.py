@@ -353,14 +353,45 @@ class Checker(object):
                         break
 
                 if is_udp_bidi == 3:
-                    self.output_handler("Warning 011: In tenant '%s' contract "
+                    self.output_handler("Warning 012: In tenant '%s' contract "
                                         "'%s' is a Bidirectional UDP contract."
                                         % (tenant.name, contract.name))
                 elif is_udp_bidi == 2:
-                    self.output_handler("Warning 011: In tenant '%s' contract "
+                    self.output_handler("Warning 012: In tenant '%s' contract "
                                         "'%s' is an explictly "
                                         "Bidirectional UDP contract."
                                         % (tenant.name, contract.name))
+
+    def warning_013(self):
+        """
+        W013: Contract has no Subjects.
+        """
+        for tenant in self.tenants:
+            for contract in tenant.get_children(Contract):
+                if len(contract.get_children(ContractSubject)) == 0:
+                    self.output_handler("Warning 013: In tenant '%s' contract "
+                                        "'%s' has no Subjects."
+                                        % (tenant.name, contract.name))
+
+    def warning_014(self):
+        """
+        W014: Contract has Subjects with no Filters.
+        """
+        for tenant in self.tenants:
+            for contract in tenant.get_children(Contract):
+                missing_filter = False
+                for subject in contract.get_children(ContractSubject):
+                    if len(subject.get_filters()) == 0:
+                        # No directly attached filters...
+                        for terminal in subject.get_children(InputTerminal):
+                            if len(terminal.get_filters()) == 0:
+                                for out_terminal in subject.get_children(OutputTerminal):
+                                    if len(out_terminal.get_filters()) == 0:
+                                        missing_filter = True
+                    if missing_filter:
+                        self.output_handler("Warning 014: In tenant '%s' contract "
+                                        "'%s' subject '%s' has no Filters." % (
+                                        tenant.name, contract.name, subject.name))
 
     def error_001(self):
         """
