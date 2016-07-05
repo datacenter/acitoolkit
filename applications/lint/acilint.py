@@ -29,8 +29,10 @@ acilint - A static configuration analysis tool for examining ACI Fabric
           configuration for potential problems and unused configuration.
 """
 import sys
-from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain, Contract
+from acitoolkit.acitoolkit import Tenant, AppProfile, Context, EPG, BridgeDomain
 from acitoolkit.acitoolkit import OutsideL3, OutsideEPG, OutsideNetwork
+from acitoolkit.acitoolkit import Contract, ContractSubject, InputTerminal
+from acitoolkit.acitoolkit import OutputTerminal, Filter, FilterEntry
 from acitoolkit.acitoolkit import Credentials, Session
 from acitoolkit.acifakeapic import FakeSession
 import argparse
@@ -253,6 +255,143 @@ class Checker(object):
                             self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
                                                 "where it is being consumed for"
                                                 " tenant '%s'" % (contract.name, context.name, tenant.name))
+
+    @staticmethod
+    def subj_matches_proto(filterlist, protocol):
+        """
+        This routine will return True/False if the list of filters has a filter
+        that matches the specified protocol.
+
+        :param filterlist: The list of filters to inspect.
+        :param protocol: The protocol we are looking for.
+        """
+        for subjfilter in filterlist:
+            for entry in subjfilter.get_children(FilterEntry):
+                entryAttrs = entry.get_attributes()
+                if entryAttrs['prot'] == protocol:
+                    return True
+        return False
+
+    def warning_011(self):
+        """
+        W011: Contract has Bidirectional TCP Subjects.
+        """
+        for tenant in self.tenants:
+            for contract in tenant.get_children(Contract):
+                is_tcp_bidi = 0
+                for subject in contract.get_children(ContractSubject):
+                    if self.subj_matches_proto(subject.get_filters(), 'tcp'):
+                        is_tcp_bidi = 3
+                        break
+
+                    in_terminal = subject.get_children(InputTerminal)
+                    out_terminal = subject.get_children(OutputTerminal)
+                    if in_terminal:
+                        in_filterlist = in_terminal[0].get_filters()
+                    else:
+                        in_filterlist = ()
+                    if out_terminal:
+                        out_filterlist = out_terminal[0].get_filters()
+                    else:
+                        out_filterlist = ()
+
+                    if in_filterlist:
+                        if self.subj_matches_proto(in_filterlist, 'tcp'):
+                            is_tcp_bidi = 1
+                    if out_filterlist:
+                        if self.subj_matches_proto(out_filterlist, 'tcp'):
+                            is_tcp_bidi += 1
+                    # Otherwise, either there are no terminals so it's a permit
+                    # everything which doesn't count.
+
+                    if is_tcp_bidi:
+                        break
+
+                if is_tcp_bidi == 3:
+                    self.output_handler("Warning 011: In tenant '%s' contract "
+                                        "'%s' is a Bidirectional TCP contract."
+                                        % (tenant.name, contract.name))
+                elif is_tcp_bidi == 2:
+                    self.output_handler("Warning 011: In tenant '%s' contract "
+                                        "'%s' is an explictly "
+                                        "Bidirectional TCP contract."
+                                        % (tenant.name, contract.name))
+
+    def warning_012(self):
+        """
+        W012: Contract has Bidirectional UDP Subjects.
+        """
+        for tenant in self.tenants:
+            for contract in tenant.get_children(Contract):
+                is_udp_bidi = 0
+                for subject in contract.get_children(ContractSubject):
+                    if self.subj_matches_proto(subject.get_filters(), 'udp'):
+                        is_udp_bidi = 3
+                        break
+
+                    in_terminal = subject.get_children(InputTerminal)
+                    out_terminal = subject.get_children(OutputTerminal)
+                    if in_terminal:
+                        in_filterlist = in_terminal[0].get_filters()
+                    else:
+                        in_filterlist = ()
+                    if out_terminal:
+                        out_filterlist = out_terminal[0].get_filters()
+                    else:
+                        out_filterlist = ()
+
+                    if in_filterlist:
+                        if self.subj_matches_proto(in_filterlist, 'udp'):
+                            is_udp_bidi = 1
+                    if out_filterlist:
+                        if self.subj_matches_proto(out_filterlist, 'udp'):
+                            is_udp_bidi += 1
+                    # Otherwise, either there are no terminals so it's a permit
+                    # everything which doesn't count.
+
+                    if is_udp_bidi:
+                        break
+
+                if is_udp_bidi == 3:
+                    self.output_handler("Warning 012: In tenant '%s' contract "
+                                        "'%s' is a Bidirectional UDP contract."
+                                        % (tenant.name, contract.name))
+                elif is_udp_bidi == 2:
+                    self.output_handler("Warning 012: In tenant '%s' contract "
+                                        "'%s' is an explictly "
+                                        "Bidirectional UDP contract."
+                                        % (tenant.name, contract.name))
+
+    def warning_013(self):
+        """
+        W013: Contract has no Subjects.
+        """
+        for tenant in self.tenants:
+            for contract in tenant.get_children(Contract):
+                if len(contract.get_children(ContractSubject)) == 0:
+                    self.output_handler("Warning 013: In tenant '%s' contract "
+                                        "'%s' has no Subjects."
+                                        % (tenant.name, contract.name))
+
+    def warning_014(self):
+        """
+        W014: Contract has Subjects with no Filters.
+        """
+        for tenant in self.tenants:
+            for contract in tenant.get_children(Contract):
+                missing_filter = False
+                for subject in contract.get_children(ContractSubject):
+                    if len(subject.get_filters()) == 0:
+                        # No directly attached filters...
+                        for terminal in subject.get_children(InputTerminal):
+                            if len(terminal.get_filters()) == 0:
+                                for out_terminal in subject.get_children(OutputTerminal):
+                                    if len(out_terminal.get_filters()) == 0:
+                                        missing_filter = True
+                    if missing_filter:
+                        self.output_handler("Warning 014: In tenant '%s' contract "
+                                        "'%s' subject '%s' has no Filters." % (
+                                        tenant.name, contract.name, subject.name))
 
     def error_001(self):
         """
