@@ -1132,7 +1132,7 @@ class EPG(CommonEPG):
                 encap = int_attributes['encap']
                 encap_type, encap_id = L2Interface.parse_encap(encap)
                 encap_mode = int_attributes['mode']
-                l2int = L2Interface('l2_int_{}-{}'.format(encap_type, encap_id),
+                l2int = L2Interface('l2_int_{}-{}_on_{}{}/{}/{}/{}'.format(encap_type, encap_id, int_type, pod, node, module, port),
                                     encap_type,
                                     encap_id,
                                     encap_mode)
