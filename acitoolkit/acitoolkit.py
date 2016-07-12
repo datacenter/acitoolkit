@@ -1212,6 +1212,8 @@ class EPG(CommonEPG):
 
             elif 'fvRsDomAtt' in child:
                 dom_attributes = child['fvRsDomAtt']['attributes']
+                dom = EPGDomain(dom_attributes['tDn'],self)
+                dom.tDn = dom_attributes['tDn']
                 self._dom_deployment_immediacy = dom_attributes['instrImedcy']
                 self._dom_resolution_immediacy = dom_attributes['resImedcy']
             elif 'fvRsConsIf' in child:
