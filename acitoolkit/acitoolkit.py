@@ -1132,10 +1132,16 @@ class EPG(CommonEPG):
                 encap = int_attributes['encap']
                 encap_type, encap_id = L2Interface.parse_encap(encap)
                 encap_mode = int_attributes['mode']
-                l2int = L2Interface('l2_int_{}-{}_on_{}{}/{}/{}/{}'.format(encap_type, encap_id, int_type, pod, node, module, port),
-                                    encap_type,
-                                    encap_id,
-                                    encap_mode)
+                if Interface.is_dn_vpc(int_dn):
+                    l2int = L2Interface('l2_int_{}-{}_on_{}'.format(encap_type, encap_id, inter.name),
+                                        encap_type,
+                                        encap_id,
+                                        encap_mode)
+                else:
+                    l2int = L2Interface('l2_int_{}-{}_on_{}{}/{}/{}/{}'.format(encap_type, encap_id, int_type, pod, node, module, port),
+                                        encap_type,
+                                        encap_id,
+                                        encap_mode)
                 l2int.attach(inter)
                 self.attach(l2int)
             elif 'fvRsProv' in child:
