@@ -233,6 +233,10 @@ class Checker(object):
                                 provide_db[tenant.name][contract.name].append(context.name)
 
         for tenant in self.tenants:
+            if tenant.name not in provide_db:
+                self.output_handler("Warning 010: No contract provided within"
+                                    " this tenant '%s'" % tenant.name)
+                continue  # don't repeat this message for each option below.
             epgs = []
             for app in tenant.get_children(AppProfile):
                 for epg in app.get_children(EPG):
@@ -244,13 +248,10 @@ class Checker(object):
                         context = bd.get_context()
                     consumed = epg.get_all_consumed()
                     for contract in consumed:
-                        if tenant.name not in provide_db:
-                            self.output_handler("Warning 010: No contract provided within"
-                                                " this tenant '%s'" % tenant.name)
-                        elif contract.name not in provide_db[tenant.name]:
-                            self.output_handler("Warning 010: Contract not provided "
+                        if contract.name not in provide_db[tenant.name]:
+                            self.output_handler("Warning 010: Contract '%s' not provided "
                                                 "within the same tenant "
-                                                "'%s'" % tenant.name)
+                                                "'%s'" % (contract.name, tenant.name))
                         elif context.name not in provide_db[tenant.name][contract.name]:
                             self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
                                                 "where it is being consumed for"
