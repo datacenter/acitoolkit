@@ -430,11 +430,17 @@ class Session(object):
         :param proxies: Optional dictionary containing the proxies passed
         directly to the Requests library
         """
-        if not isinstance(url,str) and not isinstance(url, unicode) :
+        if isinstance(url, unicode):
+            url = str(url)
+        if isinstance(uid, unicode):
+            uid = str(uid)
+        if isinstance(pwd, unicode):
+            pwd = str(pwd)
+        if not isinstance(url, str):
             raise CredentialsError("The URL or APIC address must be a string")
-        if not isinstance(uid, str) and not isinstance(url, unicode) :
+        if not isinstance(uid, str):
             raise CredentialsError("The user ID must be a string")
-        if not isinstance(pwd, str) and not isinstance(url, unicode):
+        if not isinstance(pwd, str):
             raise CredentialsError("The password must be a string")
 
         if 'https://' in url:
