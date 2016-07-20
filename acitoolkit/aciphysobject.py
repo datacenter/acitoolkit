@@ -2985,6 +2985,7 @@ class Interface(BaseInterface):
                 (interface_type, pod, node,
                  module, port) = Interface.parse_dn(dist_name)
                 attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
+                attributes['operSpeed'] = eth_data_dict[dist_name + '/phys']['operSpeed']
                 interface_obj = Interface(interface_type, pod, node, module, port,
                                           parent=None, session=session,
                                           attributes=attributes)
