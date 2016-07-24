@@ -67,7 +67,8 @@ Vagrant.configure(2) do |config|
   config.vm.provision "shell", inline: <<-SHELL
   sudo apt-get update
   sudo apt-get install python-pip -y
-  sudo apt-get install git -y 
+  sudo apt-get install git -y
+  sudo apt-get install python-dev -y
   git clone https://github.com/datacenter/acitoolkit.git
   cd acitoolkit
   sudo python setup.py develop
