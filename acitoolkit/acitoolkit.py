@@ -3022,7 +3022,7 @@ class BaseSubnet(BaseACIObject):
         """
         Set the subnet address
 
-        :param addr: The subnet address as a string in the form\
+        :param addr: The subnet default gateway address as a string in the form\
                      of <ipaddr>/<mask>
         """
         if addr is None:
@@ -3062,9 +3062,18 @@ class BaseSubnet(BaseACIObject):
         """
         Subnet address
 
-        :return: String containing the Subnet address
+        :return: String containing the subnet default gateway IP address and mask e.g. "1.2.3.4/24"
         """
         return self._addr
+
+    @addr.setter
+    def addr(self, subnet_address):
+        """
+        Subnet address
+
+        :param subnet_address: String containing the subnet default gateway IP address and mask e.g. "1.2.3.4/24"
+        """
+        self.set_addr(subnet_address)
 
     def get_attributes(self, name=None):
 
