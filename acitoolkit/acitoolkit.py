@@ -39,7 +39,7 @@ import copy
 
 from requests.compat import urlencode
 
-from .acibaseobject import BaseACIObject, BaseInterface, Tag
+from .acibaseobject import BaseACIObject, BaseInterface, _Tag
 from .aciphysobject import Interface, Fabric
 from .acisession import Session
 from .aciTable import Table
@@ -111,9 +111,12 @@ class Tenant(BaseACIObject):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
-        name = dn.split('/tn-')[1].split('/')[0]
+        if '/tn-' in dn:
+            name = dn.split('/tn-')[1].split('/')[0]
+        else:
+            name = None
         return name
 
     @staticmethod
@@ -358,7 +361,7 @@ class AppProfile(BaseACIObject):
         if '/LDevInst-' in dn or '/lDev-' in dn:
             return 'ServiceGraph'
         elif '/ap-' not in dn:
-            return 'Unknown'
+            return None
         name = dn.split('/ap-')[1].split('/')[0]
         return name
 
@@ -795,8 +798,10 @@ class AttributeCriterion(BaseACIObject):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/crtrn' not in dn:
+            return None
         name = dn.split('/crtrn')[1].split('/')[0]
         return name
 
@@ -972,7 +977,7 @@ class EPG(CommonEPG):
         if '/LDevInst-' in dn or '/lDev-' in dn:
             return 'ServiceGraph'
         elif '/epg-' not in dn:
-            return 'Unknown'
+            return None
         return dn.split('/epg-')[1].split('/')[0]
 
     def _populate_from_attributes(self, attributes):
@@ -1531,7 +1536,7 @@ class OutsideEPG(CommonEPG):
         Get the parent DN
 
         :param dn: string containing the distinguished name URL
-        :return: None
+        :return: string containing the parent object's distinguished name
         """
         return dn.split('/instP-')[0]
 
@@ -1541,8 +1546,10 @@ class OutsideEPG(CommonEPG):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present in dn
         """
+        if '/instP-' not in dn:
+            return None
         name = dn.split('/instP-')[1].split('/')[0]
         return name
 
@@ -1687,8 +1694,10 @@ class AnyEPG(CommonEPG):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/any' not in dn:
+            return None
         name = dn.split('/any')[1].split('/')[0]
         return name
 
@@ -1743,8 +1752,10 @@ class OutsideL2EPG(CommonEPG):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/instP-' not in dn:
+            return None
         return dn.split('/instP-')[1].split('/')[0]
 
     def _extract_relationships(self, data, obj_dict):
@@ -1935,8 +1946,10 @@ class OutsideL3(BaseACIObject):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/out-' not in dn:
+            return None
         return dn.split('/out-')[1].split('/')[0]
 
 
@@ -1959,6 +1972,8 @@ class OutsideL2(BaseACIObject):
 
     @staticmethod
     def _get_name_from_dn(dn):
+        if '/l2out-' not in dn:
+            return None
         return dn.split('/l2out-')[1].split('/')[0]
 
     @staticmethod
@@ -2571,6 +2586,8 @@ class BridgeDomain(BaseACIObject):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
+        if '/BD-' not in dn:
+            return None
         return dn.split('/BD-')[1].split('/')[0]
 
     def set_unknown_mac_unicast(self, unicast):
@@ -3176,8 +3193,10 @@ class Subnet(BaseSubnet):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/subnet-[' not in dn:
+            return None
         name = dn.split('/subnet-[')[1].split('/')[0]
         return name
 
@@ -3247,8 +3266,10 @@ class OutsideNetwork(BaseSubnet):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/extsubnet-[' not in dn:
+            return None
         name = dn.split('/extsubnet-[')[1].split('/')[0]
         return name
 
@@ -3352,8 +3373,10 @@ class Context(BaseACIObject):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/ctx-' not in dn:
+            return None
         return dn.split('/ctx-')[1].split('/')[0]
 
     @staticmethod
@@ -3578,8 +3601,10 @@ class ContractInterface(BaseACIObject):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/cif-' not in dn:
+            return None
         return dn.split('/cif-')[1].split('/')[0]
 
     @staticmethod
@@ -3843,12 +3868,14 @@ class Contract(BaseContract):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
         if '/brc-' in dn:
             name = dn.split('/brc-')[1].split('/')[0]
         elif '/oobbrc-' in dn:
             name = dn.split('/oobbrc-')[1].split('/')[0]
+        else:
+            name = None
         return name
 
     @staticmethod
@@ -4216,8 +4243,10 @@ class Filter(BaseACIObject):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/flt-' not in dn:
+            return None
         name = dn.split('/flt-')[1].split('/')[0]
         return name
 
@@ -4261,8 +4290,10 @@ class Taboo(BaseContract):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None
         """
+        if '/taboo-' not in dn:
+            return None
         name = dn.split('/taboo-')[1].split('/')[0]
         return name
 
@@ -4535,6 +4566,8 @@ class FilterEntry(BaseACIObject):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
+        if '/e-' not in dn:
+            return None
         name = dn.split('/e-')[1].split('/')[0]
         return name
 
@@ -4719,6 +4752,8 @@ class InputTerminal(BaseTerminal):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
+        if '/intmnl' not in dn:
+            return None
         name = dn.split('/intmnl')[1].split('/')[0]
         return name
 
@@ -4762,8 +4797,10 @@ class OutputTerminal(BaseTerminal):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/outtmnl' not in dn:
+            return None
         name = dn.split('/outtmnl')[1].split('/')[0]
         return name
 
@@ -5060,8 +5097,10 @@ class Endpoint(BaseACIObject):
     def _get_name_from_dn(dn):
         if '/stcep-' in dn:
             name = dn.split('/stcep-')[1].split('-type-')[0]
-        else:
+        elif '/cep-' in dn:
             name = dn.split('/cep-')[1]
+        else:
+            name = None
         return name
 
     def get_json(self):
@@ -5457,8 +5496,10 @@ class IPEndpoint(BaseACIObject):
         Get the instance name from the dn
 
         :param dn: string containing the distinguished name URL
-        :return: string containing the name
+        :return: string containing the name or None if not present
         """
+        if '/ip-[' not in dn:
+            return None
         return dn.split('/ip-[')[1].split(']')[0]
 
     def get_json(self):
@@ -7179,6 +7220,17 @@ class CollectionPolicy(BaseMonitorClass):
             self.modified = True
 
         self.retention = retention
+
+
+class Tag(_Tag):
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the class of the parent object
+
+        :returns: class of parent object
+        """
+        return [EPG, Contract, Tenant, OutsideEPG, OutsideL2, OutsideL3, BridgeDomain, Context, Filter]
 
 
 class LogicalModel(BaseACIObject):

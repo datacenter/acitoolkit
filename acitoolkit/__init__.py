@@ -22,7 +22,6 @@ _about_exports = [
     "__title__", "__uri__", "__version__",
 ]
 
-from .acibaseobject import Tag  # noqa
 from .acicounters import (  # noqa
     AtomicCounter, AtomicCountersOnGoing, AtomicNode, AtomicPath,
     InterfaceStats,
@@ -39,7 +38,7 @@ from .acitoolkit import (  # noqa
     MonitorStats, MonitorTarget, NetworkPool, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, OutsideNetwork,
     PhysDomain, PortChannel, Search, Subnet, Taboo, Tenant, TunnelInterface,
-    VMM, VMMCredentials, VmmDomain, VMMvSwitchInfo,
+    VMM, VMMCredentials, VmmDomain, VMMvSwitchInfo, Tag
 )
 from .acitoolkitlib import Credentials, AcitoolkitGraphBuilder  # noqa
 from .acifakeapic import FakeSession  # noqa

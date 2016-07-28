@@ -92,26 +92,6 @@ class BaseRelation(object):
         return not self == other
 
 
-class Tag(object):
-    def __init__(self, name=None):
-        self.name = name
-        self._deleted = False
-
-    def is_deleted(self):
-        return self._deleted
-
-    def mark_as_deleted(self):
-        self._deleted = True
-
-    def __eq__(self, other):
-        if isinstance(other, str):
-            other = Tag(other)
-        return self.name == other.name and self._deleted == other._deleted
-
-    def __ne__(self, other):
-        return not self == other
-
-
 class BaseACIObject(AciSearch):
     """
     This class defines functionality common to all ACI objects.
@@ -285,12 +265,12 @@ class BaseACIObject(AciSearch):
         """
         Checks whether this object has a particular tag assigned.
 
-        :param tag: string containing the tag name or an instance of Tag
+        :param tag: string containing the tag name or an instance of _Tag
         :returns: True or False.  True indicates the object has this\
                   tag assigned.
         """
-        if not isinstance(tag, Tag):
-            tag = Tag(tag)
+        if not isinstance(tag, _Tag):
+            tag = _Tag(tag)
         return tag in self.get_tags()
 
     def has_tags(self):
@@ -317,10 +297,10 @@ class BaseACIObject(AciSearch):
         object.
 
         :param tag: string containing the tag to assign to this object or
-                    an instance of Tag
+                    an instance of _Tag
         """
-        if not isinstance(tag, Tag):
-            tag = Tag(tag)
+        if not isinstance(tag, _Tag):
+            tag = _Tag(tag)
         self.get_tags().append(tag)
 
     def remove_tag(self, tag):
@@ -329,10 +309,10 @@ class BaseACIObject(AciSearch):
         Note that this does not delete the tag from the APIC.
 
         :param tag: string containing the tag to remove from this object
-                    or an instance of Tag
+                    or an instance of _Tag
         """
-        if not isinstance(tag, Tag):
-            tag = Tag(tag)
+        if not isinstance(tag, _Tag):
+            tag = _Tag(tag)
         self.get_tags().remove(tag)
 
     def delete_tag(self, tag):
@@ -340,10 +320,10 @@ class BaseACIObject(AciSearch):
         Mark a particular tag as being deleted from this object.
 
         :param tag: string containing the tag to delete from this object
-                    or an instance of Tag
+                    or an instance of _Tag
         """
-        if not isinstance(tag, Tag):
-            tag = Tag(tag)
+        if not isinstance(tag, _Tag):
+            tag = _Tag(tag)
         for existing_tag in self.get_tags():
             if existing_tag == tag:
                 existing_tag.mark_as_deleted()
@@ -401,7 +381,7 @@ class BaseACIObject(AciSearch):
                                 class_map = cls._get_toolkit_to_apic_classmap()
                                 if apic_class not in class_map:
                                     if apic_class == 'tagInst':
-                                        obj._tags.append(Tag(str(child[apic_class]['attributes']['name'])))
+                                        obj._tags.append(_Tag(str(child[apic_class]['attributes']['name'])))
                                     continue
                                 else:
                                     class_map[apic_class].get_deep(full_data=full_data,
@@ -1380,6 +1360,53 @@ class BaseACIPhysObject(BaseACIObject):
         for atk_object in atk_objects:
             atk_object.populate_children(deep=True, include_concrete=include_concrete)
         return atk_objects
+
+
+class _Tag(BaseACIObject):
+    def __init__(self, name=None, parent=None):
+        self.name = name
+        self._deleted = False
+        self._parent = parent
+
+    def is_deleted(self):
+        return self._deleted
+
+    def mark_as_deleted(self):
+        self._deleted = True
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other = _Tag(other)
+        return self.name == other.name and self._deleted == other._deleted
+
+    def __ne__(self, other):
+        return not self == other
+
+    @classmethod
+    def _get_apic_classes(cls):
+        return ['tagInst']
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Get the parent DN
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the parent object's distinguished name
+        """
+        return dn.split('/tag-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Parse the name out of a dn string.
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing name
+        """
+        name = dn.split('/tag-')[1].split('/')[0]
+        return name
 
 
 class BaseACIPhysModule(BaseACIPhysObject):
