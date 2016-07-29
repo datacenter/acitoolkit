@@ -27,6 +27,7 @@ setup(
                       "flask-admin",
                       "flask-bootstrap",
                       "flask-wtf",
+                      "flask-cors",
                       "flask",
                       "pymysql",
                       "tabulate",
