@@ -878,12 +878,14 @@ class ApicService(GenericService):
                     epg.is_attributed_based = True
                     epg.set_base_epg(base_epg)
                     criterion = AttributeCriterion('criterion', epg)
+                    ipaddrs = []
                     for node_policy in epg_policy.get_node_policies():
                         ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
-                        if ipaddr.is_multicast:
-                            # Skip multicast addresses. They cannot be IP based EPGs
-                            continue
-                        criterion.add_ip_address(node_policy.ip)
+                        if not ipaddr.is_multicast: # Skip multicast addresses. They cannot be IP based EPGs
+                            ipaddrs.append(ipaddr)
+                    nets = ipaddress.collapse_addresses(ipaddrs)
+                    for net in nets:
+                        criterion.add_ip_address(str(net))
                 epg.descr = epg_policy.descr[0:127]
                 # Consume and provide all of the necessary contracts
                 for contract_policy in self.cdb.get_contract_policies():
@@ -1009,6 +1011,7 @@ def execute_tool(args):
             level = logging.CRITICAL
     else:
         level = logging.CRITICAL
+    level = logging.DEBUG
     log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
     log_file = 'apicservice.%s.log' % str(os.getpid())
     my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5 * 1024 * 1024,
