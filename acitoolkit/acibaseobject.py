@@ -374,7 +374,7 @@ class BaseACIObject(AciSearch):
             parent_name = parent_class._get_name_from_dn(dn)
         parent_dn = cls._get_parent_dn(dn)
         if parent_name is None:
-            parent_obj = parent_class()
+            parent_obj = parent_class('')
         else:
             parent_obj = parent_class(parent_name,
                                       parent_class._get_parent_from_dn(parent_dn))
