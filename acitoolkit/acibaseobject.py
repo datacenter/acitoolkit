@@ -216,27 +216,52 @@ class BaseACIObject(AciSearch):
         """
         return []
 
-    @staticmethod
-    def _get_parent_dn(dn):
+    @classmethod
+    def _get_parent_dn(cls, dn):
         """
-        Gets the dn of the parent object
-        Meant to be overridden by inheriting classes.
-        Raises exception if not overridden.
+        Get the parent DN
 
-        :returns: string containing dn
+        :param dn: string containing the distinguished name URL
+        :return: None
+        """
+        return dn.split(cls._get_starting_name_delimiter())[0]
+
+    @staticmethod
+    def _get_name_dn_delimiters():
+        """
+        Return a list of strings that surround the name within the dn
+        :return: list of strings that surround the name within the dn
         """
         raise NotImplementedError
 
-    @staticmethod
-    def _get_name_from_dn(dn):
+    @classmethod
+    def _get_starting_name_delimiter(cls):
         """
-        Parse the name out of a dn string.
-        Meant to be overridden by inheriting classes.
-        Raises exception if not overridden.
+        Return the string that prefaces the object name within the dn
+        :return: string that prefaces the object name within the dn
+        """
+        delimiters = cls._get_name_dn_delimiters()
+        if len(delimiters) == 0:
+            return None
+        return delimiters[0]
 
-        :returns: string containing name
+    @classmethod
+    def _get_name_from_dn(cls, dn):
         """
-        raise NotImplementedError
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name or None if not present
+        """
+        delimits = cls._get_name_dn_delimiters()
+        name = None
+        if len(delimits) == 2:
+            if delimits[0] in dn:
+                name = dn.split(delimits[0])[1].split(delimits[1])[0]
+        elif len(delimits) == 1:
+            if delimits[0] in dn:
+                name = dn.split(delimits[0])[1]
+        return name
 
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
@@ -338,14 +363,14 @@ class BaseACIObject(AciSearch):
         parent_class = cls._get_parent_class()
         if parent_class is None:
             return None
-        if type(parent_class) is list :
+        if type(parent_class) is list:
             for parent_class_name in parent_class:
                 if not parent_class_name._get_name_from_dn(dn) is None:
                     parent_name = parent_class_name._get_name_from_dn(dn)
-                    if parent_name != None:
+                    if parent_name is not None:
                         parent_class = parent_class_name
                         break
-        else :
+        else:
             parent_name = parent_class._get_name_from_dn(dn)
         parent_dn = cls._get_parent_dn(dn)
         if parent_name is None:
@@ -714,7 +739,7 @@ class BaseACIObject(AciSearch):
                 child.populate_children(deep, include_concrete)
 
         return self._children
-    
+
     def update_db(self, session, subscribed_classes, deep=False):
         for child_class in self._get_children_classes():
             child_class.subscribe(session, only_new=True)
@@ -1396,8 +1421,8 @@ class _Tag(BaseACIObject):
         """
         return dn.split('/tag-')[0]
 
-    @staticmethod
-    def _get_name_from_dn(dn):
+    @classmethod
+    def _get_name_from_dn(cls, dn):
         """
         Parse the name out of a dn string.
         Meant to be overridden by inheriting classes.
