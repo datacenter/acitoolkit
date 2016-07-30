@@ -84,6 +84,13 @@ class FakeSession(Session):
                     data = json.loads(f.read())
                 except ValueError:
                     continue
+                # Skip invalid formatted files
+                if 'imdata' not in data:
+                    continue
+                # Skip files that are timeout and other errors
+                if len(data['imdata']) == 1:
+                    if 'error' in data['imdata'][0]:
+                        continue
                 self._fill_data(data['imdata'], None)
                 self.db.append(data)
             with open(filename, "w") as f:
