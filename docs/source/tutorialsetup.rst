@@ -42,3 +42,21 @@ this as administrator so preface the command with the ``sudo`` keyword
 as follows::
 
    sudo python setup.py install
+
+If you plan on modifying the actual toolkit files, you should install the developer
+environment that will link the package installation to your development directory. Do
+this instead of the install option above.
+
+    python setup.py develop
+
+Common Installation Errors
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Missing development packages**
+
+Some of the dependencies may require that the python development environment be installed.
+This package is usually called ``python-dev`` or ``python-develop``. This is usually the
+case when you see an error message referring to a missing file such as ``Python.h: No such
+file or directory``.
+
+In Ubuntu, you would install this package by ``sudo apt-get install python-dev``
