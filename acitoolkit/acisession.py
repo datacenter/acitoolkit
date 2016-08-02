@@ -60,8 +60,8 @@ else:
 
 
 class CredentialsError(Exception):
-    def __init___(self,message):
-        Exception.__init__(self,"Session Credentials Error:{0}".format(message))
+    def __init___(self, message):
+        Exception.__init__(self, "Session Credentials Error:{0}".format(message))
         self.message = message
 
 
@@ -661,6 +661,32 @@ class Session(object):
             logging.error('Trying get again...')
             logging.debug(get_url)
             resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+        elif resp.status_code == 400 and 'Unable to process the query, result dataset is too big' in resp.text:
+            # Response is too big so we will need to get the response in pages
+            # Get the first chunk of entries
+            logging.error('Response too big. Need to collect it in pages. Starting collection...')
+            page_number = 0
+            logging.debug('Getting first page')
+            resp = self.session.get(get_url + '&page=%s&page-size=10000' % page_number,
+                                    timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+            entries = []
+            if resp.ok:
+                entries += resp.json()['imdata']
+                orig_total_count = int(resp.json()['totalCount'])
+                total_count = orig_total_count - 10000
+                while total_count > 0 and resp.ok:
+                    page_number += 1
+                    logging.debug('Getting page %s' % page_number)
+                    # Get the next chunk
+                    resp = self.session.get(get_url + '&page=%s&page-size=10000' % page_number,
+                                            timeout=timeout, verify=self.verify_ssl,
+                                            proxies=self._proxies)
+                    if resp.ok:
+                        entries += resp.json()['imdata']
+                        total_count -= 10000
+                resp_content = {'imdata': entries,
+                                'totalCount': orig_total_count}
+                resp._content = json.dumps(resp_content)
         logging.debug(resp)
         logging.debug(resp.text)
         return resp
