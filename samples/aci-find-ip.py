@@ -68,9 +68,9 @@ def main():
                                      outside_network.get_scope()))
 
     # Display
+    template = "{0:20} {1:20} {2:20} {3:18} {4:15}"
     if len(priv):
         print ""
-        template = "{0:20} {1:20} {2:20} {3:18} {4:15}"
         print(template.format("Tenant",
                               "App",
                               "Bridge Domain",
