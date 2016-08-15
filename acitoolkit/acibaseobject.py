@@ -371,6 +371,11 @@ class BaseACIObject(AciSearch):
                     break
         else:
             parent_name = parent_class._get_name_from_dn(dn)
+
+        # if the parent_class is still a list, no class matches the DN
+        if type(parent_class) is list:
+            return None
+
         parent_dn = cls._get_parent_dn(dn)
         if parent_name is None:
             parent_obj = parent_class('')
