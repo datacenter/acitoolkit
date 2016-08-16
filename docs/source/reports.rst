@@ -10,3 +10,4 @@ and physical model.
    reports-gui
    reports-logical
    reports-switch
+   reports-security
