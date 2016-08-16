@@ -13,4 +13,5 @@ Applications
    intersite
    connectionsearch
    fakeapic
+   reports
    testharness
