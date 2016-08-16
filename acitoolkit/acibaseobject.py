@@ -365,13 +365,17 @@ class BaseACIObject(AciSearch):
             return None
         if type(parent_class) is list:
             for parent_class_name in parent_class:
-                if not parent_class_name._get_name_from_dn(dn) is None:
-                    parent_name = parent_class_name._get_name_from_dn(dn)
-                    if parent_name is not None:
-                        parent_class = parent_class_name
-                        break
+                parent_name = parent_class_name._get_name_from_dn(dn)
+                if parent_name is not None:
+                    parent_class = parent_class_name
+                    break
         else:
             parent_name = parent_class._get_name_from_dn(dn)
+
+        # if the parent_class is still a list, no class matches the DN
+        if type(parent_class) is list:
+            return None
+
         parent_dn = cls._get_parent_dn(dn)
         if parent_name is None:
             parent_obj = parent_class('')
