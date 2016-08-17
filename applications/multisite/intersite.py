@@ -234,9 +234,12 @@ class EndpointHandler(object):
         :param endpoint: Instance of IPEndpoint
         :param local_site: Instance of LocalSite
         """
-        epg = endpoint.get_parent()
-        app = epg.get_parent()
-        tenant = app.get_parent()
+        try:
+            epg = endpoint.get_parent()
+            app = epg.get_parent()
+            tenant = app.get_parent()
+        except AttributeError as e:
+            return
         logging.info('endpoint: %s epg: %s app: %s tenant: %s', endpoint.name, epg.name, app.name, tenant.name)
 
         # Ignore events without IP addresses
