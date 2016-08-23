@@ -1,5 +1,5 @@
 ################################################################################
-# _    ____ ___                                 #
+#                                _    ____ ___                                 #
 #                               / \  / ___|_ _|                                #
 #                              / _ \| |    | |                                 #
 #                             / ___ \ |___ | |                                 #
@@ -35,9 +35,16 @@ import unittest
 
 from acitoolkit.acisession import Session
 import cableplan
-from credentials import URL, LOGIN, PASSWORD
-
-LIVE_TEST = True
+try:
+    from credentials import URL, LOGIN, PASSWORD
+except ImportError:
+    print
+    print('To run live tests, please create a credentials.py file with the following variables filled in:')
+    print("""
+    URL = ''
+    LOGIN = ''
+    PASSWORD = ''
+    """)
 
 
 class Test_ParseXML(unittest.TestCase):
@@ -673,21 +680,21 @@ class Test_export(unittest.TestCase):
                         '<CISCO_NETWORK_TYPES version="1.0" xmlns="http://www.cisco.com/cableplan/Schema2" '
                         'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation='
                         '"http://www.cisco.com/cableplan/Schema2 nxos-cable-plan-schema.xsd">\n',
-                        '   <DATA_CENTER networkLocation="None" idFormat="hostname">\n',
-                        '      <CHASSIS_INFO sourceChassis="ASpine1" type="n9k">\n',
-                        '         <LINK_INFO sourcePort="Eth1/1" destChassis="Leaf1" destPort="Eth1/1"/>\n',
-                        '         <LINK_INFO sourcePort="Eth1/2, Eth1/3" destChassis="Leaf1" destPort="Eth1/2"/>\n',
-                        '         <LINK_INFO sourcePort="Eth2/3 - Eth2/5" destChassis="Leaf2" destPort="Eth1/1"/>\n',
-                        '         <LINK_INFO sourcePort="Eth2/3 - Eth2/5" destChassis="Leaf3"/>\n',
-                        '      </CHASSIS_INFO>\n',
-                        '      <CHASSIS_INFO sourceChassis="ASpine2" type="n9k">\n',
-                        '         <LINK_INFO destChassis="Leaf1" destPort="Eth1/2 - Eth1/9" minPorts="3"/>\n',
-                        '         <LINK_INFO sourcePort="Eth1/2" destChassis="Leaf2" destPort="Eth1/2 - Eth1/4" '
+                        '    <DATA_CENTER networkLocation="None" idFormat="hostname">\n',
+                        '        <CHASSIS_INFO sourceChassis="ASpine1" type="n9k">\n',
+                        '            <LINK_INFO sourcePort="Eth1/1" destChassis="Leaf1" destPort="Eth1/1"/>\n',
+                        '            <LINK_INFO sourcePort="Eth1/2, Eth1/3" destChassis="Leaf1" destPort="Eth1/2"/>\n',
+                        '            <LINK_INFO sourcePort="Eth2/3 - Eth2/5" destChassis="Leaf2" destPort="Eth1/1"/>\n',
+                        '            <LINK_INFO sourcePort="Eth2/3 - Eth2/5" destChassis="Leaf3"/>\n',
+                        '        </CHASSIS_INFO>\n',
+                        '        <CHASSIS_INFO sourceChassis="ASpine2" type="n9k">\n',
+                        '            <LINK_INFO destChassis="Leaf1" destPort="Eth1/2 - Eth1/9" minPorts="3"/>\n',
+                        '            <LINK_INFO sourcePort="Eth1/2" destChassis="Leaf2" destPort="Eth1/2 - Eth1/4" '
                         'maxPorts="2"/>\n',
-                        '         <LINK_INFO sourcePort="Eth2/3, Eth2/4, Eth4/4" destChassis="Leaf3" '
+                        '            <LINK_INFO sourcePort="Eth2/3, Eth2/4, Eth4/4" destChassis="Leaf3" '
                         'destPort="Eth1/2" minPorts="1" maxPorts="5"/>\n',
-                        '      </CHASSIS_INFO>\n',
-                        '   </DATA_CENTER>\n',
+                        '        </CHASSIS_INFO>\n',
+                        '    </DATA_CENTER>\n',
                         '</CISCO_NETWORK_TYPES>\n']
         return expected_xml
 
@@ -790,7 +797,6 @@ class Test_export(unittest.TestCase):
         self.remove_file(fname)
 
 
-@unittest.skipIf(LIVE_TEST is False, 'Not performing live APIC testing')
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -1150,4 +1156,19 @@ class Test_compare_cp(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    live = unittest.TestSuite()
+    live.addTest(unittest.makeSuite(TestLiveAPIC))
+
+    offline = unittest.TestSuite()
+    offline.addTest(unittest.makeSuite(Test_ParseXML))
+    offline.addTest(unittest.makeSuite(Test_portset))
+    offline.addTest(unittest.makeSuite(Test_switch))
+    offline.addTest(unittest.makeSuite(Test_port))
+    offline.addTest(unittest.makeSuite(Test_cableplan))
+    offline.addTest(unittest.makeSuite(Test_difference_switch))
+    offline.addTest(unittest.makeSuite(Test_export))
+    offline.addTest(unittest.makeSuite(Test_compare_cp))
+
+    full = unittest.TestSuite([live, offline])
+
+    unittest.main(defaultTest='offline')
