@@ -2590,7 +2590,7 @@ class BridgeDomain(BaseACIObject):
                     bd_children = child['fvBD']['children']
                     for bd_child in bd_children:
                         if 'fvRsCtx' in bd_child:
-                            context_name = bd_child['fvRsCtx']['attributes']['tnFvCtxName']
+                            context_name = bd_child['fvRsCtx']['attributes']['tRn'].split('ctx-')[1]
                             # tenant = self.get_parent()
                             # context_search = Search()
                             # context_search.name = context_name
@@ -2601,11 +2601,17 @@ class BridgeDomain(BaseACIObject):
 
                             if Context in obj_dict:
                                 all_contexts = obj_dict[Context]
+                                context_found = False
                                 if len(all_contexts):
                                     for context in all_contexts:
                                         if context.name == context_name and context.get_parent() == tenant:
                                             self.add_context(context)
-
+                                            context_found = True
+                                    if not context_found:
+                                        for context in all_contexts:
+                                            if context.name == context_name and context.get_parent().name == 'common':
+                                                self.add_context(context)
+                                                context_found = True
                         elif 'fvRsBDToOut' in bd_child:
                             l3_out_name = bd_child['fvRsBDToOut']['attributes']['tnL3extOutName']
                             # tenant = self.get_parent()
