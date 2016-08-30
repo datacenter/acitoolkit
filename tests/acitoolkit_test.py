@@ -29,21 +29,17 @@
 ################################################################################
 """ACI Toolkit Test module
 """
-from acitoolkit.acibaseobject import BaseACIObject, BaseRelation
-from acitoolkit.aciHealthScore import HealthScore
-from acitoolkit.acisession import Session
-from acitoolkit.aciTable import Table
-from acitoolkit.acitoolkit import (
-    AppProfile, BaseContract, BGPSession, BridgeDomain, Context, Contract, ContractInterface,
+from acitoolkit import (
+    AppProfile, BaseContract, BaseACIObject, BaseRelation,
+    BGPSession, BridgeDomain, Context, Contract, ContractInterface,
     ContractSubject, Endpoint, EPG, EPGDomain, Filter, FilterEntry, L2ExtDomain,
     L2Interface, L3ExtDomain, L3Interface, MonitorPolicy, OSPFInterface,
     OSPFInterfacePolicy, OSPFRouter, OutsideEPG, OutsideL3, PhysDomain,
     PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork,
     AttributeCriterion, OutsideL2, TunnelInterface, FexInterface, VMM,
-    OutsideL2EPG,
-    AnyEPG, InputTerminal, OutputTerminal)
-# TODO: resolve circular dependencies and order-dependent import
-from acitoolkit.aciphysobject import Interface, Linecard, Node, Fabric
+    OutsideL2EPG, AnyEPG, InputTerminal, OutputTerminal, AcitoolkitGraphBuilder,
+    Interface, Linecard, Node, Fabric, Table, Session, HealthScore)
+import os.path
 import unittest
 import string
 import random
@@ -1230,10 +1226,10 @@ class TestContractSubject(unittest.TestCase):
                          filt_name)
 
         self.assertTrue('vzInTerm' in cs_json['vzSubj']['children'][1])
-        self.assertEqual(cs_json['vzSubj']['children'][1]['vzInTerm']['attributes']['name'],input_terminal_name)
+        self.assertEqual(cs_json['vzSubj']['children'][1]['vzInTerm']['attributes']['name'], input_terminal_name)
 
         self.assertTrue('vzOutTerm' in cs_json['vzSubj']['children'][2])
-        self.assertEqual(cs_json['vzSubj']['children'][2]['vzOutTerm']['attributes']['name'],output_terminal_name)
+        self.assertEqual(cs_json['vzSubj']['children'][2]['vzOutTerm']['attributes']['name'], output_terminal_name)
 
 
 class TestInputTerminal(unittest.TestCase):
@@ -2025,7 +2021,7 @@ class TestAnyEPG(unittest.TestCase):
         self.assertEqual(json['vzAny']['attributes']['name'], 'any')
         for child in json['vzAny']['children']:
             self.assertTrue('vzRsAnyToProv' in child)
-            self.assertTrue(child['vzRsAnyToProv']['attributes']['tnVzBrCPName']=='contract-1')
+            self.assertTrue(child['vzRsAnyToProv']['attributes']['tnVzBrCPName'] == 'contract-1')
 
     def test_consume_contract(self):
         """
@@ -2043,7 +2039,7 @@ class TestAnyEPG(unittest.TestCase):
         self.assertEqual(json['vzAny']['attributes']['name'], 'any')
         for child in json['vzAny']['children']:
             self.assertTrue('vzRsAnyToCons' in child)
-            self.assertTrue(child['vzRsAnyToCons']['attributes']['tnVzBrCPName']=='contract-1')
+            self.assertTrue(child['vzRsAnyToCons']['attributes']['tnVzBrCPName'] == 'contract-1')
 
 
 class TestEndpoint(unittest.TestCase):
@@ -2688,6 +2684,27 @@ class TestFexInterface(unittest.TestCase):
         """
         fex = FexInterface('eth', '1', '1', '1', '1', '1')
         self.assertTrue(isinstance(fex, FexInterface))
+
+
+class TestAcitoolkitGraphBuilder(unittest.TestCase):
+    """
+    Test AcitoolkitGraphBuilder class
+    """
+    def test_create(self):
+        graphs = AcitoolkitGraphBuilder()
+        graphs.build_graphs()
+        expected_files = ['acitoolkit-hierarchy.Fabric.gv',
+                          'acitoolkit-hierarchy.Fabric.tmp.gv',
+                          'acitoolkit-hierarchy.Fabric.tmp.gv.pdf',
+                          'acitoolkit-hierarchy.LogicalModel.gv',
+                          'acitoolkit-hierarchy.LogicalModel.tmp.gv',
+                          'acitoolkit-hierarchy.LogicalModel.tmp.gv.pdf',
+                          'acitoolkit-hierarchy.PhysicalModel.gv',
+                          'acitoolkit-hierarchy.PhysicalModel.tmp.gv',
+                          'acitoolkit-hierarchy.PhysicalModel.tmp.gv.pdf']
+        for expected_file in expected_files:
+            self.assertTrue(os.path.isfile(expected_file))
+            os.remove(expected_file)
 
 
 class TestContext(unittest.TestCase):
@@ -4760,7 +4777,10 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestTunnelInterface))
     offline.addTest(unittest.makeSuite(TestFexInterface))
 
-    full = unittest.TestSuite([live, offline])
+    graphs = unittest.TestSuite()
+    graphs.addTest(unittest.makeSuite(TestAcitoolkitGraphBuilder))
+
+    full = unittest.TestSuite([live, offline, graphs])
 
     # Add tests to this suite while developing the tests
     # This allows only these tests to be run
