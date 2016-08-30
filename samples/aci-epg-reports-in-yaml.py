@@ -70,7 +70,7 @@ def main():
             app_profiles = {}
             app_profiles['name'] =app.name
             if app.descr:
-                app_profiles['description'] = ap.descr
+                app_profiles['description'] = app.descr
             app_profiles['epgs'] = []
             
             
@@ -102,7 +102,7 @@ def main():
 
     tenants_info = {}
     tenants_info['tenants'] = tenants_list
-    print yaml.safe_dump(tenants_info,sys.stdout, indent= 4,default_flow_style=False )
+    print yaml.safe_dump(tenants_info,sys.stdout, indent= 4,default_flow_style=False)
 
 if __name__ == '__main__':
     try:
