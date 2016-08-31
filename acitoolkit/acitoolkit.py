@@ -2590,7 +2590,7 @@ class BridgeDomain(BaseACIObject):
                     bd_children = child['fvBD']['children']
                     for bd_child in bd_children:
                         if 'fvRsCtx' in bd_child:
-                            context_name = bd_child['fvRsCtx']['attributes']['tRn'].split('ctx-')[1]
+                            context_name = bd_child['fvRsCtx']['attributes']['tRn'].partition('ctx-')[2]
                             # tenant = self.get_parent()
                             # context_search = Search()
                             # context_search.name = context_name
