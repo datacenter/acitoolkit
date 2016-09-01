@@ -25,6 +25,17 @@ def create_random_tenant_config(config):
     for i in range(0, random_number(0, random_number(int(config.get('BridgeDomains', 'Minimum')),
                                                      int(config.get('BridgeDomains', 'Maximum'))))):
         bd = BridgeDomain(random_string(random_number(1, 64)), tenant)
+        # Randomly choose settings for the BridgeDomain
+        if config.get('BridgeDomains', 'AllowFloodUnkMacUcast').lower() == 'true':
+            bd.set_unknown_mac_unicast(random.choice(['proxy', 'flood']))
+        if config.get('BridgeDomains', 'AllowOptimizedFloodUnknownMcast').lower() == 'true':
+            bd.set_unknown_multicast(random.choice(['flood', 'opt-flood']))
+        if config.get('BridgeDomains', 'AllowArpFlood').lower() == 'true':
+            bd.set_arp_flood(random.choice(['yes', 'no']))
+        if config.get('BridgeDomains', 'AllowDisableUnicastRoute').lower() == 'true':
+            bd.set_unicast_route(random.choice(['yes', 'no']))
+        if config.get('BridgeDomains', 'AllowNonDefaultMultiDstPkt').lower() == 'true':
+            bd.set_multidestination(random.choice(['drop', 'bd-flood', 'encap-flood']))
         bridge_domains.append(bd)
 
     # Create some number of Contexts
@@ -56,8 +67,7 @@ def create_random_tenant_config(config):
 
     # Randomly associate the EPGs to BridgeDomains
     for epg in epgs:
-        associate = random_number(0, 10)  # 1 in 10 chance for no bridgedomain
-        if associate and len(bridge_domains):
+        if random_number(0, 9) == 1 and len(bridge_domains):  # 1 in 10 chance for no bridgedomain
             epg.add_bd(random.choice(bridge_domains))
 
     return tenant
