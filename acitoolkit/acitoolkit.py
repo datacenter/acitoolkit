@@ -3462,9 +3462,9 @@ class ContractInterface(BaseACIObject):
         if not self.has_import_contract():
             return None
         if deleted:
-            return self._get_all_detached_relation(Contract, 'imported')
+            return self._get_all_detached_relation(Contract, 'imported')[0]
         else:
-            return self._get_all_relation(Contract, 'imported')
+            return self._get_all_relation(Contract, 'imported')[0]
 
     def _generate_children(self):
         """
