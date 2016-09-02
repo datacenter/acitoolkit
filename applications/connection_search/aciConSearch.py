@@ -1432,7 +1432,7 @@ class SearchDb(object):
                 import_contracts = contract_if.get_import_contract()
 
                 if import_contracts is not None:
-                    consumed_contracts = consumed_contracts | set(import_contracts)
+                    consumed_contracts = consumed_contracts | set([import_contracts])
             provided_contracts = set(epg.get_all_provided())
 
             if isinstance(epg, EPG):
