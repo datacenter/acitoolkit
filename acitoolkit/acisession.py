@@ -661,6 +661,8 @@ class Session(object):
             logging.error('Trying get again...')
             logging.debug(get_url)
             resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+        elif resp.status_code == 408:
+            raise ConnectionError
         elif resp.status_code == 400 and 'Unable to process the query, result dataset is too big' in resp.text:
             # Response is too big so we will need to get the response in pages
             # Get the first chunk of entries
