@@ -3991,6 +3991,21 @@ class Filter(BaseACIObject):
     def _get_name_dn_delimiters():
         return ['/flt-', '/']
 
+    def has_entry(self, applyToFrag, arpOpc, dFromPort, dToPort, etherT, prot, sFromPort, sToPort,
+                  tcpRules, stateful):
+        """
+        Returns whether or not the Filter has a FilterEntry. All fields are compared except name.
+
+        :returns: True if the Filter has a matching FilterEntry. False otherwise
+        """
+        for entry in self.get_children(only_class=FilterEntry):
+            if entry.applyToFrag == applyToFrag and entry.etherT == etherT and entry.arpOpc == arpOpc and\
+                    entry.dFromPort == dFromPort and entry.sFromPort == sFromPort and \
+                    entry.dToPort == dToPort and entry.sToPort == sToPort and entry.prot == prot and\
+                    entry.tcpRules == tcpRules and entry.stateful == stateful:
+                return True
+        return False
+
 
 class Taboo(BaseContract):
     """ Taboo :  Class for Taboos """
