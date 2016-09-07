@@ -661,8 +661,6 @@ class Session(object):
             logging.error('Trying get again...')
             logging.debug(get_url)
             resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
-        elif resp.status_code == 408:
-            raise ConnectionError
         elif resp.status_code == 400 and 'Unable to process the query, result dataset is too big' in resp.text:
             # Response is too big so we will need to get the response in pages
             # Get the first chunk of entries
@@ -689,6 +687,8 @@ class Session(object):
                 resp_content = {'imdata': entries,
                                 'totalCount': orig_total_count}
                 resp._content = json.dumps(resp_content)
+        elif 408 == resp.status_code or 500 <= resp.status_code < 600:
+            raise ConnectionError
         logging.debug(resp)
         logging.debug(resp.text)
         return resp
