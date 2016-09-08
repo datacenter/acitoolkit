@@ -687,8 +687,21 @@ class Session(object):
                 resp_content = {'imdata': entries,
                                 'totalCount': orig_total_count}
                 resp._content = json.dumps(resp_content)
-        elif 408 == resp.status_code or 500 <= resp.status_code < 600:
-            raise ConnectionError
+        elif 400 <= resp.status_code < 600:
+            logging.debug('Received error: %s %s' % (str(resp.status_code), resp.text))
+            retries = 3
+            while retries > 0:
+                logging.debug('Retrying query')
+                resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+                if resp.status_code != 200:
+                    logging.debug('Retry was not successful.')
+                    retries -= 1
+                else:
+                    logging.debug('Retry was successful.')
+                    break
+            if retries == 0:
+                logging.error('Raising ConnectionError')
+                raise ConnectionError
         logging.debug(resp)
         logging.debug(resp.text)
         return resp
