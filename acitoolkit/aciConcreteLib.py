@@ -23,6 +23,7 @@
 This is a library of all the Concrete classes that are on a switch.
 """
 import copy
+import re
 from operator import itemgetter
 
 from .acibaseobject import BaseACIPhysObject
@@ -1134,7 +1135,6 @@ class ConcreteSVI(CommonConcreteObject):
         return result
 
     def __eq__(self, other):
-
         """
         Checks that the tunnels are equal
         :param other:
@@ -1296,7 +1296,7 @@ class ConcreteBD(CommonConcreteObject):
         :param dn: string containing the distinguished name URL
         :return: string containing the name
         """
-        name = dn.split('/sys/-')[1].split('/')[0]
+        name = dn.split('/sys/')[1].split('/')[0]
         return name
 
     @classmethod
@@ -2632,6 +2632,7 @@ class ConcreteTunnel(CommonConcreteObject):
     """
     Concrete representation of an overlay tunnel
     """
+
     def __init__(self, parent=None):
         """
         Tunnel init
@@ -2774,7 +2775,6 @@ class ConcreteTunnel(CommonConcreteObject):
         return 'ConcreteTunnel'
 
     def __eq__(self, other):
-
         """
         Checks that the tunnels are equal
         :param other:
@@ -2878,7 +2878,7 @@ class ConcreteOverlay(CommonConcreteObject):
             if parent.vpc_info['oper_state'] == 'active':
                 ovly.attr['vpc_tep_ip'] = str(parent.vpc_info['vtep_ip'].split('/')[0])
         if parent:
-            ovly.attr['dn'] = str(parent.dn+'/overlay')
+            ovly.attr['dn'] = str(parent.dn + '/overlay')
             ovly._parent = parent
             ovly._parent.add_child(ovly)
             ovly.node = ovly._parent.node
@@ -2943,7 +2943,6 @@ class ConcreteOverlay(CommonConcreteObject):
         return 'ConcreteOverlay'
 
     def __eq__(self, other):
-
         """
         Checks that the overlays are equal
         :param other:
@@ -2954,3 +2953,294 @@ class ConcreteOverlay(CommonConcreteObject):
             other_key = other.get_parent()
             return self_key == other_key
         return NotImplemented
+
+
+class ConcreteCdp(CommonConcreteObject):
+    """
+    The object that represents the CDP instance information. Currently only one CDP instance is supported
+    """
+
+    def __init__(self, parent=None):
+        """
+        Initialize the CDP object.
+        """
+
+        super(ConcreteCdp, self).__init__(parent=parent)
+        self._parent = parent
+        if parent is not None:
+            self._parent.add_child(self)
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return Node
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/sys/cdp/inst')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/sys/cdp/inst')[1].split('/')[0]
+        return name
+
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteCdpIf]
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['cdpInst']
+
+        return resp
+
+    @classmethod
+    def get(cls, top, parent=None):
+        """
+        Will retrieve all of the CDP information for the specified
+        switch node
+        :param parent:
+        :param top: the topSystem level json object
+        :returns: list of Switch bridge domain
+        """
+        cls.check_parent(parent)
+
+        result = []
+        node_data = top.get_class('cdpInst')
+        for data in node_data:
+            if 'cdpInst' in data:
+                cdp = cls()
+                cdp._top = top
+                cdp.attr['admin_state'] = str(data['cdpInst']['attributes']['adminSt'])
+                cdp.attr['dn'] = str(data['cdpInst']['attributes']['dn'])
+                ConcreteCdpIf.get(top, cdp)
+                result.append(cdp)
+            if parent:
+                cdp._parent = parent
+                cdp._parent.add_child(cdp)
+        return result
+
+    @staticmethod
+    def get_table(cdps, title=''):
+        """
+        Returns cdp information in a displayable format.
+        :param title:
+        :param cdps:
+        """
+        result = []
+        headers = ["Node-ID", "Local Interface", "Neighbour Device", "Neighbour Platform", "Neighbour Interface"]
+        data = []
+        for cdp in cdps:
+            for cdpIf in cdp.get_children(ConcreteCdpIf):
+                for adjEp in cdpIf.get_children(ConcreteCdpAdjEp):
+                    node_match = re.search(r'node-\d+', adjEp.raw_local_interface)
+                    node = node_match.group()
+                    local_int_match = re.search(r'(\[)([\w\d\/]+)', adjEp.raw_local_interface)
+                    local_int = local_int_match.group(2)
+                    data.append([
+                        node,
+                        local_int,
+                        str(adjEp.neigh_device_id),
+                        str(adjEp.neigh_platID),
+                        str(adjEp.neigh_int)
+                    ])
+                result.append(Table(data, headers, title=title + 'CDP Entries'))
+
+        return result
+
+    def __str__(self):
+        return 'CDP'
+
+
+class ConcreteCdpIf(CommonConcreteObject):
+
+    def __init__(self, parent=None):
+        """
+        Initialize the CdpIf object.
+        """
+
+        super(ConcreteCdpIf, self).__init__(parent=parent)
+        self._stats = {}
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteCdp
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['cdpIf']
+
+        return resp
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/if-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/if-')[1].split('/')[0]
+        return name
+
+    @staticmethod
+    def _get_children_concrete_classes():
+        """
+        Get the acitoolkit class of the children of this object.
+        This is meant to be overridden by any inheriting classes that have children.
+        If they don't have children, this will return an empty list.
+        :return: list of classes
+        """
+        return [ConcreteCdpAdjEp]
+
+    @classmethod
+    def get(cls, top, parent):
+        """
+        Get various attributes from the cdpAdjEp
+        :param parent:
+        :param top: the topSystem level json object
+        :returns: list of Switch bridge domain
+        """
+        cls.check_parent(parent)
+
+        result = []
+        node_data = top.get_class('cdpInst')
+        for data in node_data:
+            if 'cdpInst' in data:
+                cdpIf = cls()
+                cdpIf._top = top
+                cdpIf.attr['admin_state'] = str(data['cdpInst']['attributes']['adminSt'])
+                cdpIf.attr['dn'] = str(data['cdpInst']['attributes']['dn'])
+                ConcreteCdpAdjEp.get(top, cdpIf)
+                cdpIf._parent = parent
+                cdpIf._parent.add_child(cdpIf)
+                result.append(cdpIf)
+        return result
+
+
+class ConcreteCdpAdjEp(CommonConcreteObject):
+
+    @staticmethod
+    def _get_parent_class():
+        """
+        Gets the acitoolkit class of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: class of parent object
+        """
+        return ConcreteCdpIf
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by this acitoolkit class.
+
+        :returns: list of strings containing APIC class names
+        """
+        resp = ['cdpAdjEp']
+
+        return resp
+
+    @staticmethod
+    def _get_parent_dn(dn):
+        """
+        Gets the dn of the parent object
+        Meant to be overridden by inheriting classes.
+        Raises exception if not overridden.
+
+        :returns: string containing dn
+        """
+        return dn.split('/adj-')[0]
+
+    @staticmethod
+    def _get_name_from_dn(dn):
+        """
+        Get the instance name from the dn
+
+        :param dn: string containing the distinguished name URL
+        :return: string containing the name
+        """
+        name = dn.split('/adj-')[1].split('/')[0]
+        return name
+
+    @classmethod
+    def get(cls, top, parent):
+        """
+        Get various attributes from the cdpAdjEp
+        :param parent:
+        :param top: the topSystem level json object
+        :returns: list of Switch bridge domain
+        """
+        cls.check_parent(parent)
+        result = []
+        adjEp_data = top.get_subtree('cdpAdjEp', parent.attr['dn'])
+        for adjEp_object in adjEp_data:
+            adjEp = cls()
+            adjEp._populate_from_attributes(adjEp_object['cdpAdjEp']['attributes'])
+            adjEp.attr['dn'] = str(adjEp_object['cdpAdjEp']['attributes']['dn'])
+            adjEp._parent = parent
+            adjEp._parent.add_child(adjEp)
+            result.append(adjEp)
+        return result
+
+    def _populate_from_attributes(self, attributes):
+        self.neigh_device_id = str(attributes['devId'])
+        self.neigh_int = str(attributes['portId'])
+        self.neigh_platID = str(attributes['platId'])
+        self.raw_local_interface = str(attributes['dn'])
+        self.duplex = str(attributes['duplex'])
+        self.sysName = str(attributes['sysName'])

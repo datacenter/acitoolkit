@@ -50,7 +50,7 @@ from .aciConcreteLib import (  # noqa
     ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext, ConcreteEp,
     ConcreteFilter, ConcreteFilterEntry, ConcreteLoopback, ConcreteOverlay,
     ConcretePortChannel, ConcreteSVI, ConcreteVpc, ConcreteVpcIf,
-    ConcreteTunnel,
+    ConcreteTunnel, ConcreteCdp
 )
 # Dependent on aciconcretelib
 from .aciphysobject import (  # noqa
