@@ -687,7 +687,7 @@ class Session(object):
                 resp_content = {'imdata': entries,
                                 'totalCount': orig_total_count}
                 resp._content = json.dumps(resp_content)
-        elif 400 <= resp.status_code < 600:
+        elif 400 < resp.status_code < 600:
             logging.debug('Received error: %s %s' % (str(resp.status_code), resp.text))
             retries = 3
             while retries > 0:
