@@ -2586,9 +2586,30 @@ class Interface(BaseInterface):
         return '%s-%s-%s-%s' % (self.pod, self.node,
                                 self.module, self.port)
 
+    def push_to_apic(self, session):
+        """
+        Push the configuration to the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: Response class instance from the requests library.\
+                  response.ok is True if request is sent successfully.
+        """
+        for i in range(0, len(self.get_url())):
+            if self.get_json()[i] is not None and self.get_url()[i] is not None:
+                resp = session.push_to_apic(self.get_url()[i],
+                                            self.get_json()[i])
+                if not resp.ok:
+                    print('%% Error: Could not push configuration to APIC for url:', self.get_url()[i])
+                    return resp
+        return resp
+
     def get_json(self):
-        """ Get the json for an interface.  Returns a tuple since the json is
-            required to be sent in 2 posts.
+        """
+        Get the json for an interface.  Returns a tuple since the json is
+        required to be sent in multiple posts. A call to get_url will return
+        the URLs which the JSON can be sent.
+
+        :return: Tuple containing the phys_domain, fabric, infra JSONs
         """
         fabric = None
         # Physical Domain json
