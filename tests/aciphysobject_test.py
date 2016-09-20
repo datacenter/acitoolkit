@@ -643,9 +643,8 @@ class TestLiveAPIC(unittest.TestCase):
 class TestLiveCluster(TestLiveAPIC):
     def test_basic(self):
         session = self.login_to_apic()
-        clusters = Cluster.get(session)
-        for cluster in clusters:
-            self.assertTrue(isinstance(cluster, Cluster))
+        cluster = Cluster.get(session)
+        self.assertTrue(isinstance(cluster, Cluster))
 
 
 class TestLivePod(TestLiveAPIC):
