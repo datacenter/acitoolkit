@@ -187,21 +187,21 @@ class Cluster(BaseACIObject):
     """
     Represents the global settings of the Cluster
     """
-
-    def __init__(self, name):
+    def __init__(self, name, parent=None):
         """
         :param name:  String containing the name of this Cluster object.
         """
-        super(Cluster, self).__init__(name)
+        super(Cluster, self).__init__(name, parent)
         self.name = name
         self.config_size = None
         self.cluster_size = None
         self.apics = []
 
-    def get(self, session, parent=None):
+    @classmethod
+    def get(cls, session, parent=None):
         """Gets all of the Clusters from the APIC.
 
-        :returns: list of Clusters.
+        :returns: Instance of Cluster class.
         """
         # start at top
         infra_query_url = '/api/node/class/infraCont.json'
@@ -210,11 +210,12 @@ class Cluster(BaseACIObject):
         infra_cluster_url = '/api/node/class/infraClusterPol.json'
         ret = session.get(infra_cluster_url)
         ret_cluster = ret.json()['imdata']
-        self.config_size = ret_cluster[0]['infraClusterPol']['attributes']['size']
+        cluster = cls('apic-cluster', parent=parent)
+        cluster.config_size = ret_cluster[0]['infraClusterPol']['attributes']['size']
         for apic in cluster_info:
-            self.apics.append(apic['infraCont']['attributes']['dn'])
-        self._populate_from_attributes(cluster_info[0]['infraCont']['attributes'])
-        return cluster_info
+            cluster.apics.append(apic['infraCont']['attributes']['dn'])
+        cluster._populate_from_attributes(cluster_info[0]['infraCont']['attributes'])
+        return cluster
 
     def _populate_from_attributes(self, attributes):
         """"Fills in an object with desired attributes.

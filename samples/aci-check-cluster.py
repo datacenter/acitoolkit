@@ -32,10 +32,8 @@
 Simple application that shows all of the processes running on a switch
 """
 import sys
-import acitoolkit.acitoolkit as ACI
-import acitoolkit.aciphysobject as ACI_PHYS
 import json
-from acitoolkit.acitoolkitlib import Credentials
+from acitoolkit import Credentials, Session, Cluster
 
 
 def main():
@@ -48,14 +46,13 @@ def main():
 
     args = creds.get()
 
-    session = ACI.Session(args.url, args.login, args.password)
+    session = Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
         print '%% Could not login to APIC'
         sys.exit(0)
 
-    cluster = ACI_PHYS.Cluster('Cluster')
-    cluster_info = cluster.get(session)
+    cluster = Cluster.get(session)
 
     if (cluster.config_size != cluster.cluster_size):
         print("*******************************************************")
@@ -65,7 +62,7 @@ def main():
         print("*******************************************************")
         print("APICs in the cluster"), cluster.name, (":")
         for apic in cluster.apics:
-            print json.dumps(apic,indent=4, sort_keys = True)
+            print json.dumps(apic, indent=4, sort_keys=True)
     else:
         print("PASS")
 
