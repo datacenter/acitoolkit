@@ -222,18 +222,15 @@ class Cluster(BaseACIObject):
         self.cluster_size = str(attributes['size'])
         self.name = str(attributes['fbDmNm'])
 
-    def get_config_size(self, session):
+    def get_config_size(self):
         """
-
-        :param session:
         :returns: configured size of the cluster, i.e. # of APICs
         """
         return self.config_size
 
-    def get_cluster_size(self, session):
+    def get_cluster_size(self):
         """
         reads information about the APIC cluster
-        :param session:
         :return:
         """
         return self.cluster_size
