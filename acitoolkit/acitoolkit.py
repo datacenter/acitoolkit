@@ -3753,8 +3753,9 @@ class Contract(BaseContract):
             status = 'detached'
         else:
             status = 'attached'
-        for epg in self.get_all_attachments(EPG, status=status, relation_type=relation_type):
-            resp.append(epg)
+        for epg_class in [EPG, AnyEPG, OutsideEPG]:
+            for epg in self.get_all_attachments(epg_class, status=status, relation_type=relation_type):
+                resp.append(epg)
         return resp
 
     def get_all_providing_epgs(self, deleted=False):
