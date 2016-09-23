@@ -1,5 +1,5 @@
 ################################################################################
-# _    ____ ___                               #
+#                                  _    ____ ___                               #
 #                                 / \  / ___|_ _|                              #
 #                                / _ \| |    | |                               #
 #                               / ___ \ |___ | |                               #
@@ -43,7 +43,7 @@ from acitoolkit.acisession import Session
 from acitoolkit.acitoolkit import Search
 from acitoolkit.aciphysobject import (
     ExternalSwitch, Fantray, Interface, Linecard, Link, Node, PhysicalModel,
-    Pod, Powersupply, Supervisorcard, Systemcontroller
+    Pod, Powersupply, Supervisorcard, Systemcontroller, Cluster
 )
 import json
 import unittest
@@ -609,6 +609,26 @@ class TestExternalSwitch(unittest.TestCase):
         self.assertRaises(TypeError, ExternalSwitch.get, 'non-session')
 
 
+class TestCluster(unittest.TestCase):
+    def test_basic_create(self):
+        cluster = Cluster('test-cluster')
+        self.assertTrue(isinstance(cluster, Cluster))
+
+    def test_get_config_size(self):
+        cluster = Cluster('test-cluster')
+        cluster.config_size = 50
+        self.assertEquals(cluster.get_config_size(), 50)
+
+    def test_get_cluster_size(self):
+        cluster = Cluster('test-cluster')
+        cluster.cluster_size = 50
+        self.assertEquals(cluster.get_cluster_size(), 50)
+
+    def test_get_apics(self):
+        cluster = Cluster('test-cluster')
+        self.assertEquals(len(cluster.get_apics()), 0)
+
+
 class TestLiveAPIC(unittest.TestCase):
     def login_to_apic(self):
         """Login to the APIC
@@ -618,6 +638,13 @@ class TestLiveAPIC(unittest.TestCase):
         resp = session.login()
         self.assertTrue(resp.ok)
         return session
+
+
+class TestLiveCluster(TestLiveAPIC):
+    def test_basic(self):
+        session = self.login_to_apic()
+        cluster = Cluster.get(session)
+        self.assertTrue(isinstance(cluster, Cluster))
 
 
 class TestLivePod(TestLiveAPIC):
@@ -1382,10 +1409,12 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestExternalSwitch))
     offline.addTest(unittest.makeSuite(TestFind))
     offline.addTest(unittest.makeSuite(TestInterface))
+    offline.addTest(unittest.makeSuite(TestCluster))
 
     live = unittest.TestSuite()
     live.addTest(unittest.makeSuite(TestLiveAPIC))
     live.addTest(unittest.makeSuite(TestLivePod))
+    live.addTest(unittest.makeSuite(TestLiveCluster))
 
     full = unittest.TestSuite([live, offline])
 

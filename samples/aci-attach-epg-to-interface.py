@@ -77,8 +77,12 @@ vlan_intf.attach(intf)
 # Attach the EPG to the VLAN interface
 epg.attach(vlan_intf)
 
-# Push it all to the APIC
-resp = session.push_to_apic(tenant.get_url(),
-                            tenant.get_json())
+# Push the tenant config to the APIC
+resp = tenant.push_to_apic(session)
 if not resp.ok:
-    print('%% Error: Could not push configuration to APIC')
+    print('%% Error: Could not push tenant configuration to APIC')
+
+# Push the interface attachment to the APIC
+resp = intf.push_to_apic(session)
+if not resp.ok:
+    print('%% Error: Could not push interface configuration to APIC')

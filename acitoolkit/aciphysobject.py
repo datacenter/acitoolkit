@@ -187,21 +187,21 @@ class Cluster(BaseACIObject):
     """
     Represents the global settings of the Cluster
     """
-
-    def __init__(self, name):
+    def __init__(self, name, parent=None):
         """
         :param name:  String containing the name of this Cluster object.
         """
-        super(Cluster, self).__init__(name)
+        super(Cluster, self).__init__(name, parent)
         self.name = name
         self.config_size = None
         self.cluster_size = None
         self.apics = []
 
-    def get(self, session, parent=None):
+    @classmethod
+    def get(cls, session, parent=None):
         """Gets all of the Clusters from the APIC.
 
-        :returns: list of Clusters.
+        :returns: Instance of Cluster class.
         """
         # start at top
         infra_query_url = '/api/node/class/infraCont.json'
@@ -210,11 +210,12 @@ class Cluster(BaseACIObject):
         infra_cluster_url = '/api/node/class/infraClusterPol.json'
         ret = session.get(infra_cluster_url)
         ret_cluster = ret.json()['imdata']
-        self.config_size = ret_cluster[0]['infraClusterPol']['attributes']['size']
+        cluster = cls('apic-cluster', parent=parent)
+        cluster.config_size = ret_cluster[0]['infraClusterPol']['attributes']['size']
         for apic in cluster_info:
-            self.apics.append(apic['infraCont']['attributes']['dn'])
-        self._populate_from_attributes(cluster_info[0]['infraCont']['attributes'])
-        return cluster_info
+            cluster.apics.append(apic['infraCont']['attributes']['dn'])
+        cluster._populate_from_attributes(cluster_info[0]['infraCont']['attributes'])
+        return cluster
 
     def _populate_from_attributes(self, attributes):
         """"Fills in an object with desired attributes.
@@ -222,18 +223,15 @@ class Cluster(BaseACIObject):
         self.cluster_size = str(attributes['size'])
         self.name = str(attributes['fbDmNm'])
 
-    def get_config_size(self, session):
+    def get_config_size(self):
         """
-
-        :param session:
         :returns: configured size of the cluster, i.e. # of APICs
         """
         return self.config_size
 
-    def get_cluster_size(self, session):
+    def get_cluster_size(self):
         """
         reads information about the APIC cluster
-        :param session:
         :return:
         """
         return self.cluster_size
@@ -2586,9 +2584,30 @@ class Interface(BaseInterface):
         return '%s-%s-%s-%s' % (self.pod, self.node,
                                 self.module, self.port)
 
+    def push_to_apic(self, session):
+        """
+        Push the configuration to the APIC
+
+        :param session: the instance of Session used for APIC communication
+        :returns: Response class instance from the requests library.\
+                  response.ok is True if request is sent successfully.
+        """
+        for i in range(0, len(self.get_url())):
+            if self.get_json()[i] is not None and self.get_url()[i] is not None:
+                resp = session.push_to_apic(self.get_url()[i],
+                                            self.get_json()[i])
+                if not resp.ok:
+                    print('%% Error: Could not push configuration to APIC for url:', self.get_url()[i])
+                    return resp
+        return resp
+
     def get_json(self):
-        """ Get the json for an interface.  Returns a tuple since the json is
-            required to be sent in 2 posts.
+        """
+        Get the json for an interface.  Returns a tuple since the json is
+        required to be sent in multiple posts. A call to get_url will return
+        the URLs which the JSON can be sent.
+
+        :return: Tuple containing the phys_domain, fabric, infra JSONs
         """
         fabric = None
         # Physical Domain json
