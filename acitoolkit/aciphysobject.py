@@ -1344,12 +1344,14 @@ class Node(BaseACIPhysObject):
         from .aciConcreteLib import (
             ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext,
             ConcreteEp, ConcreteFilter, ConcreteLoopback, ConcreteOverlay,
-            ConcretePortChannel, ConcreteVpc
+            ConcretePortChannel, ConcreteVpc,
+            ConcreteCdp
         )
 
         return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
-                ConcreteContext, ConcreteVpc]
+                ConcreteContext, ConcreteVpc,
+                ConcreteCdp]
 
     @classmethod
     def _get_apic_classes(cls):
@@ -2948,7 +2950,7 @@ class Interface(BaseInterface):
                                  'must be identified by a string'))
         else:
             if pod_parent:
-                if not isinstance(pod_parent,  cls._get_parent_class()):
+                if not isinstance(pod_parent, cls._get_parent_class()):
                     raise TypeError('Interface parent must be a {0} object'.format(cls._get_parent_class()))
 
         cdp_policies = Interface._get_discoveryprot_policies(session, 'cdp')
@@ -3033,7 +3035,7 @@ class Interface(BaseInterface):
 
     def __eq__(self, other):
         # TODO: simplify and isinstance
-        if type(self) != type(other):
+        if not isinstance(self, type(other)):
             return False
         if (self.interface_type == other.interface_type and
                 self.pod == other.pod and
@@ -3088,7 +3090,6 @@ class WorkingData(object):
         self.add(session, toolkit_class, url, deep, include_concrete)
 
     def add(self, session=None, toolkit_class=None, url=None, deep=False, include_concrete=False):
-
         """
 
         :param session:
@@ -3182,7 +3183,7 @@ class WorkingData(object):
             for class_record in classes:
                 for class_id in class_record:
                     obj_dn = class_record[class_id]['attributes']['dn']
-                    if obj_dn.startswith(dname+'/'):
+                    if obj_dn.startswith(dname + '/'):
                         result.append(class_record)
         return result
 
@@ -3495,6 +3496,7 @@ class Fabric(BaseACIObject):
 
     From this class, you can populate all of the children classes.
     """
+
     def __init__(self, session=None, parent=None):
         """
         Initialization method that sets up the Fabric.
