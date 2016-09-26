@@ -3436,6 +3436,48 @@ class TestLiveEndpoint(TestLiveAPIC):
     """
     Live tests for Endpoint class
     """
+    def setUp(self):
+        session = self.login_to_apic()
+
+        # Create a tenant with endpoints in 2 EPGs, 5 endpoints in each
+        tenant = Tenant('acitoolkit-test')
+        app = AppProfile('myapp', tenant)
+        epg1 = EPG('epg1', app)
+        epg2 = EPG('epg2', app)
+        intf = Interface('eth', '1', '101', '1', '1')
+
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf5 = L2Interface('vlan5', 'vlan', '5')
+        vlan_intf5.attach(intf)
+
+        vlan_intf6 = L2Interface('vlan5', 'vlan', '6')
+        vlan_intf6.attach(intf)
+
+        # Attach the EPG to the VLAN interface
+        epg1.attach(vlan_intf5)
+        epg2.attach(vlan_intf6)
+
+        for epg, epg_prefix, vlan_intf in [(epg1, '11', vlan_intf5), (epg2, '22', vlan_intf6)]:
+            for i in range(0, 5):
+                mac = '00:11:11:11:%s:1%s' % (epg_prefix, str(i))
+                ip = '10.10.%s.%s' % (epg_prefix, str(i))
+                ep = Endpoint(name=mac, parent=epg)
+                ep.mac = mac
+                ep.ip = ip
+                ep.attach(vlan_intf)
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+    def tearDown(self):
+        session = self.login_to_apic()
+
+        # Create a tenant with endpoints in 2 EPGs, 5 endpoints in each
+        tenant = Tenant('acitoolkit-test')
+        tenant.mark_as_deleted()
+
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
     def test_get_bad_session(self):
         """
         Test Endpoint.get() supplied with a bad session
