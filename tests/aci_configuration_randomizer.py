@@ -5,6 +5,16 @@ import string
 import ConfigParser
 
 
+class Limits(object):
+    def __init__(self, config):
+        self.max_bds = int(config.get('BridgeDomains', 'GlobalMaximum'))
+        self.max_contexts = int(config.get('Contexts', 'GlobalMaximum'))
+        self.max_epgs = int(config.get('EPGs', 'GlobalMaximum'))
+        self.max_filters = int(config.get('Filters', 'GlobalMaximum'))
+        self.max_filter_entries = int(config.get('FilterEntries', 'GlobalMaximum'))
+        self.max_contracts = int(config.get('Contracts', 'GlobalMaximum'))
+
+
 def random_chance(percentage):
     return random_number(0, 99) < percentage
 
@@ -33,7 +43,7 @@ def random_range(low, high):
     return str(low), str(high)
 
 
-def create_random_tenant_config(config):
+def create_random_tenant_config(config, limits):
     # Create the Tenant object
     tenant_prefix = 'acitoolkitrandomized-'
     tenant_name = tenant_prefix + random_string(random_number(1, 63 - len(tenant_prefix)))
@@ -41,8 +51,12 @@ def create_random_tenant_config(config):
 
     # Create some number of BridgeDomains
     bridge_domains = []
+    maximum_bds = int(config.get('BridgeDomains', 'Maximum'))
+    if maximum_bds > limits.max_bds:
+        maximum_bds = limits.max_bds
     for i in range(0, random_number(0, random_number(int(config.get('BridgeDomains', 'Minimum')),
-                                                     int(config.get('BridgeDomains', 'Maximum'))))):
+                                                     maximum_bds))):
+        limits.max_bds -= 1
         bd = BridgeDomain(random_string(random_number(1, 64)), tenant)
         # Randomly choose settings for the BridgeDomain
         if config.get('BridgeDomains', 'AllowFloodUnkMacUcast').lower() == 'true':
@@ -59,9 +73,15 @@ def create_random_tenant_config(config):
 
     # Create some number of Contexts
     contexts = []
+    max_contexts = int(config.get('Contexts', 'Maximum'))
+    if max_contexts > limits.max_contexts:
+        max_contexts = limits.max_contexts
+    if max_contexts > int(config.get('Contexts', 'MaximumPerTenant')):
+        max_contexts = int(config.get('Contexts', 'MaximumPerTenant'))
     for i in range(0, random_number(0, random_number(int(config.get('Contexts', 'Minimum')),
-                                                     int(config.get('Contexts', 'Maximum'))))):
+                                                     max_contexts))):
         context = Context(random_string(random_number(1, 64)), tenant)
+        limits.max_contexts -= 1
         if config.get('Contexts', 'AllowUnenforced').lower() == 'true':
             context.set_allow_all(random.choice([True, False]))
         contexts.append(context)
@@ -80,26 +100,47 @@ def create_random_tenant_config(config):
 
     # Create some number of EPGs and place in AppProfiles
     epgs = []
+    max_epgs = int(config.get('EPGs', 'Maximum'))
+    if max_epgs > limits.max_epgs:
+        max_epgs = limits.max_epgs
     if len(apps):
         for i in range(0, random_number(0, random_number(int(config.get('EPGs', 'Minimum')),
-                                                         int(config.get('EPGs', 'Maximum'))))):
+                                                         max_epgs))):
             epg = EPG(random_string(random_number(1, 64)), random.choice(apps))
+            limits.max_epgs -= 1
             epgs.append(epg)
 
     # Randomly associate the EPGs to BridgeDomains
+    bd_epg_count = [0] * len(bridge_domains)
     for epg in epgs:
-        if random_number(0, 9) == 1 and len(bridge_domains):  # 1 in 10 chance for no bridgedomain
-            epg.add_bd(random.choice(bridge_domains))
+        if random_number(0, 9) == 1 or len(bridge_domains) == 0:   # 1 in 10 chance for no bridgedomain
+            continue
+        keep_trying = 100
+        while keep_trying:
+            bd_choice = random_number(0, len(bridge_domains) - 1)
+            if bd_epg_count[bd_choice] <= int(config.get('BridgeDomains', 'MaximumEPGs')):
+                epg.add_bd(bridge_domains[bd_choice])
+                bd_epg_count[bd_choice] += 1
+                break
+            else:
+                keep_trying -= 1
 
     # Create some filters
     filters = []
+    max_filters = int(config.get('Filters', 'Maximum'))
+    if max_filters > limits.max_filters:
+        max_filters = limits.max_filters
     for i in range(0, random_number(0, random_number(int(config.get('Filters', 'Minimum')),
-                                                     int(config.get('Filters', 'Maximum'))))):
+                                                     max_filters))):
         filter = Filter(random_string(random_number(1, 64)), tenant)
+        limits.max_filters -= 1
         filters.append(filter)
 
     # Create some filter entries
     filter_entries = []
+    max_filter_entries = int(config.get('FilterEntries', 'Maximum'))
+    if max_filter_entries > limits.max_filter_entries:
+        max_filter_entries = limits.max_filter_entries
     ip_protocols = {
         'icmp': '1',
         'igmp': '2',
@@ -115,8 +156,8 @@ def create_random_tenant_config(config):
     }
     if len(filters):
         for i in range(0, random_number(0, random_number(int(config.get('FilterEntries', 'Minimum')),
-                                                         int(config.get('FilterEntries', 'Maximum'))))):
-            applyToFrag='0'
+                                                         max_filter_entries))):
+            applyToFrag = '0'
             arpOpc = '0'
             dFromPort = '0'
             dToPort = '0'
@@ -168,12 +209,17 @@ def create_random_tenant_config(config):
                                            sToPort=sToPort,
                                            tcpRules=tcpRules,
                                            stateful=stateful)
+            limits.max_filter_entries -= 1
 
     # Create some Contracts
     contracts = []
+    max_contracts = int(config.get('Contracts', 'Maximum'))
+    if max_contracts > limits.max_contracts:
+        max_contracts = limits.max_contracts
     for i in range(0, random_number(0, random_number(int(config.get('Contracts', 'Minimum')),
-                                                     int(config.get('Contracts', 'Maximum'))))):
+                                                     max_contracts))):
         contract = Contract(random_string(random_number(1, 64)), tenant)
+        limits.max_contracts -= 1
         contracts.append(contract)
 
     # Create some ContractSubjects
@@ -197,16 +243,24 @@ def create_random_tenant_config(config):
                     already_picked.append(pick)
 
     # Randomly provide and consume the Contracts from the EPGs
-    for action in ['provide', 'consume']:
+    for action, max_num_epgs in [('provide', int(config.get('Contracts', 'MaximumProvidingEPGs'))),
+                                 ('consume', int(config.get('Contracts', 'MaximumConsumingEPGs')))]:
+        contract_count = [0] * len(contracts)
         for epg in epgs:
             already_picked = []
             for i in range(0, random_number(0, len(contracts))):
-                pick = random_number(0, len(contracts) - 1)
-                if pick not in already_picked:
-                    getattr(epg, action)(contracts[pick])
-                    already_picked.append(pick)
+                keep_trying = 20
+                while keep_trying:
+                    pick = random_number(0, len(contracts) - 1)
+                    if pick not in already_picked and contract_count[pick] < max_num_epgs:
+                        getattr(epg, action)(contracts[pick])
+                        already_picked.append(pick)
+                        contract_count[pick] += 1
+                        keep_trying = 0
+                    else:
+                        keep_trying -= 1
 
-    return tenant
+    return tenant, limits
 
 
 def delete_all_randomized_tenants(session):
@@ -253,11 +307,17 @@ def main():
     config = ConfigParser.ConfigParser()
     config.read(args.config)
 
+    # Get the global limits
+    limits = Limits(config)
+
     # Handle the random creation
     num_tenants = random_number(int(config.get('Tenants', 'Minimum')),
                                 int(config.get('Tenants', 'Maximum')))
+    if int(config.get('Tenants', 'GlobalMaximum')) < int(config.get('Tenants', 'Maximum')):
+        print 'Tenant Maximum cannot be greater than Tenant GlobalMaximum'
+        return
     for i in range(0, num_tenants):
-        tenant = create_random_tenant_config(config)
+        tenant, limits = create_random_tenant_config(config, limits)
         print 'TENANT CONFIG'
         print '-------------'
         print tenant.get_json()
