@@ -1,5 +1,5 @@
 from acitoolkit import (Credentials, Session, Tenant, BridgeDomain, Context, AppProfile, EPG,
-                        Contract, ContractSubject, Filter, FilterEntry)
+                        Contract, ContractSubject, Filter, FilterEntry, Interface, L2Interface)
 import random
 import string
 import ConfigParser
@@ -44,6 +44,9 @@ class Flow(object):
         self.proto = None
         self.sport = None
         self.dport = None
+        self.src_intf = None
+        self.expected_action = None
+        self.dst_intf = None
         self.populate_random_addresses(ipv4, unicast)
 
     @staticmethod
@@ -107,6 +110,7 @@ class ConfigRandomizer(object):
         self._config = config
         self._global_limits = Limits(config)
         self._tenants = []
+        self._interfaces = {}
 
     def create_random_tenant(self, interfaces=[]):
         # Create the Tenant object
@@ -189,6 +193,32 @@ class ConfigRandomizer(object):
                     break
                 else:
                     keep_trying -= 1
+
+        # Randomly assign the EPGs to the interfaces provided
+        interface_objs = {}
+        for interface in interfaces:
+            # Create the Interface objects
+            interface_objs[interface] = Interface.create_from_name(interface)
+        for epg in epgs:
+            # Pick an interface
+            interface_choice = random.choice(interfaces)
+            # Pick a VLAN
+            vlan_choice = 0
+            keep_trying = 100
+            while vlan_choice in self._interfaces[interface_choice]:
+                vlan_choice = random_number(1, 4095)
+                keep_trying -= 1
+            if not keep_trying:
+                continue
+            # Create the VLAN interface
+            vlan_intf = L2Interface('vlan%s-on-%s' % (str(vlan_choice),
+                                                      interface_objs[interface_choice].name.replace(' ', '')),
+                                    'vlan',
+                                    str(vlan_choice))
+            # Attach the VLAN interface to the Interface object
+            vlan_intf.attach(interface_objs[interface_choice])
+            # Attach the EPG to the VLAN interface
+            epg.attach(vlan_intf)
 
         # Create some filters
         filters = []
@@ -332,8 +362,21 @@ class ConfigRandomizer(object):
         if int(self._config.get('Tenants', 'GlobalMaximum')) < int(self._config.get('Tenants', 'Maximum')):
             print 'Tenant Maximum cannot be greater than Tenant GlobalMaximum'
             return
+        for interface in interfaces:
+            self._interfaces[interface] = [0]
         for i in range(0, num_tenants):
             self._tenants.append(self.create_random_tenant(interfaces))
+
+    def get_flows(self, num_flows_per_entry):
+        """
+        Returns a collection of random flows that when sent on the indicated interface should have the
+        specified action applied.
+
+        :param num_flows_per_entry: integer indicating how many random flows for each entry to send
+        :return: List of Flows
+        """
+        # TODO complete this
+        pass
 
     @property
     def tenants(self):
@@ -386,7 +429,8 @@ def main():
     config = ConfigParser.ConfigParser()
     config.read(args.config)
     randomizer = ConfigRandomizer(config)
-    randomizer.create_random_config()
+    interfaces = ['eth 1/101/1/17', 'eth 1/102/1/17']
+    randomizer.create_random_config(interfaces)
     for tenant in randomizer.tenants:
         print 'TENANT CONFIG'
         print '-------------'
