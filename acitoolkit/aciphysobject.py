@@ -2723,6 +2723,10 @@ class Interface(BaseInterface):
         (pod, node, module, port) = name.split('/')
         return interface_type, pod, node, module, port
 
+    @classmethod
+    def create_from_name(cls, name):
+        return cls(*cls.parse_name(name))
+
     @staticmethod
     def _parse_physical_dn(dn):
         """
