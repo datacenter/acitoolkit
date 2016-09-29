@@ -86,7 +86,28 @@ arp_entry = FilterEntry('arpentry',
                         sToPort='unspecified',
                         tcpRules='unspecified',
                         parent=contract)
-
+tcp_entry = FilterEntry('tcpentry',
+                        applyToFrag='no',
+                        arpOpc='unspecified',
+                        dFromPort='5000',
+                        dToPort='5010',
+                        etherT='ip',
+                        prot='tcp',
+                        sFromPort='5000',
+                        sToPort='5010',
+                        tcpRules='unspecified',
+                        parent=contract)
+udp_entry = FilterEntry('udpentry',
+                        applyToFrag='no',
+                        arpOpc='unspecified',
+                        dFromPort='5000',
+                        dToPort='5010',
+                        etherT='ip',
+                        prot='udp',
+                        sFromPort='5000',
+                        sToPort='5010',
+                        tcpRules='unspecified',
+                        parent=contract)
 # Provide and consume the Contract
 first_epg.provide(contract)
 second_epg.consume(contract)
