@@ -3622,6 +3622,23 @@ class BaseContract(BaseACIObject):
         result['scope'] = self.get_scope()
         return result
 
+    def get_all_filter_entries(self):
+        """
+        Get all of the filter entries contained within this Contract/Taboo
+        :return: List of FilterEntry instances
+        """
+        entries = []
+        for entry in self.get_children(only_class=FilterEntry):
+            entries.append(entry)
+        for subject in self.get_children(only_class=ContractSubject):
+            for filter in subject.get_children(only_class=Filter):
+                for entry in filter.get_children(only_class=FilterEntry):
+                    entries.append(entry)
+            for filter in subject.get_filters():
+                for entry in filter.get_children(only_class=FilterEntry):
+                    entries.append(entry)
+        return entries
+
 
 class Contract(BaseContract):
     """ Contract :  Class for Contracts """
