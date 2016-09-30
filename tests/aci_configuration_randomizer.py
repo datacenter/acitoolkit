@@ -37,17 +37,18 @@ class Flow(object):
     def __init__(self, ipv4=True, unicast=True):
         self.dmac = None
         self.smac = None
-        self.vlan = 0
+        self.svlan = 0
+        self.dvlan = 0
         self.ethertype = 0
         self.dip = None
         self.sip = None
         self.proto = None
         self.sport = None
         self.dport = None
+        self.arp_opcode = None
         self.src_intf = None
         self.expected_action = None
         self.dst_intf = None
-        self.populate_random_addresses(ipv4, unicast)
 
     @staticmethod
     def _get_random_ipv4_address(unicast=True):
@@ -81,18 +82,40 @@ class Flow(object):
             addr = addr + '-' + str(hex(random_number(0, 255)))[2:].zfill(2)
         return addr
 
-    def populate_random_addresses(self, ipv4=True, unicast=True):
+    def populate_random_mac_addresses(self, unicast=True):
+        if not unicast:
+            raise NotImplementedError
+        self.smac = self._get_random_mac_address()
+        self.dmac = self._get_random_mac_address()
+
+    def populate_random_ip_addresses(self, ipv4=True, unicast=True):
         if not ipv4:
             raise NotImplementedError
         if not unicast:
             raise NotImplementedError
         self.sip = self._get_random_ipv4_address()
         self.dip = self._get_random_ipv4_address(unicast=unicast)
-        self.smac = self._get_random_mac_address()
-        self.dmac = self._get_random_mac_address()
 
     def __str__(self):
-        return 'dmac: ' + self.dmac + '\nsmac: ' + self.smac + '\nsip: ' + self.sip + '\ndip: ' + self.dip
+        resp = 'dmac: ' + self.dmac + ' smac: ' + self.smac
+        resp = resp + ' ethertype: ' + self.ethertype
+        resp = resp + ' svlan: ' + str(self.svlan) + ' dvlan: ' + str(self.dvlan)
+        resp = resp + ' src_intf: ' + str(self.src_intf) + ' dst_intf: ' + str(self.dst_intf)
+        if self.ethertype == 'ip':
+            resp = resp + ' sip: ' + self.sip + ' dip: ' + self.dip
+            if self.proto == '6' or self.proto == '17':
+                resp = resp + ' dport: ' + self.dport + ' sport: ' + self.sport
+        if self.proto is not None:
+            resp = resp + ' proto: ' + self.proto
+        resp = resp + ' expected_action: ' + self.expected_action
+        return resp
+
+    def get_json(self):
+        resp = {}
+        for key in self.__dict__:
+            if self.__dict__[key]:
+                resp[key] = self.__dict__[key]
+        return resp
 
 
 class Limits(object):
@@ -375,8 +398,73 @@ class ConfigRandomizer(object):
         :param num_flows_per_entry: integer indicating how many random flows for each entry to send
         :return: List of Flows
         """
-        # TODO complete this
-        pass
+        flows = []
+        for tenant in self._tenants:
+            for contract in tenant.get_children(only_class=Contract):
+                providing_epgs = contract.get_all_providing_epgs()
+                consuming_epgs = contract.get_all_consuming_epgs()
+                for providing_epg in providing_epgs:
+                    vlan_ifs = providing_epg.get_all_attached(L2Interface)
+                    if len(vlan_ifs):
+                        providing_vlan = vlan_ifs[0].encap_id
+                        phys_ifs = vlan_ifs[0].get_all_attached(Interface)
+                        if len(phys_ifs):
+                            providing_phys_if = phys_ifs[0].name
+                    for consuming_epg in consuming_epgs:
+                        vlan_ifs = consuming_epg.get_all_attached(L2Interface)
+                        if len(vlan_ifs):
+                            consuming_vlan = vlan_ifs[0].encap_id
+                            phys_ifs = vlan_ifs[0].get_all_attached(Interface)
+                            if len(phys_ifs):
+                                consuming_phys_if = phys_ifs[0].name
+                        if providing_vlan == consuming_vlan and providing_phys_if == consuming_phys_if:
+                            # Skip this case since traffic would be switched outside fabric
+                            continue
+                        for filter_entry in contract.get_all_filter_entries():
+                            for i in range(0, num_flows_per_entry):
+                                flow = Flow()
+                                flow.ethertype = filter_entry.etherT
+                                if flow.ethertype == 'arp':
+                                    flow.arp_opcode = filter_entry.arpOpc
+                                elif flow.ethertype == 'ip':
+                                    flow.populate_random_ip_addresses()
+                                    flow.proto = filter_entry.prot
+                                    if flow.proto == '6' or flow.proto == '17':
+                                        dFromPort = int(filter_entry.dFromPort)
+                                        dToPort = int(filter_entry.dToPort)
+                                        sFromPort = int(filter_entry.sFromPort)
+                                        sToPort = int(filter_entry.sToPort)
+                                        if dFromPort == 0:
+                                            dFromPort = 1
+                                            dToPort += 1
+                                        if sFromPort == 0:
+                                            sFromPort = 1
+                                            sToPort += 1
+                                        if dToPort > 65534:
+                                            dToPort = 65534
+                                        if sToPort > 65534:
+                                            sToPort = 65534
+                                        print dFromPort, dToPort, sFromPort, sToPort
+                                        flow.dport = str(random_number(dFromPort,
+                                                                       dToPort))
+                                        flow.sport = str(random_number(sFromPort,
+                                                                       sToPort))
+                                flow.svlan = providing_vlan
+                                flow.dvlan = consuming_vlan
+                                flow.src_intf = providing_phys_if
+                                flow.dst_intf = consuming_phys_if
+
+                                # Is the flow expected to succeed ?
+                                flow.expected_action = 'drop'
+                                providing_bd = providing_epg.get_bd()
+                                consuming_bd = consuming_epg.get_bd()
+                                if providing_bd and consuming_bd:
+                                    if providing_bd == consuming_bd:
+                                        if providing_bd.get_context() == consuming_bd.get_context():
+                                            flow.expected_action = 'permit'
+                                flow.populate_random_mac_addresses()
+                                flows.append(flow)
+        return flows
 
     @property
     def tenants(self):
@@ -431,6 +519,12 @@ def main():
     randomizer = ConfigRandomizer(config)
     interfaces = ['eth 1/101/1/17', 'eth 1/102/1/17']
     randomizer.create_random_config(interfaces)
+    flows = randomizer.get_flows(1)
+    flow_json = []
+    for flow in flows:
+        flow_json.append(flow.get_json())
+    flow_json = {'flows': flow_json}
+
     for tenant in randomizer.tenants:
         print 'TENANT CONFIG'
         print '-------------'
