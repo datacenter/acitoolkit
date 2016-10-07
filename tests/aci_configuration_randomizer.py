@@ -3,6 +3,8 @@ from acitoolkit import (Credentials, Session, Tenant, BridgeDomain, Context, App
 import random
 import string
 import ConfigParser
+import json
+import time
 
 
 def random_chance(percentage):
@@ -229,7 +231,7 @@ class ConfigRandomizer(object):
             vlan_choice = 0
             keep_trying = 100
             while vlan_choice in self._interfaces[interface_choice]:
-                vlan_choice = random_number(1, 4095)
+                vlan_choice = random_number(self._config.get('VLANs', 'Minimum'), self._config.get('VLANs', 'Maximum'))
                 keep_trying -= 1
             if not keep_trying:
                 continue
@@ -444,7 +446,6 @@ class ConfigRandomizer(object):
                                             dToPort = 65534
                                         if sToPort > 65534:
                                             sToPort = 65534
-                                        print dFromPort, dToPort, sFromPort, sToPort
                                         flow.dport = str(random_number(dFromPort,
                                                                        dToPort))
                                         flow.sport = str(random_number(sFromPort,
@@ -523,7 +524,7 @@ def main():
     flow_json = []
     for flow in flows:
         flow_json.append(flow.get_json())
-    flow_json = {'flows': flow_json}
+    flow_json = json.dumps({'flows': flow_json})
 
     for tenant in randomizer.tenants:
         print 'TENANT CONFIG'
