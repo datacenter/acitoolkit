@@ -231,7 +231,8 @@ class ConfigRandomizer(object):
             vlan_choice = 0
             keep_trying = 100
             while vlan_choice in self._interfaces[interface_choice]:
-                vlan_choice = random_number(self._config.get('VLANs', 'Minimum'), self._config.get('VLANs', 'Maximum'))
+                vlan_choice = random_number(int(self._config.get('VLANs', 'Minimum')),
+                                            int(self._config.get('VLANs', 'Maximum')))
                 keep_trying -= 1
             if not keep_trying:
                 continue
