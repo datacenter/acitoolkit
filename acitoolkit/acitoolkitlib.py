@@ -34,8 +34,9 @@ import argparse
 import getpass
 import os
 import acitoolkit
-import aciphysobject
 import inspect
+
+from . import aciphysobject
 from graphviz import Digraph
 
 
