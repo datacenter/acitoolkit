@@ -19,7 +19,10 @@
 from copy import deepcopy
 import json
 import re
-import urlparse
+try:
+    import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 
 from .acisession import Session
 import logging
