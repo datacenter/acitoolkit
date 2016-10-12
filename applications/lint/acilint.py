@@ -36,7 +36,7 @@ from acitoolkit.acitoolkit import OutputTerminal, Filter, FilterEntry
 from acitoolkit.acitoolkit import Credentials, Session
 from acitoolkit.acifakeapic import FakeSession
 import argparse
-import ipaddr
+import ipaddress
 
 
 class Checker(object):
@@ -435,7 +435,7 @@ class Checker(object):
                 if current_context not in context_info:
                     context_info[current_context] = {'v4list': [], 'v6list': []}
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
+                    ip_subnet = ipaddress.ip_interface(unicode(subnet.addr))
                     index = 0
                     index_to_insert = 0
                     if ip_subnet.version == 4:
@@ -530,8 +530,8 @@ class Checker(object):
                     # BridgeDomain Context has no associated ExternalNetworks so ignore it.
                     continue
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
-                    ip_subnet_str = "%s/%s" % (ip_subnet.network, ip_subnet.prefixlen)
+                    ip_subnet = ipaddress.ip_interface(unicode(subnet.addr))
+                    ip_subnet_str = ip_subnet.network
                     if ip_subnet_str in context_set[bd_ctxt.name]:
                         for subnet_info in context_set[bd_ctxt.name][ip_subnet_str]:
                             self.output_handler("Error 006: Subnet %s in Tenant/Context/BridgeDomain "

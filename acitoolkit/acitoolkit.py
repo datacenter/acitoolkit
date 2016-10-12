@@ -213,7 +213,7 @@ class Tenant(BaseACIObject):
                     objs.append(obj)
                     resp.append(obj)
                 else:
-                    print name, 'resulted in a null object'
+                    print(name, 'resulted in a null object')
         obj_dict = build_object_dictionary(objs)
         for obj in objs:
             obj._extract_relationships(full_data, obj_dict)
