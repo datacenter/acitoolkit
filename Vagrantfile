@@ -69,6 +69,7 @@ Vagrant.configure(2) do |config|
   sudo apt-get install python-pip -y
   sudo apt-get install git -y
   sudo apt-get install python-dev -y
+  sudo apt-get install -y python-pygraphviz
   git clone https://github.com/datacenter/acitoolkit.git
   cd acitoolkit
   sudo python setup.py develop
