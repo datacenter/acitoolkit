@@ -287,6 +287,11 @@ class TestTenant(unittest.TestCase):
         tenants = [Tenant('tenant1'), Tenant('tenant2'), Tenant('tenant3')]
         self.assertTrue(isinstance(Tenant.get_table(tenants)[0], Table))
 
+    def test_bad_parent(self):
+        fabric = Fabric()
+        tenant = Tenant('mytenant', parent=fabric)
+        self.assertRaises(TypeError, Tenant, 'badtenant', tenant)
+
 
 class TestAppProfile(unittest.TestCase):
     """
@@ -4336,13 +4341,16 @@ class TestLiveContractInterface(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
         consumer_tenant = Tenant('aci-toolkit-test-consumer')
+        consumer_app = AppProfile('consumer-app', consumer_tenant)
+        consumer_epg = EPG('consumerappepg', consumer_app)
         context = Context('mycontext', consumer_tenant)
         l3out = OutsideL3('myl3out', consumer_tenant)
-        consumer_epg = OutsideEPG('consumerepg', l3out)
-        consumer_network = OutsideNetwork('5.1.1.1', consumer_epg)
+        consumer_outside_epg = OutsideEPG('consumerepg', l3out)
+        consumer_network = OutsideNetwork('5.1.1.1', consumer_outside_epg)
         consumer_network.ip = '5.1.1.1/8'
         contract_if = ContractInterface('mycontract', consumer_tenant)
         contract_if.import_contract(contract)
+        consumer_outside_epg.consume_cif(contract_if)
         consumer_epg.consume_cif(contract_if)
         resp = consumer_tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
