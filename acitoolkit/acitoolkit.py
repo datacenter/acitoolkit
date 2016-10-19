@@ -52,6 +52,7 @@ class Tenant(BaseACIObject):
     object model.  In the APIC model, this class is roughly equivalent to
     the fvTenant class.
     """
+
     def __init__(self, name, parent=None):
         """
         :param name: String containing the Tenant name
@@ -308,6 +309,10 @@ class AppProfile(BaseACIObject):
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/ap-', '/']
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/ap-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
 
     @classmethod
     def _get_name_from_dn(cls, dn):
@@ -710,6 +715,7 @@ class CommonEPG(BaseACIObject):
 
 class AttributeCriterion(BaseACIObject):
     """ AttributeCriterion : roughly equivalent to fvCrtrn """
+
     def __init__(self, name, parent=None):
         """
         Initializes the AttributeCriterion with a name and optionally an EPG parent
@@ -734,6 +740,11 @@ class AttributeCriterion(BaseACIObject):
         :returns: class of parent object
         """
         return EPG
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/ap-%s/epg-%s/crtrn.json?subscription=yes' % (
+            self._parent._parent._parent.name, self._parent._parent.name, self._parent.name)
+        return [url]
 
     @staticmethod
     def _get_name_dn_delimiters():
@@ -895,6 +906,11 @@ class EPG(CommonEPG):
         :returns: class of parent object
         """
         return AppProfile
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/ap-%s/epg-%s.json?subscription=yes' % (
+            self._parent._parent.name, self._parent.name, self.name)
+        return [url]
 
     @staticmethod
     def _get_name_dn_delimiters():
@@ -1458,6 +1474,11 @@ class OutsideEPG(CommonEPG):
 
         super(OutsideEPG, self)._extract_relationships(data, obj_dict)
 
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/out-%s/instP-%s.json?subscription=yes' % (
+            self._parent._parent.name, self._parent.name, self.name)
+        return [url]
+
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/instP-', '/']
@@ -1586,6 +1607,10 @@ class AnyEPG(CommonEPG):
             text = {'vzRsAnyToConsIf': {'attributes': {'status': 'deleted', 'tnVzCPIfName': contract_interface.name}}}
             children.append(text)
         return children
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/ctx-%s/any.json?subscription=yes' % (self._parent._parent.name, self._parent.name)
+        return [url]
 
     @staticmethod
     def _get_name_dn_delimiters():
@@ -1801,6 +1826,10 @@ class OutsideL3(BaseACIObject):
         return super(OutsideL3, self).get_json('l3extOut',
                                                attributes=attr,
                                                children=children)
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/out-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
 
     @staticmethod
     def _get_name_dn_delimiters():
@@ -2414,6 +2443,10 @@ class BridgeDomain(BaseACIObject):
     def _get_name_dn_delimiters():
         return ['/BD-', '/']
 
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/BD-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
+
     def set_unknown_mac_unicast(self, unicast):
         """
         Set the unknown mac unicast for this BD
@@ -2813,6 +2846,7 @@ class BaseSubnet(BaseACIObject):
     """
     Base class for Subnet and OutsideNetwork
     """
+
     def __init__(self, name, parent=None):
         """
         :param name: String containing the name of this instance.
@@ -3016,6 +3050,11 @@ class Subnet(BaseSubnet):
         result['scope'] = self.get_scope()
         return result
 
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/BD-%s/subnet-[%s].json?subscription=yes' % (
+            self._parent._parent.name, self._parent.name, self.ip)
+        return [url]
+
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/subnet-[', '/']
@@ -3058,6 +3097,7 @@ class OutsideNetwork(BaseSubnet):
     """
     OutsideNetwork class, roughly equivalent to l3extSubnet in the APIC model
     """
+
     def __init__(self, name, parent):
         super(OutsideNetwork, self).__init__(name, parent)
 
@@ -3161,6 +3201,10 @@ class Context(BaseACIObject):
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/ctx-', '/']
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/ctx-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
 
     @staticmethod
     def _get_tenant_from_dn(dn):
@@ -3371,6 +3415,10 @@ class ContractInterface(BaseACIObject):
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/cif-', '/']
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/cif-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
 
     @staticmethod
     def _get_tenant_from_dn(dn):
@@ -3638,6 +3686,10 @@ class Contract(BaseContract):
     def _get_name_dn_delimiters():
         return ['/brc-', '/']
 
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/brc-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
+
     @classmethod
     def _get_name_from_dn(cls, dn):
         """
@@ -3825,13 +3877,13 @@ class ContractSubject(BaseACIObject):
                                                 found = False
                                                 for specific_filter in all_filters:
                                                     if specific_filter.name == filt_name and \
-                                                                    specific_filter.get_parent() == tenant:
+                                                            specific_filter.get_parent() == tenant:
                                                         self.add_filter(specific_filter)
                                                         found = True
                                                 if not found:
                                                     for specific_filter in all_filters:
                                                         if specific_filter.name == filt_name and \
-                                                                        specific_filter.get_parent().name == 'common':
+                                                                specific_filter.get_parent().name == 'common':
                                                             self.add_filter(specific_filter)
                         except KeyError:
                             pass
@@ -3897,6 +3949,11 @@ class ContractSubject(BaseACIObject):
                 resp.append(relation.item)
         return resp
 
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/brc-%s/subj-%s.json?subscription=yes' % (
+            self._parent._parent.name, self._parent.name, self.name)
+        return [url]
+
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/subj-', '/']
@@ -3904,6 +3961,7 @@ class ContractSubject(BaseACIObject):
 
 class Filter(BaseACIObject):
     """ Filter : roughly equivalent to vzFilter """
+
     def __init__(self, filter_name, parent=None):
         # Backward compatibility, allows the use of Filters that are attached to
         # ContractSubject instead of Tenants
@@ -3948,7 +4006,6 @@ class Filter(BaseACIObject):
 
     @classmethod
     def get_by_name_and_tenant(cls, session, tenant, filter_name):
-
         """
         Returns the Filter Object with name == filter_name and tenant == tenant
 
@@ -3987,6 +4044,10 @@ class Filter(BaseACIObject):
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/flt-', '/']
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/flt-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
 
     def has_entry(self, applyToFrag, arpOpc, dFromPort, dToPort, etherT, prot, sFromPort, sToPort,
                   tcpRules, stateful):
@@ -4030,6 +4091,10 @@ class Taboo(BaseContract):
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/taboo-', '/']
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/taboo-%s.json?subscription=yes' % (self._parent.name, self.name)
+        return [url]
 
     @staticmethod
     def get_table(taboos, title=''):
@@ -4282,6 +4347,10 @@ class FilterEntry(BaseACIObject):
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
 
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/flt-%s/e-%s.json?subscription=yes' % (self._parent.name, self._parent.name, self.name)
+        return [url]
+
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/e-', '/']
@@ -4302,6 +4371,7 @@ class BaseTerminal(BaseACIObject):
     """
     Base class for Input terminal and output terminal
     """
+
     def __init__(self, terminal_name, parent=None):
         super(BaseTerminal, self).__init__(terminal_name, parent)
 
@@ -4360,7 +4430,7 @@ class BaseTerminal(BaseACIObject):
         if len(contract_data):
             for child in contract_data:
                 if 'vzBrCP' in child and 'children' in child['vzBrCP'] and \
-                                child['vzBrCP']['attributes']['name'] == contract.name:
+                        child['vzBrCP']['attributes']['name'] == contract.name:
                     for subj in child['vzBrCP']['children']:
                         if 'vzSubj' in subj and \
                                 subj['vzSubj']['attributes']['name'] == contract_subject.name and \
@@ -4378,7 +4448,7 @@ class BaseTerminal(BaseACIObject):
                                                         found = False
                                                         for specific_filter in all_filters:
                                                             if specific_filter.name == filt_name and \
-                                                                            specific_filter.get_parent() == tenant:
+                                                                    specific_filter.get_parent() == tenant:
                                                                 self.add_filter(specific_filter)
                                                                 found = True
                                                         if not found:
@@ -4757,6 +4827,11 @@ class Endpoint(BaseACIObject):
         """
         return EPG
 
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/tn-%s/ap-%s/epg-%s/cep-%s.json?subscription=yes' % (
+            self._parent._parent._parent.name, self._parent._parent.name, self._parent.name, self.name)
+        return [url]
+
     @staticmethod
     def _get_parent_dn(dn):
         """
@@ -5117,6 +5192,7 @@ class IPEndpoint(BaseACIObject):
     """
     Endpoint class
     """
+
     def __init__(self, name, parent):
         # if not isinstance(parent, EPG):
         #     raise TypeError('Parent must be of EPG class')
@@ -5510,7 +5586,6 @@ class VmmDomain(BaseACIObject):
 
     @classmethod
     def get(cls, session):
-
         """
         Gets all of the VMM Domains from the APIC
 
@@ -5630,7 +5705,6 @@ class L2ExtDomain(BaseACIObject):
 
     @classmethod
     def get(cls, session):
-
         """
         Gets all of the L2Ext Domains from the APIC
 
@@ -5661,7 +5735,6 @@ class L2ExtDomain(BaseACIObject):
 
     @classmethod
     def get_by_name(cls, session, infra_name):
-
         """
         Gets all of the Physical Domainss from the APIC
 
@@ -5752,7 +5825,6 @@ class L3ExtDomain(BaseACIObject):
 
     @classmethod
     def get(cls, session):
-
         """
         Gets all of the Physical Domains from the APIC
 
@@ -5784,7 +5856,6 @@ class L3ExtDomain(BaseACIObject):
 
     @classmethod
     def get_by_name(cls, session, infra_name):
-
         """
         Gets all of the L3Ext Domains from the APIC
 
@@ -5941,7 +6012,6 @@ class EPGDomain(BaseACIObject):
 
     @classmethod
     def get_by_name(cls, session, infra_name):
-
         """
         Gets all of the Physical Domains from the APIC
 
@@ -5975,7 +6045,6 @@ class EPGDomain(BaseACIObject):
 
     @classmethod
     def get(cls, session):
-
         """
         Gets all of the Physical Domains from the APIC
 
@@ -6022,6 +6091,10 @@ class EPGDomain(BaseACIObject):
 
             resp.append(obj)
         return resp
+
+    def _get_instance_subscription_urls(self):
+        url = '/api/mo/uni/phys-allvlans.json?subscription=yes'
+        return [url]
 
 
 class NetworkPool(BaseACIObject):
@@ -6882,6 +6955,7 @@ class CollectionPolicy(BaseMonitorClass):
 
 
 class Tag(_Tag):
+
     @staticmethod
     def _get_parent_class():
         """
