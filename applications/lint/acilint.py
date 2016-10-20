@@ -45,20 +45,20 @@ class Checker(object):
     provided configuration.
     """
     def __init__(self, session, output, fh=None):
-        print 'Getting configuration from APIC....'
+        print('Getting configuration from APIC....')
         self.tenants = Tenant.get_deep(session)
         self.output = output
         self.file = fh
-        print 'Processing configuration....'
+        print('Processing configuration....')
 
     def output_handler(self, msg):
         """
-        Print the supplied string in a format appropriate to the output medium.
+        Print(the supplied string in a format appropriate to the output medium.)
 
         :param msg: The message to be printed.
         """
         if self.output == 'console':
-            print msg
+            print(msg)
         elif self.output == 'html':
 
             color_map = {'Error': '#FF8C00',
@@ -606,7 +606,7 @@ def acilint():
     creds.add_argument('-o', '--output', required=False, default='console')
     args = creds.get()
     if args.generateconfigfile:
-        print 'Generating configuration file....'
+        print('Generating configuration file....')
         f = args.generateconfigfile
         f.write(('# acilint configuration file\n# Remove or comment out any '
                  'warnings or errors that you no longer wish to see\n'))
@@ -637,12 +637,12 @@ def acilint():
         session = Session(args.url, args.login, args.password)
         resp = session.login()
         if not resp.ok:
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
             sys.exit(0)
 
     html = None
     if args.output == 'html':
-        print 'Creating file lint.html'
+        print('Creating file lint.html')
         html = open('lint.html', 'w')
         html.write("""
         <table border="2" style="width:100%">
