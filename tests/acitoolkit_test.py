@@ -362,7 +362,7 @@ class TestTenant(unittest.TestCase):
         """
         Ensure class has the correct parent class
         """
-        self.assertEquals(Tenant._get_parent_class(), LogicalModel)
+        self.assertEqual(Tenant._get_parent_class(), LogicalModel)
 
     def test_get_name_from_dn(self):
         """
@@ -426,7 +426,7 @@ class TestAppProfile(unittest.TestCase):
         """
         Test AppProfile._get_parent_class returns Tenant class
         """
-        self.assertEquals(AppProfile._get_parent_class(), Tenant)
+        self.assertEqual(AppProfile._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
@@ -434,7 +434,7 @@ class TestAppProfile(unittest.TestCase):
         parent
         """
         dn = 'uni/tn-tenant/ap-test'
-        self.assertEquals(AppProfile._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(AppProfile._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
@@ -442,7 +442,7 @@ class TestAppProfile(unittest.TestCase):
         derived from the dn provided
         """
         dn = 'uni/tn-tenant/ap-test'
-        self.assertEquals(AppProfile._get_name_from_dn(dn), 'test')
+        self.assertEqual(AppProfile._get_name_from_dn(dn), 'test')
 
     def test_delete(self):
         """
@@ -559,7 +559,7 @@ class TestBridgeDomain(unittest.TestCase):
         """
         Test that BridgeDomain._get_parent_class returns Tenant class
         """
-        self.assertEquals(BridgeDomain._get_parent_class(), Tenant)
+        self.assertEqual(BridgeDomain._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
@@ -567,7 +567,7 @@ class TestBridgeDomain(unittest.TestCase):
         parent
         """
         dn = 'uni/tn-tenant/BD-test'
-        self.assertEquals(BridgeDomain._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(BridgeDomain._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
@@ -575,7 +575,7 @@ class TestBridgeDomain(unittest.TestCase):
         derived from the dn provided
         """
         dn = 'uni/tn-tenant/BD-test'
-        self.assertEquals(BridgeDomain._get_name_from_dn(dn), 'test')
+        self.assertEqual(BridgeDomain._get_name_from_dn(dn), 'test')
 
     def test_valid_delete(self):
         """
@@ -1245,21 +1245,21 @@ class TestContract(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(Contract._get_parent_class(), Tenant)
+        self.assertEqual(Contract._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/brc-test'
-        self.assertEquals(Contract._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(Contract._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
         Test getting the contract name from _get_parent_dn method
         """
         dn = 'uni/tn-tenant/brc-test'
-        self.assertEquals(Contract._get_name_from_dn(dn), 'test')
+        self.assertEqual(Contract._get_name_from_dn(dn), 'test')
 
     def test_internal_generate_attributes(self):
         """
@@ -1287,7 +1287,7 @@ class TestContractSubject(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(ContractSubject._get_parent_class(), [Contract, Taboo])
+        self.assertEqual(ContractSubject._get_parent_class(), [Contract, Taboo])
 
     def test_get_json(self):
         """
@@ -1343,7 +1343,7 @@ class TestInputTerminal(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(InputTerminal._get_parent_class(), ContractSubject)
+        self.assertEqual(InputTerminal._get_parent_class(), ContractSubject)
 
     def test_get_json(self):
         """
@@ -1385,7 +1385,7 @@ class TestOutputTerminal(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(OutputTerminal._get_parent_class(), ContractSubject)
+        self.assertEqual(OutputTerminal._get_parent_class(), ContractSubject)
 
     def test_get_json(self):
         """
@@ -1509,21 +1509,21 @@ class TestTaboo(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(Taboo._get_parent_class(), Tenant)
+        self.assertEqual(Taboo._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/taboo-test'
-        self.assertEquals(Taboo._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(Taboo._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
         Test _get_name_from_dn method
         """
         dn = 'uni/tn-tenant/taboo-test'
-        self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
+        self.assertEqual(Taboo._get_name_from_dn(dn), 'test')
 
     def test_get_table(self):
         """
@@ -1581,21 +1581,21 @@ class TestEPG(unittest.TestCase):
         """
         Test EPG parent class is AppProfile
         """
-        self.assertEquals(EPG._get_parent_class(), AppProfile)
+        self.assertEqual(EPG._get_parent_class(), AppProfile)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/ap-app/epg-test'
-        self.assertEquals(EPG._get_parent_dn(dn), 'uni/tn-tenant/ap-app')
+        self.assertEqual(EPG._get_parent_dn(dn), 'uni/tn-tenant/ap-app')
 
     def test_get_name_from_dn(self):
         """
         Test _get_name_from_dn method
         """
         dn = 'uni/tn-tenant/ap-app/epg-test'
-        self.assertEquals(EPG._get_name_from_dn(dn), 'test')
+        self.assertEqual(EPG._get_name_from_dn(dn), 'test')
 
     def test_valid_add_bd(self):
         """
@@ -1914,7 +1914,7 @@ class TestEPG(unittest.TestCase):
         epg.protect(taboo)
         output = tenant.get_json()
         self.assertIn('fvRsProtBy', str(output))
-        self.assertEquals(str(output).count('fvRsProtBy'), 1)
+        self.assertEqual(str(output).count('fvRsProtBy'), 1)
 
     def test_does_protect(self):
         """
@@ -2820,21 +2820,21 @@ class TestContext(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(Context._get_parent_class(), Tenant)
+        self.assertEqual(Context._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/ctx-test'
-        self.assertEquals(Context._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(Context._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
         Test _get_name_from_dn method
         """
         dn = 'uni/tn-tenant/ctx-test'
-        self.assertEquals(Context._get_name_from_dn(dn), 'test')
+        self.assertEqual(Context._get_name_from_dn(dn), 'test')
 
     def test_set_allow_all(self):
         """
@@ -3017,7 +3017,7 @@ class TestLiveTenant(TestLiveAPIC):
         for tenant in tenants:
             self.assertTrue(isinstance(tenant, Tenant))
             self.assertTrue(isinstance(tenant.name, str))
-            self.assertEquals(tenant.get_parent(), logical_model)
+            self.assertEqual(tenant.get_parent(), logical_model)
 
     def test_get_deep_tenants(self):
         """
@@ -3994,7 +3994,7 @@ class TestLivePhysDomain(TestLiveAPIC):
 
         # Test get by name function (passing conditional to successfully find name)
         phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
-        self.assertEquals(phys_domain_by_name, new_phys_domain)
+        self.assertEqual(phys_domain_by_name, new_phys_domain)
 
         # Delete new phys domain
         new_phys_domain.mark_as_deleted()
@@ -4929,4 +4929,4 @@ if __name__ == '__main__':
     develop.addTest(unittest.makeSuite(TestBaseRelation))
     develop.addTest(unittest.makeSuite(TestBaseACIObject))
 
-    unittest.main(defaultTest='develop')
+    unittest.main(defaultTest='offline')
