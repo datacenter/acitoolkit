@@ -4,7 +4,7 @@ Test suite for Intersite application
 import unittest
 from acitoolkit import (AppProfile, EPG, Endpoint, Interface, L2Interface, Context, BridgeDomain, Session, Tenant,
                         IPEndpoint, OutsideL3, OutsideEPG, OutsideNetwork, Contract)
-from intersite import execute_tool, IntersiteTag
+from intersite import execute_tool, IntersiteTag, CommandLine
 import logging
 from StringIO import StringIO
 import mock
@@ -2637,6 +2637,91 @@ class TestDeletions(BaseEndpointTestCase):
                                                            'l3out', 'intersite-testsuite-app-epg'))
 
 
+class TestCli(BaseTestCase):
+    """
+    Tests for the CLI
+    """
+    def setup_remote_site(self):
+        """
+        Set up the remote site.
+        """
+        pass
+
+    def setup_local_site(self):
+        """
+        Set up the local site.
+        """
+        pass
+
+    def teardown_local_site(self):
+        """
+        Teardown the local site configuration
+        """
+        pass
+
+    def teardown_remote_site(self):
+        """
+        Teardown the remote site configuration
+        """
+        pass
+
+    def _create_commandline(self):
+        """
+        Internal function to create a CommandLine instance
+        """
+        args = self.get_args()
+        self.write_config_file(self.create_site_config(), args)
+        cmdline = CommandLine(execute_tool(args, test_mode=True))
+        self.assertTrue(isinstance(cmdline, CommandLine))
+        return cmdline
+
+    def _test_show_cmd(self, cmd, output):
+        """
+        Internal common function for checking show commands
+        :param cmd: String containing show command keyword
+        :param output: List of strings to compare with the command output
+        """
+        cmdline = self._create_commandline()
+        temp = sys.stdout
+        fake_out = FakeStdio()
+        sys.stdout = fake_out
+        cmdline.do_show(cmd)
+        sys.stdout = temp
+        self.assertTrue(fake_out.verify_output(output))
+
+    def test_show_debug(self):
+        """
+        Test show debug command
+        """
+        self._test_show_cmd('debug', ['Debug level currently set to:', ' ', 'CRITICAL', '\n'])
+
+    def test_show_configfile(self):
+        """
+        Test show configfile command
+        """
+        self._test_show_cmd('configfile', ['Configuration file is set to:', ' ', 'testsuite_cfg.json', '\n'])
+
+    def test_show_config(self):
+        """
+        Test show config command
+        """
+        self._test_show_cmd('config', [json.dumps(self.create_site_config(), indent=4, separators=(',', ':')), '\n'])
+
+    def test_show_sites(self):
+        """
+        Test show sites command
+        """
+        self._test_show_cmd('sites', [u'Site1', ' ', ':', ' ', 'Connected', '\n',
+                                      u'Site2', ' ', ':', ' ', 'Connected', '\n'])
+
+    def test_show_stats(self):
+        """
+        Test show stats command
+        """
+        self._test_show_cmd('stats', ['Endpoint addition events:', ' ', '0', '\n',
+                                      'Endpoint deletion events:', ' ', '0', '\n'])
+
+
 def main_test():
     """
     Main execution routine.  Create the test suites and run.
@@ -2656,6 +2741,7 @@ def main_test():
     full.addTest(unittest.makeSuite(TestDuplicates))
     full.addTest(unittest.makeSuite(TestDuplicatesTwoL3Outs))
     full.addTest(unittest.makeSuite(TestDeletions))
+    full.addTest(unittest.makeSuite(TestCli))
 
     unittest.main()
 
