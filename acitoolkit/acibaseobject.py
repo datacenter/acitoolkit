@@ -88,6 +88,9 @@ class BaseRelation(object):
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
 
+    def __hash__(self):
+        return hash(attrgetter('item', 'status', 'relation_type'))
+
     def __ne__(self, other):
         return not self == other
 
