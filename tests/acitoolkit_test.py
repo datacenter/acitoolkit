@@ -248,6 +248,40 @@ class TestBaseACIObject(unittest.TestCase):
         obj1.detach(obj2)
         self.assertFalse(obj1.is_attached(obj2))
 
+    def test_hashing_based_on_eq_same_object(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        obj1 = MockACIObject('mock')
+        obj2 = MockACIObject('mock')
+        self.assertTrue(obj1 == obj2)
+        test_dic = {}
+        test_dic[obj1] = 5
+        test_dic[obj2] = 5
+        """
+        obj1 == obj2 in this case as per __eq__, this means that there should
+        only be one entry in the dictonary, otherwise we have duplicated keys.
+        See: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        self.assertEqual(len(test_dic), 1)  
+
+    def test_hashing_based_on_eq_multiple_objects(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        obj1 = MockACIObject('mock')
+        obj2 = MockACIObject('mock')
+        obj3 = MockACIObject('mock2')
+        self.assertTrue(obj1 == obj2)
+        self.assertFalse(obj1 == obj3)
+        self.assertFalse(obj2 == obj3)
+        test_dic = {}
+        test_dic[obj1] = 5
+        test_dic[obj2] = 5
+        test_dic[obj3] = 5
+        self.assertEqual(len(test_dic), 2)
 
 class TestTenant(unittest.TestCase):
     """
