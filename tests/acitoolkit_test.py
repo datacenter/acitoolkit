@@ -152,6 +152,52 @@ class TestBaseRelation(unittest.TestCase):
         self.assertFalse(relation.is_attached())
         self.assertTrue(relation.is_detached())
 
+    def test_eq(self):
+        """
+        Test __eq__
+        """
+        tenant, relation = self.create_attached_relation()
+        tenant2, relation2 = self.create_attached_relation()
+        self.assertEqual(relation, relation2)
+
+    def test_hashing_based_on_eq_same_object(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        tenant, relation = self.create_attached_relation()
+        tenant2, relation2 = self.create_attached_relation()
+        test_dic = {}
+        test_dic[relation] = 5
+        test_dic[relation2] = 10
+        """
+        obj1 == obj2 in this case as per __eq__, this means that there should
+        only be one entry in the dictonary, otherwise we have duplicated keys.
+        See: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        self.assertEqual(len(test_dic), 1)  
+        self.assertEqual(test_dic[relation], 10)  
+        self.assertEqual(test_dic[relation2], 10)  
+
+    def test_hashing_based_on_eq_multiple_objects(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        tenant, relation = self.create_attached_relation()
+        tenant2, relation2 = self.create_attached_relation()
+        tenant3, relation3 = self.create_detached_relation()
+        self.assertEqual(relation, relation2)
+        self.assertNotEqual(relation, relation3)
+        self.assertNotEqual(relation2, relation3)
+        test_dic = {}
+        test_dic[relation] = 5
+        test_dic[relation2] = 10
+        test_dic[relation3] = 5
+        self.assertEqual(len(test_dic), 2)
+        self.assertEqual(test_dic[relation], 10)
+        self.assertEqual(test_dic[relation2], 10)
+
 
 class MockACIObject(BaseACIObject):
     """
@@ -248,6 +294,14 @@ class TestBaseACIObject(unittest.TestCase):
         obj1.detach(obj2)
         self.assertFalse(obj1.is_attached(obj2))
 
+    def test_eq(self):
+        """
+        Test __eq__
+        """
+        obj1 = MockACIObject('mock')
+        obj2 = MockACIObject('mock')
+        self.assertEqual(obj1, obj2)
+
     def test_hashing_based_on_eq_same_object(self):
         """
         Test that the __hash__ works according to __eq__
@@ -255,7 +309,6 @@ class TestBaseACIObject(unittest.TestCase):
         """
         obj1 = MockACIObject('mock')
         obj2 = MockACIObject('mock')
-        self.assertTrue(obj1 == obj2)
         test_dic = {}
         test_dic[obj1] = 5
         test_dic[obj2] = 10
@@ -276,9 +329,9 @@ class TestBaseACIObject(unittest.TestCase):
         obj1 = MockACIObject('mock')
         obj2 = MockACIObject('mock')
         obj3 = MockACIObject('mock2')
-        self.assertTrue(obj1 == obj2)
-        self.assertFalse(obj1 == obj3)
-        self.assertFalse(obj2 == obj3)
+        self.assertEqual(obj1, obj2)
+        self.assertNotEqual(obj1, obj3)
+        self.assertNotEqual(obj2, obj3)
         test_dic = {}
         test_dic[obj1] = 5
         test_dic[obj2] = 10
