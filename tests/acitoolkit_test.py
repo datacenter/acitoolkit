@@ -258,13 +258,15 @@ class TestBaseACIObject(unittest.TestCase):
         self.assertTrue(obj1 == obj2)
         test_dic = {}
         test_dic[obj1] = 5
-        test_dic[obj2] = 5
+        test_dic[obj2] = 10
         """
         obj1 == obj2 in this case as per __eq__, this means that there should
         only be one entry in the dictonary, otherwise we have duplicated keys.
         See: https://github.com/datacenter/acitoolkit/issues/233
         """
         self.assertEqual(len(test_dic), 1)  
+        self.assertEqual(test_dic[obj1], 10)  
+        self.assertEqual(test_dic[obj2], 10)  
 
     def test_hashing_based_on_eq_multiple_objects(self):
         """
@@ -279,9 +281,11 @@ class TestBaseACIObject(unittest.TestCase):
         self.assertFalse(obj2 == obj3)
         test_dic = {}
         test_dic[obj1] = 5
-        test_dic[obj2] = 5
+        test_dic[obj2] = 10
         test_dic[obj3] = 5
         self.assertEqual(len(test_dic), 2)
+        self.assertEqual(test_dic[obj1], 10)
+        self.assertEqual(test_dic[obj2], 10)
 
 class TestTenant(unittest.TestCase):
     """
@@ -4869,5 +4873,7 @@ if __name__ == '__main__':
     # Add tests to this suite while developing the tests
     # This allows only these tests to be run
     develop = unittest.TestSuite()
+    develop.addTest(unittest.makeSuite(TestBaseRelation))
+    develop.addTest(unittest.makeSuite(TestBaseACIObject))
 
-    unittest.main(defaultTest='offline')
+    unittest.main(defaultTest='develop')
