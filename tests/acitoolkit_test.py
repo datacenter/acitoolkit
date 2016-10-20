@@ -171,9 +171,8 @@ class TestBaseRelation(unittest.TestCase):
         test_dic[relation] = 5
         test_dic[relation2] = 10
         """
-        obj1 == obj2 in this case as per __eq__, this means that there should
+        relation == relation2 in this case as per __eq__, this means that there should
         only be one entry in the dictonary, otherwise we have duplicated keys.
-        See: https://github.com/datacenter/acitoolkit/issues/233
         """
         self.assertEqual(len(test_dic), 1)  
         self.assertEqual(test_dic[relation], 10)  
@@ -315,7 +314,6 @@ class TestBaseACIObject(unittest.TestCase):
         """
         obj1 == obj2 in this case as per __eq__, this means that there should
         only be one entry in the dictonary, otherwise we have duplicated keys.
-        See: https://github.com/datacenter/acitoolkit/issues/233
         """
         self.assertEqual(len(test_dic), 1)  
         self.assertEqual(test_dic[obj1], 10)  
