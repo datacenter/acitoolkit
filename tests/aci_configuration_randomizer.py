@@ -51,6 +51,7 @@ class Flow(object):
         self.src_intf = None
         self.expected_action = None
         self.dst_intf = None
+        self.tcp_rules = None
 
     @staticmethod
     def _get_random_ipv4_address(unicast=True):
@@ -107,6 +108,8 @@ class Flow(object):
             resp = resp + ' sip: ' + self.sip + ' dip: ' + self.dip
             if self.proto == '6' or self.proto == '17':
                 resp = resp + ' dport: ' + self.dport + ' sport: ' + self.sport
+            if self.proto == '6':
+                resp = resp + ' tcp_rules: ' + self.tcp_rules
         if self.proto is not None:
             resp = resp + ' proto: ' + self.proto
         resp = resp + ' expected_action: ' + self.expected_action
@@ -313,8 +316,22 @@ class ConfigRandomizer(object):
                             if dFromPort != '0' or dToPort != '0' or sFromPort != '0' or sToPort != '0':
                                 applyToFrag = '0'
                             if prot == ip_protocols['tcp']:
+                                # Randomly choose whether to specify tcpRules
                                 if random_chance(30):
-                                    tcpRules = random.choice(['est', 'syn', 'ack', 'fin'])
+                                    # TODO: should actually take odds from the config file
+                                    # Choose a random number of the possible tcpRules but
+                                    # if est is chosen, then it must be the only tcpRule. Otherwise, APIC rejects it
+                                    tcp_rule_choices = []
+                                    tcp_rule_possibilities = ['est', 'syn', 'ack', 'fin', 'rst']
+                                    tcp_choice = random.choice(tcp_rule_possibilities)
+                                    tcp_rule_choices.append(tcp_choice)
+                                    while tcp_choice != 'est':
+                                        tcp_choice = random.choice(tcp_rule_possibilities)
+                                        if tcp_choice != 'est' and tcp_choice not in tcp_rule_choices:
+                                            tcp_rule_choices.append(tcp_choice)
+                                    tcpRules = ''
+                                    for tcp_choice in tcp_rule_choices:
+                                        tcpRules += str(tcp_choice) + ','
                 parent = random.choice(filters)
                 if not parent.has_entry(applyToFrag, arpOpc, dFromPort, dToPort, etherT, prot, sFromPort, sToPort,
                                         tcpRules, stateful):
@@ -451,6 +468,8 @@ class ConfigRandomizer(object):
                                                                        dToPort))
                                         flow.sport = str(random_number(sFromPort,
                                                                        sToPort))
+                                        if flow.proto == '6':
+                                            flow.tcp_rules = filter_entry.tcpRules
                                 flow.svlan = providing_vlan
                                 flow.dvlan = consuming_vlan
                                 flow.src_intf = providing_phys_if

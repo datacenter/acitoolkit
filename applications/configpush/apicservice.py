@@ -793,8 +793,8 @@ class ApicService(GenericService):
                                         dToPort=whitelist_policy.port_max,
                                         etherT='ip',
                                         prot=whitelist_policy.proto,
-                                        sFromPort='1',
-                                        sToPort='65535',
+                                        sFromPort='unspecified',
+                                        sToPort='unspecified',
                                         tcpRules='unspecified',
                                         parent=contract)
                 else:
