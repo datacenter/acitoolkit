@@ -4926,7 +4926,5 @@ if __name__ == '__main__':
     # Add tests to this suite while developing the tests
     # This allows only these tests to be run
     develop = unittest.TestSuite()
-    develop.addTest(unittest.makeSuite(TestBaseRelation))
-    develop.addTest(unittest.makeSuite(TestBaseACIObject))
 
     unittest.main(defaultTest='offline')
