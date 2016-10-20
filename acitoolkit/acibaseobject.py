@@ -986,6 +986,9 @@ class BaseACIObject(AciSearch):
             return self_key == other_key
         return NotImplemented
 
+    def __hash__(self):
+        return hash((self.get_parent(), self.name))
+
     def __ne__(self, other):
         return not self == other
 
