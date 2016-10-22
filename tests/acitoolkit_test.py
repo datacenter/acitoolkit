@@ -2672,43 +2672,43 @@ class TestPortChannel(unittest.TestCase):
         self.assertFalse(pc.is_vpc())
         fabric, infra = pc.get_json()
 
-        expected_resp = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-101-1-8'}, 'children': [{'infraLe"
-                         "afS': {'attributes': {'type': 'range', 'name': '1-10"
-                         "1-1-8'}, 'children': [{'infraNodeBlk': {'attributes'"
-                         ": {'from_': '101', 'name': '1-101-1-8', 'to_': '101'"
-                         "}, 'children': []}}]}}, {'infraRsAccPortP': {'attrib"
-                         "utes': {'tDn': 'uni/infra/accportprof-1-101-1-8'}, '"
-                         "children': []}}]}}, {'infraAccPortP': {'attributes':"
-                         " {'name': '1-101-1-8'}, 'children': [{'infraHPortS':"
-                         " {'attributes': {'type': 'range', 'name': '1-101-1-8"
-                         "'}, 'children': [{'infraPortBlk': {'attributes': {'t"
-                         "oPort': '8', 'fromPort': '8', 'fromCard': '1', 'name"
-                         "': '1-101-1-8', 'toCard': '1'}, 'children': []}}, {'"
-                         "infraRsAccBaseGrp': {'attributes': {'tDn': 'uni/infr"
-                         "a/funcprof/accbundle-pc1'}, 'children': []}}]}}]}}, "
-                         "{'infraNodeP': {'attributes': {'name': '1-101-1-9'},"
-                         " 'children': [{'infraLeafS': {'attributes': {'type':"
-                         " 'range', 'name': '1-101-1-9'}, 'children': [{'infra"
-                         "NodeBlk': {'attributes': {'from_': '101', 'name': '1"
-                         "-101-1-9', 'to_': '101'}, 'children': []}}]}}, {'inf"
-                         "raRsAccPortP': {'attributes': {'tDn': 'uni/infra/acc"
-                         "portprof-1-101-1-9'}, 'children': []}}]}}, {'infraAc"
-                         "cPortP': {'attributes': {'name': '1-101-1-9'}, 'chil"
-                         "dren': [{'infraHPortS': {'attributes': {'type': 'ran"
-                         "ge', 'name': '1-101-1-9'}, 'children': [{'infraPortB"
-                         "lk': {'attributes': {'toPort': '9', 'fromPort': '9',"
-                         " 'fromCard': '1', 'name': '1-101-1-9', 'toCard': '1'"
-                         "}, 'children': []}}, {'infraRsAccBaseGrp': {'attribu"
-                         "tes': {'tDn': 'uni/infra/funcprof/accbundle-pc1'}, '"
-                         "children': []}}]}}]}}, {'infraFuncP': {'attributes':"
-                         " {}, 'children': [{'infraAccBndlGrp': {'attributes':"
-                         " {'lagT': 'link', 'name': 'pc1'}, 'children': []}}]}"
-                         "}]}}")
+        expected_resp = json.loads('{"infraInfra": {"attributes": {}, "children": [{"infraNodeP": {"attrib'
+                         'utes": {"name": "1-101-1-8"}, "children": [{"infraLe'
+                         'afS": {"attributes": {"type": "range", "name": "1-10'
+                         '1-1-8"}, "children": [{"infraNodeBlk": {"attributes"'
+                         ': {"from_": "101", "name": "1-101-1-8", "to_": "101"'
+                         '}, "children": []}}]}}, {"infraRsAccPortP": {"attrib'
+                         'utes": {"tDn": "uni/infra/accportprof-1-101-1-8"}, "'
+                         'children": []}}]}}, {"infraAccPortP": {"attributes":'
+                         ' {"name": "1-101-1-8"}, "children": [{"infraHPortS":'
+                         ' {"attributes": {"type": "range", "name": "1-101-1-8'
+                         '"}, "children": [{"infraPortBlk": {"attributes": {"t'
+                         'oPort": "8", "fromPort": "8", "fromCard": "1", "name'
+                         '": "1-101-1-8", "toCard": "1"}, "children": []}}, {"'
+                         'infraRsAccBaseGrp": {"attributes": {"tDn": "uni/infr'
+                         'a/funcprof/accbundle-pc1"}, "children": []}}]}}]}}, '
+                         '{"infraNodeP": {"attributes": {"name": "1-101-1-9"},'
+                         ' "children": [{"infraLeafS": {"attributes": {"type":'
+                         ' "range", "name": "1-101-1-9"}, "children": [{"infra'
+                         'NodeBlk": {"attributes": {"from_": "101", "name": "1'
+                         '-101-1-9", "to_": "101"}, "children": []}}]}}, {"inf'
+                         'raRsAccPortP": {"attributes": {"tDn": "uni/infra/acc'
+                         'portprof-1-101-1-9"}, "children": []}}]}}, {"infraAc'
+                         'cPortP": {"attributes": {"name": "1-101-1-9"}, "chil'
+                         'dren": [{"infraHPortS": {"attributes": {"type": "ran'
+                         'ge", "name": "1-101-1-9"}, "children": [{"infraPortB'
+                         'lk": {"attributes": {"toPort": "9", "fromPort": "9",'
+                         ' "fromCard": "1", "name": "1-101-1-9", "toCard": "1"'
+                         '}, "children": []}}, {"infraRsAccBaseGrp": {"attribu'
+                         'tes": {"tDn": "uni/infra/funcprof/accbundle-pc1"}, "'
+                         'children": []}}]}}]}}, {"infraFuncP": {"attributes":'
+                         ' {}, "children": [{"infraAccBndlGrp": {"attributes":'
+                         ' {"lagT": "link", "name": "pc1"}, "children": []}}]}'
+                         '}]}}')
 
         # TODO: Temporarily disable check in Python3 environments
         if sys.version_info < (3, 0, 0):
-            self.assertEqual(str(infra), str(expected_resp))
+            self.assertEqual(infra, expected_resp)
 
         # Not a VPC, so fabric should be None
         self.assertIsNone(fabric)
