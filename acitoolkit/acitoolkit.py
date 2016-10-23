@@ -4285,6 +4285,18 @@ class FilterEntry(BaseACIObject):
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
 
+    def __hash__(self):
+        return hash((self.applyToFrag,
+                     self.arpOpc,
+                     self.dFromPort,
+                     self.dToPort,
+                     self.etherT,
+                     self.prot,
+                     self.sFromPort,
+                     self.sToPort,
+                     self.tcpRules,
+                     self.stateful))
+
     @staticmethod
     def _get_name_dn_delimiters():
         return ['/e-', '/']
