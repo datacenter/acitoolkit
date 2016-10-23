@@ -2924,6 +2924,9 @@ class BaseSubnet(BaseACIObject):
 
         return super(BaseSubnet, self).__eq__(other) and self._addr == other._addr
 
+    def __hash__(self):
+        return BaseACIObject.__hash__(self)
+
 
 class Subnet(BaseSubnet):
     """ Subnet :  roughly equivalent to fvSubnet """
@@ -4281,6 +4284,18 @@ class FilterEntry(BaseACIObject):
                 'prot', 'sFromPort', 'sToPort', 'tcpRules', 'stateful')
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
+
+    def __hash__(self):
+        return hash((self.applyToFrag,
+                     self.arpOpc,
+                     self.dFromPort,
+                     self.dToPort,
+                     self.etherT,
+                     self.prot,
+                     self.sFromPort,
+                     self.sToPort,
+                     self.tcpRules,
+                     self.stateful))
 
     @staticmethod
     def _get_name_dn_delimiters():

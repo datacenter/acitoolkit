@@ -88,6 +88,9 @@ class BaseRelation(object):
             return key_attrs(self) == key_attrs(other)
         return NotImplemented
 
+    def __hash__(self):
+        return hash((self.item, self.status, self.relation_type))
+
     def __ne__(self, other):
         return not self == other
 
@@ -985,6 +988,9 @@ class BaseACIObject(AciSearch):
             other_key = (other.get_parent(), other.name)
             return self_key == other_key
         return NotImplemented
+
+    def __hash__(self):
+        return hash((self.get_parent(), self.name))
 
     def __ne__(self, other):
         return not self == other
