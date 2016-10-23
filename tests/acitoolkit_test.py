@@ -1472,6 +1472,73 @@ class TestFilterEntry(unittest.TestCase):
         self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
                          filt_entry_name)
 
+    def test_eq(self):
+        """
+        Test eq method
+        """
+        filt_name = 'filt'
+        filt = Filter(filt_name)
+
+        filt_entry_name = 'FiltEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+
+        filt_entry2_name = 'FiltEntry2'
+        filt_entry2 = FilterEntry(filt_entry2_name, filt)
+        self.assertEqual(filt_entry, filt_entry2)
+
+    def test_hashing_based_on_eq_same_object(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        filt_name = 'filt'
+        filt = Filter(filt_name)
+
+        filt_entry_name = 'FiltEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+
+        filt_entry2_name = 'FiltEntry2'
+        filt_entry2 = FilterEntry(filt_entry2_name, filt)
+        test_dic = {}
+        test_dic[filt_entry] = 5
+        test_dic[filt_entry2] = 10
+        """
+        filt_entry == filt_entry2 in this case as per __eq__, this means that there should
+        only be one entry in the dictonary, otherwise we have duplicated keys.
+        """
+        self.assertEqual(len(test_dic), 1)  
+        self.assertEqual(test_dic[filt_entry], 10)  
+        self.assertEqual(test_dic[filt_entry2], 10)
+
+    def test_hashing_based_on_eq_multiple_objects(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        filt_name = 'filt'
+        filt = Filter(filt_name)
+
+        filt_entry_name = 'FiltEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+
+        filt_entry2_name = 'FiltEntry2'
+        filt_entry2 = FilterEntry(filt_entry2_name, filt)
+
+        filt_entry3_name = 'FiltEntry3'
+        filt_entry3 = FilterEntry(filt_entry3_name, filt)
+        filt_entry3.sFromPort = 80
+
+        self.assertEqual(filt_entry, filt_entry2)
+        self.assertNotEqual(filt_entry, filt_entry3)
+        self.assertNotEqual(filt_entry2, filt_entry3)
+        test_dic = {}
+        test_dic[filt_entry] = 5
+        test_dic[filt_entry2] = 10
+        test_dic[filt_entry3] = 5
+        self.assertEqual(len(test_dic), 2)
+        self.assertEqual(test_dic[filt_entry], 10)
+        self.assertEqual(test_dic[filt_entry2], 10)
+
 
 class TestTaboo(unittest.TestCase):
     """
