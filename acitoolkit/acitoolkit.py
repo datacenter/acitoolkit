@@ -2924,6 +2924,9 @@ class BaseSubnet(BaseACIObject):
 
         return super(BaseSubnet, self).__eq__(other) and self._addr == other._addr
 
+    def __hash__(self):
+        return BaseACIObject.__hash__(self)
+
 
 class Subnet(BaseSubnet):
     """ Subnet :  roughly equivalent to fvSubnet """
