@@ -399,7 +399,7 @@ class Subscriber(threading.Thread):
             self.get_event(url)
         del self._subscriptions[url]
         if not self._subscriptions:
-            self._ws.close()
+            self._ws.close(timeout=0)
 
     def run(self):
         while not self._exit:
