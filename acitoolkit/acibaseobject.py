@@ -42,6 +42,7 @@ class BaseRelation(object):
     """
     Class for all basic relations.
     """
+
     def __init__(self, item, status, relation_type=None):
         """
         A relation consists of the following elements:
@@ -97,6 +98,7 @@ class BaseACIObject(AciSearch):
     This class defines functionality common to all ACI objects.
     Functions may be overwritten by inheriting classes.
     """
+
     def __init__(self, name=None, parent=None):
         """
         Constructor initializes the basic object and should be called by\
@@ -137,7 +139,7 @@ class BaseACIObject(AciSearch):
         return self.name < other.name
 
     @classmethod
-    def _get_subscription_urls(cls):
+    def _get_subscription_urls(cls, extension=''):
         """
         Gets the set of URLs used to subscribe to class changes
         in the APIC.
@@ -146,7 +148,9 @@ class BaseACIObject(AciSearch):
         """
         resp = []
         for class_name in cls._get_apic_classes():
-            resp.append('/api/class/%s.json?subscription=yes' % class_name)
+            url = '/api/class/%s.json?subscription=yes' % class_name
+            url += extension
+            resp.append(url)
         return resp
 
     def _get_instance_subscription_urls(self):
@@ -363,7 +367,7 @@ class BaseACIObject(AciSearch):
         parent_class = cls._get_parent_class()
         if parent_class is None:
             return None
-        if type(parent_class) is list:
+        if isinstance(parent_class, list):
             for parent_class_name in parent_class:
                 parent_name = parent_class_name._get_name_from_dn(dn)
                 if parent_name is not None:
@@ -373,7 +377,7 @@ class BaseACIObject(AciSearch):
             parent_name = parent_class._get_name_from_dn(dn)
 
         # if the parent_class is still a list, no class matches the DN
-        if type(parent_class) is list:
+        if isinstance(parent_class, list):
             return None
 
         parent_dn = cls._get_parent_dn(dn)
@@ -422,7 +426,7 @@ class BaseACIObject(AciSearch):
         return obj
 
     @classmethod
-    def subscribe(cls, session, only_new=False):
+    def subscribe(cls, session, extension='', only_new=False):
         """
         Subscribe to events from the APIC that pertain to instances of this
         class.
@@ -435,6 +439,7 @@ class BaseACIObject(AciSearch):
         """
         urls = cls._get_subscription_urls()
         for url in urls:
+            url += extension
             resp = session.subscribe(url, only_new=only_new)
             if resp is not None:
                 if not resp.ok:
@@ -473,7 +478,7 @@ class BaseACIObject(AciSearch):
             return obj
 
     @classmethod
-    def has_events(cls, session):
+    def has_events(cls, session, extension=''):
         """
         Check for pending events from the APIC that pertain to instances
         of this class.
@@ -481,21 +486,21 @@ class BaseACIObject(AciSearch):
         :param session:  the instance of Session used for APIC communication
         :returns: True or False.  True if there are events pending.
         """
-        urls = cls._get_subscription_urls()
+        urls = cls._get_subscription_urls(extension)
         return any(session.has_events(url) for url in urls)
 
     def _instance_subscribe(self, session, extension=''):
         """
         not yet fully implemented
         """
-        print ('_instance_subscribe for ', self.name)
         urls = self._get_instance_subscription_urls()
         for url in urls:
-            resp = session.subscribe(url + extension)
-            print ('Subscribed to ', url + extension, resp, resp.text)
-            if not resp.ok:
-                return resp
-        return resp
+            url = url + extension
+            if not session.is_subscribed(url):
+                resp = session.subscribe(url)
+                if not resp.ok:
+                    return resp
+        return
 
     def _instance_has_events(self, session, extension=''):
         """
@@ -1139,7 +1144,6 @@ class BaseACIObject(AciSearch):
 
     @staticmethod
     def get_table(aci_object, title=''):
-
         """
         Abstract method that should be replaced by a version that is specific to
         the object
@@ -1198,6 +1202,99 @@ class BaseACIObject(AciSearch):
                         if len(value) > 0:
                             result[attrib] = value
         return result
+
+    @classmethod
+    def get_fault(cls, session, extension=''):
+        """
+        Gets the fault that is pending for this class.  Faultss are
+        returned in the form of objects.  Objects that have been deleted
+        are marked as such.
+
+        :param session:  the instance of Session used for APIC communication
+        """
+        urls = cls._get_subscription_urls(extension)
+        for url in urls:
+            if not session.has_events(url):
+                continue
+            event = session.get_event(url)
+            for class_name in cls._get_apic_classes():
+                if class_name in event['imdata'][0]:
+                    break
+            attributes = event['imdata'][0]
+            return attributes
+
+    def subscribe_to_fault_instances_subtree(self, session, extension='', deep=False):
+        """
+        Subscribe to faults instances for the whole subtree.
+
+        :param session:  the instance of Session used for APIC communication
+        :param extension: Optional string that can be used to extend the URL
+        :param only_new: Boolean indicating whether to get all events or only the new events. All events (indicated by
+                         setting only_new to False) will queue a create event for all of the currently existing objects.
+                         Setting only_new to True will only queue events that occur after the initial subscribe. The
+                         default has only_new set to False.
+        """
+
+        self._instance_subscribe(session, extension)
+        if deep:
+            for child in self.get_children():
+                child._instance_subscribe(session, extension)
+
+            if len(self._children) > 0:
+                for child in self._children:
+                    child.subscribe_to_fault_instances_subtree(session, extension, deep)
+        return
+
+    def _instance_has_subtree_faults(self, session, extension='', deep=False):
+        """
+        Check for pending faults from the APIC that pertain to this specific instance
+
+        :param session:  the instance of Session used for APIC communication
+        :param extension: Optional string that can be used to extend the URL
+        :param deep: Optional string to subscribe to all the children
+        :returns: True or False.  True if there are events pending.
+        """
+
+        urls = self._get_instance_subscription_urls()
+        if any(session.has_events(url + extension) for url in urls):
+            return True
+
+        if deep:
+            for child in self.get_children():
+                urls = child._get_instance_subscription_urls()
+                if any(session.has_events(url + extension) for url in urls):
+                    return True
+
+            if len(self._children) > 0:
+                for child in self._children:
+                    child._instance_has_subtree_faults(session, extension, deep)
+
+    def _instance_get_subtree_faults(self, session, fault_objs, extension='', deep=False):
+        """
+        Gets the fault that is pending for this instance.  Faults are
+        returned in the form of objects.  Objects that have been deleted
+        are marked as such.
+
+        :param session:  the instance of Session used for APIC communication
+        :param extension: Optional string that can be used to extend the URL
+        :param deep: Optional string to subscribe to all the children
+        :returns: list of fault objects
+        """
+        for child in self.get_children():
+            urls = child._get_instance_subscription_urls()
+            for url in urls:
+                url += extension
+                if not session.has_events(url):
+                    continue
+                fault = session.get_event(url)
+                attributes = fault['imdata'][0]
+                fault_objs.append(attributes)
+
+        if deep:
+            if len(self._children) > 0:
+                for child in self._children:
+                    child._instance_get_subtree_faults(session, fault_objs, extension, deep)
+        return fault_objs
 
 
 class BaseACIPhysObject(BaseACIObject):
@@ -1392,6 +1489,7 @@ class BaseACIPhysObject(BaseACIObject):
 
 
 class _Tag(BaseACIObject):
+
     def __init__(self, name=None, parent=None):
         self.name = name
         self._deleted = False
