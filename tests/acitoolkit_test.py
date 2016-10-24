@@ -4514,6 +4514,46 @@ class TestLiveContractSubject(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
 
+class TestLiveAnyEPG(TestLiveAPIC):
+    """
+    Live tests using an actual APIC for AnyEPG
+    """
+    def test_provide_contract(self):
+        """
+        Test pushing AnyEPG providing a contract
+        """
+        tenant = Tenant('aci-toolkit-test')
+        contract = Contract('contract', tenant)
+        contract_subject = ContractSubject('contract_subject', contract)
+        filt = Filter('Filter', contract_subject)
+
+        context = Context('context', tenant)
+        anyepg = AnyEPG('myany', context)
+
+        anyepg.provide(contract)
+
+        # Push to APIC
+        session = self.login_to_apic()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Read back from the APIC
+        apic_tenants = Tenant.get_deep(session, names=['aci-toolkit-test'])
+        self.assertGreater(len(apic_tenants), 0)
+
+        # Verify that the AnyEPG is present
+        contexts = apic_tenants[0].get_children(only_class=Context)
+        self.assertGreater(len(contexts), 0)
+        anyepgs = contexts[0].get_children(only_class=AnyEPG)
+        self.assertGreater(len(anyepgs), 0)
+        self.assertEquals(anyepgs[0].name, 'myany')
+
+        # Cleanup
+        tenant.mark_as_deleted()
+        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+
 class TestLiveOSPF(TestLiveAPIC):
     """
     Live tests using an actual APIC for OSPF
