@@ -2,7 +2,7 @@
 import sys
 import json
 import logging
-import argparse 
+import argparse
 import time
 import tempfile
 
@@ -10,9 +10,10 @@ import acitoolkit as aci
 
 from intersite import *
 
+
 class ExportEPG():
     """
-    ExportEPG : Class used to construct a json 'export' object defined in the 
+    ExportEPG : Class used to construct a json 'export' object defined in the
                 intersite application.
     """
     def __init__(self, lepg, remotesite, rtenant, rint_name, repg):
@@ -21,7 +22,7 @@ class ExportEPG():
                      be exported
         :param remotesite: Site object for the remote APIC
         :param rtenant: Name of Tenant that contains the L3out interface
-        :param rint_name: Name of remote site's L3Out interface that will 
+        :param rint_name: Name of remote site's L3Out interface that will
                           contain the network object
         :param repg_pattern: Name of ExternalEPG that will be used in the L3out
                              network.  If it does not exist, it will be created.
@@ -32,14 +33,14 @@ class ExportEPG():
 
         self.remotesite = remotesite
 
-        #contracts
+        # contracts
         self.consume_contracts = []
         self.provide_contracts = []
         self.consume_interfaces = []
 
         self.remote_epg = self._generate_object_name_from_pattern(repg)
 
-        #remote network
+        # remote network
         self.remote_l3out_tenant = rtenant
         self.remote_l3out_interface = rint_name
 
@@ -47,30 +48,31 @@ class ExportEPG():
         """
         Return an 'intersite' compatible export object
         """
-        return {"export": { "epg": self.epg.name,
-                                "app": self.app.name,
-                                "tenant": self.tenant.name,
-                                "remote_epg": self.remote_epg,
-                                "remote_sites": [
-                                    { "site": {
-                                            "name": self.remotesite.name,
-                                            "interfaces": [ 
-                                                {
-                                                    "l3out": {
-                                                        "name": self.remote_l3out_interface,
-                                                        "consumes_interface": self.consume_interfaces,
-                                                        "provides": self.provide_contracts,
-                                                        "consumes": self.consume_contracts,
-                                                        "tenant": self.remote_l3out_tenant,
-                                                        "noclean": "True",
-                                                    },
-                                                }, 
-                                            ]
-                                        },
-                                     } ,
-                                 ],
-                             },
-                         }
+        return {"export": {"epg": self.epg.name,
+                           "app": self.app.name,
+                           "tenant": self.tenant.name,
+                           "remote_epg": self.remote_epg,
+                           "remote_sites": [
+                               {"site": {
+                                   "name": self.remotesite.name,
+                                   "interfaces": [
+                                       {
+                                           "l3out": {
+                                               "name": self.remote_l3out_interface,
+                                               "consumes_interface": self.consume_interfaces,
+                                               "provides": self.provide_contracts,
+                                               "consumes": self.consume_contracts,
+                                               "tenant": self.remote_l3out_tenant,
+                                               "noclean": "True",
+                                           },
+                                       },
+                                   ]
+                               },
+                               },
+                           ],
+                           },
+                }
+
     def _login(self):
         if not self.remotesite.session or not self.remotesite.session.logged_in():
             resp = self.remotesite.login()
@@ -79,7 +81,7 @@ class ExportEPG():
                 sys.exit(0)
 
     def _get_contract(self, contract_name, tenant):
-        #check if contract exists in tenant
+        # check if contract exists in tenant
         self._login()
 
         tenant = Tenant.get_deep(self.remotesite.session, names=[str(tenant)])
@@ -88,11 +90,11 @@ class ExportEPG():
             print('% Tenant names should be unique, so this should not be possible')
             sys.exit(0)
 
-        #return contract, or None
+        # return contract, or None
         return tenant[0].get_child(aci.Contract, contract_name)
-    
+
     def _create_contract(self, contract_name, default_filter=None):
-        self._login() #blind call to login
+        self._login()  # blind call to login
 
         tenant = Tenant.get_deep(self.remotesite.session, names=[str(self.remote_l3out_tenant)])
         if len(tenant) > 1:
@@ -100,20 +102,20 @@ class ExportEPG():
             print('% Tenant names should be unique, so this should not be possible')
             sys.exit(0)
 
-        #let's see if it exists first
-        if tenant[0].get_child(aci.Contract, contract_name) == None:
-            #contract does not yet exist in remote site, create it with default filter (if it is defined)
+        # let's see if it exists first
+        if tenant[0].get_child(aci.Contract, contract_name) is None:
+            # contract does not yet exist in remote site, create it with default filter (if it is defined)
             contract = aci.Contract(contract_name, tenant[0])
 
             # add the default filter to the newly created contract
             if default_filter:
                 rfilter = tenant[0].get_child(aci.Filter, default_filter)
-                if rfilter == None:
+                if rfilter is None:
                     print('% could not find filter with name', default_filter, 'in site', self.remotesite.name)
                     print('% nothing more can be done until this filter is created.')
                     sys.exit(0)
 
-                contract_subj = aci.ContractSubject(contract_name+"_subject", contract)
+                contract_subj = aci.ContractSubject(contract_name + "_subject", contract)
                 contract_subj.add_filter(rfilter)
 
             resp = tenant[0].push_to_apic(self.remotesite.session)
@@ -143,7 +145,7 @@ class ExportEPG():
         self.consume_interfaces.append({"cif_name": contract_name})
 
     def export_contract(self, contract, export_name):
-        # exports a contract from tenant who owns the L3out object to the tenant that owns 
+        # exports a contract from tenant who owns the L3out object to the tenant that owns
         # the original EPG
         if '{' in export_name:
             export_name = self._generate_object_name_from_pattern(export_name)
@@ -153,13 +155,13 @@ class ExportEPG():
         logging.info("Exporting contract with name '%s' to '%s'" % (contract, export_name))
 
         ct = self._get_contract(contract, self.remote_l3out_tenant)
-        if ct == None:
+        if ct is None:
             raise ValueError('Cannot export contract that does not exist')
 
         exported_contract = self._get_contract(export_name, self.tenant.name)
-        if exported_contract != None:
-            #contract with name already exists.. nothing more to do
-            #TODO maybe a more thourough check should be done to determine
+        if exported_contract is not None:
+            # contract with name already exists.. nothing more to do
+            # TODO maybe a more thourough check should be done to determine
             # if this is the same contract
             return
 
@@ -210,6 +212,7 @@ class RemoteContract(ConfigObject):
         else:
             self.export_name = None
 
+
 class AutoIntersiteConfiguration(IntersiteConfiguration):
     """
     AutoIntersiteConfiguration : Extends IntersiteConfiguration defined in intersite application,
@@ -227,7 +230,7 @@ class AutoIntersiteConfiguration(IntersiteConfiguration):
         # simple state attribute help with performance
         self._collector = None
         self._changed = False
-        self.sleep_time = 600 #default value
+        self.sleep_time = 600  # default value
 
         self.consume_contracts = []
         self.provide_contracts = []
@@ -235,55 +238,51 @@ class AutoIntersiteConfiguration(IntersiteConfiguration):
 
         self._validate(config)
 
-
     # TODO there has to be a better way to validate this configuration.. perhaps
     #       utlising a JSON schema library isn't the worst idea?
     def _validate(self, config):
         if 'automator' not in config:
-            raise ValueError('Invalid autosite configuration given, use flag -h for more information.') 
+            raise ValueError('Invalid autosite configuration given, use flag -h for more information.')
 
         if 'check_interval' in config['automator'] and config['automator']['check_interval'].isdigit():
             self.sleep_time = float(config['automator']['check_interval'])
 
-        if not 'search_filter' in config['automator']:
+        if 'search_filter' not in config['automator']:
             raise ValueError('Invalid autosite configuration given.  search_filter is a required field.')
         else:
             self.epg_search_filter = config['automator']['search_filter']
 
         # remote_l3out validation, all mandatory fields.
-        if not 'remote_l3out' in config['automator']:
+        if 'remote_l3out' not in config['automator']:
             raise ValueError('Invalid autosite configuration given.  remote_l3out is a required field.')
-        if not 'tenant' in config['automator']['remote_l3out']:
+        if 'tenant' not in config['automator']['remote_l3out']:
             raise ValueError('Invalid autosite configuration given.  remote_l3out is a required field.')
-        if not 'interface_name' in config['automator']['remote_l3out']:
+        if 'interface_name' not in config['automator']['remote_l3out']:
             raise ValueError('Invalid autosite configuration given.  remote_l3out is a required field.')
-        if not 'network_name' in config['automator']['remote_l3out']:
+        if 'network_name' not in config['automator']['remote_l3out']:
             raise ValueError('Invalid autosite configuration given.  remote_l3out is a required field.')
 
         if 'remote_contracts' in config['automator']:
             for contract_type in config['automator']['remote_contracts']:
                 for contract in config['automator']['remote_contracts'][contract_type]:
                     try:
-                        cobject = RemoteContract(contract) 
+                        cobject = RemoteContract(contract)
                         if contract_type == 'consume_contract':
                             self._add_consume_contract(cobject)
                         if contract_type == 'provide_contract':
                             self._add_provide_contract(cobject)
                         if contract_type == 'consume_int_contract':
                             self._add_consume_interface(cobject)
-                        
                     except ValueError, e:
                         print('Invalid AutoIntersite configuration given:', e)
                         sys.exit(1)
-                
-            
 
     def reload_collector(self):
-        if not self._changed: #simple way to avoid unneccessary reloading of the intersite configuration
+        if not self._changed:  # simple way to avoid unneccessary reloading of the intersite configuration
             return
 
         logging.info('Reloading Intersite Collector configuration.. ')
-        if self._collector == None:
+        if self._collector is None:
             logging.info('Initializing collector.. this should only happen at first load')
             buffer = tempfile.NamedTemporaryFile(delete=False)
             buffer.write(json.dumps(self.get_config()))
@@ -297,7 +296,7 @@ class AutoIntersiteConfiguration(IntersiteConfiguration):
             if resp != 'OK':
                 print('FATAL: Failed to load configuration into MultisiteCollector:', resp)
                 sys.exit(1)
-                
+
             if not self._collector.reload_config():
                 print('FATAL: Could not reload configuration.')
                 sys.exit(1)
@@ -311,11 +310,11 @@ class AutoIntersiteConfiguration(IntersiteConfiguration):
         """
         for site in self.site_policies:
             if site.local == 'True':
-                return Site(site.name, 
+                return Site(site.name,
                             SiteLoginCredentials(site.ip_address,
-                                                    site.username,
-                                                    site.password,
-                                                    site.use_https),
+                                                 site.username,
+                                                 site.password,
+                                                 site.use_https),
                             local=True)
 
         raise ValueError('No local site defined')
@@ -325,12 +324,12 @@ class AutoIntersiteConfiguration(IntersiteConfiguration):
 
         for site in self.site_policies:
             if site.local == 'False':
-                sites.append(Site(site.name, 
-                            SiteLoginCredentials(site.ip_address,
-                                                    site.username,
-                                                    site.password,
-                                                    site.use_https),
-                            local=True))
+                sites.append(Site(site.name,
+                             SiteLoginCredentials(site.ip_address,
+                                                  site.username,
+                                                  site.password,
+                                                  site.use_https),
+                             local=True))
         return sites
 
     def get_export_policies(self):
@@ -376,9 +375,10 @@ class AutoIntersiteConfiguration(IntersiteConfiguration):
 
     def get_provide_contracts(self):
         return self.provide_contracts
-    
+
     def get_consume_interfaces(self):
         return self.consume_interfaces
+
 
 def get_arg_parser():
     """
@@ -388,7 +388,7 @@ def get_arg_parser():
     """
 
     parser = argparse.ArgumentParser(description='ACI Multisite Automation Tool')
-    parser.add_argument('--config', default='config.json', 
+    parser.add_argument('--config', default='config.json',
                         help='Configuration file in JSON format')
     parser.add_argument('--generateconfig', action='store_true', default=False,
                         help='Generate an empty example configuration file')
@@ -400,10 +400,11 @@ def get_arg_parser():
 
     return parser
 
+
 def configure_logging(args):
     """
     Configures the logging instance.
-    
+
     This is done in the same manner as the intersite application to enable
     existing logging calls to be usable from the automator.
     """
@@ -424,8 +425,8 @@ def configure_logging(args):
     else:
         log_file = 'intersite_automator.%s.log' % str(os.getpid())
         my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5*1024*1024,
-                    encoding=None, delay=0)
-    
+                                         encoding=None, delay=0)
+
     log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
     my_handler.setLevel(level)
     my_handler.setFormatter(log_formatter)
@@ -435,6 +436,7 @@ def configure_logging(args):
     logging.info('Starting Intersite Automator! ...')
 
     return
+
 
 def parse_config(config_path):
     try:
@@ -461,9 +463,10 @@ def parse_config(config_path):
 
     return config
 
+
 def main():
     args = get_arg_parser().parse_args()
-    
+
     configure_logging(args)
 
     try:
@@ -480,12 +483,12 @@ def main():
         print('% Could not authenticate to APIC')
         sys.exit(0)
 
-    #initial state
+    # initial state
     aci.Tag.subscribe(ls.session)
     while True:
         if aci.Tag.has_events(ls.session):
             tag = aci.Tag.get_event(ls.session)
-            
+
             # limit results to EPG's only
             if isinstance(tag.get_parent(), aci.EPG):
                 if ac.auto_config['search_filter'] and tag.name == ac.auto_config['search_filter']:
@@ -497,10 +500,10 @@ def main():
 
                     for remotesite in ac.get_remote_sites():
                         repg = ExportEPG(epg, remotesite,
-                                                 ac.auto_config['remote_l3out']['tenant'], 
-                                                 ac.auto_config['remote_l3out']['interface_name'], 
-                                                 ac.auto_config['remote_l3out']['network_name'])
-    
+                                         ac.auto_config['remote_l3out']['tenant'],
+                                         ac.auto_config['remote_l3out']['interface_name'],
+                                         ac.auto_config['remote_l3out']['network_name'])
+
                         for cons_contract in ac.get_consume_contracts():
                             repg.add_consume_contract(cons_contract.name, default_filter=cons_contract.default_filter)
 
@@ -520,12 +523,12 @@ def main():
                         ep = ExportPolicy(repg.get_config())
                         if ep is None:
                             logging.error('Could not create ExportProfile with: tenant: %s app %s epg %s site %s remote_tenant %s remote_interface %s',
-                                                tenant.name,
-                                                app.name,
-                                                epg.name,
-                                                remotesite.name,
-                                                ac.auto_config['remote_l3out']['tenant'],
-                                                ac.auto_config['remote_l3out']['interface_name'])
+                                          tenant.name,
+                                          app.name,
+                                          epg.name,
+                                          remotesite.name,
+                                          ac.auto_config['remote_l3out']['tenant'],
+                                          ac.auto_config['remote_l3out']['interface_name'])
                             continue
 
                         if tag.is_deleted():
@@ -542,7 +545,8 @@ def main():
             logging.info('No new events to process, sleeping for %d seconds', ac.get_sleep_time())
             ac.reload_collector()
             time.sleep(ac.get_sleep_time())
-    
+
+
 if __name__ == '__main__':
     try:
         main()

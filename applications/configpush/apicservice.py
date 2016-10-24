@@ -1017,7 +1017,7 @@ class ApicService(GenericService):
 
                 consumed_contracts = []
                 provided_contracts = []
-                if matched == True:
+                if matched is True:
                     consumed_contracts = existing_epg.get_all_consumed()
                     provided_contracts = existing_epg.get_all_provided()
                     epg = existing_epg
@@ -1093,7 +1093,7 @@ class ApicService(GenericService):
 
                 consumed_contracts = []
                 provided_contracts = []
-                if matched == True:
+                if matched is True:
                     consumed_contracts = existing_epg.get_all_consumed()
                     provided_contracts = existing_epg.get_all_provided()
                 epg = EPG(epg_policy.name, app)

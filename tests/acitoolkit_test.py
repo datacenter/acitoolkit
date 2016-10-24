@@ -174,9 +174,9 @@ class TestBaseRelation(unittest.TestCase):
         relation == relation2 in this case as per __eq__, this means that there should
         only be one entry in the dictonary, otherwise we have duplicated keys.
         """
-        self.assertEqual(len(test_dic), 1)  
-        self.assertEqual(test_dic[relation], 10)  
-        self.assertEqual(test_dic[relation2], 10)  
+        self.assertEqual(len(test_dic), 1)
+        self.assertEqual(test_dic[relation], 10)
+        self.assertEqual(test_dic[relation2], 10)
 
     def test_hashing_based_on_eq_multiple_objects(self):
         """
@@ -315,9 +315,9 @@ class TestBaseACIObject(unittest.TestCase):
         obj1 == obj2 in this case as per __eq__, this means that there should
         only be one entry in the dictonary, otherwise we have duplicated keys.
         """
-        self.assertEqual(len(test_dic), 1)  
-        self.assertEqual(test_dic[obj1], 10)  
-        self.assertEqual(test_dic[obj2], 10)  
+        self.assertEqual(len(test_dic), 1)
+        self.assertEqual(test_dic[obj1], 10)
+        self.assertEqual(test_dic[obj2], 10)
 
     def test_hashing_based_on_eq_multiple_objects(self):
         """
@@ -337,6 +337,7 @@ class TestBaseACIObject(unittest.TestCase):
         self.assertEqual(len(test_dic), 2)
         self.assertEqual(test_dic[obj1], 10)
         self.assertEqual(test_dic[obj2], 10)
+
 
 class TestTenant(unittest.TestCase):
     """
@@ -1506,8 +1507,8 @@ class TestFilterEntry(unittest.TestCase):
         filt_entry == filt_entry2 in this case as per __eq__, this means that there should
         only be one entry in the dictonary, otherwise we have duplicated keys.
         """
-        self.assertEqual(len(test_dic), 1)  
-        self.assertEqual(test_dic[filt_entry], 10)  
+        self.assertEqual(len(test_dic), 1)
+        self.assertEqual(test_dic[filt_entry], 10)
         self.assertEqual(test_dic[filt_entry2], 10)
 
     def test_hashing_based_on_eq_multiple_objects(self):
@@ -2698,13 +2699,13 @@ class TestOutsideL2EPG(unittest.TestCase):
                                 'name': 'l2out'
                             },
                             'children': [
-                                {'l2extInstP':
-                                     {
-                                         'attributes': {
-                                             'name': 'l2outepg'
-                                         },
-                                         'children': []
-                                     }
+                                {
+                                    'l2extInstP': {
+                                        'attributes': {
+                                            'name': 'l2outepg'
+                                        },
+                                        'children': []
+                                    }
                                 }
                             ]
                         }
@@ -2740,38 +2741,38 @@ class TestPortChannel(unittest.TestCase):
         fabric, infra = pc.get_json()
 
         expected_resp = json.loads('{"infraInfra": {"attributes": {}, "children": [{"infraNodeP": {"attrib'
-                         'utes": {"name": "1-101-1-8"}, "children": [{"infraLe'
-                         'afS": {"attributes": {"type": "range", "name": "1-10'
-                         '1-1-8"}, "children": [{"infraNodeBlk": {"attributes"'
-                         ': {"from_": "101", "name": "1-101-1-8", "to_": "101"'
-                         '}, "children": []}}]}}, {"infraRsAccPortP": {"attrib'
-                         'utes": {"tDn": "uni/infra/accportprof-1-101-1-8"}, "'
-                         'children": []}}]}}, {"infraAccPortP": {"attributes":'
-                         ' {"name": "1-101-1-8"}, "children": [{"infraHPortS":'
-                         ' {"attributes": {"type": "range", "name": "1-101-1-8'
-                         '"}, "children": [{"infraPortBlk": {"attributes": {"t'
-                         'oPort": "8", "fromPort": "8", "fromCard": "1", "name'
-                         '": "1-101-1-8", "toCard": "1"}, "children": []}}, {"'
-                         'infraRsAccBaseGrp": {"attributes": {"tDn": "uni/infr'
-                         'a/funcprof/accbundle-pc1"}, "children": []}}]}}]}}, '
-                         '{"infraNodeP": {"attributes": {"name": "1-101-1-9"},'
-                         ' "children": [{"infraLeafS": {"attributes": {"type":'
-                         ' "range", "name": "1-101-1-9"}, "children": [{"infra'
-                         'NodeBlk": {"attributes": {"from_": "101", "name": "1'
-                         '-101-1-9", "to_": "101"}, "children": []}}]}}, {"inf'
-                         'raRsAccPortP": {"attributes": {"tDn": "uni/infra/acc'
-                         'portprof-1-101-1-9"}, "children": []}}]}}, {"infraAc'
-                         'cPortP": {"attributes": {"name": "1-101-1-9"}, "chil'
-                         'dren": [{"infraHPortS": {"attributes": {"type": "ran'
-                         'ge", "name": "1-101-1-9"}, "children": [{"infraPortB'
-                         'lk": {"attributes": {"toPort": "9", "fromPort": "9",'
-                         ' "fromCard": "1", "name": "1-101-1-9", "toCard": "1"'
-                         '}, "children": []}}, {"infraRsAccBaseGrp": {"attribu'
-                         'tes": {"tDn": "uni/infra/funcprof/accbundle-pc1"}, "'
-                         'children": []}}]}}]}}, {"infraFuncP": {"attributes":'
-                         ' {}, "children": [{"infraAccBndlGrp": {"attributes":'
-                         ' {"lagT": "link", "name": "pc1"}, "children": []}}]}'
-                         '}]}}')
+                                   'utes": {"name": "1-101-1-8"}, "children": [{"infraLe'
+                                   'afS": {"attributes": {"type": "range", "name": "1-10'
+                                   '1-1-8"}, "children": [{"infraNodeBlk": {"attributes"'
+                                   ': {"from_": "101", "name": "1-101-1-8", "to_": "101"'
+                                   '}, "children": []}}]}}, {"infraRsAccPortP": {"attrib'
+                                   'utes": {"tDn": "uni/infra/accportprof-1-101-1-8"}, "'
+                                   'children": []}}]}}, {"infraAccPortP": {"attributes":'
+                                   ' {"name": "1-101-1-8"}, "children": [{"infraHPortS":'
+                                   ' {"attributes": {"type": "range", "name": "1-101-1-8'
+                                   '"}, "children": [{"infraPortBlk": {"attributes": {"t'
+                                   'oPort": "8", "fromPort": "8", "fromCard": "1", "name'
+                                   '": "1-101-1-8", "toCard": "1"}, "children": []}}, {"'
+                                   'infraRsAccBaseGrp": {"attributes": {"tDn": "uni/infr'
+                                   'a/funcprof/accbundle-pc1"}, "children": []}}]}}]}}, '
+                                   '{"infraNodeP": {"attributes": {"name": "1-101-1-9"},'
+                                   ' "children": [{"infraLeafS": {"attributes": {"type":'
+                                   ' "range", "name": "1-101-1-9"}, "children": [{"infra'
+                                   'NodeBlk": {"attributes": {"from_": "101", "name": "1'
+                                   '-101-1-9", "to_": "101"}, "children": []}}]}}, {"inf'
+                                   'raRsAccPortP": {"attributes": {"tDn": "uni/infra/acc'
+                                   'portprof-1-101-1-9"}, "children": []}}]}}, {"infraAc'
+                                   'cPortP": {"attributes": {"name": "1-101-1-9"}, "chil'
+                                   'dren": [{"infraHPortS": {"attributes": {"type": "ran'
+                                   'ge", "name": "1-101-1-9"}, "children": [{"infraPortB'
+                                   'lk": {"attributes": {"toPort": "9", "fromPort": "9",'
+                                   ' "fromCard": "1", "name": "1-101-1-9", "toCard": "1"'
+                                   '}, "children": []}}, {"infraRsAccBaseGrp": {"attribu'
+                                   'tes": {"tDn": "uni/infra/funcprof/accbundle-pc1"}, "'
+                                   'children": []}}]}}]}}, {"infraFuncP": {"attributes":'
+                                   ' {}, "children": [{"infraAccBndlGrp": {"attributes":'
+                                   ' {"lagT": "link", "name": "pc1"}, "children": []}}]}'
+                                   '}]}}')
 
         # TODO: Temporarily disable check in Python3 environments
         if sys.version_info < (3, 0, 0):
