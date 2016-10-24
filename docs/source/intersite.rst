@@ -256,6 +256,7 @@ Automator
 The intersite application can be run in a basic automated fashion which will identify EPG's with an assigned tag and automatically create the appropriate L3out objects and contracts from the templated configuration.  The usefulness of this utility is limited by the requirement of tenant's needing to exist in both sites (APIC's) consistantly. 
 
 ::
+
     python intersite_automator.py -h
     usage: intersite_automator.py [-h] [--config CONFIG] [--generateconfig]
                               [--debug [{verbose,info,warnings,critical}]]
@@ -274,6 +275,7 @@ The intersite application can be run in a basic automated fashion which will ide
 To make use of this modified version of the intersite application, you will need to use a different configuration file.  The automator removes the need for statically defining the individual export policies but requires a new 'automator' specific configuration.
 
 ::
+
     {
     "config": [
         { 
