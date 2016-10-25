@@ -73,7 +73,10 @@ def main():
         elif args.endswith is not None:
             if tenant.name.endswith(args.endswith):
                 tenants_to_delete.append(tenant)
-        elif args.contains:
+        elif args.exactmatch is not None:
+            if args.exactmatch == tenant.name:
+                tenants_to_delete.append(tenant)
+        elif args.contains is not None:
             if args.contains in tenant.name:
                 tenants_to_delete.append(tenant)
 
