@@ -330,7 +330,8 @@ To make use of this modified version of the intersite application, you will need
     }
     }   
 
-The site specific configuration hasn't changed, and matches the definition in the previous section of this documentation 
+The site specific configuration hasn't changed, and matches the definition in the previous section of this documentation
+
 - check_interval: integer - The time in seconds that intersite_automator will sleep between searching for EPG's with the search_filter tag (this should be a >0 value to reduce API calls on the APIC)
 - search_filter: string - The tag that intersite_automator will search for (on EPG's) to identify which EPG's to replicate.
 - remote_l3out->tenant: string - The tenant that owns the L3out object that will have the 'remote EPGs' created under.
@@ -343,6 +344,7 @@ The site specific configuration hasn't changed, and matches the definition in th
 
 **Patterns**
  Certain configuration fields allow the use of a very primitive variable substitution.  This enables you to create EPGs and Contracts with dynamic names. The following variables are currently supported:
+
 - ${tenant} - The name of the tenant that owns the EPG
 - ${app} - The name of the application that the EPG belongs to
 - ${epg} - The name of the EPG that is being replicated
