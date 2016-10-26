@@ -20,7 +20,7 @@ setup(
     url=about["__uri__"],
     license=about["__license__"],
     install_requires=["requests",
-                      "websocket-client",
+                      "websocket-client>0.33.0",
                       "gitpython",
                       "flask-httpauth",
                       "flask-sqlalchemy",
