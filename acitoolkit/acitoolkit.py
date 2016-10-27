@@ -792,6 +792,32 @@ class AttributeCriterion(BaseACIObject):
         if ip_addr not in self._ip_addresses:
             self._ip_addresses.append(ip_addr)
 
+    def get_ip_addresses(self):
+        """
+        return the list IP addresses
+        """
+        return  self._ip_addresses
+
+    @classmethod
+    def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
+        """
+        Gets all instances of this class from the APIC and gets all of the
+        children as well.
+
+        :param full_data:
+        :param working_data:
+        :param parent:
+        :param limit_to:
+        :param subtree:
+        :param config_only:
+        """
+        attrCrtrn_data = working_data[0]['fvCrtrn']
+        attrCtrn = AttributeCriterion(str(attrCrtrn_data['attributes']['name']), parent)
+        attrCtrn._populate_from_attributes(attrCrtrn_data['attributes'])
+        for child in attrCrtrn_data.get('children', ()):
+            if 'fvIpAttr' in child:
+                attrCtrn.add_ip_address(str(child['fvIpAttr']['attributes']['ip']))
+
     def get_json(self):
         """
         Returns JSON representation of the AttributeCriterion
