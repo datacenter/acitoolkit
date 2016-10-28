@@ -569,7 +569,7 @@ def main():
         while True:
             generate_config(session, args)
             time.sleep(random_number(5, 30))
-            delete_all_randomized_tenants()
+            delete_all_randomized_tenants(session)
             time.sleep(random_number(5, 30))
     else:
         generate_config(session, args)
