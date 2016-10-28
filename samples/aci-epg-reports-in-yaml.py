@@ -53,6 +53,7 @@ def main():
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
+        return
 
     # Download all of the tenants, app profiles, and EPGs
     # and store the names as tuples in a list
