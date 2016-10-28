@@ -18,6 +18,10 @@ def random_string(size, char_set=[]):
 
 
 def random_number(min_size, max_size):
+    if max_size < min_size:
+        min_size = max_size
+    if min_size == max_size:
+        return min_size
     return random.randint(min_size, max_size)
 
 
