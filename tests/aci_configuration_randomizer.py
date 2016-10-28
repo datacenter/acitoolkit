@@ -141,9 +141,11 @@ class ConfigRandomizer(object):
         self._interfaces = {}
 
     def create_random_tenant(self, interfaces=[]):
+        max_string_length = int(self._config.get('GlobalDefaults', 'MaximumStringLength'))
         # Create the Tenant object
         tenant_prefix = 'acitoolkitrandomized-'
-        tenant_name = tenant_prefix + random_string(random_number(1, 63 - len(tenant_prefix)))
+        tenant_name_len = random_number(1, max_string_length - len(tenant_prefix))
+        tenant_name = tenant_prefix + random_string(tenant_name_len)
         tenant = Tenant(tenant_name)
 
         # Create some number of BridgeDomains
@@ -154,7 +156,7 @@ class ConfigRandomizer(object):
         for i in range(0, random_number(0, random_number(int(self._config.get('BridgeDomains', 'Minimum')),
                                                          maximum_bds))):
             self._global_limits.max_bds -= 1
-            bd = BridgeDomain(random_string(random_number(1, 64)), tenant)
+            bd = BridgeDomain(random_string(random_number(1, max_string_length)), tenant)
             # Randomly choose settings for the BridgeDomain
             if self._config.get('BridgeDomains', 'AllowFloodUnkMacUcast').lower() == 'true':
                 bd.set_unknown_mac_unicast(random.choice(['proxy', 'flood']))
@@ -177,7 +179,7 @@ class ConfigRandomizer(object):
             max_contexts = int(self._config.get('Contexts', 'MaximumPerTenant'))
         for i in range(0, random_number(0, random_number(int(self._config.get('Contexts', 'Minimum')),
                                                          max_contexts))):
-            context = Context(random_string(random_number(1, 64)), tenant)
+            context = Context(random_string(random_number(1, max_string_length)), tenant)
             self._global_limits.max_contexts -= 1
             if self._config.get('Contexts', 'AllowUnenforced').lower() == 'true':
                 context.set_allow_all(random.choice([True, False]))
@@ -192,7 +194,7 @@ class ConfigRandomizer(object):
         apps = []
         for i in range(0, random_number(0, random_number(int(self._config.get('ApplicationProfiles', 'Minimum')),
                                                          int(self._config.get('ApplicationProfiles', 'Maximum'))))):
-            app = AppProfile(random_string(random_number(1, 64)), tenant)
+            app = AppProfile(random_string(random_number(1, max_string_length)), tenant)
             apps.append(app)
 
         # Create some number of EPGs and place in AppProfiles
@@ -203,7 +205,7 @@ class ConfigRandomizer(object):
         if len(apps):
             for i in range(0, random_number(0, random_number(int(self._config.get('EPGs', 'Minimum')),
                                                              max_epgs))):
-                epg = EPG(random_string(random_number(1, 64)), random.choice(apps))
+                epg = EPG(random_string(random_number(1, max_string_length)), random.choice(apps))
                 self._global_limits.max_epgs -= 1
                 epgs.append(epg)
 
@@ -256,7 +258,7 @@ class ConfigRandomizer(object):
             max_filters = self._global_limits.max_filters
         for i in range(0, random_number(0, random_number(int(self._config.get('Filters', 'Minimum')),
                                                          max_filters))):
-            filter = Filter(random_string(random_number(1, 64)), tenant)
+            filter = Filter(random_string(random_number(1, max_string_length)), tenant)
             self._global_limits.max_filters -= 1
             filters.append(filter)
 
@@ -335,7 +337,7 @@ class ConfigRandomizer(object):
                 parent = random.choice(filters)
                 if not parent.has_entry(applyToFrag, arpOpc, dFromPort, dToPort, etherT, prot, sFromPort, sToPort,
                                         tcpRules, stateful):
-                    filter_entry = FilterEntry(name=random_string(random_number(1, 64)),
+                    filter_entry = FilterEntry(name=random_string(random_number(1, max_string_length)),
                                                parent=random.choice(filters),
                                                applyToFrag=applyToFrag,
                                                arpOpc=arpOpc,
@@ -356,7 +358,7 @@ class ConfigRandomizer(object):
             max_contracts = self._global_limits.max_contracts
         for i in range(0, random_number(0, random_number(int(self._config.get('Contracts', 'Minimum')),
                                                          max_contracts))):
-            contract = Contract(random_string(random_number(1, 64)), tenant)
+            contract = Contract(random_string(random_number(1, max_string_length)), tenant)
             self._global_limits.max_contracts -= 1
             contracts.append(contract)
 
@@ -365,7 +367,7 @@ class ConfigRandomizer(object):
             contract_subjects = []
             for i in range(0, random_number(0, random_number(int(self._config.get('ContractSubjects', 'Minimum')),
                                                              int(self._config.get('ContractSubjects', 'Maximum'))))):
-                contract_subject = ContractSubject(random_string(random_number(1, 64)), random.choice(contracts))
+                contract_subject = ContractSubject(random_string(random_number(1, max_string_length)), random.choice(contracts))
                 contract_subjects.append(contract_subject)
 
         # Randomly assign Filters to the ContractSubjects
@@ -505,11 +507,39 @@ def delete_all_randomized_tenants(session):
                 print 'Deleted tenant', tenant.name
 
 
+def generate_config(session, args):
+    config = ConfigParser.ConfigParser()
+    config.read(args.config)
+    randomizer = ConfigRandomizer(config)
+    interfaces = ['eth 1/101/1/17', 'eth 1/102/1/17']
+    randomizer.create_random_config(interfaces)
+    flows = randomizer.get_flows(1)
+    flow_json = []
+    for flow in flows:
+        flow_json.append(flow.get_json())
+    flow_json = json.dumps({'flows': flow_json})
+
+    for tenant in randomizer.tenants:
+        print 'TENANT CONFIG'
+        print '-------------'
+        print tenant.get_json()
+        print
+        print
+        if not args.printonly:
+            resp = tenant.push_to_apic(session)
+            if not resp.ok:
+                print resp.status_code, resp.text
+            assert resp.ok
+    print 'Total number of tenants pushed:', len(randomizer.tenants)
+
+
 def main():
     # Set up the Command Line options
     creds = Credentials(('apic', 'nosnapshotfiles'), description='')
     creds.add_argument('--printonly', action='store_true',
                        help='Only print the JSON but do not push to APIC.')
+    creds.add_argument('--testloop', action='store_true',
+                       help='Run in a continual testing loop.')
     group = creds.add_mutually_exclusive_group()
     group.add_argument('--config', default=None,
                        help='Optional .ini file providing failure scenario configuration')
@@ -535,30 +565,14 @@ def main():
         print '%% Expected --config or --delete option'
         return
 
-    config = ConfigParser.ConfigParser()
-    config.read(args.config)
-    randomizer = ConfigRandomizer(config)
-    interfaces = ['eth 1/101/1/17', 'eth 1/102/1/17']
-    randomizer.create_random_config(interfaces)
-    flows = randomizer.get_flows(1)
-    flow_json = []
-    for flow in flows:
-        flow_json.append(flow.get_json())
-    flow_json = json.dumps({'flows': flow_json})
-
-    for tenant in randomizer.tenants:
-        print 'TENANT CONFIG'
-        print '-------------'
-        print tenant.get_json()
-        print
-        print
-        if not args.printonly:
-            resp = tenant.push_to_apic(session)
-            if not resp.ok:
-                print resp.status_code, resp.text
-            assert resp.ok
-    print 'Total number of tenants pushed:', len(randomizer.tenants)
-
+    if args.testloop:
+        while True:
+            generate_config(session, args)
+            time.sleep(random_number(5, 30))
+            delete_all_randomized_tenants()
+            time.sleep(random_number(5, 30))
+    else:
+        generate_config(session, args)
 
 if __name__ == '__main__':
     main()
