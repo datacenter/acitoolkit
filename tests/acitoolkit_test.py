@@ -3406,6 +3406,168 @@ class TestLiveEPG(TestLiveAPIC):
                 self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
 
 
+class TestLiveAnyEPG(TestLiveAPIC):
+    def __init__(self, *args):
+        self.session = None
+        super(TestLiveAnyEPG, self).__init__(*args)
+
+    def setUp(self):
+        self.session = self.login_to_apic()
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        prov_contract = Contract('prov_contract', tenant)
+        filt_entry = FilterEntry('provfilterentry', prov_contract)
+        any_epg.provide(prov_contract)
+        cons_contract = Contract('cons_contract', tenant)
+        filt_entry = FilterEntry('consfilterentry', cons_contract)
+        any_epg.consume(cons_contract)
+        contract_intf = ContractInterface('contract_if', tenant)
+        any_epg.consume_cif(contract_intf)
+
+        resp = self.session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_get_any_epgs(self):
+        tenants = Tenant.get(self.session)
+        for tenant in tenants:
+            contexts = Context.get(self.session, tenant)
+            for context in contexts:
+                any_epgs = AnyEPG.get(self.session, context, tenant)
+                for any_epg in any_epgs:
+                    self.assertTrue(isinstance(any_epg, AnyEPG))
+
+    def check_get_deep(self):
+        tenants = Tenant.get_deep(self.session, names=['aci-toolkit-test'])
+        self.assertGreater(len(tenants), 0)
+        contexts = tenants[0].get_children(only_class=Context)
+        self.assertGreater(len(contexts), 0)
+        any_epgs = contexts[0].get_children(only_class=AnyEPG)
+        self.assertGreater(len(any_epgs), 0)
+
+    def test_any_epg_get_deep(self):
+        self.check_get_deep()
+
+    def test_delete_contracts(self):
+        tenant = Tenant('aci-toolkit-test')
+        prov_contract = Contract('prov_contract', tenant)
+        prov_contract.mark_as_deleted()
+        cons_contract = Contract('cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def test_delete_contract_relations(self):
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        prov_contract = Contract('prov_contract', tenant)
+        any_epg.provide(prov_contract)
+        any_epg.dont_provide(prov_contract)
+        cons_contract = Contract('cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        any_epg.consume(cons_contract)
+        any_epg.dont_consume(cons_contract)
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def test_delete_contract_interface_relation(self):
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        contract_intf = ContractInterface('contract_if', tenant)
+        any_epg.consume_cif(contract_intf)
+        any_epg.dont_consume_cif(contract_intf)
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def tearDown(self):
+        if not self.session.logged_in():
+            return
+        tenant = Tenant('aci-toolkit-test')
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+
+class TestLiveAnyEPGWithTenantCommonContracts(TestLiveAPIC):
+    def __init__(self, *args):
+        self.session = None
+        super(TestLiveAnyEPGWithTenantCommonContracts, self).__init__(*args)
+
+    def setUp(self):
+        self.session = self.login_to_apic()
+        tenant = Tenant('common')
+        prov_contract = Contract('aci-toolkit-test-prov_contract', tenant)
+        filt_entry = FilterEntry('provfilterentry', prov_contract)
+        cons_contract = Contract('aci-toolkit-test-cons_contract', tenant)
+        filt_entry = FilterEntry('consfilterentry', cons_contract)
+        contract_intf = ContractInterface('aci-toolkit-test-contract_if', tenant)
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        any_epg.provide(prov_contract)
+        any_epg.consume(cons_contract)
+        any_epg.consume_cif(contract_intf)
+
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+    def test_get_any_epgs(self):
+        tenants = Tenant.get(self.session)
+        for tenant in tenants:
+            contexts = Context.get(self.session, tenant)
+            for context in contexts:
+                any_epgs = AnyEPG.get(self.session, context, tenant)
+                for any_epg in any_epgs:
+                    self.assertTrue(isinstance(any_epg, AnyEPG))
+
+    def check_get_deep(self):
+        tenants = Tenant.get_deep(self.session, names=['aci-toolkit-test', 'common'])
+        self.assertGreater(len(tenants), 0)
+        contexts = tenants[0].get_children(only_class=Context)
+        self.assertGreater(len(contexts), 0)
+        any_epgs = contexts[0].get_children(only_class=AnyEPG)
+        self.assertGreater(len(any_epgs), 0)
+
+    def test_any_epg_get_deep(self):
+        self.check_get_deep()
+
+    def test_delete_contracts(self):
+        tenant = Tenant('common')
+        prov_contract = Contract('aci-toolkit-test-prov_contract', tenant)
+        prov_contract.mark_as_deleted()
+        cons_contract = Contract('aci-toolkit-test-cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def tearDown(self):
+        if not self.session.logged_in():
+            return
+        tenant = Tenant('aci-toolkit-test')
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('common')
+        prov_contract = Contract('aci-toolkit-test-prov_contract', tenant)
+        prov_contract.mark_as_deleted()
+        cons_contract = Contract('aci-toolkit-test-cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        contract_intf = ContractInterface('aci-toolkit-test-contract_if', tenant)
+        contract_intf.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+
 class TestLiveL2ExtDomain(TestLiveAPIC):
     """
     Test L2ExtDomain class
@@ -4671,46 +4833,6 @@ class TestLiveContractSubject(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
 
-class TestLiveAnyEPG(TestLiveAPIC):
-    """
-    Live tests using an actual APIC for AnyEPG
-    """
-    def test_provide_contract(self):
-        """
-        Test pushing AnyEPG providing a contract
-        """
-        tenant = Tenant('aci-toolkit-test')
-        contract = Contract('contract', tenant)
-        contract_subject = ContractSubject('contract_subject', contract)
-        filt = Filter('Filter', contract_subject)
-
-        context = Context('context', tenant)
-        anyepg = AnyEPG('myany', context)
-
-        anyepg.provide(contract)
-
-        # Push to APIC
-        session = self.login_to_apic()
-        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
-        self.assertTrue(resp.ok)
-
-        # Read back from the APIC
-        apic_tenants = Tenant.get_deep(session, names=['aci-toolkit-test'])
-        self.assertGreater(len(apic_tenants), 0)
-
-        # Verify that the AnyEPG is present
-        contexts = apic_tenants[0].get_children(only_class=Context)
-        self.assertGreater(len(contexts), 0)
-        anyepgs = contexts[0].get_children(only_class=AnyEPG)
-        self.assertGreater(len(anyepgs), 0)
-        self.assertEquals(anyepgs[0].name, 'myany')
-
-        # Cleanup
-        tenant.mark_as_deleted()
-        resp = session.push_to_apic(tenant.get_url(), data=tenant.get_json())
-        self.assertTrue(resp.ok)
-
-
 class TestLiveOSPF(TestLiveAPIC):
     """
     Live tests using an actual APIC for OSPF
@@ -4975,6 +5097,8 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveAnyEPG))
+    live.addTest(unittest.makeSuite(TestLiveAnyEPGWithTenantCommonContracts))
     live.addTest(unittest.makeSuite(TestLiveL2ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveEPGDomain))
