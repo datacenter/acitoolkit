@@ -5147,6 +5147,10 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestOutsideL2))
     offline.addTest(unittest.makeSuite(TestTunnelInterface))
     offline.addTest(unittest.makeSuite(TestFexInterface))
+    offline.addTest(unittest.makeSuite(TestInputTerminal))
+    offline.addTest(unittest.makeSuite(TestOutputTerminal))
+    offline.addTest(unittest.makeSuite(TestAnyEPG))
+    offline.addTest(unittest.makeSuite(TestOutsideL2EPG))
 
     graphs = unittest.TestSuite()
     graphs.addTest(unittest.makeSuite(TestAcitoolkitGraphBuilder))
