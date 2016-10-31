@@ -81,8 +81,7 @@ class Flow(object):
     def _get_random_mac_address():
         addr = random_number(0, 255)
         # Ensure first bit is unicast
-        if addr % 2:
-            addr += 1
+        addr = ((addr >> 1) << 1)
         addr = str(hex(addr))[2:].zfill(2)
         # Get the next bytes
         for i in range(1, 6):

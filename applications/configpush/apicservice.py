@@ -541,7 +541,7 @@ class ConfigDB(object):
             # Check if the EPG is the same
             if configured_policy.id == epg_policy.id:
                 # Something must have changed. Replace the old policy with the new one.
-                self.remove_epg_policy(epg_policy)
+                self.remove_epg_policy(configured_policy)
                 self.add_epg_policy(epg_policy)
                 return True
         # If we get this far, we must not have the policy
@@ -814,10 +814,39 @@ class ApicService(GenericService):
             matched = False
             if existing_epg.name != "base":
                 for epg_policy in self.cdb.get_epg_policies():
-                    if existing_epg.descr.split(":")[1] == epg_policy.descr.split(":")[1]:
-                        matched = True
+                    if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                            ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                        if self._use_ip_epgs:
+                            if existing_epg._is_attribute_based:
+                                matched = True
+                                existing_criterions = existing_epg.get_children(AttributeCriterion)
+                                for existing_criterion in existing_criterions:
+                                    existing_criterion.mark_as_deleted()
+                        elif existing_epg._is_attribute_based:
+                            matched = True
+                            existing_criterions = existing_epg.get_children(AttributeCriterion)
+                            for existing_criterion in existing_criterions:
+                                existing_criterion.mark_as_deleted()
+
                 if not matched:
                     existing_epg.mark_as_deleted()
+            else:
+                if not self._use_ip_epgs:
+                    base_epg = EPG('base', app)
+                    if self.cdb.has_context_config():
+                        context_name = self.cdb.get_context_config().name
+                    else:
+                        context_name = 'vrf1'
+                    context = Context(context_name, tenant)
+                    existing_contexts = tenant.get_children(Context)
+                    for existing_context in existing_contexts:
+                        if existing_context.name == context_name:
+                            existing_context.mark_as_deleted()
+                    existing_bds = tenant.get_children(BridgeDomain)
+                    for existing_bd in existing_bds:
+                        if existing_bd.name == 'bd':
+                            existing_bd.mark_as_deleted()
+                    base_epg.mark_as_deleted()
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
@@ -845,7 +874,8 @@ class ApicService(GenericService):
         for existing_contract in existing_contracts:
             matched = False
             for contract_policy in self.cdb.get_contract_policies():
-                if existing_contract.descr.split("::")[1] == contract_policy.descr.split("::")[1]:
+                if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
                     matched = True
             if not matched:
                 existing_contract.mark_as_deleted()
@@ -890,7 +920,8 @@ class ApicService(GenericService):
         for contract_policy in self.cdb.get_contract_policies():
             name = contract_policy.src_name + '::' + contract_policy.dst_name
             for existing_contract in existing_contracts:
-                if existing_contract.descr.split("::")[1] == contract_policy.descr.split("::")[1]:
+                if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
                     for child_contractSubject in existing_contract.get_children(ContractSubject):
                         for child_filter in child_contractSubject.get_filters():
                             matched = False
@@ -1011,7 +1042,8 @@ class ApicService(GenericService):
                 matched = False
                 for existing_epg in existing_epgs:
                     if existing_epg.name != "base":
-                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(":")[1]:
+                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
                             matched = True
                             break
 
@@ -1037,7 +1069,7 @@ class ApicService(GenericService):
                     epg.set_base_epg(base_epg)
                     criterion = AttributeCriterion('criterion', epg)
                     ipaddrs = []
-                    # check if the existing nodes are there in the present config,if not delete them
+                    # TBD check if the existing nodes are there in the present config,if not delete them
                     for node_policy in epg_policy.get_node_policies():
                         ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
                         if not ipaddr.is_multicast:  # Skip multicast addresses. They cannot be IP based EPGs
@@ -1087,7 +1119,8 @@ class ApicService(GenericService):
                 matched = False
                 for existing_epg in existing_epgs:
                     if existing_epg.name != "base":
-                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(":")[1]:
+                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
                             matched = True
                             break
 
