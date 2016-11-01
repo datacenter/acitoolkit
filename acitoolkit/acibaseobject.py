@@ -291,6 +291,11 @@ class BaseACIObject(AciSearch):
 
     @classmethod
     def mask_class_from_graphs(cls):
+        """
+        Mask (hide) this class from graph creation
+
+        :return: False indicating that this class should not be masked.
+        """
         return False
 
     def has_tag(self, tag):
@@ -753,6 +758,14 @@ class BaseACIObject(AciSearch):
         return self._children
 
     def update_db(self, session, subscribed_classes, deep=False):
+        """
+        update_db
+
+        :param session: Session class instance representing the connection to the APIC
+        :param subscribed_classes: List of subscribed classes
+        :param deep: Boolean indicating whether to go deep or not. Default is False
+        :return: List of subscribed classes
+        """
         for child_class in self._get_children_classes():
             child_class.subscribe(session, only_new=True)
             if child_class not in subscribed_classes:
@@ -818,6 +831,12 @@ class BaseACIObject(AciSearch):
         obj._attachments.append(BaseRelation(self, 'attached', relation_type))
 
     def _remove_attachment(self, obj, relation_type=None):
+        """
+        Remove the attachment
+
+        :param obj: Object that is the subject of the attachment
+        :param relation_type: String indicating the relation type
+        """
         removal_attachment = BaseRelation(obj, 'attached', relation_type)
         for attachment in self._attachments:
             if attachment == removal_attachment:
@@ -1155,7 +1174,7 @@ class BaseACIObject(AciSearch):
         the object
 
         :param aci_object:
-        :param title:
+        :param title: String containing the table title
         :return: list of Table objects
         """
         return [None]
@@ -1341,7 +1360,7 @@ class BaseACIPhysObject(BaseACIObject):
         if len(other) == 0:
             return data
         phys_domain, fabric, infra = data
-        other_phys_domain, other_fabric, other_infra = other
+        _, _, other_infra = other
         infra['infraInfra']['children'].extend(other_infra['infraInfra']['children'])
 
         # Remove duplicate named policies
@@ -1495,7 +1514,9 @@ class BaseACIPhysObject(BaseACIObject):
 
 
 class _Tag(BaseACIObject):
-
+    """
+    Tag class
+    """
     def __init__(self, name=None, parent=None):
         self.name = name
         self._deleted = False
@@ -1697,9 +1718,14 @@ class BaseInterface(BaseACIObject):
     """Abstract class used to provide base functionality to other Interface
        classes.
     """
-
     @staticmethod
     def is_dn_vpc(dn):
+        """
+        Check if the DN is a VPC
+
+        :param dn: String containing the DN
+        :return: True if the the DN is a VPC. False otherwise.
+        """
         if '/protpaths' in dn:
             return True
         return False
@@ -1747,4 +1773,10 @@ class BaseInterface(BaseACIObject):
                                             self._get_name_for_json())
 
     def get_port_channel_selector_json(self, port_name):
+        """
+        Get the JSON for the Port Channel selector
+
+        :param port_name: String containing the port name
+        :return: Dictonary containing the JSON for the Port Channel selector
+        """
         return self._get_port_selector_json('accbundle', port_name)
