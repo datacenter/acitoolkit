@@ -1,3 +1,6 @@
+"""
+aciFaults.py
+"""
 from .acibaseobject import BaseACIObject
 from jsonschema import validate, ValidationError
 import os
@@ -41,14 +44,15 @@ class Faults(BaseACIObject):
         """
         Gets the URL used to subscribe fault instances
         in the APIC.
-        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash format with domain,types,severity
+        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash format
+                             with domain, types, severity
         :returns: a  URL
         """
-        if not fault_filter is None:
+        if fault_filter is not None:
             self.validate_fault_filter(fault_filter)
 
         url = '/api/class/{}.json?subscription=yes'.format(self._get_apic_classes()[0])
-        if not fault_filter is None:
+        if fault_filter is not None:
             extension = "&query-target-filter="
             if len(fault_filter.keys()) > 1:
                 extension += 'and('
@@ -86,7 +90,8 @@ class Faults(BaseACIObject):
         class.
 
         :param session:  the instance of Session used for APIC communication
-        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash format with domain,types,severity
+        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash format
+                             with domain, types, severity
         :param only_new: Boolean indicating whether to get all events or only the new events. All events (indicated by
                          setting only_new to False) will queue a create event for all of the currently existing objects.
                          Setting only_new to True will only queue events that occur after the initial subscribe. The
@@ -106,7 +111,8 @@ class Faults(BaseACIObject):
         of this class.
 
         :param session:  the instance of Session used for APIC communication
-        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash format with domain,types,severity
+        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash
+                             format with domain, types, severity
         :returns: True or False.  True if there are events pending.
         """
         url = self._get_subscription_urls(fault_filter=fault_filter)
@@ -129,7 +135,8 @@ class Faults(BaseACIObject):
         returned in the form of objects.
 
         :param session:  the instance of Session used for APIC communication
-        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash format with domain,types,severity
+        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash
+                             format with domain, types, severity
         :param tenant_name : tenant_name is a string
         """
         url = self._get_subscription_urls(fault_filter=fault_filter)
@@ -138,20 +145,20 @@ class Faults(BaseACIObject):
             if class_name in event['imdata'][0]:
                 break
         faults = event['imdata']
-        fault_objetcs = []
+        fault_objects = []
         for fault in faults:
             obj = self()
             attribute_data = fault[class_name]['attributes']
             obj._populate_from_attributes(attribute_data)
-            if not tenant_name is None:
-                if not tenant_name in obj.dn:
+            if tenant_name is not None:
+                if tenant_name not in obj.dn:
                     # if not obj['dn'].starts_with('uni/tn-'+tenant_name):
                     continue
-            if not fault_filter is None:
-                fault_objetcs.append(obj.get_faults_by_filter(fault_filter=fault_filter))
+            if fault_filter is not None:
+                fault_objects.append(obj.get_faults_by_filter(fault_filter=fault_filter))
             else:
-                fault_objetcs.append(obj)
-            return fault_objetcs
+                fault_objects.append(obj)
+            return fault_objects
 
     def _populate_from_attributes(self, attributes):
         """Fills in an Fault object with the desired attributes.

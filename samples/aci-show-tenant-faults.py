@@ -5,17 +5,22 @@ If a particular tenant is given, shows all the faults of that tenant
 and cotinuously keeps logging the faults.
 """
 import sys
-import acitoolkit.acitoolkit as ACI
+import acitoolkit as ACI
 from pprint import pprint
 from tabulate import tabulate
-from acitoolkit.aciFaults import Faults, BaseFaults
+from acitoolkit import Faults
 
 
 def main():
+    """
+    Main execution routine
+    """
     description = ('Simple application that logs on to the APIC'
-                   ' and displays all the faults. If tenant name is given, shows the faults assosciated with that tenant')
+                   ' and displays all the faults. If tenant name is given, '
+                   ' shows the faults associated with that tenant')
     creds = ACI.Credentials('apic', description)
-    creds.add_argument("-t", "--tenant_name", help="name of the tenant of which faults are to be displayed")
+    creds.add_argument("-t", "--tenant_name",
+                       help="name of the tenant of which faults are to be displayed")
     args = creds.get()
 
     # Login to APIC
@@ -24,21 +29,21 @@ def main():
     if not resp.ok:
         print('%% Could not login to APIC')
         sys.exit(0)
-    if not args.tenant_name is None:
+    if args.tenant_name is not None:
         tenant_name = args.tenant_name
     else:
         tenant_name = None
 
     faults_obj = Faults()
-    faults_obj.subscribe_to_Faults(session)
+    faults_obj.subscribe_faults(session)
     while True:
         if faults_obj.has_faults(session):
             faults = faults_obj.get_faults(session, tenant_name=tenant_name)
-            if not faults is None:
+            if faults is not None:
                 for fault in faults:
-                    if not fault is None:
+                    if fault is not None:
                         print "****************"
-                        if not fault.descr is None:
+                        if fault.descr is not None:
                             print "     descr     : " + fault.descr
                         else:
                             print "     descr     : " + "  "
@@ -47,6 +52,7 @@ def main():
                         print "     severity  : " + fault.severity
                         print "     type      : " + fault.type
                         print "     domain    : " + fault.domain
+
 
 if __name__ == '__main__':
     main()

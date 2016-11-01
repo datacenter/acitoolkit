@@ -5,12 +5,13 @@ and if a domain is given displays faults related to that domain.
 list of domains can also be given
 """
 import sys
-from pprint import pprint
-from acitoolkit import (Credentials, Session)
-from acitoolkit.aciFaults import Faults
+from acitoolkit import (Credentials, Session, Faults)
 
 
 def main():
+    """
+    Main execution routine
+    """
     description = 'Simple application that logs on to the APIC and displays all of the Tenants.'
     creds = Credentials('apic', description)
     creds.add_argument(
@@ -34,10 +35,10 @@ def main():
 
     faults_obj = Faults()
     fault_filter = None
-    if not args.domain_name is None:
+    if args.domain_name is not None:
         fault_filter = {'domain': args.domain_name.split(',')}
     tenant_name = None
-    if not args.tenant_name is None:
+    if args.tenant_name is not None:
         tenant_name = args.tenant_name
 
     faults_obj.subscribe_faults(session, fault_filter)
@@ -45,11 +46,11 @@ def main():
         if faults_obj.has_faults(session, fault_filter):
             faults = faults_obj.get_faults(
                 session, fault_filter=fault_filter, tenant_name=tenant_name)
-            if not faults is None:
+            if faults is not None:
                 for fault in faults:
-                    if not fault is None:
+                    if fault is not None:
                         print "---------------"
-                        if not fault.descr is None:
+                        if fault.descr is not None:
                             print "     descr     : " + fault.descr
                         else:
                             print "     descr     : " + "  "
@@ -58,6 +59,7 @@ def main():
                         print "     severity  : " + fault.severity
                         print "     type      : " + fault.type
                         print "     domain    : " + fault.domain
+
 
 if __name__ == '__main__':
     main()
