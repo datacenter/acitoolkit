@@ -800,12 +800,12 @@ class AttributeCriterion(BaseACIObject):
 
     @classmethod
     def get_deep(cls, full_data, working_data, parent=None, limit_to=(), subtree='full', config_only=False):
-        attrCrtrn_data = working_data[0]['fvCrtrn']
-        attrCtrn = AttributeCriterion(str(attrCrtrn_data['attributes']['name']), parent)
-        attrCtrn._populate_from_attributes(attrCrtrn_data['attributes'])
-        for child in attrCrtrn_data.get('children', ()):
+        attr_crtrn_data = working_data[0]['fvCrtrn']
+        attr_ctrn = AttributeCriterion(str(attr_crtrn_data['attributes']['name']), parent)
+        attr_ctrn._populate_from_attributes(attr_crtrn_data['attributes'])
+        for child in attr_crtrn_data.get('children', ()):
             if 'fvIpAttr' in child:
-                attrCtrn.add_ip_address(str(child['fvIpAttr']['attributes']['ip']))
+                attr_ctrn.add_ip_address(str(child['fvIpAttr']['attributes']['ip']))
 
     def get_json(self):
         """
@@ -4906,6 +4906,12 @@ class Endpoint(BaseACIObject):
             self.type = str(attributes.get('type'))
 
     def _populate_interface_info(self, working_data):
+        """
+        Populate the interface information for the Endpoint
+
+        :param working_data: JSON dictionary containing the working data
+        :return: None
+        """
         for item in working_data[0]:
             if 'children' in working_data[0][item]:
                 children = working_data[0][item]['children']
@@ -6985,7 +6991,9 @@ class CollectionPolicy(BaseMonitorClass):
 
 
 class Tag(_Tag):
-
+    """
+    Tag class.
+    """
     @staticmethod
     def _get_parent_class():
         """
