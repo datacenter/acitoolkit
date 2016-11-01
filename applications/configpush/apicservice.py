@@ -721,6 +721,14 @@ class ApicService(GenericService):
         """
         self._tenant_name = name
 
+    @property
+    def tenant_name(self):
+        """
+        tenant name
+        :return: String containing the tenant name
+        """
+        return self._tenant_name
+
     def set_app_name(self, name):
         """
         Set the Application Profile name
