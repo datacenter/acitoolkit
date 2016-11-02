@@ -784,13 +784,12 @@ class ApicService(GenericService):
         for duplicate_policy in duplicate_policies:
             self.cdb.remove_contract_policy(duplicate_policy)
 
-        if not self.displayonly:
-            # Log on to the APIC
-            apic_cfg = self.cdb.get_apic_config()
-            apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
-            resp = apic.login()
-            if not resp.ok:
-                return resp
+        # Log on to the APIC
+        apic_cfg = self.cdb.get_apic_config()
+        apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
+        resp = apic.login()
+        if not resp.ok:
+            return resp
 
         tenant_names = []
         tenant_names.append(self._tenant_name)
@@ -866,42 +865,43 @@ class ApicService(GenericService):
                     return resp
 
         # delete all the unwanted contracts
-        tenants = Tenant.get_deep(
-            apic,
-            names=tenant_names,
-            limit_to=[
-                'fvTenant',
-                'fvAp',
-                'vzFilter',
-                'vzEntry',
-                'vzBrCP',
-                'vzSubj',
-                'vzRsSubjFiltAtt'])
-        tenant = tenants[0]
-        existing_contracts = tenant.get_children(Contract)
-        for existing_contract in existing_contracts:
-            matched = False
-            for contract_policy in self.cdb.get_contract_policies():
-                if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
-                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
-                    matched = True
-            if not matched:
-                existing_contract.mark_as_deleted()
-                exist_contract_providing_epgs = existing_contract.get_all_providing_epgs()
-                for exist_contract_providing_epg in exist_contract_providing_epgs:
-                    exist_contract_providing_epg.mark_as_deleted()
-                exist_contract_consuming_epgs = existing_contract.get_all_consuming_epgs()
-                for exist_contract_consuming_epg in exist_contract_consuming_epgs:
-                    exist_contract_consuming_epg.mark_as_deleted()
-
-        if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
-        else:
-            logging.debug('Pushing contracts by deleting unwanted contracts')
-            if len(tenant.get_children()) > 0:
-                resp = tenant.push_to_apic(apic)
-                if not resp.ok:
-                    return resp
+        if Tenant.exists(apic, tenant):
+            tenants = Tenant.get_deep(
+                apic,
+                names=tenant_names,
+                limit_to=[
+                    'fvTenant',
+                    'fvAp',
+                    'vzFilter',
+                    'vzEntry',
+                    'vzBrCP',
+                    'vzSubj',
+                    'vzRsSubjFiltAtt'])
+            tenant = tenants[0]
+            existing_contracts = tenant.get_children(Contract)
+            for existing_contract in existing_contracts:
+                matched = False
+                for contract_policy in self.cdb.get_contract_policies():
+                    if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                            "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                        matched = True
+                if not matched:
+                    existing_contract.mark_as_deleted()
+                    exist_contract_providing_epgs = existing_contract.get_all_providing_epgs()
+                    for exist_contract_providing_epg in exist_contract_providing_epgs:
+                        exist_contract_providing_epg.mark_as_deleted()
+                    exist_contract_consuming_epgs = existing_contract.get_all_consuming_epgs()
+                    for exist_contract_consuming_epg in exist_contract_consuming_epgs:
+                        exist_contract_consuming_epg.mark_as_deleted()
+    
+            if self.displayonly:
+                print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            else:
+                logging.debug('Pushing contracts by deleting unwanted contracts')
+                if len(tenant.get_children()) > 0:
+                    resp = tenant.push_to_apic(apic)
+                    if not resp.ok:
+                        return resp
 
         filterEntry_list = []
 
@@ -1113,7 +1113,10 @@ class ApicService(GenericService):
         else:
             logging.debug('Creating EPGs')
             tenants = Tenant.get_deep(apic, names=tenant_names)
-            tenant = tenants[0]
+            if len(tenants)>0:
+                tenant = tenants[0]
+            else :
+                tenant = Tenant(self._tenant_name)
             appProfiles = tenant.get_children(AppProfile)
             if len(appProfiles) > 0:
                 app = appProfiles[0]
