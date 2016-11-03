@@ -295,6 +295,8 @@ class ConfigRandomizer(object):
                 sToPort = '0'
                 tcpRules = '0'
                 stateful = '0'
+                icmpv4Type = 'not-given'
+                icmpv6Type = 'not-given'
                 if random_chance(20):  # 20% chance of ARP
                     arpOpc = random.choice(['req', 'reply'])
                     etherT = 'arp'
@@ -311,9 +313,12 @@ class ConfigRandomizer(object):
                     else:
                         prot = ip_protocols[random.choice(['icmp', 'tcp', 'udp', 'icmpv6'])]
                         if prot == ip_protocols['icmp']:
-                            pass
+                            icmpv4Type = random.choice(['echo-rep', 'dst-unreach', 'src-quench', 'echo',
+                                                        'time-exceeded', 'unspecified', 'not-given'])
                         elif prot == ip_protocols['icmpv6']:
-                            pass
+                            icmpv6Type = random.choice(['unspecified', 'dst-unreach', 'time-exceeded',
+                                                        'echo-req', 'echo-rep', 'nbr-solicit', 'nbr-advert',
+                                                        'redirect', 'not-given'])
                         else:
                             # Remainder is TCP or UDP
                             dFromPort, dToPort = random_range(0, 65535)
@@ -339,7 +344,7 @@ class ConfigRandomizer(object):
                                         tcpRules += str(tcp_choice) + ','
                 parent = random.choice(filters)
                 if not parent.has_entry(applyToFrag, arpOpc, dFromPort, dToPort, etherT, prot, sFromPort, sToPort,
-                                        tcpRules, stateful):
+                                        tcpRules, stateful, icmpv4Type, icmpv6Type):
                     filter_entry = FilterEntry(name=random_string(random_number(1, max_string_length)),
                                                parent=random.choice(filters),
                                                applyToFrag=applyToFrag,
@@ -351,7 +356,9 @@ class ConfigRandomizer(object):
                                                sFromPort=sFromPort,
                                                sToPort=sToPort,
                                                tcpRules=tcpRules,
-                                               stateful=stateful)
+                                               stateful=stateful,
+                                               icmpv4Type=icmpv4Type,
+                                               icmpv6Type=icmpv6Type)
                 self._global_limits.max_filter_entries -= 1
 
         # Create some Contracts

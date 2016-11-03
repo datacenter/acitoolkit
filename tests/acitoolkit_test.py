@@ -1472,6 +1472,53 @@ class TestFilterEntry(unittest.TestCase):
         self.assertTrue('vzEntry' in filt_entry_json)
         self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
                          filt_entry_name)
+        self.assertNotIn('icmpv4Type', filt_entry_json['vzEntry']['attributes'])
+        self.assertNotIn('icmpv6Type', filt_entry_json['vzEntry']['attributes'])
+
+    def test_get_json_with_icmpv4Type(self):
+        """
+        Test test_get_json_with_icmpv4Type method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt, icmpv4Type='unspecified')
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
+                         filt_entry_name)
+        self.assertIn('icmpv4Type', filt_entry_json['vzEntry']['attributes'])
+        self.assertNotIn('icmpv6Type', filt_entry_json['vzEntry']['attributes'])
+
+    def test_get_json_with_icmpv6Type(self):
+        """
+        Test test_get_json_with_icmpv4Type method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt, icmpv6Type='unspecified')
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
+                         filt_entry_name)
+        self.assertIn('icmpv6Type', filt_entry_json['vzEntry']['attributes'])
+        self.assertNotIn('icmpv4Type', filt_entry_json['vzEntry']['attributes'])
+
+    def test_get_json_with_icmpv4Type_and_icmpv6Type(self):
+        """
+        Test test_get_json_with_icmpv4Type method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt, icmpv4Type='unspecified', icmpv6Type='unspecified')
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
+                         filt_entry_name)
+        self.assertIn('icmpv6Type', filt_entry_json['vzEntry']['attributes'])
+        self.assertIn('icmpv4Type', filt_entry_json['vzEntry']['attributes'])
 
     def test_eq(self):
         """

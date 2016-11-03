@@ -4068,7 +4068,7 @@ class Filter(BaseACIObject):
         return [url]
 
     def has_entry(self, applyToFrag, arpOpc, dFromPort, dToPort, etherT, prot, sFromPort, sToPort,
-                  tcpRules, stateful):
+                  tcpRules, stateful, icmpv4Type='not-given', icmpv6Type='not-given'):
         """
         Returns whether or not the Filter has a FilterEntry. All fields are compared except name.
 
@@ -4079,7 +4079,17 @@ class Filter(BaseACIObject):
                     entry.dFromPort == dFromPort and entry.sFromPort == sFromPort and \
                     entry.dToPort == dToPort and entry.sToPort == sToPort and entry.prot == prot and\
                     entry.tcpRules == tcpRules and entry.stateful == stateful:
-                return True
+                if icmpv6Type == 'not-given' and icmpv4Type == 'not-given':
+                    return True
+                elif icmpv6Type == 'not-given':
+                    if entry.icmpv4Type == icmpv4Type:
+                        return True
+                elif icmpv4Type == 'not-given':
+                    if entry.icmpv6Type == icmpv6Type:
+                        return True
+                else:
+                    if entry.icmpv4Type == icmpv4Type and entry.icmpv6Type == icmpv6Type:
+                        return True
         return False
 
 
@@ -4142,7 +4152,8 @@ class FilterEntry(BaseACIObject):
 
     def __init__(self, name, parent, applyToFrag='0', arpOpc='0',
                  dFromPort='0', dToPort='0', etherT='0', prot='0',
-                 sFromPort='0', sToPort='0', tcpRules='0', stateful='0'):
+                 sFromPort='0', sToPort='0', tcpRules='0', stateful='0',
+                 icmpv4Type='not-given', icmpv6Type='not-given'):
         """
         :param name: String containing the name of this FilterEntry instance.
         :param applyToFrag: True or False.  True indicates that this\
@@ -4165,6 +4176,8 @@ class FilterEntry(BaseACIObject):
                          by this FilterEntry.
         :param stateful: True or False.  True indicates that this\
                          FilterEntry should monitor the TCP ACK bit.
+        :param icmpv4Type: String containing the ICMPv4 type.
+        :param icmpv6Type: String containing the ICMPv6 type.
         """
         self.applyToFrag = applyToFrag
         self.arpOpc = arpOpc
@@ -4176,6 +4189,8 @@ class FilterEntry(BaseACIObject):
         self.sToPort = sToPort
         self.tcpRules = tcpRules
         self.stateful = stateful
+        self.icmpv4Type = icmpv4Type
+        self.icmpv6Type = icmpv6Type
         # Backward compatibility for old calls that reference a Contract instead
         # of a Filter Object
         if isinstance(parent, Contract):
@@ -4207,6 +4222,10 @@ class FilterEntry(BaseACIObject):
         attributes['sToPort'] = self.sToPort
         attributes['tcpRules'] = self.tcpRules
         attributes['stateful'] = self.stateful
+        if self.icmpv4Type != 'not-given':
+            attributes['icmpv4Type'] = self.icmpv4Type
+        if self.icmpv6Type != 'not-given':
+            attributes['icmpv6Type'] = self.icmpv6Type
         return attributes
 
     def _populate_from_attributes(self, attributes):
@@ -4221,6 +4240,14 @@ class FilterEntry(BaseACIObject):
         self.sToPort = str(attributes['sToPort'])
         self.tcpRules = str(attributes['tcpRules'])
         self.stateful = str(attributes['stateful'])
+        if 'icmpv4Type' in attributes:
+            self.icmpv4Type = str(attributes['icmpv4Type'])
+        else:
+            self.icmpv4Type = 'not-given'
+        if 'icmpv6Type' in attributes:
+            self.icmpv6Type = str(attributes['icmpv6Type'])
+        else:
+            self.icmpv6Type = 'not-given'
 
     @staticmethod
     def _get_parent_class():
