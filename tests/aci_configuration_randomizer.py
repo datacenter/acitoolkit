@@ -314,11 +314,11 @@ class ConfigRandomizer(object):
                         prot = ip_protocols[random.choice(['icmp', 'tcp', 'udp', 'icmpv6'])]
                         if prot == ip_protocols['icmp']:
                             icmpv4T = random.choice(['echo-rep', 'dst-unreach', 'src-quench', 'echo',
-                                                        'time-exceeded', 'unspecified', 'not-given'])
+                                                     'time-exceeded', 'unspecified', 'not-given'])
                         elif prot == ip_protocols['icmpv6']:
                             icmpv6T = random.choice(['unspecified', 'dst-unreach', 'time-exceeded',
-                                                        'echo-req', 'echo-rep', 'nbr-solicit', 'nbr-advert',
-                                                        'redirect', 'not-given'])
+                                                     'echo-req', 'echo-rep', 'nbr-solicit', 'nbr-advert',
+                                                     'redirect', 'not-given'])
                         else:
                             # Remainder is TCP or UDP
                             dFromPort, dToPort = random_range(0, 65535)
@@ -458,6 +458,7 @@ class ConfigRandomizer(object):
                                 flow.ethertype = filter_entry.etherT
                                 if flow.ethertype == 'arp':
                                     flow.arp_opcode = filter_entry.arpOpc
+                                    flow.populate_random_ip_addresses()
                                 elif flow.ethertype == 'ip':
                                     flow.populate_random_ip_addresses()
                                     flow.proto = filter_entry.prot
