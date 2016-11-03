@@ -52,6 +52,7 @@ ip
 ip address
 ip address address address
 ip address 1.2.3.4/24
+no ip address 1.2.3.4/24
 show bridgedomain
 show tenant
 show app
@@ -83,6 +84,11 @@ bridgedomain bd1
 no bridgedomain bd1
 exit
 no epg epg2
+exit
+interface eth 1/101/1/65
+epg app1/epg1 vlan 1
+exit
+app app1
 no epg epg1
 exit
 no app app1
