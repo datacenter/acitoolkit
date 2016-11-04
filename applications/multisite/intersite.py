@@ -1553,10 +1553,16 @@ def initialize_tool(config):
 
     # For deleted export policies, try and clean up old dangling OutsideEPGs
     # It may not be possible if the Remote Site Policy was also deleted
+
+    local_site = collector.get_local_site()
+    if local_site is None:
+        logging.error('No local site configured')
+        print '%% No local site configured.'
+        return collector
     for remote_site_policy in collector.config.site_policies:
         remote_site = collector.get_site(remote_site_policy.name)
         try:
-            remote_site.remove_old_policies(collector.get_local_site())
+            remote_site.remove_old_policies(local_site)
         except ConnectionError:
             logging.error('Could not remove old policies from remote site')
     return collector
