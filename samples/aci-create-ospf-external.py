@@ -67,6 +67,7 @@ def main():
     ifpol = OSPFInterfacePolicy('myospf-pol', tenant)
     ifpol.set_nw_type('p2p')
     ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='1')
+    ospfif.set_area_type('nssa')
     ospfif.auth_key = 'password'
     ospfif.int_policy_name = ifpol.name
     ospfif.auth_keyid = '1'
