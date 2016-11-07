@@ -3041,6 +3041,26 @@ class TestOspf(unittest.TestCase):
         self.assertTrue(ospfif.is_ospf())
         ospf_json = outside.get_json()
 
+    def test_area_type(self):
+        """
+        Test changing area_type
+        """
+        rtr = OSPFRouter('rtr-1')
+        ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='2')
+        for area_type_setting in ['nssa', 'stub', 'regular']:
+            ospfif.set_area_type(area_type_setting)
+            self.assertEqual(ospfif.area_type, area_type_setting)
+
+    def test_invalid_area_type(self):
+        """
+        Test changing area_type to an invalid value
+        """
+        rtr = OSPFRouter('rtr-1')
+        ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='2')
+        with self.assertRaises(ValueError):
+            ospfif.set_area_type('bad-value')
+        self.assertNotEqual(ospfif.area_type, 'bad-value')
+
 
 class TestMonitorPolicy(unittest.TestCase):
     """

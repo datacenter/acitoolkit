@@ -1825,7 +1825,8 @@ class OutsideL3(BaseACIObject):
             if hasattr(interface, 'is_ospf'):
                 ospf_if = interface
 
-                text = {'ospfExtP': {'attributes': {'areaId': ospf_if.area_id},
+                text = {'ospfExtP': {'attributes': {'areaId': ospf_if.area_id,
+                                                    'areaType': ospf_if.area_type},
                                      'children': []}}
                 children.append(text)
 
@@ -2302,6 +2303,7 @@ class OSPFInterface(BaseACIObject):
         self.auth_type = None
         self.auth_keyid = None
         self.networks = []
+        self.area_type = 'nssa'
 
     def is_interface(self):
         """
@@ -2317,6 +2319,17 @@ class OSPFInterface(BaseACIObject):
                   of OSPFInterface instances, this is always True.
         """
         return True
+
+    def set_area_type(self, area_type):
+        """
+        Set the area_type for this OSPFInterface
+
+        :param area_type: AreaType to use for this OSPFInterface
+        """
+        valid_area_types = ('nssa', 'stub', 'regular')
+        if area_type not in valid_area_types:
+            raise ValueError('area_type must be of: %s, %s or %s' % valid_area_types)
+        self.area_type = area_type
 
     def get_json(self):
         """
