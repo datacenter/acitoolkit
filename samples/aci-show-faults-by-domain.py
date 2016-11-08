@@ -4,7 +4,6 @@ if a particular tenant is given shows faults of that tenant
 and if a domain is given displays faults related to that domain.
 list of domains can also be given
 """
-import sys
 from acitoolkit import (Credentials, Session, Faults)
 
 
@@ -23,7 +22,9 @@ def main():
         "-t",
         "--tenant-name",
         type=str,
-        help="name of the tenant of which faults are to be displayed.If not given faults of all the tenants are shown")
+        help="name of the tenant of which faults are to be displayed. If not given faults of all the tenants are shown")
+    creds.add_argument('--continuous', action='store_true',
+                       help='Continuously monitor for faults')
     args = creds.get()
 
     # Login to APIC
@@ -31,7 +32,7 @@ def main():
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
-        sys.exit(0)
+        return
 
     faults_obj = Faults()
     fault_filter = None
@@ -42,7 +43,7 @@ def main():
         tenant_name = args.tenant_name
 
     faults_obj.subscribe_faults(session, fault_filter)
-    while True:
+    while faults_obj.has_faults(session, fault_filter) or args.continuous:
         if faults_obj.has_faults(session, fault_filter):
             faults = faults_obj.get_faults(
                 session, fault_filter=fault_filter, tenant_name=tenant_name)
