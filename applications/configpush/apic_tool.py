@@ -55,7 +55,7 @@ def main():
         print 'Could not load improperly formatted configuration file'
         return
 
-    if not args.displayonly and 'apic' not in config:
+    if 'apic' not in config:
         if args.url is None or args.login is None or args.password is None:
             print 'APIC credentials not given'
             return
