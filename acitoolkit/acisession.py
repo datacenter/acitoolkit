@@ -399,7 +399,7 @@ class Subscriber(threading.Thread):
             self.get_event(url)
         del self._subscriptions[url]
         if not self._subscriptions:
-            self._ws.close()
+            self._ws.close(timeout=0)
 
     def run(self):
         while not self._exit:
@@ -430,11 +430,11 @@ class Session(object):
         :param proxies: Optional dictionary containing the proxies passed
         directly to the Requests library
         """
-        if isinstance(url, unicode):
+        if not isinstance(url, str):
             url = str(url)
-        if isinstance(uid, unicode):
+        if not isinstance(uid, str):
             uid = str(uid)
-        if isinstance(pwd, unicode):
+        if not isinstance(pwd, str):
             pwd = str(pwd)
         if not isinstance(url, str):
             raise CredentialsError("The URL or APIC address must be a string")

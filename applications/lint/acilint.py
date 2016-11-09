@@ -36,7 +36,7 @@ from acitoolkit.acitoolkit import OutputTerminal, Filter, FilterEntry
 from acitoolkit.acitoolkit import Credentials, Session
 from acitoolkit.acifakeapic import FakeSession
 import argparse
-import ipaddr
+import ipaddress
 
 
 class Checker(object):
@@ -45,20 +45,20 @@ class Checker(object):
     provided configuration.
     """
     def __init__(self, session, output, fh=None):
-        print 'Getting configuration from APIC....'
+        print('Getting configuration from APIC....')
         self.tenants = Tenant.get_deep(session)
         self.output = output
         self.file = fh
-        print 'Processing configuration....'
+        print('Processing configuration....')
 
     def output_handler(self, msg):
         """
-        Print the supplied string in a format appropriate to the output medium.
+        Print(the supplied string in a format appropriate to the output medium.)
 
         :param msg: The message to be printed.
         """
         if self.output == 'console':
-            print msg
+            print(msg)
         elif self.output == 'html':
 
             color_map = {'Error': '#FF8C00',
@@ -435,7 +435,7 @@ class Checker(object):
                 if current_context not in context_info:
                     context_info[current_context] = {'v4list': [], 'v6list': []}
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
+                    ip_subnet = ipaddress.ip_interface(unicode(subnet.addr))
                     index = 0
                     index_to_insert = 0
                     if ip_subnet.version == 4:
@@ -530,8 +530,8 @@ class Checker(object):
                     # BridgeDomain Context has no associated ExternalNetworks so ignore it.
                     continue
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddr.IPNetwork(subnet.addr)
-                    ip_subnet_str = "%s/%s" % (ip_subnet.network, ip_subnet.prefixlen)
+                    ip_subnet = ipaddress.ip_interface(unicode(subnet.addr))
+                    ip_subnet_str = ip_subnet.network
                     if ip_subnet_str in context_set[bd_ctxt.name]:
                         for subnet_info in context_set[bd_ctxt.name][ip_subnet_str]:
                             self.output_handler("Error 006: Subnet %s in Tenant/Context/BridgeDomain "
@@ -606,7 +606,7 @@ def acilint():
     creds.add_argument('-o', '--output', required=False, default='console')
     args = creds.get()
     if args.generateconfigfile:
-        print 'Generating configuration file....'
+        print('Generating configuration file....')
         f = args.generateconfigfile
         f.write(('# acilint configuration file\n# Remove or comment out any '
                  'warnings or errors that you no longer wish to see\n'))
@@ -637,12 +637,12 @@ def acilint():
         session = Session(args.url, args.login, args.password)
         resp = session.login()
         if not resp.ok:
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
             sys.exit(0)
 
     html = None
     if args.output == 'html':
-        print 'Creating file lint.html'
+        print('Creating file lint.html')
         html = open('lint.html', 'w')
         html.write("""
         <table border="2" style="width:100%">

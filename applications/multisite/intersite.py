@@ -460,6 +460,9 @@ class MultisiteMonitor(threading.Thread):
                 logging.error('Could not find remote site %s', site.name)
                 continue
             for l3out in site.get_interfaces():
+                if l3out.noclean:
+                    continue
+
                 itag = IntersiteTag(export_policy.tenant, export_policy.app, export_policy.epg,
                                     self._local_site.name)
 
@@ -811,6 +814,10 @@ class L3OutPolicy(ConfigObject):
     def tenant(self):
         return self._policy['l3out']['tenant']
 
+    @property
+    def noclean(self):
+        return 'noclean' in self._policy['l3out'] and self._policy['l3out']['noclean'] == "True"
+
     def validate(self):
         if 'l3out' not in self._policy:
             raise ValueError('Expecting "l3out" in interface policy')
@@ -822,6 +829,7 @@ class L3OutPolicy(ConfigObject):
                                   'consumes': '_validate_list',
                                   'protected_by': '_validate_list',
                                   'consumes_interface': '_validate_list',
+                                  'noclean': '_validate_boolean_string',
                                   }
             if item not in keyword_validators:
                 raise ValueError(self.__class__.__name__ + 'Unknown keyword: %s' % item)
@@ -1545,10 +1553,16 @@ def initialize_tool(config):
 
     # For deleted export policies, try and clean up old dangling OutsideEPGs
     # It may not be possible if the Remote Site Policy was also deleted
+
+    local_site = collector.get_local_site()
+    if local_site is None:
+        logging.error('No local site configured')
+        print '%% No local site configured.'
+        return collector
     for remote_site_policy in collector.config.site_policies:
         remote_site = collector.get_site(remote_site_policy.name)
         try:
-            remote_site.remove_old_policies(collector.get_local_site())
+            remote_site.remove_old_policies(local_site)
         except ConnectionError:
             logging.error('Could not remove old policies from remote site')
     return collector

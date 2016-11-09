@@ -176,6 +176,7 @@ particular L3out interface.
 - consumes: This contains a list of zero or more contract names that the EP should consume when configured on the remote site.
 - consumes_interface: This contains a list of zero or more contract interface names that the EP should consume when configured on the remote site.
 - protected_by: This contains a list of zero or more taboo names that the EP should be protected by when configured on the remote site.
+- noclean: True of False value that determines whether 'stale' contracts should be removed from a remote EPG on script start up (default False, stale contracts are removed).
 
 Command Shell
 -------------
@@ -250,6 +251,103 @@ Some examples using the REST API via curl:
     curl –i –u admin:acitoolkit –H “Content-Type: application/json” -X PUT –d@my_config.json http://localhost:5000/config
     curl –i –u admin:acitoolkit –X GET http://localhost:5000/config
 
+Automator
+---------
+The intersite application can be run in a basic automated fashion which will identify EPG's with an assigned tag and automatically create the appropriate L3out objects and contracts from the templated configuration.  The usefulness of this utility is limited by the requirement of tenant's needing to exist in both sites (APIC's) consistantly. 
+
+::
+
+    python intersite_automator.py -h
+    usage: intersite_automator.py [-h] [--config CONFIG] [--generateconfig]
+                              [--debug [{verbose,info,warnings,critical}]]
+                              [--stdout]
+
+    ACI Multisite Automation Tool
+
+    optional arguments:
+       -h, --help            show this help message and exit
+      --config CONFIG       Configuration file in JSON format
+      --generateconfig      Generate an empty example configuration file
+      --debug [{verbose,info,warnings,critical}]
+                           Enable printing of debug messages
+      --stdout              Output all log events to stdout
+
+To make use of this modified version of the intersite application, you will need to use a different configuration file.  The automator removes the need for statically defining the individual export policies but requires a new 'automator' specific configuration.
+
+::
+
+    {
+    "config": [
+        { 
+            "site": {
+                "name": "",
+                "username": "",
+                "password": "",
+                "ip_address": "",
+                "use_https": "",
+                "local": ""
+            }
+        },
+        { 
+            "site": {
+                "name": "",
+                "username": "",
+                "password": "",
+                "ip_address": "",
+                "use_https": "",
+                "local": ""
+            }
+        }
+    ],
+
+    "automator": {
+        "check_interval": "60",
+        "search_filter": "replicated",
+
+        "remote_l3out": {
+            "tenant": "Layer3OutTenant",
+            "interface_name": "L3Out.Site1-Site2.SERVER",
+            "network_name": "Site2.%{tenant}.%{app}.%{epg}"
+        },
+
+        "remote_contracts": {
+            "consume_contract": [{
+                "name": "CT.%{tenant}.%{app}.%{epg}.to.Site2",
+                "default_filter": "east-west-allow-all",
+                
+                "export_to_epg_owner": "True",
+                "export_name": "x.CT.%{tenant}.%{app}.%{epg}.to.Site2"
+            }],
+            "provide_contract": [{
+                "name": "CT.%{tenant}.%{app}.%{epg}.to.Site2",
+                "default_filter": "east-west-allow-all",
+                
+                "export_to_epg_owner": "True",
+                "export_name": "x.CT.%{tenant}.%{app}.%{epg}.to.Site2"
+            }],
+            "consume_int_contract": []
+        }
+    }
+    }   
+
+The site specific configuration hasn't changed, and matches the definition in the previous section of this documentation
+
+- check_interval: integer - The time in seconds that intersite_automator will sleep between searching for EPG's with the search_filter tag (this should be a >0 value to reduce API calls on the APIC)
+- search_filter: string - The tag that intersite_automator will search for (on EPG's) to identify which EPG's to replicate.
+- remote_l3out->tenant: string - The tenant that owns the L3out object that will have the 'remote EPGs' created under.
+- remote_l3out->interface_name: string - The interface that will have the 'remote EPGs' created under.
+- remote_l3out->network_name: string - The network name pattern (see pattern information below) that will be used to create the new remote EPG.
+- remote_contracts-><contract type>->name: string - The contract name pattern (see pattern information below) that will be attached to the newly created remote EPG (this will be created if it does not exist)
+- remote_contracts-><contract type>->default_filter: string - A default filter that will be attached to a contract that is created by the intersite automator
+- remote_contracts-><contract type>->export_to_epg_owner: boolean string - Determines whether or not the intersite automator script should export this contract to the EPG owner.  This is useful if your L3out object sits in a different tenant as the EPG but also assumes that there is some level of consistancy across multiple APICs.
+- remote_contracts-><contract type>->export_name: string - The pattern to use when exporting the contract to the EPG owner.
+
+**Patterns**
+ Certain configuration fields allow the use of a very primitive variable substitution.  This enables you to create EPGs and Contracts with dynamic names. The following variables are currently supported:
+
+- ${tenant} - The name of the tenant that owns the EPG
+- ${app} - The name of the application that the EPG belongs to
+- ${epg} - The name of the EPG that is being replicated
 
 Logging
 -------

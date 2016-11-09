@@ -3,7 +3,7 @@
 Application to push contract configuration to the APIC
 """
 from acitoolkit import (Tenant, AppProfile, EPG,
-                        Session, Contract, FilterEntry,
+                        Session, Contract, ContractSubject, Filter, FilterEntry,
                         BridgeDomain, AttributeCriterion,
                         Node, Context)
 import json
@@ -21,6 +21,7 @@ class GenericService(object):
     """
     Base class for services
     """
+
     def __init__(self):
         self._json_schema = None
         self.logger = None
@@ -67,6 +68,7 @@ class PolicyObject(object):
     """
     Base Policy Object
     """
+
     def __init__(self, policy):
         self._policy = policy
 
@@ -147,6 +149,7 @@ class WhitelistPolicy(PolicyObject):
     """
     Whitelist Policy
     """
+
     def __init__(self, policy):
         super(WhitelistPolicy, self).__init__(policy)
         assert 'proto' in self._policy
@@ -181,6 +184,7 @@ class NodePolicy(PolicyObject):
     """
     Node Policy
     """
+
     def __init__(self, policy):
         super(NodePolicy, self).__init__(policy)
 
@@ -213,6 +217,7 @@ class EPGPolicy(PolicyObject):
     """
     EPG Policy
     """
+
     def __init__(self, policy):
         super(EPGPolicy, self).__init__(policy)
         self._node_policies = []
@@ -310,6 +315,7 @@ class ContractPolicy(PolicyObject):
     """
     Contract Policy
     """
+
     def __init__(self, policy):
         super(ContractPolicy, self).__init__(policy)
         self._whitelist_policies = []
@@ -445,6 +451,7 @@ class ConfigDB(object):
     """
     Configuration Database
     """
+
     def __init__(self):
         self._apic_policy = None
         self._context_policy = None
@@ -534,7 +541,7 @@ class ConfigDB(object):
             # Check if the EPG is the same
             if configured_policy.id == epg_policy.id:
                 # Something must have changed. Replace the old policy with the new one.
-                self.remove_epg_policy(epg_policy)
+                self.remove_epg_policy(configured_policy)
                 self.add_epg_policy(epg_policy)
                 return True
         # If we get this far, we must not have the policy
@@ -696,6 +703,7 @@ class ApicService(GenericService):
     """
     Service to communicate with the APIC
     """
+
     def __init__(self):
         self.cdb = ConfigDB()
         self.monitor = None
@@ -712,6 +720,14 @@ class ApicService(GenericService):
         :return: None
         """
         self._tenant_name = name
+
+    @property
+    def tenant_name(self):
+        """
+        tenant name
+        :return: String containing the tenant name
+        """
+        return self._tenant_name
 
     def set_app_name(self, name):
         """
@@ -758,7 +774,8 @@ class ApicService(GenericService):
                     for other_policy in self.cdb.get_contract_policies():
                         if other_policy == provided_policy or other_policy in duplicate_policies:
                             continue
-                        if other_policy.dst_ids == provided_policy.dst_ids and other_policy.has_same_permissions(provided_policy):
+                        if other_policy.dst_ids == provided_policy.dst_ids and other_policy.has_same_permissions(
+                                provided_policy):
                             provided_policy.src_ids = provided_policy.src_ids + other_policy.src_ids
                             duplicate_policies.append(other_policy)
                             logging.debug('duplicate_policies now has %s entries', len(duplicate_policies))
@@ -775,14 +792,175 @@ class ApicService(GenericService):
             if not resp.ok:
                 return resp
 
+        tenant_names = []
+        tenant_names.append(self._tenant_name)
+
+        # delete all the unwanted epgs
+        tenant = Tenant(self._tenant_name)
+        existing_epgs = []
+        if Tenant.exists(apic, tenant):
+            tenants = Tenant.get_deep(
+                apic,
+                names=tenant_names,
+                limit_to=[
+                    'fvTenant',
+                    'fvAp',
+                    'vzFilter',
+                    'vzEntry',
+                    'vzBrCP',
+                    'vzSubj',
+                    'vzRsSubjFiltAtt'])
+            tenant = tenants[0]
+            appProfiles = tenant.get_children(AppProfile)
+            app = appProfiles[0]
+            existing_epgs = app.get_children(EPG)
+        else:
+
+            app = AppProfile(self._app_name, tenant)
+
+        for existing_epg in existing_epgs:
+            matched = False
+            if existing_epg.name != "base":
+                for epg_policy in self.cdb.get_epg_policies():
+                    if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                            ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                        if self._use_ip_epgs:
+                            if existing_epg._is_attribute_based:
+                                matched = True
+                                existing_criterions = existing_epg.get_children(AttributeCriterion)
+                                for existing_criterion in existing_criterions:
+                                    existing_criterion.mark_as_deleted()
+                        elif existing_epg._is_attribute_based:
+                            matched = True
+                            existing_criterions = existing_epg.get_children(AttributeCriterion)
+                            for existing_criterion in existing_criterions:
+                                existing_criterion.mark_as_deleted()
+
+                if not matched:
+                    existing_epg.mark_as_deleted()
+            else:
+                if not self._use_ip_epgs:
+                    base_epg = EPG('base', app)
+                    if self.cdb.has_context_config():
+                        context_name = self.cdb.get_context_config().name
+                    else:
+                        context_name = 'vrf1'
+                    context = Context(context_name, tenant)
+                    existing_contexts = tenant.get_children(Context)
+                    for existing_context in existing_contexts:
+                        if existing_context.name == context_name:
+                            existing_context.mark_as_deleted()
+                    existing_bds = tenant.get_children(BridgeDomain)
+                    for existing_bd in existing_bds:
+                        if existing_bd.name == 'bd':
+                            existing_bd.mark_as_deleted()
+                    base_epg.mark_as_deleted()
+
+        if self.displayonly:
+            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+        else:
+            logging.debug('Pushing EPGS by deleting unwanted epgs ')
+            if len(tenant.get_children()) > 0:
+                resp = tenant.push_to_apic(apic)
+                if not resp.ok:
+                    return resp
+
+        # delete all the unwanted contracts
+        tenants = Tenant.get_deep(
+            apic,
+            names=tenant_names,
+            limit_to=[
+                'fvTenant',
+                'fvAp',
+                'vzFilter',
+                'vzEntry',
+                'vzBrCP',
+                'vzSubj',
+                'vzRsSubjFiltAtt'])
+        tenant = tenants[0]
+        existing_contracts = tenant.get_children(Contract)
+        for existing_contract in existing_contracts:
+            matched = False
+            for contract_policy in self.cdb.get_contract_policies():
+                if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                    matched = True
+            if not matched:
+                existing_contract.mark_as_deleted()
+                exist_contract_providing_epgs = existing_contract.get_all_providing_epgs()
+                for exist_contract_providing_epg in exist_contract_providing_epgs:
+                    exist_contract_providing_epg.mark_as_deleted()
+                exist_contract_consuming_epgs = existing_contract.get_all_consuming_epgs()
+                for exist_contract_consuming_epg in exist_contract_consuming_epgs:
+                    exist_contract_consuming_epg.mark_as_deleted()
+
+        if self.displayonly:
+            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+        else:
+            logging.debug('Pushing contracts by deleting unwanted contracts')
+            if len(tenant.get_children()) > 0:
+                resp = tenant.push_to_apic(apic)
+                if not resp.ok:
+                    return resp
+
+        filterEntry_list = []
+
         logging.debug('Generating JSON....')
         # Push all of the Contracts
         logging.debug('Pushing contracts. # of Contract policies: %s', len(self.cdb.get_contract_policies()))
         tenant = Tenant(self._tenant_name)
+        if Tenant.exists(apic, tenant):
+            tenants = Tenant.get_deep(
+                apic,
+                names=tenant_names,
+                limit_to=[
+                    'fvTenant',
+                    'vzFilter',
+                    'vzEntry',
+                    'vzBrCP',
+                    'vzSubj',
+                    'vzRsSubjFiltAtt'])
+            tenant = tenants[0]
+            existing_contracts = tenant.get_children(Contract)
+        else:
+            existing_contracts = tenant.get_children(Contract)
+        # removing the unwanted contractsubject filters for each contract subject
+        for contract_policy in self.cdb.get_contract_policies():
+            name = contract_policy.src_name + '::' + contract_policy.dst_name
+            for existing_contract in existing_contracts:
+                if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                    for child_contractSubject in existing_contract.get_children(ContractSubject):
+                        for child_filter in child_contractSubject.get_filters():
+                            matched = False
+                            for whitelist_policy in contract_policy.get_whitelist_policies():
+                                entry_name = whitelist_policy.proto + '.' + whitelist_policy.port_min + '.' + whitelist_policy.port_max
+                                if child_filter.name == entry_name + '_Filter':
+                                    matched = True
+                                    continue
+                            if not matched:
+                                # TBD need to check this. this is not working
+                                child_contractSubject._remove_relation(child_filter)
+                                child_filter._remove_attachment(child_contractSubject)
+                                logging.debug('removing filter ' + child_filter.name)
+
+        if self.displayonly:
+            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+        else:
+            logging.debug('Pushing contracts by deleting unwanted filters')
+            if len(tenant.get_children()) > 0:
+                resp = tenant.push_to_apic(apic)
+                if not resp.ok:
+                    return resp
+
+        # if num of contract_subjects is 0 then remove it finally
         for contract_policy in self.cdb.get_contract_policies():
             name = contract_policy.src_name + '::' + contract_policy.dst_name
             contract = Contract(name, tenant)
-            contract.descr = contract_policy.descr[0:127 - (contract_policy.descr.count('"') + contract_policy.descr.count("'") + contract_policy.descr.count('/'))]
+            contract.descr = contract_policy.descr[0:127 -
+                                                   (contract_policy.descr.count('"') +
+                                                    contract_policy.descr.count("'") +
+                                                       contract_policy.descr.count('/'))]
             for whitelist_policy in contract_policy.get_whitelist_policies():
                 entry_name = whitelist_policy.proto + '.' + whitelist_policy.port_min + '.' + whitelist_policy.port_max
                 if whitelist_policy.proto == '6' or whitelist_policy.proto == '17':
@@ -793,8 +971,8 @@ class ApicService(GenericService):
                                         dToPort=whitelist_policy.port_max,
                                         etherT='ip',
                                         prot=whitelist_policy.proto,
-                                        sFromPort='1',
-                                        sToPort='65535',
+                                        sFromPort='unspecified',
+                                        sToPort='unspecified',
                                         tcpRules='unspecified',
                                         parent=contract)
                 else:
@@ -804,6 +982,7 @@ class ApicService(GenericService):
                                         etherT='ip',
                                         prot=whitelist_policy.proto,
                                         parent=contract)
+                filterEntry_list.append(entry_name)
             if not self.displayonly:
                 if len(str(tenant.get_json())) > THROTTLE_SIZE:
                     logging.debug('Throttling contracts. Pushing config...')
@@ -812,19 +991,21 @@ class ApicService(GenericService):
                         return resp
                     tenant = Tenant(self._tenant_name)
 
-        if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
-        else:
-            logging.debug('Pushing remaining contracts')
-            resp = tenant.push_to_apic(apic)
-            if not resp.ok:
-                return resp
+            if self.displayonly:
+                print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            else:
+                logging.debug('Pushing remaining contracts')
+                resp = tenant.push_to_apic(apic)
+                if not resp.ok:
+                    return resp
 
         # Push all of the EPGs
         logging.debug('Pushing EPGs')
         if not self.displayonly:
-            tenant = Tenant(self._tenant_name)
-        app = AppProfile(self._app_name, tenant)
+            tenants = Tenant.get_deep(apic, names=tenant_names)
+            tenant = tenants[0]
+            appProfiles = tenant.get_children(AppProfile)
+            app = appProfiles[0]
 
         if self._use_ip_epgs:
             # Create a Base EPG
@@ -849,6 +1030,7 @@ class ApicService(GenericService):
 
             # Create the Attribute based EPGs
             logging.debug('Creating Attribute Based EPGs')
+            existing_epgs = app.get_children(EPG)
             for epg_policy in self.cdb.get_epg_policies():
                 if not self.displayonly:
                     # Check if we need to throttle very large configs
@@ -864,7 +1046,23 @@ class ApicService(GenericService):
                         if self._use_ip_epgs:
                             base_epg = EPG('base', app)
                             base_epg.add_bd(bd)
-                epg = EPG(epg_policy.name, app)
+
+                matched = False
+                for existing_epg in existing_epgs:
+                    if existing_epg.name != "base":
+                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                            matched = True
+                            break
+
+                consumed_contracts = []
+                provided_contracts = []
+                if matched is True:
+                    consumed_contracts = existing_epg.get_all_consumed()
+                    provided_contracts = existing_epg.get_all_provided()
+                    epg = existing_epg
+                else:
+                    epg = EPG(epg_policy.name, app)
 
                 # Check if the policy has the default 0.0.0.0 IP address
                 no_default_endpoint = True
@@ -879,9 +1077,10 @@ class ApicService(GenericService):
                     epg.set_base_epg(base_epg)
                     criterion = AttributeCriterion('criterion', epg)
                     ipaddrs = []
+                    # TBD check if the existing nodes are there in the present config,if not delete them
                     for node_policy in epg_policy.get_node_policies():
                         ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
-                        if not ipaddr.is_multicast: # Skip multicast addresses. They cannot be IP based EPGs
+                        if not ipaddr.is_multicast:  # Skip multicast addresses. They cannot be IP based EPGs
                             ipaddrs.append(ipaddr)
                     nets = ipaddress.collapse_addresses(ipaddrs)
                     for net in nets:
@@ -892,31 +1091,96 @@ class ApicService(GenericService):
                     contract = None
                     if epg_policy.id in contract_policy.src_ids:
                         name = contract_policy.src_name + '::' + contract_policy.dst_name
-                        contract = Contract(name, tenant)
-                        epg.consume(contract)
+                        existing = False
+                        for existing_consumed_contract in consumed_contracts:
+                            if name == existing_consumed_contract.name:
+                                existing = True
+                                contract = existing_consumed_contract
+                        if not existing:
+                            contract = Contract(name, tenant)
+                            epg.consume(contract)
                     if epg_policy.id in contract_policy.dst_ids:
                         name = contract_policy.src_name + '::' + contract_policy.dst_name
                         if contract is None:
-                            contract = Contract(name, tenant)
+                            existing = False
+                            for existing_provided_contract in provided_contracts:
+                                if name == existing_provided_contract.name:
+                                    existing = True
+                                    contract = existing_provided_contract
+                            if not existing:
+                                contract = Contract(name, tenant)
                         epg.provide(contract)
         else:
             logging.debug('Creating EPGs')
+            tenants = Tenant.get_deep(apic, names=tenant_names)
+            tenant = tenants[0]
+            appProfiles = tenant.get_children(AppProfile)
+            if len(appProfiles) > 0:
+                app = appProfiles[0]
+            else:
+                app = AppProfile(self._app_name, tenant)
+
+            existing_epgs = app.get_children(EPG)
+
             for epg_policy in self.cdb.get_epg_policies():
+
+                matched = False
+                for existing_epg in existing_epgs:
+                    if existing_epg.name != "base":
+                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                            matched = True
+                            break
+
+                consumed_contracts = []
+                provided_contracts = []
+                if matched is True:
+                    consumed_contracts = existing_epg.get_all_consumed()
+                    provided_contracts = existing_epg.get_all_provided()
                 epg = EPG(epg_policy.name, app)
                 epg.descr = epg_policy.descr[0:127]
+
                 # Consume and provide all of the necessary contracts
                 for contract_policy in self.cdb.get_contract_policies():
                     contract = None
                     if epg_policy.id in contract_policy.src_ids:
                         name = contract_policy.src_name + '::' + contract_policy.dst_name
-                        contract = Contract(name, tenant)
-                        epg.consume(contract)
+                        existing = False
+                        for existing_consumed_contract in consumed_contracts:
+                            if name == existing_consumed_contract.name:
+                                existing = True
+                                contract = existing_consumed_contract
+                        if not existing:
+                            contract = Contract(name, tenant)
+                            epg.consume(contract)
                     if epg_policy.id in contract_policy.dst_ids:
                         name = contract_policy.src_name + '::' + contract_policy.dst_name
                         if contract is None:
-                            contract = Contract(name, tenant)
+                            existing = False
+                            for existing_provided_contract in provided_contracts:
+                                if name == existing_provided_contract.name:
+                                    existing = True
+                                    contract = existing_provided_contract
+                            if not existing:
+                                contract = Contract(name, tenant)
                         epg.provide(contract)
 
+        if self.displayonly:
+            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+        else:
+            resp = tenant.push_to_apic(apic)
+            if not resp.ok:
+                return resp
+
+        # remove the unwanted filters
+        existing_filters = tenant.get_children(Filter)
+        for existing_filetrEntry in existing_filters:
+            matched = False
+            for filterEntry in filterEntry_list:
+                if filterEntry + '_Filter' == existing_filetrEntry.name:
+                    matched = True
+            if not matched:
+                existing_filetrEntry.mark_as_deleted()
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
         else:

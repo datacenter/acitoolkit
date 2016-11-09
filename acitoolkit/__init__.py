@@ -27,6 +27,7 @@ from .acicounters import (  # noqa
     InterfaceStats,
 )
 from .aciHealthScore import HealthScore  # noqa
+from .aciFaults import (Faults)  # noqa
 from .aciSearch import AciSearch, Searchable  # noqa
 from .acisession import EventHandler, Login, Session, Subscriber  # noqa
 from .aciTable import Table  # noqa
@@ -50,7 +51,7 @@ from .aciConcreteLib import (  # noqa
     ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext, ConcreteEp,
     ConcreteFilter, ConcreteFilterEntry, ConcreteLoopback, ConcreteOverlay,
     ConcretePortChannel, ConcreteSVI, ConcreteVpc, ConcreteVpcIf,
-    ConcreteTunnel,
+    ConcreteTunnel, ConcreteCdp
 )
 # Dependent on aciconcretelib
 from .aciphysobject import (  # noqa

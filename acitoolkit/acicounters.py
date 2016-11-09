@@ -32,7 +32,7 @@
 import re
 
 
-class AtomicCountersOnGoing():
+class AtomicCountersOnGoing(object):
     """
     This class defines on-going atomic counters, a.k.a. TEP-to-TEP atomic
     counters.  These count only bytes and packets on a per "path" or "trail"
@@ -112,7 +112,6 @@ class AtomicCountersOnGoing():
 
         ret = self._session.get(mo_query_url)
         data = ret.json()['imdata']
-        noCounts = False
 
         if data:
             if 'children' in data[0]['fabricPath']:
@@ -151,13 +150,15 @@ class AtomicCountersOnGoing():
 
                         elif countName in ['dropexcess']:
                             for attrName in ['dropPktAvg', 'dropPktCum', 'dropPktMax', 'dropPktMin', 'dropPktPer',
-                                             'excessPktAvg', 'excessPktCum', 'excessPktMax', 'excessPktMin', 'excessPktPer']:
+                                             'excessPktAvg', 'excessPktCum', 'excessPktMax', 'excessPktMin',
+                                             'excessPktPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['dropPktRate', 'excessPktRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         else:
-                            print('Found unsupported counter ' + str(countName) + " " + str(granularity) + " " + str(period))
+                            print('Found unsupported counter ' + str(countName) + " " +
+                                  str(granularity) + " " + str(period))
 
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
@@ -205,7 +206,6 @@ class AtomicCountersOnGoing():
             if granularity in self.result[countFamily]:
                 if period in self.result[countFamily][granularity]:
                     if countName in self.result[countFamily][granularity][period]:
-
                         # read value
                         result = self.result[countFamily][granularity][period][countName]
 
@@ -237,7 +237,6 @@ class AtomicPath(object):
     """
     Class for the atomic counter path.
     It has the counts, the local port and remote port information
-
     """
     def __init__(self):
         """
@@ -260,7 +259,6 @@ class AtomicNode(object):
     that hold the path specific information.  The
     AtomiPath array is indexed by the node ID of the
     Spine the path goes through.
-
     """
     def __init__(self):
         """
@@ -312,10 +310,10 @@ class InterfaceStats(object):
     @classmethod
     def get_all_ports(cls, session, period=None):
         """
-        This method will get all the interface stats for all of the interfaces and return it as a dictionary indexed by the interface id.
-        This method is optimized to minimize the traffic to and from the APIC and is intended to typically be used with the period specified
-        so that only the necessary stats are pulled.  Note that it will pull the stats for ALL the interfaces.  This may have latency
-        implications.
+        This method will get all the interface stats for all of the interfaces and return it as a dictionary
+        indexed by the interface id. This method is optimized to minimize the traffic to and from the APIC
+        and is intended to typically be used with the period specified so that only the necessary stats are
+        pulled.  Note that it will pull the stats for ALL the interfaces.  This may have latency implications.
 
         :param session: Session to use when accessing the APIC
         :param period: Epoch or period to retrieve - all are retrieved if this is not specified
@@ -333,7 +331,7 @@ class InterfaceStats(object):
             if (period < 1):
                 raise ValueError('Counter epoch/period value of 0 not yet implemented')
             mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-' \
-                           'class=statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
+                           'class=statsHist&rsp-subtree-filter=eq(statsHist.index,"' + str(period - 1) + '")'
         else:
             mo_query_url = '/api/class/l1PhysIf.json?&rsp-subtree-include=stats&rsp-subtree-class=statsHist'
         ret = session.get(mo_query_url)
@@ -386,7 +384,7 @@ class InterfaceStats(object):
 
             mo_query_url = '/api/mo/' + self._interfaceDn + \
                            '.json?&rsp-subtree-include=stats&rsp-subtree-class=' \
-                           'statsHist&rsp-subtree-filter=eq(statsHist.index,"'+str(period-1)+'")'
+                           'statsHist&rsp-subtree-filter=eq(statsHist.index,"' + str(period - 1) + '")'
         else:
             mo_query_url = '/api/mo/' + self._interfaceDn + '.json?query-target=self&rsp-subtree-include=stats'
 
@@ -400,6 +398,11 @@ class InterfaceStats(object):
 
     @staticmethod
     def _process_data(data):
+        """
+        Process the data
+        :param data: JSON dictionary containing the data
+        :return: Dictonary containing processed data
+        """
         result = {}
         if data:
             if 'children' in data['l1PhysIf']:
@@ -456,15 +459,18 @@ class InterfaceStats(object):
 
                         elif countName in ['egrBytes', 'ingrBytes']:
                             for attrName in ['floodAvg', 'floodCum', 'floodMax', 'floodMin', 'floodPer',
-                                             'multicastAvg', 'multicastCum', 'multicastMax', 'multicastMin', 'multicastPer']:
+                                             'multicastAvg', 'multicastCum', 'multicastMax', 'multicastMin',
+                                             'multicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['floodRate',
-                                             'multicastRate', 'multicastRateAvg', 'multicastRateMax', 'multicastRateMin']:
+                                             'multicastRate', 'multicastRateAvg', 'multicastRateMax',
+                                             'multicastRateMin']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         elif countName in ['egrPkts', 'ingrPkts']:
                             for attrName in ['floodAvg', 'floodCum', 'floodMax', 'floodMin', 'floodPer',
-                                             'multicastAvg', 'multicastCum', 'multicastMax', 'multicastMin', 'multicastPer',
+                                             'multicastAvg', 'multicastCum', 'multicastMax', 'multicastMin',
+                                             'multicastPer',
                                              'unicastAvg', 'unicastCum', 'unicastMax', 'unicastMin', 'unicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['floodRate', 'multicastRate', 'unicastRate']:
@@ -482,32 +488,38 @@ class InterfaceStats(object):
                         elif countName in ['ingrDropPkts']:
                             for attrName in ['bufferAvg', 'bufferCum', 'bufferMax', 'bufferMin', 'bufferPer',
                                              'errorAvg', 'errorCum', 'errorMax', 'errorMin', 'errorPer',
-                                             'forwardingAvg', 'forwardingCum', 'forwardingMax', 'forwardingMin', 'forwardingPer',
+                                             'forwardingAvg', 'forwardingCum', 'forwardingMax', 'forwardingMin',
+                                             'forwardingPer',
                                              'lbAvg', 'lbCum', 'lbMax', 'lbMin', 'lbPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['bufferRate', 'errorRate', 'forwardingRate', 'lbRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         elif countName in ['ingrUnkBytes']:
-                            for attrName in ['unclassifiedAvg', 'unclassifiedCum', 'unclassifiedMax', 'unclassifiedMin', 'unclassifiedPer',
+                            for attrName in ['unclassifiedAvg', 'unclassifiedCum', 'unclassifiedMax', 'unclassifiedMin',
+                                             'unclassifiedPer',
                                              'unicastAvg', 'unicastCum', 'unicastMax', 'unicastMin', 'unicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['unclassifiedRate', 'unicastRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
 
                         elif countName in ['ingrUnkPkts']:
-                            for attrName in ['unclassifiedAvg', 'unclassifiedCum', 'unclassifiedMax', 'unclassifiedMin', 'unclassifiedPer',
+                            for attrName in ['unclassifiedAvg', 'unclassifiedCum', 'unclassifiedMax', 'unclassifiedMin',
+                                             'unclassifiedPer',
                                              'unicastAvg', 'unicastCum', 'unicastMax', 'unicastMin', 'unicastPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
                             for attrName in ['unclassifiedRate', 'unicastRate']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
                         elif countName in ['ingrStorm']:
-                            for attrName in ['dropBytesAvg', 'dropBytesCum', 'dropBytesMax', 'dropBytesMin', 'dropBytesPer']:
+                            for attrName in ['dropBytesAvg', 'dropBytesCum', 'dropBytesMax', 'dropBytesMin',
+                                             'dropBytesPer']:
                                 result[countName][granularity][period][attrName] = int(counterAttr[attrName])
-                            for attrName in ['dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax', 'dropBytesRateMin']:
+                            for attrName in ['dropBytesRate', 'dropBytesRateAvg', 'dropBytesRateMax',
+                                             'dropBytesRateMin']:
                                 result[countName][granularity][period][attrName] = float(counterAttr[attrName])
                         else:
-                            print('Found unsupported counter ' + str(countName) + " " + str(granularity) + " " + str(period))
+                            print('Found unsupported counter ' + str(countName) + " " +
+                                  str(granularity) + " " + str(period))
                         result[countName][granularity][period]['intervalEnd'] = counterAttr.get('repIntvEnd')
                         result[countName][granularity][period]['intervalStart'] = counterAttr.get('repIntvStart')
 
@@ -560,7 +572,6 @@ class InterfaceStats(object):
             if granularity in self.result[countFamily]:
                 if period in self.result[countFamily][granularity]:
                     if countName in self.result[countFamily][granularity][period]:
-
                         # read value
                         result = self.result[countFamily][granularity][period][countName]
 

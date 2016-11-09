@@ -4,6 +4,7 @@ Find out where a contract has been imported and consumed on an EPG.
 """
 import acitoolkit.acitoolkit as aci
 from acitoolkit.acitoolkit import *
+from tabulate import tabulate
 
 
 def main():
@@ -14,9 +15,7 @@ def main():
     creds.add_argument("-i", "--contract_name", help="Imported Contract Name")
     args = creds.get()
 
-    if not args.tenant_name:
-        args.tenant_name = raw_input("Tenant Name: ")
-    if not args.contract_name:
+    if (args.tenant_name is not None) and (args.contract_name is None):
         args.contract_name = raw_input("Contract Name: ")
 
     session = aci.Session(args.url, args.login, args.password)
@@ -24,20 +23,27 @@ def main():
     if not resp.ok:
         print('%% Could not login to APIC')
 
+    data = []
     tenants = aci.Tenant.get_deep(session)
     for tenant in tenants:
         contracts_interfaces = tenant.get_children(only_class=ContractInterface)
         for contractInterface in contracts_interfaces:
-            importedContracts = contractInterface.get_import_contract()
-            if importedContracts is not None:
-                if importedContracts.name == args.contract_name and importedContracts.get_parent().name == args.tenant_name:
-                    print "Tenant: "+tenant.name
+            importedContract = contractInterface.get_import_contract()
+            if importedContract is not None:
+                if args.tenant_name is not None:
+                    if (importedContract.name == args.contract_name) and (importedContract.get_parent().name == args.tenant_name):
+                        apps = aci.AppProfile.get(session, tenant)
+                        for app in apps:
+                            epgs = aci.EPG.get(session, app, tenant)
+                            for epg in epgs:
+                                data.append((importedContract.name,tenant.name, app.name, epg.name))
+                else:
                     apps = aci.AppProfile.get(session, tenant)
                     for app in apps:
-                        print "    App-Profile: "+app.name
                         epgs = aci.EPG.get(session, app, tenant)
                         for epg in epgs:
-                            print "        EPG: "+epg.name
+                            data.append((importedContract.name,tenant.name, app.name, epg.name))
+    print tabulate(data, headers=["IMPORTED_CONTRACT","TENANT", "APP_PROFILE", "EPG"])
 
 if __name__ == '__main__':
     main()

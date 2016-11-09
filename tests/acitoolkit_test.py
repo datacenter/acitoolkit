@@ -152,6 +152,51 @@ class TestBaseRelation(unittest.TestCase):
         self.assertFalse(relation.is_attached())
         self.assertTrue(relation.is_detached())
 
+    def test_eq(self):
+        """
+        Test __eq__
+        """
+        tenant, relation = self.create_attached_relation()
+        tenant2, relation2 = self.create_attached_relation()
+        self.assertEqual(relation, relation2)
+
+    def test_hashing_based_on_eq_same_object(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        tenant, relation = self.create_attached_relation()
+        tenant2, relation2 = self.create_attached_relation()
+        test_dic = {}
+        test_dic[relation] = 5
+        test_dic[relation2] = 10
+        """
+        relation == relation2 in this case as per __eq__, this means that there should
+        only be one entry in the dictonary, otherwise we have duplicated keys.
+        """
+        self.assertEqual(len(test_dic), 1)
+        self.assertEqual(test_dic[relation], 10)
+        self.assertEqual(test_dic[relation2], 10)
+
+    def test_hashing_based_on_eq_multiple_objects(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        tenant, relation = self.create_attached_relation()
+        tenant2, relation2 = self.create_attached_relation()
+        tenant3, relation3 = self.create_detached_relation()
+        self.assertEqual(relation, relation2)
+        self.assertNotEqual(relation, relation3)
+        self.assertNotEqual(relation2, relation3)
+        test_dic = {}
+        test_dic[relation] = 5
+        test_dic[relation2] = 10
+        test_dic[relation3] = 5
+        self.assertEqual(len(test_dic), 2)
+        self.assertEqual(test_dic[relation], 10)
+        self.assertEqual(test_dic[relation2], 10)
+
 
 class MockACIObject(BaseACIObject):
     """
@@ -248,6 +293,51 @@ class TestBaseACIObject(unittest.TestCase):
         obj1.detach(obj2)
         self.assertFalse(obj1.is_attached(obj2))
 
+    def test_eq(self):
+        """
+        Test __eq__
+        """
+        obj1 = MockACIObject('mock')
+        obj2 = MockACIObject('mock')
+        self.assertEqual(obj1, obj2)
+
+    def test_hashing_based_on_eq_same_object(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        obj1 = MockACIObject('mock')
+        obj2 = MockACIObject('mock')
+        test_dic = {}
+        test_dic[obj1] = 5
+        test_dic[obj2] = 10
+        """
+        obj1 == obj2 in this case as per __eq__, this means that there should
+        only be one entry in the dictonary, otherwise we have duplicated keys.
+        """
+        self.assertEqual(len(test_dic), 1)
+        self.assertEqual(test_dic[obj1], 10)
+        self.assertEqual(test_dic[obj2], 10)
+
+    def test_hashing_based_on_eq_multiple_objects(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        obj1 = MockACIObject('mock')
+        obj2 = MockACIObject('mock')
+        obj3 = MockACIObject('mock2')
+        self.assertEqual(obj1, obj2)
+        self.assertNotEqual(obj1, obj3)
+        self.assertNotEqual(obj2, obj3)
+        test_dic = {}
+        test_dic[obj1] = 5
+        test_dic[obj2] = 10
+        test_dic[obj3] = 5
+        self.assertEqual(len(test_dic), 2)
+        self.assertEqual(test_dic[obj1], 10)
+        self.assertEqual(test_dic[obj2], 10)
+
 
 class TestTenant(unittest.TestCase):
     """
@@ -271,7 +361,7 @@ class TestTenant(unittest.TestCase):
         """
         Ensure class has the correct parent class
         """
-        self.assertEquals(Tenant._get_parent_class(), LogicalModel)
+        self.assertEqual(Tenant._get_parent_class(), LogicalModel)
 
     def test_get_name_from_dn(self):
         """
@@ -286,6 +376,11 @@ class TestTenant(unittest.TestCase):
         """
         tenants = [Tenant('tenant1'), Tenant('tenant2'), Tenant('tenant3')]
         self.assertTrue(isinstance(Tenant.get_table(tenants)[0], Table))
+
+    def test_bad_parent(self):
+        fabric = Fabric()
+        tenant = Tenant('mytenant', parent=fabric)
+        self.assertRaises(TypeError, Tenant, 'badtenant', tenant)
 
 
 class TestAppProfile(unittest.TestCase):
@@ -330,7 +425,7 @@ class TestAppProfile(unittest.TestCase):
         """
         Test AppProfile._get_parent_class returns Tenant class
         """
-        self.assertEquals(AppProfile._get_parent_class(), Tenant)
+        self.assertEqual(AppProfile._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
@@ -338,7 +433,7 @@ class TestAppProfile(unittest.TestCase):
         parent
         """
         dn = 'uni/tn-tenant/ap-test'
-        self.assertEquals(AppProfile._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(AppProfile._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
@@ -346,7 +441,7 @@ class TestAppProfile(unittest.TestCase):
         derived from the dn provided
         """
         dn = 'uni/tn-tenant/ap-test'
-        self.assertEquals(AppProfile._get_name_from_dn(dn), 'test')
+        self.assertEqual(AppProfile._get_name_from_dn(dn), 'test')
 
     def test_delete(self):
         """
@@ -463,7 +558,7 @@ class TestBridgeDomain(unittest.TestCase):
         """
         Test that BridgeDomain._get_parent_class returns Tenant class
         """
-        self.assertEquals(BridgeDomain._get_parent_class(), Tenant)
+        self.assertEqual(BridgeDomain._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
@@ -471,7 +566,7 @@ class TestBridgeDomain(unittest.TestCase):
         parent
         """
         dn = 'uni/tn-tenant/BD-test'
-        self.assertEquals(BridgeDomain._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(BridgeDomain._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
@@ -479,7 +574,7 @@ class TestBridgeDomain(unittest.TestCase):
         derived from the dn provided
         """
         dn = 'uni/tn-tenant/BD-test'
-        self.assertEquals(BridgeDomain._get_name_from_dn(dn), 'test')
+        self.assertEqual(BridgeDomain._get_name_from_dn(dn), 'test')
 
     def test_valid_delete(self):
         """
@@ -1149,21 +1244,21 @@ class TestContract(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(Contract._get_parent_class(), Tenant)
+        self.assertEqual(Contract._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/brc-test'
-        self.assertEquals(Contract._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(Contract._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
         Test getting the contract name from _get_parent_dn method
         """
         dn = 'uni/tn-tenant/brc-test'
-        self.assertEquals(Contract._get_name_from_dn(dn), 'test')
+        self.assertEqual(Contract._get_name_from_dn(dn), 'test')
 
     def test_internal_generate_attributes(self):
         """
@@ -1191,7 +1286,7 @@ class TestContractSubject(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(ContractSubject._get_parent_class(), [Contract, Taboo])
+        self.assertEqual(ContractSubject._get_parent_class(), [Contract, Taboo])
 
     def test_get_json(self):
         """
@@ -1247,7 +1342,7 @@ class TestInputTerminal(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(InputTerminal._get_parent_class(), ContractSubject)
+        self.assertEqual(InputTerminal._get_parent_class(), ContractSubject)
 
     def test_get_json(self):
         """
@@ -1289,7 +1384,7 @@ class TestOutputTerminal(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(OutputTerminal._get_parent_class(), ContractSubject)
+        self.assertEqual(OutputTerminal._get_parent_class(), ContractSubject)
 
     def test_get_json(self):
         """
@@ -1377,6 +1472,120 @@ class TestFilterEntry(unittest.TestCase):
         self.assertTrue('vzEntry' in filt_entry_json)
         self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
                          filt_entry_name)
+        self.assertNotIn('icmpv4T', filt_entry_json['vzEntry']['attributes'])
+        self.assertNotIn('icmpv6T', filt_entry_json['vzEntry']['attributes'])
+
+    def test_get_json_with_icmpv4T(self):
+        """
+        Test test_get_json_with_icmpv4T method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt, icmpv4T='unspecified')
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
+                         filt_entry_name)
+        self.assertIn('icmpv4T', filt_entry_json['vzEntry']['attributes'])
+        self.assertNotIn('icmpv6T', filt_entry_json['vzEntry']['attributes'])
+
+    def test_get_json_with_icmpv6T(self):
+        """
+        Test test_get_json_with_icmpv4T method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt, icmpv6T='unspecified')
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
+                         filt_entry_name)
+        self.assertIn('icmpv6T', filt_entry_json['vzEntry']['attributes'])
+        self.assertNotIn('icmpv4T', filt_entry_json['vzEntry']['attributes'])
+
+    def test_get_json_with_icmpv4T_and_icmpv6T(self):
+        """
+        Test test_get_json_with_icmpv4T method
+        """
+        filt_name = 'Filter'
+        filt = Filter(filt_name)
+        filt_entry_name = 'FilterEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt, icmpv4T='unspecified', icmpv6T='unspecified')
+        filt_entry_json = filt_entry.get_json()
+        self.assertTrue('vzEntry' in filt_entry_json)
+        self.assertEqual(filt_entry_json['vzEntry']['attributes']['name'],
+                         filt_entry_name)
+        self.assertIn('icmpv6T', filt_entry_json['vzEntry']['attributes'])
+        self.assertIn('icmpv4T', filt_entry_json['vzEntry']['attributes'])
+
+    def test_eq(self):
+        """
+        Test eq method
+        """
+        filt_name = 'filt'
+        filt = Filter(filt_name)
+
+        filt_entry_name = 'FiltEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+
+        filt_entry2_name = 'FiltEntry2'
+        filt_entry2 = FilterEntry(filt_entry2_name, filt)
+        self.assertEqual(filt_entry, filt_entry2)
+
+    def test_hashing_based_on_eq_same_object(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        filt_name = 'filt'
+        filt = Filter(filt_name)
+
+        filt_entry_name = 'FiltEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+
+        filt_entry2_name = 'FiltEntry2'
+        filt_entry2 = FilterEntry(filt_entry2_name, filt)
+        test_dic = {}
+        test_dic[filt_entry] = 5
+        test_dic[filt_entry2] = 10
+        """
+        filt_entry == filt_entry2 in this case as per __eq__, this means that there should
+        only be one entry in the dictonary, otherwise we have duplicated keys.
+        """
+        self.assertEqual(len(test_dic), 1)
+        self.assertEqual(test_dic[filt_entry], 10)
+        self.assertEqual(test_dic[filt_entry2], 10)
+
+    def test_hashing_based_on_eq_multiple_objects(self):
+        """
+        Test that the __hash__ works according to __eq__
+        Details: https://github.com/datacenter/acitoolkit/issues/233
+        """
+        filt_name = 'filt'
+        filt = Filter(filt_name)
+
+        filt_entry_name = 'FiltEntry'
+        filt_entry = FilterEntry(filt_entry_name, filt)
+
+        filt_entry2_name = 'FiltEntry2'
+        filt_entry2 = FilterEntry(filt_entry2_name, filt)
+
+        filt_entry3_name = 'FiltEntry3'
+        filt_entry3 = FilterEntry(filt_entry3_name, filt)
+        filt_entry3.sFromPort = 80
+
+        self.assertEqual(filt_entry, filt_entry2)
+        self.assertNotEqual(filt_entry, filt_entry3)
+        self.assertNotEqual(filt_entry2, filt_entry3)
+        test_dic = {}
+        test_dic[filt_entry] = 5
+        test_dic[filt_entry2] = 10
+        test_dic[filt_entry3] = 5
+        self.assertEqual(len(test_dic), 2)
+        self.assertEqual(test_dic[filt_entry], 10)
+        self.assertEqual(test_dic[filt_entry2], 10)
 
 
 class TestTaboo(unittest.TestCase):
@@ -1413,21 +1622,21 @@ class TestTaboo(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(Taboo._get_parent_class(), Tenant)
+        self.assertEqual(Taboo._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/taboo-test'
-        self.assertEquals(Taboo._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(Taboo._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
         Test _get_name_from_dn method
         """
         dn = 'uni/tn-tenant/taboo-test'
-        self.assertEquals(Taboo._get_name_from_dn(dn), 'test')
+        self.assertEqual(Taboo._get_name_from_dn(dn), 'test')
 
     def test_get_table(self):
         """
@@ -1485,21 +1694,21 @@ class TestEPG(unittest.TestCase):
         """
         Test EPG parent class is AppProfile
         """
-        self.assertEquals(EPG._get_parent_class(), AppProfile)
+        self.assertEqual(EPG._get_parent_class(), AppProfile)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/ap-app/epg-test'
-        self.assertEquals(EPG._get_parent_dn(dn), 'uni/tn-tenant/ap-app')
+        self.assertEqual(EPG._get_parent_dn(dn), 'uni/tn-tenant/ap-app')
 
     def test_get_name_from_dn(self):
         """
         Test _get_name_from_dn method
         """
         dn = 'uni/tn-tenant/ap-app/epg-test'
-        self.assertEquals(EPG._get_name_from_dn(dn), 'test')
+        self.assertEqual(EPG._get_name_from_dn(dn), 'test')
 
     def test_valid_add_bd(self):
         """
@@ -1818,7 +2027,7 @@ class TestEPG(unittest.TestCase):
         epg.protect(taboo)
         output = tenant.get_json()
         self.assertIn('fvRsProtBy', str(output))
-        self.assertEquals(str(output).count('fvRsProtBy'), 1)
+        self.assertEqual(str(output).count('fvRsProtBy'), 1)
 
     def test_does_protect(self):
         """
@@ -2537,13 +2746,13 @@ class TestOutsideL2EPG(unittest.TestCase):
                                 'name': 'l2out'
                             },
                             'children': [
-                                {'l2extInstP':
-                                     {
-                                         'attributes': {
-                                             'name': 'l2outepg'
-                                         },
-                                         'children': []
-                                     }
+                                {
+                                    'l2extInstP': {
+                                        'attributes': {
+                                            'name': 'l2outepg'
+                                        },
+                                        'children': []
+                                    }
                                 }
                             ]
                         }
@@ -2578,43 +2787,43 @@ class TestPortChannel(unittest.TestCase):
         self.assertFalse(pc.is_vpc())
         fabric, infra = pc.get_json()
 
-        expected_resp = ("{'infraInfra': {'attributes': {}, 'children': [{'infraNodeP': {'attrib"
-                         "utes': {'name': '1-101-1-8'}, 'children': [{'infraLe"
-                         "afS': {'attributes': {'type': 'range', 'name': '1-10"
-                         "1-1-8'}, 'children': [{'infraNodeBlk': {'attributes'"
-                         ": {'from_': '101', 'name': '1-101-1-8', 'to_': '101'"
-                         "}, 'children': []}}]}}, {'infraRsAccPortP': {'attrib"
-                         "utes': {'tDn': 'uni/infra/accportprof-1-101-1-8'}, '"
-                         "children': []}}]}}, {'infraAccPortP': {'attributes':"
-                         " {'name': '1-101-1-8'}, 'children': [{'infraHPortS':"
-                         " {'attributes': {'type': 'range', 'name': '1-101-1-8"
-                         "'}, 'children': [{'infraPortBlk': {'attributes': {'t"
-                         "oPort': '8', 'fromPort': '8', 'fromCard': '1', 'name"
-                         "': '1-101-1-8', 'toCard': '1'}, 'children': []}}, {'"
-                         "infraRsAccBaseGrp': {'attributes': {'tDn': 'uni/infr"
-                         "a/funcprof/accbundle-pc1'}, 'children': []}}]}}]}}, "
-                         "{'infraNodeP': {'attributes': {'name': '1-101-1-9'},"
-                         " 'children': [{'infraLeafS': {'attributes': {'type':"
-                         " 'range', 'name': '1-101-1-9'}, 'children': [{'infra"
-                         "NodeBlk': {'attributes': {'from_': '101', 'name': '1"
-                         "-101-1-9', 'to_': '101'}, 'children': []}}]}}, {'inf"
-                         "raRsAccPortP': {'attributes': {'tDn': 'uni/infra/acc"
-                         "portprof-1-101-1-9'}, 'children': []}}]}}, {'infraAc"
-                         "cPortP': {'attributes': {'name': '1-101-1-9'}, 'chil"
-                         "dren': [{'infraHPortS': {'attributes': {'type': 'ran"
-                         "ge', 'name': '1-101-1-9'}, 'children': [{'infraPortB"
-                         "lk': {'attributes': {'toPort': '9', 'fromPort': '9',"
-                         " 'fromCard': '1', 'name': '1-101-1-9', 'toCard': '1'"
-                         "}, 'children': []}}, {'infraRsAccBaseGrp': {'attribu"
-                         "tes': {'tDn': 'uni/infra/funcprof/accbundle-pc1'}, '"
-                         "children': []}}]}}]}}, {'infraFuncP': {'attributes':"
-                         " {}, 'children': [{'infraAccBndlGrp': {'attributes':"
-                         " {'lagT': 'link', 'name': 'pc1'}, 'children': []}}]}"
-                         "}]}}")
+        expected_resp = json.loads('{"infraInfra": {"attributes": {}, "children": [{"infraNodeP": {"attrib'
+                                   'utes": {"name": "1-101-1-8"}, "children": [{"infraLe'
+                                   'afS": {"attributes": {"type": "range", "name": "1-10'
+                                   '1-1-8"}, "children": [{"infraNodeBlk": {"attributes"'
+                                   ': {"from_": "101", "name": "1-101-1-8", "to_": "101"'
+                                   '}, "children": []}}]}}, {"infraRsAccPortP": {"attrib'
+                                   'utes": {"tDn": "uni/infra/accportprof-1-101-1-8"}, "'
+                                   'children": []}}]}}, {"infraAccPortP": {"attributes":'
+                                   ' {"name": "1-101-1-8"}, "children": [{"infraHPortS":'
+                                   ' {"attributes": {"type": "range", "name": "1-101-1-8'
+                                   '"}, "children": [{"infraPortBlk": {"attributes": {"t'
+                                   'oPort": "8", "fromPort": "8", "fromCard": "1", "name'
+                                   '": "1-101-1-8", "toCard": "1"}, "children": []}}, {"'
+                                   'infraRsAccBaseGrp": {"attributes": {"tDn": "uni/infr'
+                                   'a/funcprof/accbundle-pc1"}, "children": []}}]}}]}}, '
+                                   '{"infraNodeP": {"attributes": {"name": "1-101-1-9"},'
+                                   ' "children": [{"infraLeafS": {"attributes": {"type":'
+                                   ' "range", "name": "1-101-1-9"}, "children": [{"infra'
+                                   'NodeBlk": {"attributes": {"from_": "101", "name": "1'
+                                   '-101-1-9", "to_": "101"}, "children": []}}]}}, {"inf'
+                                   'raRsAccPortP": {"attributes": {"tDn": "uni/infra/acc'
+                                   'portprof-1-101-1-9"}, "children": []}}]}}, {"infraAc'
+                                   'cPortP": {"attributes": {"name": "1-101-1-9"}, "chil'
+                                   'dren": [{"infraHPortS": {"attributes": {"type": "ran'
+                                   'ge", "name": "1-101-1-9"}, "children": [{"infraPortB'
+                                   'lk": {"attributes": {"toPort": "9", "fromPort": "9",'
+                                   ' "fromCard": "1", "name": "1-101-1-9", "toCard": "1"'
+                                   '}, "children": []}}, {"infraRsAccBaseGrp": {"attribu'
+                                   'tes": {"tDn": "uni/infra/funcprof/accbundle-pc1"}, "'
+                                   'children": []}}]}}]}}, {"infraFuncP": {"attributes":'
+                                   ' {}, "children": [{"infraAccBndlGrp": {"attributes":'
+                                   ' {"lagT": "link", "name": "pc1"}, "children": []}}]}'
+                                   '}]}}')
 
         # TODO: Temporarily disable check in Python3 environments
         if sys.version_info < (3, 0, 0):
-            self.assertEqual(str(infra), str(expected_resp))
+            self.assertEqual(infra, expected_resp)
 
         # Not a VPC, so fabric should be None
         self.assertIsNone(fabric)
@@ -2724,21 +2933,21 @@ class TestContext(unittest.TestCase):
         """
         Test _get_parent_class method
         """
-        self.assertEquals(Context._get_parent_class(), Tenant)
+        self.assertEqual(Context._get_parent_class(), Tenant)
 
     def test_get_parent_dn(self):
         """
         Test _get_parent_dn method
         """
         dn = 'uni/tn-tenant/ctx-test'
-        self.assertEquals(Context._get_parent_dn(dn), 'uni/tn-tenant')
+        self.assertEqual(Context._get_parent_dn(dn), 'uni/tn-tenant')
 
     def test_get_name_from_dn(self):
         """
         Test _get_name_from_dn method
         """
         dn = 'uni/tn-tenant/ctx-test'
-        self.assertEquals(Context._get_name_from_dn(dn), 'test')
+        self.assertEqual(Context._get_name_from_dn(dn), 'test')
 
     def test_set_allow_all(self):
         """
@@ -2832,6 +3041,26 @@ class TestOspf(unittest.TestCase):
         self.assertTrue(ospfif.is_ospf())
         ospf_json = outside.get_json()
 
+    def test_area_type(self):
+        """
+        Test changing area_type
+        """
+        rtr = OSPFRouter('rtr-1')
+        ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='2')
+        for area_type_setting in ['nssa', 'stub', 'regular']:
+            ospfif.set_area_type(area_type_setting)
+            self.assertEqual(ospfif.area_type, area_type_setting)
+
+    def test_invalid_area_type(self):
+        """
+        Test changing area_type to an invalid value
+        """
+        rtr = OSPFRouter('rtr-1')
+        ospfif = OSPFInterface('ospfif-1', router=rtr, area_id='2')
+        with self.assertRaises(ValueError):
+            ospfif.set_area_type('bad-value')
+        self.assertNotEqual(ospfif.area_type, 'bad-value')
+
 
 class TestMonitorPolicy(unittest.TestCase):
     """
@@ -2921,7 +3150,7 @@ class TestLiveTenant(TestLiveAPIC):
         for tenant in tenants:
             self.assertTrue(isinstance(tenant, Tenant))
             self.assertTrue(isinstance(tenant.name, str))
-            self.assertEquals(tenant.get_parent(), logical_model)
+            self.assertEqual(tenant.get_parent(), logical_model)
 
     def test_get_deep_tenants(self):
         """
@@ -3244,6 +3473,168 @@ class TestLiveEPG(TestLiveAPIC):
                 self.assertTrue(isinstance(EPG.get_table(epgs)[0], Table))
 
 
+class TestLiveAnyEPG(TestLiveAPIC):
+    def __init__(self, *args):
+        self.session = None
+        super(TestLiveAnyEPG, self).__init__(*args)
+
+    def setUp(self):
+        self.session = self.login_to_apic()
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        prov_contract = Contract('prov_contract', tenant)
+        filt_entry = FilterEntry('provfilterentry', prov_contract)
+        any_epg.provide(prov_contract)
+        cons_contract = Contract('cons_contract', tenant)
+        filt_entry = FilterEntry('consfilterentry', cons_contract)
+        any_epg.consume(cons_contract)
+        contract_intf = ContractInterface('contract_if', tenant)
+        any_epg.consume_cif(contract_intf)
+
+        resp = self.session.push_to_apic(tenant.get_url(), data=tenant.get_json())
+        self.assertTrue(resp.ok)
+
+    def test_get_any_epgs(self):
+        tenants = Tenant.get(self.session)
+        for tenant in tenants:
+            contexts = Context.get(self.session, tenant)
+            for context in contexts:
+                any_epgs = AnyEPG.get(self.session, context, tenant)
+                for any_epg in any_epgs:
+                    self.assertTrue(isinstance(any_epg, AnyEPG))
+
+    def check_get_deep(self):
+        tenants = Tenant.get_deep(self.session, names=['aci-toolkit-test'])
+        self.assertGreater(len(tenants), 0)
+        contexts = tenants[0].get_children(only_class=Context)
+        self.assertGreater(len(contexts), 0)
+        any_epgs = contexts[0].get_children(only_class=AnyEPG)
+        self.assertGreater(len(any_epgs), 0)
+
+    def test_any_epg_get_deep(self):
+        self.check_get_deep()
+
+    def test_delete_contracts(self):
+        tenant = Tenant('aci-toolkit-test')
+        prov_contract = Contract('prov_contract', tenant)
+        prov_contract.mark_as_deleted()
+        cons_contract = Contract('cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def test_delete_contract_relations(self):
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        prov_contract = Contract('prov_contract', tenant)
+        any_epg.provide(prov_contract)
+        any_epg.dont_provide(prov_contract)
+        cons_contract = Contract('cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        any_epg.consume(cons_contract)
+        any_epg.dont_consume(cons_contract)
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def test_delete_contract_interface_relation(self):
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        contract_intf = ContractInterface('contract_if', tenant)
+        any_epg.consume_cif(contract_intf)
+        any_epg.dont_consume_cif(contract_intf)
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def tearDown(self):
+        if not self.session.logged_in():
+            return
+        tenant = Tenant('aci-toolkit-test')
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+
+class TestLiveAnyEPGWithTenantCommonContracts(TestLiveAPIC):
+    def __init__(self, *args):
+        self.session = None
+        super(TestLiveAnyEPGWithTenantCommonContracts, self).__init__(*args)
+
+    def setUp(self):
+        self.session = self.login_to_apic()
+        tenant = Tenant('common')
+        prov_contract = Contract('aci-toolkit-test-prov_contract', tenant)
+        filt_entry = FilterEntry('provfilterentry', prov_contract)
+        cons_contract = Contract('aci-toolkit-test-cons_contract', tenant)
+        filt_entry = FilterEntry('consfilterentry', cons_contract)
+        contract_intf = ContractInterface('aci-toolkit-test-contract_if', tenant)
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('aci-toolkit-test')
+        context = Context('ctx', tenant)
+        any_epg = AnyEPG('anyepg', context)
+        any_epg.provide(prov_contract)
+        any_epg.consume(cons_contract)
+        any_epg.consume_cif(contract_intf)
+
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+    def test_get_any_epgs(self):
+        tenants = Tenant.get(self.session)
+        for tenant in tenants:
+            contexts = Context.get(self.session, tenant)
+            for context in contexts:
+                any_epgs = AnyEPG.get(self.session, context, tenant)
+                for any_epg in any_epgs:
+                    self.assertTrue(isinstance(any_epg, AnyEPG))
+
+    def check_get_deep(self):
+        tenants = Tenant.get_deep(self.session, names=['aci-toolkit-test', 'common'])
+        self.assertGreater(len(tenants), 0)
+        contexts = tenants[0].get_children(only_class=Context)
+        self.assertGreater(len(contexts), 0)
+        any_epgs = contexts[0].get_children(only_class=AnyEPG)
+        self.assertGreater(len(any_epgs), 0)
+
+    def test_any_epg_get_deep(self):
+        self.check_get_deep()
+
+    def test_delete_contracts(self):
+        tenant = Tenant('common')
+        prov_contract = Contract('aci-toolkit-test-prov_contract', tenant)
+        prov_contract.mark_as_deleted()
+        cons_contract = Contract('aci-toolkit-test-cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+        self.check_get_deep()
+
+    def tearDown(self):
+        if not self.session.logged_in():
+            return
+        tenant = Tenant('aci-toolkit-test')
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('common')
+        prov_contract = Contract('aci-toolkit-test-prov_contract', tenant)
+        prov_contract.mark_as_deleted()
+        cons_contract = Contract('aci-toolkit-test-cons_contract', tenant)
+        cons_contract.mark_as_deleted()
+        contract_intf = ContractInterface('aci-toolkit-test-contract_if', tenant)
+        contract_intf.mark_as_deleted()
+        resp = tenant.push_to_apic(self.session)
+        self.assertTrue(resp.ok)
+
+
 class TestLiveL2ExtDomain(TestLiveAPIC):
     """
     Test L2ExtDomain class
@@ -3436,6 +3827,48 @@ class TestLiveEndpoint(TestLiveAPIC):
     """
     Live tests for Endpoint class
     """
+    def setUp(self):
+        session = self.login_to_apic()
+
+        # Create a tenant with endpoints in 2 EPGs, 5 endpoints in each
+        tenant = Tenant('acitoolkit-test')
+        app = AppProfile('myapp', tenant)
+        epg1 = EPG('epg1', app)
+        epg2 = EPG('epg2', app)
+        intf = Interface('eth', '1', '101', '1', '1')
+
+        # Create a VLAN interface and attach to the physical interface
+        vlan_intf5 = L2Interface('vlan5', 'vlan', '5')
+        vlan_intf5.attach(intf)
+
+        vlan_intf6 = L2Interface('vlan5', 'vlan', '6')
+        vlan_intf6.attach(intf)
+
+        # Attach the EPG to the VLAN interface
+        epg1.attach(vlan_intf5)
+        epg2.attach(vlan_intf6)
+
+        for epg, epg_prefix, vlan_intf in [(epg1, '11', vlan_intf5), (epg2, '22', vlan_intf6)]:
+            for i in range(0, 5):
+                mac = '00:11:11:11:%s:1%s' % (epg_prefix, str(i))
+                ip = '10.10.%s.%s' % (epg_prefix, str(i))
+                ep = Endpoint(name=mac, parent=epg)
+                ep.mac = mac
+                ep.ip = ip
+                ep.attach(vlan_intf)
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
+    def tearDown(self):
+        session = self.login_to_apic()
+
+        # Create a tenant with endpoints in 2 EPGs, 5 endpoints in each
+        tenant = Tenant('acitoolkit-test')
+        tenant.mark_as_deleted()
+
+        resp = tenant.push_to_apic(session)
+        self.assertTrue(resp.ok)
+
     def test_get_bad_session(self):
         """
         Test Endpoint.get() supplied with a bad session
@@ -3856,7 +4289,7 @@ class TestLivePhysDomain(TestLiveAPIC):
 
         # Test get by name function (passing conditional to successfully find name)
         phys_domain_by_name = PhysDomain.get_by_name(session, 'phys_domain_toolkit_test')
-        self.assertEquals(phys_domain_by_name, new_phys_domain)
+        self.assertEqual(phys_domain_by_name, new_phys_domain)
 
         # Delete new phys domain
         new_phys_domain.mark_as_deleted()
@@ -4294,13 +4727,16 @@ class TestLiveContractInterface(TestLiveAPIC):
         self.assertTrue(resp.ok)
 
         consumer_tenant = Tenant('aci-toolkit-test-consumer')
+        consumer_app = AppProfile('consumer-app', consumer_tenant)
+        consumer_epg = EPG('consumerappepg', consumer_app)
         context = Context('mycontext', consumer_tenant)
         l3out = OutsideL3('myl3out', consumer_tenant)
-        consumer_epg = OutsideEPG('consumerepg', l3out)
-        consumer_network = OutsideNetwork('5.1.1.1', consumer_epg)
+        consumer_outside_epg = OutsideEPG('consumerepg', l3out)
+        consumer_network = OutsideNetwork('5.1.1.1', consumer_outside_epg)
         consumer_network.ip = '5.1.1.1/8'
         contract_if = ContractInterface('mycontract', consumer_tenant)
         contract_if.import_contract(contract)
+        consumer_outside_epg.consume_cif(contract_if)
         consumer_epg.consume_cif(contract_if)
         resp = consumer_tenant.push_to_apic(apic)
         self.assertTrue(resp.ok)
@@ -4728,6 +5164,8 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
     live.addTest(unittest.makeSuite(TestLiveEPG))
+    live.addTest(unittest.makeSuite(TestLiveAnyEPG))
+    live.addTest(unittest.makeSuite(TestLiveAnyEPGWithTenantCommonContracts))
     live.addTest(unittest.makeSuite(TestLiveL2ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveL3ExtDomain))
     live.addTest(unittest.makeSuite(TestLiveEPGDomain))
@@ -4776,6 +5214,10 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestOutsideL2))
     offline.addTest(unittest.makeSuite(TestTunnelInterface))
     offline.addTest(unittest.makeSuite(TestFexInterface))
+    offline.addTest(unittest.makeSuite(TestInputTerminal))
+    offline.addTest(unittest.makeSuite(TestOutputTerminal))
+    offline.addTest(unittest.makeSuite(TestAnyEPG))
+    offline.addTest(unittest.makeSuite(TestOutsideL2EPG))
 
     graphs = unittest.TestSuite()
     graphs.addTest(unittest.makeSuite(TestAcitoolkitGraphBuilder))

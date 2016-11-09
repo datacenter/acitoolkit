@@ -64,7 +64,7 @@ def main():
                      interface.attributes['porttype'],
                      interface.attributes['adminstatus'],
                      interface.attributes['operSt'],
-                     interface.attributes['speed'],
+                     interface.attributes['operSpeed'],
                      interface.attributes['mtu'],
                      interface.attributes['usage']))
 

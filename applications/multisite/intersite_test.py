@@ -4,7 +4,8 @@ Test suite for Intersite application
 import unittest
 from acitoolkit import (AppProfile, EPG, Endpoint, Interface, L2Interface, Context, BridgeDomain, Session, Tenant,
                         IPEndpoint, OutsideL3, OutsideEPG, OutsideNetwork, Contract)
-from intersite import execute_tool, IntersiteTag
+from intersite import execute_tool, IntersiteTag, CommandLine, get_arg_parser
+import argparse
 import logging
 from StringIO import StringIO
 import mock
@@ -108,6 +109,33 @@ class TestToolOptions(unittest.TestCase):
             execute_tool(args)
             self.assertEqual(fake_out.getvalue(), expected_text)
 
+    def test_set_debug_to_verbose(self):
+        """
+        Test setting the debug level to verbose
+        """
+        args = mock.Mock()
+        args.debug = 'verbose'
+        args.config = None
+        execute_tool(args)
+
+    def test_set_debug_to_warnings(self):
+        """
+        Test setting the debug level to warnings
+        """
+        args = mock.Mock()
+        args.debug = 'warnings'
+        args.config = None
+        execute_tool(args)
+
+    def test_set_debug_to_critical(self):
+        """
+        Test setting the debug level to critical
+        """
+        args = mock.Mock()
+        args.debug = 'critical'
+        args.config = None
+        execute_tool(args)
+
     def test_config_bad_filename(self):
         """
         Test no configuration file given.  Verify that it generates an error message
@@ -120,6 +148,9 @@ class TestToolOptions(unittest.TestCase):
         with mock.patch('sys.stdout', new=StringIO()) as fake_out:
             execute_tool(args)
             self.assertEqual(fake_out.getvalue(), expected_text)
+
+    def test_get_arg_parser(self):
+        self.assertIsInstance(get_arg_parser(), argparse.ArgumentParser)
 
 
 class TestBadConfiguration(unittest.TestCase):
@@ -136,12 +167,12 @@ class TestBadConfiguration(unittest.TestCase):
             "config": [
                 {
                     "site": {
-                        "username": "",
-                        "name": "",
-                        "ip_address": "",
-                        "password": "",
-                        "local": "",
-                        "use_https": ""
+                        "username": SITE1_LOGIN,
+                        "name": "site1",
+                        "ip_address": SITE1_IPADDR,
+                        "password": SITE1_PASSWORD,
+                        "local": "True",
+                        "use_https": "True"
                     }
                 }
             ]
@@ -159,6 +190,16 @@ class TestBadConfiguration(unittest.TestCase):
         args.generateconfig = None
         args.config = 'doesntmatter'
         return args
+
+    @staticmethod
+    def create_config_file(args, config, with_bad_json=False):
+        config_filename = 'testsuite_cfg.json'
+        args.config = config_filename
+        config_file = open(config_filename, 'w')
+        config_file.write(str(json.dumps(config)))
+        if with_bad_json:
+            config_file.write(']]]')
+        config_file.close()
 
     def test_no_config_keyword(self):
         """
@@ -180,15 +221,37 @@ class TestBadConfiguration(unittest.TestCase):
         fake_out = FakeStdio()
         sys.stdout = fake_out
 
-        config_filename = 'testsuite_cfg.json'
-        args.config = config_filename
-        config_file = open(config_filename, 'w')
-        config_file.write(str(json.dumps(config)))
-        config_file.close()
+        self.create_config_file(args, config)
 
         execute_tool(args, test_mode=True)
         sys.stdout = temp
         self.assertTrue(fake_out.verify_output(['%% Invalid configuration file', '\n']))
+
+    def test_bad_json_file(self):
+        """
+        Test bad JSON in the file.  Verify that the correct error message is generated.
+        :return: None
+        """
+        args = self.get_args()
+        config = {
+            "site": {
+                "username": "",
+                "name": "",
+                "ip_address": "",
+                "password": "",
+                "local": "",
+                "use_https": ""
+            }
+        }
+        temp = sys.stdout
+        fake_out = FakeStdio()
+        sys.stdout = fake_out
+
+        self.create_config_file(args, config, with_bad_json=True)
+
+        execute_tool(args, test_mode=True)
+        sys.stdout = temp
+        self.assertTrue(fake_out.verify_output(['%% File could not be decoded as JSON.', '\n']))
 
     def test_site_with_bad_ipaddress(self):
         """
@@ -198,12 +261,7 @@ class TestBadConfiguration(unittest.TestCase):
         args = self.get_args()
         config = self.create_empty_config_file()
         config['config'][0]['site']['ip_address'] = 'bogu$'
-
-        config_filename = 'testsuite_cfg.json'
-        args.config = config_filename
-        config_file = open(config_filename, 'w')
-        config_file.write(str(json.dumps(config)))
-        config_file.close()
+        self.create_config_file(args, config)
 
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
@@ -215,17 +273,86 @@ class TestBadConfiguration(unittest.TestCase):
         args = self.get_args()
         config = self.create_empty_config_file()
         config['config'][0]['site']['username'] = ''
-        config['config'][0]['site']['ip_address'] = '172.31.216.100'
+        config['config'][0]['site']['ip_address'] = SITE1_IPADDR
         config['config'][0]['site']['local'] = 'True'
         config['config'][0]['site']['use_https'] = 'True'
-
-        config_filename = 'testsuite_cfg.json'
-        args.config = config_filename
-        config_file = open(config_filename, 'w')
-        config_file.write(str(json.dumps(config)))
-        config_file.close()
+        self.create_config_file(args, config)
 
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+    def test_reload_bad_config_filename(self):
+        """
+        Test reload_config with a non-existent filename
+        :return: None
+        """
+        # Create a valid configuration
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        self.create_config_file(args, config)
+        collector = execute_tool(args, test_mode=True)
+
+        # Check that a bad config filename reload behaves as expected
+        collector.config_filename = 'nonexistent.json'
+        self.assertFalse(collector.reload_config())
+
+    def test_reload_bad_json_in_file(self):
+        """
+        Test reload_config with a badly formatted JSON file
+        :return: None
+        """
+        # Create a valid configuration
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        self.create_config_file(args, config)
+        collector = execute_tool(args, test_mode=True)
+
+        # Create a badly formatted config file
+        self.create_config_file(args, config, with_bad_json=True)
+        self.assertFalse(collector.reload_config())
+
+    def test_reload_with_no_config_keyword(self):
+        """
+        Test reload_config with no 'config' keyword in the JSON
+        :return: None
+        """
+        # Create a valid configuration
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        self.create_config_file(args, config)
+        collector = execute_tool(args, test_mode=True)
+
+        # Create a configuration file with no 'config' keyword
+        config = {
+            "site": {
+                "username": "",
+                "name": "",
+                "ip_address": "",
+                "password": "",
+                "local": "",
+                "use_https": ""
+            }
+        }
+        self.create_config_file(args, config)
+        self.assertFalse(collector.reload_config())
+
+    def test_reload_no_local_site_in_reloaded_config(self):
+        """
+        Test reload_config with no local site specified in the JSON
+        :return: None
+        """
+        # Create a valid configuration
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        self.create_config_file(args, config)
+        collector = execute_tool(args, test_mode=True)
+
+        # Create a configuration with no local site
+        config = self.create_empty_config_file()
+        config['config'][0]['site']['local'] = 'False'
+        self.create_config_file(args, config)
+
+        # Reload
+        self.assertFalse(collector.reload_config())
 
 
 class BaseTestCase(unittest.TestCase):
@@ -2637,6 +2764,91 @@ class TestDeletions(BaseEndpointTestCase):
                                                            'l3out', 'intersite-testsuite-app-epg'))
 
 
+class TestCli(BaseTestCase):
+    """
+    Tests for the CLI
+    """
+    def setup_remote_site(self):
+        """
+        Set up the remote site.
+        """
+        pass
+
+    def setup_local_site(self):
+        """
+        Set up the local site.
+        """
+        pass
+
+    def teardown_local_site(self):
+        """
+        Teardown the local site configuration
+        """
+        pass
+
+    def teardown_remote_site(self):
+        """
+        Teardown the remote site configuration
+        """
+        pass
+
+    def _create_commandline(self):
+        """
+        Internal function to create a CommandLine instance
+        """
+        args = self.get_args()
+        self.write_config_file(self.create_site_config(), args)
+        cmdline = CommandLine(execute_tool(args, test_mode=True))
+        self.assertTrue(isinstance(cmdline, CommandLine))
+        return cmdline
+
+    def _test_show_cmd(self, cmd, output):
+        """
+        Internal common function for checking show commands
+        :param cmd: String containing show command keyword
+        :param output: List of strings to compare with the command output
+        """
+        cmdline = self._create_commandline()
+        temp = sys.stdout
+        fake_out = FakeStdio()
+        sys.stdout = fake_out
+        cmdline.do_show(cmd)
+        sys.stdout = temp
+        self.assertTrue(fake_out.verify_output(output))
+
+    def test_show_debug(self):
+        """
+        Test show debug command
+        """
+        self._test_show_cmd('debug', ['Debug level currently set to:', ' ', 'CRITICAL', '\n'])
+
+    def test_show_configfile(self):
+        """
+        Test show configfile command
+        """
+        self._test_show_cmd('configfile', ['Configuration file is set to:', ' ', 'testsuite_cfg.json', '\n'])
+
+    def test_show_config(self):
+        """
+        Test show config command
+        """
+        self._test_show_cmd('config', [json.dumps(self.create_site_config(), indent=4, separators=(',', ':')), '\n'])
+
+    def test_show_sites(self):
+        """
+        Test show sites command
+        """
+        self._test_show_cmd('sites', [u'Site1', ' ', ':', ' ', 'Connected', '\n',
+                                      u'Site2', ' ', ':', ' ', 'Connected', '\n'])
+
+    def test_show_stats(self):
+        """
+        Test show stats command
+        """
+        self._test_show_cmd('stats', ['Endpoint addition events:', ' ', '0', '\n',
+                                      'Endpoint deletion events:', ' ', '0', '\n'])
+
+
 def main_test():
     """
     Main execution routine.  Create the test suites and run.
@@ -2656,6 +2868,7 @@ def main_test():
     full.addTest(unittest.makeSuite(TestDuplicates))
     full.addTest(unittest.makeSuite(TestDuplicatesTwoL3Outs))
     full.addTest(unittest.makeSuite(TestDeletions))
+    full.addTest(unittest.makeSuite(TestCli))
 
     unittest.main()
 

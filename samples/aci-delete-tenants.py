@@ -29,81 +29,79 @@
 #                                                                              #
 ################################################################################
 """
-Simple application that logs on to the APIC and displays all
-EPGs.
+Delete tenants named with the specified string.
 """
-import socket
-import yaml
-import sys
-from pprint import pprint
-import acitoolkit.acitoolkit as aci
-from acitoolkit.acitoolkit import Tenant, AppProfile, EPG, Endpoint
+from acitoolkit import Session, Tenant, Credentials
+
 
 def main():
     """
-    Main show EPGs routine
+    Main create tenant routine
     :return: None
     """
-    # Login to APIC
-    description = ('Simple application that logs on to the APIC'
-                   ' and displays all of the EPGs.')
-    creds = aci.Credentials('apic', description)
+    # Get all the arguments
+    description = 'It logs in to the APIC and will delete tenants named with the specified string.'
+    creds = Credentials(['apic', 'nosnapshotfiles'], description)
+    group = creds.add_mutually_exclusive_group()
+    group.add_argument('--startswith', default=None,
+                       help='String to match that starts the tenant name')
+    group.add_argument('--endswith', default=None,
+                       help='String to match that ends the tenant name')
+    group.add_argument('--exactmatch', default=None,
+                       help='String that exactly matches the tenant name')
+    group.add_argument('--contains', default=None,
+                       help='String that is contained in the tenant name')
+    creds.add_argument('--force', action='store_true',
+                       help='Attempt to remove the tenants without prompting for confirmation')
     args = creds.get()
-    session = aci.Session(args.url, args.login, args.password)
-    resp = session.login()
+
+    # Login to the APIC
+    apic = Session(args.url, args.login, args.password)
+    resp = apic.login()
     if not resp.ok:
         print('%% Could not login to APIC')
-        return
 
-    # Download all of the tenants, app profiles, and EPGs
-    # and store the names as tuples in a list
-    tenants = Tenant.get_deep(session)
-    tenants_list = []
+    # Get all of the Tenants
+    tenants = Tenant.get(apic)
+
+    # Find the list of Tenants to delete according to command line options
+    tenants_to_delete = []
     for tenant in tenants:
-        tenants_dict = {}
-        tenants_dict['name'] = tenant.name
-        
-        if tenant.descr:
-            tenants_dict['description'] = tenant.descr
-            
-        tenants_dict['app-profiles'] = []
-        for app in tenant.get_children(AppProfile):
-            app_profiles = {}
-            app_profiles['name'] =app.name
-            if app.descr:
-                app_profiles['description'] = app.descr
-            app_profiles['epgs'] = []
-            
-            
-            for epg in app.get_children(EPG):
-                epgs_info = {}
-                epgs_info['name'] = epg.name
-                if epg.descr:
-                    epgs_info['description']  = epg.descr
-                epgs_info['endpoints'] = []
-                
-                for endpoint in epg.get_children(Endpoint):
-                    endpoint_info = {}
-                    endpoint_info['name'] = endpoint.name
-                    if endpoint.ip != '0.0.0.0':
-                        endpoint_info['ip'] = endpoint.ip
-                        try:
-                            hostname = socket.gethostbyaddr(endpoint.ip)[0]
-                        except socket.error:
-                            hostname = None
-                        if hostname:
-                            endpoint_info['hostname'] = hostname
-                    if endpoint.descr:
-                        endpoint_info['description'] = endpoint.descr
-                        
-                    epgs_info['endpoints'].append(endpoint_info)
-                app_profiles['epgs'].append(epgs_info)
-            tenants_dict['app-profiles'].append(app_profiles)
-        tenants_list.append(tenants_dict)
+        if args.startswith is not None:
+            if tenant.name.startswith(args.startswith):
+                tenants_to_delete.append(tenant)
+        elif args.endswith is not None:
+            if tenant.name.endswith(args.endswith):
+                tenants_to_delete.append(tenant)
+        elif args.exactmatch is not None:
+            if args.exactmatch == tenant.name:
+                tenants_to_delete.append(tenant)
+        elif args.contains is not None:
+            if args.contains in tenant.name:
+                tenants_to_delete.append(tenant)
 
-    tenants_info = {}
-    tenants_info['tenants'] = tenants_list
-    print yaml.safe_dump(tenants_info,sys.stdout, indent= 4,default_flow_style=False)
+    # Query the user to be sure of deletion
+    if not args.force:
+        for tenant in tenants_to_delete:
+            prompt = 'Delete tenant %s ? [y/N]' % tenant.name
+            try:
+                resp = raw_input(prompt)
+            except NameError:
+                resp = input(prompt)
+            if not resp.lower().startswith('y'):
+                tenants_to_delete.remove(tenant)
+                print 'Skipping tenant', tenant.name
+
+    # Delete the tenants
+    for tenant in tenants_to_delete:
+        tenant.mark_as_deleted()
+        resp = tenant.push_to_apic(apic)
+        if resp.ok:
+            print 'Deleted tenant', tenant.name
+        else:
+            print 'Could not delete tenant', tenant.name
+            print resp.text
+
 
 if __name__ == '__main__':
     try:

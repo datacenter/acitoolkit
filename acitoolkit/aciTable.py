@@ -160,12 +160,12 @@ class Table(object):
             t2 = result2.split('\n')
             result = ''
             for index in range(len(t2)):
-                row = t1[index]+' '+t2[index]+'\n'
+                row = t1[index] + ' ' + t2[index] + '\n'
                 result += row
 
             if table1_len > table2_len:
-                result += t1[len(t1)-2] + '\n'
-                result += t1[len(t1)-1] + '\n'
+                result += t1[len(t1) - 2] + '\n'
+                result += t1[len(t1) - 1] + '\n'
 
         if title and not supresstitle:
             result = title + '\n' + result
