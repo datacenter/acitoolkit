@@ -1345,13 +1345,13 @@ class Node(BaseACIPhysObject):
             ConcreteAccCtrlRule, ConcreteArp, ConcreteBD, ConcreteContext,
             ConcreteEp, ConcreteFilter, ConcreteLoopback, ConcreteOverlay,
             ConcretePortChannel, ConcreteVpc,
-            ConcreteCdp
+            ConcreteCdp, ConcreteLLdp
         )
 
         return [ConcreteArp, ConcreteAccCtrlRule, ConcreteBD, ConcreteOverlay,
                 ConcretePortChannel, ConcreteEp, ConcreteFilter, ConcreteLoopback,
                 ConcreteContext, ConcreteVpc,
-                ConcreteCdp]
+                ConcreteCdp, ConcreteLLdp]
 
     @classmethod
     def _get_apic_classes(cls):
