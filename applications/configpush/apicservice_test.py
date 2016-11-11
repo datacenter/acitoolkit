@@ -10,6 +10,8 @@ import sys
 import time
 from deepdiff import DeepDiff
 import gzip
+from pprint import pprint
+import ast
 
 try:
     from apicservice_test_credentials import (LOGIN, PASSWORD, IPADDR)
@@ -34,7 +36,7 @@ class LoadConfig(object):
         self.session = ''
         self.tool = ''
 
-    def load_configFile(self, config_file, is_file=True, displayonly=False, tenant_name='configpush-test',
+    def load_configFile(self, config_file, is_file=True, prompt=False, displayonly=False, tenant_name='configpush-test',
                         app_name='appProfile-test', useipEpgs=False):
         """
         load_configFile
@@ -66,6 +68,7 @@ class LoadConfig(object):
 
         self.tool = ApicService()
         self.tool.displayonly = displayonly
+        self.tool.prompt = prompt
         self.tool.set_tenant_name(tenant_name)
         self.tool.set_app_name(app_name)
         if useipEpgs:
@@ -290,7 +293,7 @@ class TestConfigpush(unittest.TestCase):
                 self.assertEquals(len(existing_epgs), 2,
                                   "epgs count did not match for the pushed config and existing config")
                 for existing_epg in existing_epgs:
-                    self.assertEqual(existing_epg.is_attribute_based, False,
+                    self.assertEqual(existing_epg.is_attributed_based, False,
                                      "attribute based is true for EPG " + existing_epg.name)
                     if existing_epg.name == 'Configpushtest_-_1_-0':
                         self.assertEqual(len(existing_epg.get_all_consumed()), 1,
@@ -1026,6 +1029,183 @@ class TestConfigpush(unittest.TestCase):
                 self.assertEquals(len(existing_contexts), 1,
                                   "existing_contexts count did not match for the pushed config and existing config")
 
+    def test_without_useipEpg_again_push_initial_configpush(self):
+        """
+        after useipepgs pushing back the initial config and check the tenant config doesnot change
+        push a sample config with 2 clusters, 1 policy.
+        check the tenant config after it is pushed to apic by tenant.get_deep()
+        verify the num of children expected and existing in apic for this tenant
+        """
+
+        config_file = """
+        {
+  "clusters": [
+    {
+      "name": "Configpushtest*-(1)",
+      "id": "56c55b8761707062b2d11b00",
+      "descr": "sample description",
+      "route_tag": {
+        "subnet_mask": "173.38.111.0/24",
+        "name": "rtp1-dcm01n-gp-db-dr2:iv2133"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+        {
+          "ip": "173.38.111.127",
+          "name": "lnxdb-dr-vm-421"
+        },
+        {
+          "ip": "173.38.111.131",
+          "name": "lnxdb-dr-vm-422"
+        }
+      ]
+    },
+    {
+      "name": "Configpushtest*-(2)",
+      "id": "56c3d31561707035c0c12b00",
+      "descr": "sample description",
+      "approved": true,
+      "route_tag": {
+        "subnet_mask": "0.0.0.0/0",
+        "name": "INTERNET-EXTNET"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+        {
+          "ip": "173.38.111.126",
+          "name": "lnxdb-dr-vm-423"
+        },
+        {
+          "ip": "173.38.111.128",
+          "name": "lnxdb-dr-vm-424"
+        }
+      ]
+    }
+   ],
+  "policies": [
+    {
+      "src": "56c55b8761707062b2d11b00",
+      "dst": "56c3d31561707035c0c12b00",
+      "src_name": "Configpushtest-policy*-(1)",
+      "dst_name": "Configpushtest-policy*-(2)",
+      "descr": "sample description",
+      "whitelist": [
+        {
+          "port": [
+            0,
+            0
+          ],
+          "proto": 1,
+          "action": "ALLOW"
+        },
+        {
+          "port": [
+            0,
+            0
+          ],
+          "proto": 6,
+          "action": "ALLOW"
+        }
+      ]
+    }
+  ]
+}
+        """
+        load_config = LoadConfig()
+        load_config.load_configFile(config_file, is_file=False)
+        time.sleep(5)
+        tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == 'configpush-test':
+                existing_filters = tenant.get_children(Filter)
+                self.assertEquals(len(existing_filters), 2,
+                                  "filter count did not match for the pushed config and existing config")
+
+                app_profiles = tenant.get_children(AppProfile)
+                app = app_profiles[0]
+                existing_epgs = app.get_children(EPG)
+                self.assertEquals(len(existing_epgs), 2,
+                                  "epgs count did not match for the pushed config and existing config")
+                for existing_epg in existing_epgs:
+                    self.assertEqual(existing_epg.is_attributed_based, False,
+                                     "attribute based is true for EPG " + existing_epg.name)
+                    if existing_epg.name == 'Configpushtest_-_1_-0':
+                        self.assertEqual(len(existing_epg.get_all_consumed()), 1,
+                                         "consumed EPG did not match for EPG " + existing_epg.name)
+                        self.assertEqual(len(existing_epg.get_all_provided()), 0,
+                                         "provided EPG did not match for EPG " + existing_epg.name)
+                    elif existing_epg.name == 'Configpushtest_-_2_-1':
+                        self.assertEqual(len(existing_epg.get_all_consumed()), 0,
+                                         "consumed EPG did not match for EPG " + existing_epg.name)
+                        self.assertEqual(len(existing_epg.get_all_provided()), 1,
+                                         "provided EPG did not match for EPG " + existing_epg.name)
+                for existing_epg in existing_epgs:
+                    self.assertTrue(existing_epg.name != 'Base',
+                                    "Base EPG exists without useipEpgs" + existing_epg.name)
+
+                existing_contracts = tenant.get_children(Contract)
+                self.assertEquals(len(existing_contracts), 1,
+                                  "contracts count did not match for the pushed config and existing config")
+                for existing_contract in existing_contracts:
+                    for child_contractSubject in existing_contract.get_children(ContractSubject):
+                        self.assertEqual(len(child_contractSubject.get_filters()), 2,
+                                         "num of filters in contract subject did not match " + child_contractSubject.name)
+
+                existing_bds = tenant.get_children(BridgeDomain)
+                self.assertEquals(len(existing_bds), 0,
+                                  "bridgeDomains count did not match for the pushed config and existing config")
+
+                existing_contexts = tenant.get_children(Context)
+                self.assertEquals(len(existing_contexts), 0,
+                                  "existing_contexts count did not match for the pushed config and existing config")
+
+    def test_without_any_EPG_and_Contracts(self):
+        """
+        push a sample config with 0 clusters, 0 policy.
+        check the tenant config after it is pushed to apic by tenant.get_deep()
+        verify the num of children expected and existing in apic for this tenant
+        """
+
+        config_file = """
+        {
+  "clusters": [
+   ],
+  "policies": [
+  ]
+}
+        """
+        load_config = LoadConfig()
+        load_config.load_configFile(config_file, is_file=False)
+        time.sleep(5)
+        tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == 'configpush-test':
+                existing_filters = tenant.get_children(Filter)
+                self.assertEquals(len(existing_filters), 0,
+                                  "filter count did not match for the pushed config and existing config")
+
+                app_profiles = tenant.get_children(AppProfile)
+                app = app_profiles[0]
+                existing_epgs = app.get_children(EPG)
+                self.assertEquals(len(existing_epgs), 0,
+                                  "epgs count did not match for the pushed config and existing config")
+
+                existing_contracts = tenant.get_children(Contract)
+                self.assertEquals(len(existing_contracts), 0,
+                                  "contracts count did not match for the pushed config and existing config")
+
+                existing_bds = tenant.get_children(BridgeDomain)
+                self.assertEquals(len(existing_bds), 0,
+                                  "bridgeDomains count did not match for the pushed config and existing config")
+
+                existing_contexts = tenant.get_children(Context)
+                self.assertEquals(len(existing_contexts), 0,
+                                  "existing_contexts count did not match for the pushed config and existing config")
+
 
 class TestCheckForAllTheJsonConfigs(unittest.TestCase):
     """
@@ -1047,10 +1227,10 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test1_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test1_policies_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
     def test_configpush_test1_policies_with_useipEpgs(self):
         """
@@ -1065,10 +1245,10 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test1_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test1_policies_with_useipEpgs_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
     def test_configpush_test2_policies(self):
         """
@@ -1083,10 +1263,10 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test2_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test2_policies_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
     def test_configpush_test2_policies_with_useipEpgs(self):
         """
@@ -1101,10 +1281,10 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test2_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test2_policies_with_useipEpgs_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
     def test_configpush_test3_policies(self):
         """
@@ -1119,10 +1299,10 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test3_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test3_policies_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
     def test_configpush_test3_policies_with_useipEpgs(self):
         """
@@ -1137,15 +1317,15 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test3_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test3_policies_with_useipEpgs_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
     def test_configpush_test4_policies(self):
         """
         configpush_test4_policies.json
-        providing configpush_test1_policies.json to apicservice and
+        providing configpush_test4_policies.json to apicservice and
         comparing with the expected json
         """
         config_file = 'configpush_test4_policies.json.gz'
@@ -1155,15 +1335,15 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test4_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test4_policies_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
     def test_configpush_test4_policies_with_useipEpgs(self):
         """
         configpush_test4_policies.json
-        providing configpush_test1_policies.json to apicservice and
+        providing configpush_test4_policies.json to apicservice and
         comparing with the expected json
         """
         config_file = 'configpush_test4_policies.json.gz'
@@ -1173,11 +1353,10 @@ class TestCheckForAllTheJsonConfigs(unittest.TestCase):
         tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
         for tenant in tenants:
             if tenant.name == 'configpush_test4_policies':
-                tenant_existing = json.dumps(tenant.get_json())
+                tenant_existing = ast.literal_eval(json.dumps(tenant.get_json()))
                 with gzip.open('configpush_test4_policies_with_useipEpgs_tenant_golden.json.gz', 'rb') as data_file:
-                    tenant_expected = data_file.read()
-                self.assertEqual(DeepDiff(tenant_existing, tenant_expected), {})
-
+                    tenant_expected = ast.literal_eval(data_file.read())
+                self.assertEqual(DeepDiff(tenant_existing, tenant_expected, ignore_order=True), {})
 
 if __name__ == '__main__':
     configpush = unittest.TestSuite()
