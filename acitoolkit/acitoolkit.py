@@ -3150,6 +3150,8 @@ class OutsideNetwork(BaseSubnet):
         if self.get_addr() is None:
             raise ValueError('OutsideNetwork ip is not set')
         attributes['ip'] = self.get_addr()
+        if self._scope:
+            attributes['scope'] = self._scope
         return attributes
 
     def set_scope(self, scope):
