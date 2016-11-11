@@ -7,6 +7,7 @@ from acitoolkit import (Tenant, AppProfile, EPG,
                         BridgeDomain, AttributeCriterion,
                         Node, Context)
 import json
+import re
 from jsonschema import validate, ValidationError, FormatChecker
 import logging
 from logging.handlers import RotatingFileHandler
@@ -15,6 +16,7 @@ import ipaddress
 
 # Imports from standalone mode
 import argparse
+from pprint import pprint
 
 
 class GenericService(object):
@@ -26,6 +28,7 @@ class GenericService(object):
         self._json_schema = None
         self.logger = None
         self._displayonly = False
+        self.prompt = False
 
     def set_json_schema(self, filename):
         """
@@ -48,6 +51,20 @@ class GenericService(object):
         :return: Dictionary containing the JSON schema
         """
         return self._json_schema
+
+    @property
+    def prompt(self):
+        """
+        Get the display only flag.  This will cause the JSON to be displayed but not pushed to APIC.
+        """
+        return self._prompt
+
+    @prompt.setter
+    def prompt(self, x):
+        """
+        Set the display only flag.  This will cause the JSON to be displayed but not pushed to APIC.
+        """
+        self._prompt = x
 
     @property
     def displayonly(self):
@@ -740,19 +757,48 @@ class ApicService(GenericService):
     def use_ip_epgs(self):
         self._use_ip_epgs = True
 
-    def push_config_to_apic(self):
-        """
-        Push the configuration to the APIC
+    def prompt_and_mark_as_deleted(self, apic, object_delete=None):
+        '''
+        if self.prompt is True, prompts for the decision and if yes the object is deleted.
+        if self.prompt is False, directly object is deleted
+        '''
+        if self.prompt:
+            logging.debug(object_delete.get_json())
+            print "----------------------------------"
+            pprint(object_delete.get_json())
+            msg = 'do u want to delete %s : %s' % (object_delete.__class__.__name__, object_delete.name)
+            shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+            if shall:
+                logging.debug("deleting object %s : %s" % (object_delete.__class__.__name__, object_delete.name))
+                object_delete.mark_as_deleted()
+        else:
+            logging.debug("deleting object %s : %s" % (object_delete.__class__.__name__, object_delete.name))
+            object_delete.mark_as_deleted()
 
-        :return: Requests Response instance indicating success or not
-        """
-        THROTTLE_SIZE = 500000 / 8
-        # Set the tenant name correctly
-        if self._tenant_name == '' and self.cdb.has_context_config():
-            self.set_tenant_name(self.cdb.get_context_config().tenant_name)
-        elif self._tenant_name == '':
-            self.set_tenant_name('acitoolkit')
+    def prompt_and_remove_relation(self, apic, parentObject=None, childObject=None):
+        '''
+        if self.prompt is True,prompts for the decision and if given yes removes the relation of child from the parent object.
+        if self.prompt is False, directly removes the relation of child from parent object
+        '''
+        if self.prompt:
+            logging.debug(parentObject.get_json())
+            print "----------------------------------"
+            pprint(parentObject.get_json())
+            msg = 'do u want to remove relation of %s in  %s : %s' % (
+                childObject.name, parentObject.__class__.__name__, parentObject.name)
+            shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+            if shall:
+                logging.debug("removing relation of %s with %s : %s" %
+                              (childObject.name, parentObject.__class__.__name__, parentObject.name))
+                parentObject._remove_relation(childObject)
+                childObject._remove_attachment(parentObject)
+        else:
+            logging.debug("removing relation of %s with %s : %s" %
+                          (childObject.name, parentObject.__class__.__name__, parentObject.name))
+            parentObject._remove_relation(childObject)
+            childObject._remove_attachment(parentObject)
 
+    def remove_duplicate_contracts(self):
         # Find all the unique contract providers
         logging.debug('Finding the unique contract providers')
         unique_providers = {}
@@ -784,20 +830,142 @@ class ApicService(GenericService):
         for duplicate_policy in duplicate_policies:
             self.cdb.remove_contract_policy(duplicate_policy)
 
-        if not self.displayonly:
-            # Log on to the APIC
-            apic_cfg = self.cdb.get_apic_config()
-            apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
-            resp = apic.login()
-            if not resp.ok:
+    def delete_unwanted_attributeCriterion_in_epgs(self, apic):
+        '''
+        deletes the attribute criterion(uSeg attributes) from EPGS which are not in the present config
+        '''
+        tenant = Tenant(self._tenant_name)
+        tenant_names = [self._tenant_name]
+        existing_epgs = []
+        if Tenant.exists(apic, tenant):
+            tenants = Tenant.get_deep(
+                apic,
+                names=tenant_names)
+            tenant = tenants[0]
+            appProfiles = tenant.get_children(AppProfile)
+            app = appProfiles[0]
+            existing_epgs = app.get_children(EPG)
+        else:
+            app = AppProfile(self._app_name, tenant)
+
+        if self._use_ip_epgs:
+            for existing_epg in existing_epgs:
+                if existing_epg.name != "base":
+                    for epg_policy in self.cdb.get_epg_policies():
+                        if not existing_epg.descr == "" and existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+
+                            if existing_epg._is_attribute_based:
+                                existing_criterions = existing_epg.get_children(AttributeCriterion)
+                                for existing_criterion in existing_criterions:
+                                    existing_ip_address = existing_criterion.get_ip_addresses()
+                                    node_policies = epg_policy.get_node_policies()
+                                    for existing_ip in existing_ip_address:
+                                        match = False
+                                        for node_policy in node_policies:
+                                            if node_policy.ip == existing_ip.split('/')[0]:
+                                                match = True
+                                        if not match:
+                                            logging.debug("delete ip existing_ip " + existing_ip)
+                                            if self.prompt:
+                                                logging.debug(existing_epg.get_json())
+                                                pprint(existing_criterion.get_json())
+                                                msg = 'do u want to delete the attribute criterion((uSeg attributes)) ip %s in EPG %s' % (
+                                                    existing_ip, existing_epg.name)
+                                                shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+                                                if shall:
+                                                    logging.debug(
+                                                        "deleting attribute criterion(uSeg attributes) ip %s in %s" %
+                                                        (existing_ip, existing_epg.name))
+                                                    existing_criterion.mark_as_deleted()
+                                            else:
+                                                logging.debug(
+                                                    "deleting attribute criterion(uSeg attributes) ip %s in %s" %
+                                                    (existing_ip, existing_epg.name))
+                                                existing_criterion.mark_as_deleted()
+        if self.displayonly:
+            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+        else:
+            logging.debug('Pushing EPGS by deleting unwanted uSeg attributes ')
+            if len(tenant.get_children()) > 0:
+                resp = tenant.push_to_apic(apic)
                 return resp
 
-        tenant_names = []
-        tenant_names.append(self._tenant_name)
-
-        # delete all the unwanted epgs
+    def delete_unwanted_epgs(self, apic):
+        '''
+        deletes the EPGS which are not in the present config['clusters']
+        '''
         tenant = Tenant(self._tenant_name)
+        tenant_names = [self._tenant_name]
         existing_epgs = []
+        if Tenant.exists(apic, tenant):
+            tenants = Tenant.get_deep(
+                apic,
+                names=tenant_names,
+                limit_to=[
+                    'fvTenant',
+                    'fvAp',
+                    'fvBD',
+                    'fvCtx',
+                    'vzFilter',
+                    'vzEntry',
+                    'vzBrCP',
+                    'vzSubj',
+                    'vzRsSubjFiltAtt'])
+            tenant = tenants[0]
+            appProfiles = tenant.get_children(AppProfile)
+            app = appProfiles[0]
+            existing_epgs = app.get_children(EPG)
+        else:
+            app = AppProfile(self._app_name, tenant)
+
+        for existing_epg in existing_epgs:
+            matched = False
+            if existing_epg.name != "base":
+                for epg_policy in self.cdb.get_epg_policies():
+                    if not existing_epg.descr == "" and existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                            ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                        if self._use_ip_epgs:
+                            if existing_epg._is_attribute_based:
+                                matched = True
+                        elif not existing_epg._is_attribute_based:
+                            matched = True
+
+                if not matched:
+                    self.prompt_and_mark_as_deleted(apic, existing_epg)
+
+        if not self._use_ip_epgs:
+            for existing_epg in existing_epgs:
+                if existing_epg.name == "base":
+                    self.prompt_and_mark_as_deleted(apic, existing_epg)
+
+            if self.cdb.has_context_config():
+                context_name = self.cdb.get_context_config().name
+            else:
+                context_name = 'vrf1'
+            existing_contexts = tenant.get_children(Context)
+            for existing_context in existing_contexts:
+                if existing_context.name == context_name:
+                    self.prompt_and_mark_as_deleted(apic, existing_context)
+            existing_bds = tenant.get_children(BridgeDomain)
+            for existing_bd in existing_bds:
+                if existing_bd.name == 'bd':
+                    self.prompt_and_mark_as_deleted(apic, existing_bd)
+
+        if self.displayonly:
+            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+        else:
+            logging.debug('Pushing EPGS by deleting unwanted epgs ')
+            if len(tenant.get_children()) > 0:
+                resp = tenant.push_to_apic(apic)
+                return resp
+
+    def delete_unwanted_contracts(self, apic):
+        '''
+        deletes the Contracts which are not in the present config['policies']
+        '''
+        tenant_names = [self._tenant_name]
+        tenant = Tenant(self._tenant_name)
         if Tenant.exists(apic, tenant):
             tenants = Tenant.get_deep(
                 apic,
@@ -811,100 +979,40 @@ class ApicService(GenericService):
                     'vzSubj',
                     'vzRsSubjFiltAtt'])
             tenant = tenants[0]
-            appProfiles = tenant.get_children(AppProfile)
-            app = appProfiles[0]
-            existing_epgs = app.get_children(EPG)
-        else:
-
-            app = AppProfile(self._app_name, tenant)
-
-        for existing_epg in existing_epgs:
-            matched = False
-            if existing_epg.name != "base":
-                for epg_policy in self.cdb.get_epg_policies():
-                    if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
-                            ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
-                        if self._use_ip_epgs:
-                            if existing_epg._is_attribute_based:
-                                matched = True
-                                existing_criterions = existing_epg.get_children(AttributeCriterion)
-                                for existing_criterion in existing_criterions:
-                                    existing_criterion.mark_as_deleted()
-                        elif existing_epg._is_attribute_based:
-                            matched = True
-                            existing_criterions = existing_epg.get_children(AttributeCriterion)
-                            for existing_criterion in existing_criterions:
-                                existing_criterion.mark_as_deleted()
-
+            existing_contracts = tenant.get_children(Contract)
+            for existing_contract in existing_contracts:
+                matched = False
+                for contract_policy in self.cdb.get_contract_policies():
+                    contract_policy.descr = contract_policy.descr[0:127 -
+                                                                  (contract_policy.descr.count('"') +
+                                                                   contract_policy.descr.count("'") +
+                                                                   contract_policy.descr.count('/'))]
+                    if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                            "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                        matched = True
                 if not matched:
-                    existing_epg.mark_as_deleted()
+                    self.prompt_and_mark_as_deleted(apic, existing_contract)
+                    exist_contract_providing_epgs = existing_contract.get_all_providing_epgs()
+                    for exist_contract_providing_epg in exist_contract_providing_epgs:
+                        self.prompt_and_remove_relation(apic, exist_contract_providing_epg, existing_contract)
+                    exist_contract_consuming_epgs = existing_contract.get_all_consuming_epgs()
+                    for exist_contract_consuming_epg in exist_contract_consuming_epgs:
+                        self.prompt_and_remove_relation(apic, exist_contract_consuming_epg, existing_contract)
+
+            if self.displayonly:
+                print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
             else:
-                if not self._use_ip_epgs:
-                    base_epg = EPG('base', app)
-                    if self.cdb.has_context_config():
-                        context_name = self.cdb.get_context_config().name
-                    else:
-                        context_name = 'vrf1'
-                    context = Context(context_name, tenant)
-                    existing_contexts = tenant.get_children(Context)
-                    for existing_context in existing_contexts:
-                        if existing_context.name == context_name:
-                            existing_context.mark_as_deleted()
-                    existing_bds = tenant.get_children(BridgeDomain)
-                    for existing_bd in existing_bds:
-                        if existing_bd.name == 'bd':
-                            existing_bd.mark_as_deleted()
-                    base_epg.mark_as_deleted()
-
-        if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
-        else:
-            logging.debug('Pushing EPGS by deleting unwanted epgs ')
-            if len(tenant.get_children()) > 0:
-                resp = tenant.push_to_apic(apic)
-                if not resp.ok:
+                logging.debug('Pushing contracts by deleting unwanted contracts')
+                if len(tenant.get_children()) > 0:
+                    resp = tenant.push_to_apic(apic)
                     return resp
 
-        # delete all the unwanted contracts
-        tenants = Tenant.get_deep(
-            apic,
-            names=tenant_names,
-            limit_to=[
-                'fvTenant',
-                'fvAp',
-                'vzFilter',
-                'vzEntry',
-                'vzBrCP',
-                'vzSubj',
-                'vzRsSubjFiltAtt'])
-        tenant = tenants[0]
-        existing_contracts = tenant.get_children(Contract)
-        for existing_contract in existing_contracts:
-            matched = False
-            for contract_policy in self.cdb.get_contract_policies():
-                if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
-                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
-                    matched = True
-            if not matched:
-                existing_contract.mark_as_deleted()
-                exist_contract_providing_epgs = existing_contract.get_all_providing_epgs()
-                for exist_contract_providing_epg in exist_contract_providing_epgs:
-                    exist_contract_providing_epg.mark_as_deleted()
-                exist_contract_consuming_epgs = existing_contract.get_all_consuming_epgs()
-                for exist_contract_consuming_epg in exist_contract_consuming_epgs:
-                    exist_contract_consuming_epg.mark_as_deleted()
-
-        if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
-        else:
-            logging.debug('Pushing contracts by deleting unwanted contracts')
-            if len(tenant.get_children()) > 0:
-                resp = tenant.push_to_apic(apic)
-                if not resp.ok:
-                    return resp
-
-        filterEntry_list = []
-
+    def removing_unwanted_filter_relations(self, apic):
+        '''
+        deletes the filter relations in contracts which are not in the present config['policies']
+        '''
+        # if num of contract_subjects is 0 then remove it finally
+        tenant_names = [self._tenant_name]
         logging.debug('Generating JSON....')
         # Push all of the Contracts
         logging.debug('Pushing contracts. # of Contract policies: %s', len(self.cdb.get_contract_policies()))
@@ -923,12 +1031,11 @@ class ApicService(GenericService):
             tenant = tenants[0]
             existing_contracts = tenant.get_children(Contract)
         else:
-            existing_contracts = tenant.get_children(Contract)
+            existing_contracts = []
         # removing the unwanted contractsubject filters for each contract subject
         for contract_policy in self.cdb.get_contract_policies():
-            name = contract_policy.src_name + '::' + contract_policy.dst_name
             for existing_contract in existing_contracts:
-                if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                if existing_contract.descr != "" and existing_contract.descr.split("::")[1] == contract_policy.descr.split(
                         "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
                     for child_contractSubject in existing_contract.get_children(ContractSubject):
                         for child_filter in child_contractSubject.get_filters():
@@ -939,50 +1046,105 @@ class ApicService(GenericService):
                                     matched = True
                                     continue
                             if not matched:
-                                # TBD need to check this. this is not working
-                                child_contractSubject._remove_relation(child_filter)
-                                child_filter._remove_attachment(child_contractSubject)
-                                logging.debug('removing filter ' + child_filter.name)
+                                self.prompt_and_remove_relation(apic, child_contractSubject, child_filter)
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
         else:
             logging.debug('Pushing contracts by deleting unwanted filters')
-            if len(tenant.get_children()) > 0:
-                resp = tenant.push_to_apic(apic)
-                if not resp.ok:
-                    return resp
+            resp = tenant.push_to_apic(apic)
+            return resp
 
-        # if num of contract_subjects is 0 then remove it finally
+    def push_remaining_contracts_along_with_filters(self, apic, THROTTLE_SIZE):
+        '''
+        pushing the contracts in config['policies']
+        if the tenant doesnot exist, then all the policies(contracts) are pushed to apic.
+        if the tenant exists, then only the policies(contracts) which are not existing are pushed to apic
+        '''
+        self.filterEntry_list = []
+        tenant_names = [self._tenant_name]
+        tenant = Tenant(self._tenant_name)
+        if Tenant.exists(apic, tenant):
+            tenants = Tenant.get_deep(
+                apic,
+                names=tenant_names,
+                limit_to=[
+                    'fvTenant',
+                    'fvAp',
+                    'vzFilter',
+                    'vzEntry',
+                    'vzBrCP',
+                    'vzSubj',
+                    'vzRsSubjFiltAtt'])
+            tenant = tenants[0]
+            existing_contracts = tenant.get_children(Contract)
+        else:
+            existing_contracts = []
+
         for contract_policy in self.cdb.get_contract_policies():
-            name = contract_policy.src_name + '::' + contract_policy.dst_name
-            contract = Contract(name, tenant)
-            contract.descr = contract_policy.descr[0:127 -
-                                                   (contract_policy.descr.count('"') +
-                                                    contract_policy.descr.count("'") +
-                                                       contract_policy.descr.count('/'))]
+            matched = False
+            for existing_contract in existing_contracts:
+                if existing_contract.descr != "" and existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                    matched = True
+                    break
+            if matched:
+                contract = existing_contract
+                for child_contractSubject in contract.get_children(ContractSubject):
+                    child_filters = child_contractSubject.get_filters()
+            else:
+                name = contract_policy.src_name + '::' + contract_policy.dst_name
+                child_filters = []
+                contract = Contract(name, tenant)
+                contract.descr = contract_policy.descr[0:127 -
+                                                       (contract_policy.descr.count('"') +
+                                                        contract_policy.descr.count("'") +
+                                                        contract_policy.descr.count('/'))]
+                if self.prompt:
+                    pprint(contract.get_json())
+                    msg = "do u want to add a new contract %s" % name
+                    shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+                    if not shall:
+                        contract.mark_as_deleted()
+                    else:
+                        logging.debug("adding a new contract " + name)
+
             for whitelist_policy in contract_policy.get_whitelist_policies():
                 entry_name = whitelist_policy.proto + '.' + whitelist_policy.port_min + '.' + whitelist_policy.port_max
-                if whitelist_policy.proto == '6' or whitelist_policy.proto == '17':
-                    entry = FilterEntry(entry_name,
-                                        applyToFrag='no',
-                                        arpOpc='unspecified',
-                                        dFromPort=whitelist_policy.port_min,
-                                        dToPort=whitelist_policy.port_max,
-                                        etherT='ip',
-                                        prot=whitelist_policy.proto,
-                                        sFromPort='unspecified',
-                                        sToPort='unspecified',
-                                        tcpRules='unspecified',
-                                        parent=contract)
-                else:
-                    entry = FilterEntry(entry_name,
-                                        applyToFrag='no',
-                                        arpOpc='unspecified',
-                                        etherT='ip',
-                                        prot=whitelist_policy.proto,
-                                        parent=contract)
-                filterEntry_list.append(entry_name)
+                self.filterEntry_list.append(entry_name)
+                filter_not_exists = True
+                for child_filter in child_filters:
+                    if child_filter.name == entry_name + '_Filter':
+                        filter_not_exists = False
+
+                if filter_not_exists:
+                    if self.prompt:
+                        print "----------------------------------"
+                        pprint(contract.get_json())
+                        msg = "do u want to add a new filter relation %s in contract %s " % (entry_name, contract.name)
+                        shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+                        if not shall:
+                            break
+                    logging.debug("adding a new filter for contract " + entry_name)
+                    if whitelist_policy.proto == '6' or whitelist_policy.proto == '17':
+                        entry = FilterEntry(entry_name,
+                                            applyToFrag='no',
+                                            arpOpc='unspecified',
+                                            dFromPort=whitelist_policy.port_min,
+                                            dToPort=whitelist_policy.port_max,
+                                            etherT='ip',
+                                            prot=whitelist_policy.proto,
+                                            sFromPort='unspecified',
+                                            sToPort='unspecified',
+                                            tcpRules='unspecified',
+                                            parent=contract)
+                    else:
+                        entry = FilterEntry(entry_name,
+                                            applyToFrag='no',
+                                            arpOpc='unspecified',
+                                            etherT='ip',
+                                            prot=whitelist_policy.proto,
+                                            parent=contract)
             if not self.displayonly:
                 if len(str(tenant.get_json())) > THROTTLE_SIZE:
                     logging.debug('Throttling contracts. Pushing config...')
@@ -991,15 +1153,224 @@ class ApicService(GenericService):
                         return resp
                     tenant = Tenant(self._tenant_name)
 
+        if self.displayonly:
+            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+        else:
+            logging.debug('Pushing remaining contracts')
+            resp = tenant.push_to_apic(apic)
+            return resp
+
+    def removing_unwanted_filters(self, apic):
+        '''
+        deleting the filters which are not in any of the whitelist_policies of the present config['policies']
+        '''
+        tenants = Tenant.get_deep(apic, names=[self._tenant_name], limit_to=['fvTenant', 'vzFilter', 'vzEntry'])
+        if len(tenants) > 0:
+            tenant = tenants[0]
+            existing_Filters = []
+            existing_Filters = tenant.get_children(Filter)
+            for existing_filter in existing_Filters:
+                matched = False
+                for filterEntry in self.filterEntry_list:
+                    if filterEntry + '_Filter' == existing_filter.name:
+                        matched = True
+                        break
+                if not matched:
+                    self.prompt_and_mark_as_deleted(apic, existing_filter)
             if self.displayonly:
                 print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
             else:
-                logging.debug('Pushing remaining contracts')
                 resp = tenant.push_to_apic(apic)
-                if not resp.ok:
-                    return resp
+                return resp
 
-        # Push all of the EPGs
+    def consume_and_provide_contracts_for_epgs(self, tenant, app, bd=None, base_epg=None):
+        existing_epgs = app.get_children(EPG)
+        for epg_policy in self.cdb.get_epg_policies():
+            matched = False
+            for existing_epg in existing_epgs:
+                if existing_epg.name != "base":
+                    if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                            ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                        matched = True
+                        break
+
+            consumed_contracts = []
+            provided_contracts = []
+            if matched is True:
+                consumed_contracts = existing_epg.get_all_consumed()
+                provided_contracts = existing_epg.get_all_provided()
+                epg = existing_epg
+            else:
+                epg = EPG(epg_policy.name, app)
+                epg.descr = epg_policy.descr[0:127]
+                if self.prompt:
+                    print "----------------------------------"
+                    pprint(epg.get_json())
+                    msg = "do u want to add a new EPG %s" % epg_policy.name
+                    shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+                    if not shall:
+                        epg.mark_as_deleted()
+                    else:
+                        logging.debug("adding a new epg " + epg_policy.name)
+
+            if self._use_ip_epgs:
+                no_default_endpoint = True
+                for node_policy in epg_policy.get_node_policies():
+                    if node_policy.ip == '0.0.0.0' and node_policy.prefix_len == 0:
+                        no_default_endpoint = False
+                        epg.add_bd(bd)
+
+                # Add all of the IP addresses
+                if no_default_endpoint:
+                    if not epg.is_attributed_based:
+                        epg.is_attributed_based = True
+                        epg.set_base_epg(base_epg)
+                        criterion = AttributeCriterion('criterion', epg)
+                    else:
+                        existing_criterions = epg.get_children(AttributeCriterion)
+                        if len(existing_criterions) > 0:
+                            criterion = existing_criterions[0]
+                        else:
+                            criterion = AttributeCriterion('criterion', epg)
+
+                    ipaddrs = []
+                    for node_policy in epg_policy.get_node_policies():
+                        ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
+                        if not ipaddr.is_multicast:  # Skip multicast addresses. They cannot be IP based EPGs
+                            ipaddrs.append(ipaddr)
+                    nets = ipaddress.collapse_addresses(ipaddrs)
+
+                    for net in nets:
+                        existing_ip_address = criterion.get_ip_addresses()
+                        if not str(net) in existing_ip_address:
+                            if self.prompt:
+                                print "----------------------------------"
+                                pprint(epg.get_json())
+                                msg = "do u want to add attribute Criterion with ip address %s to EPG %s " % (
+                                    str(net), epg.name)
+                                shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+                                if shall:
+                                    logging.debug(
+                                        "adding attribute Criterion with ip address  %s to EPG %s " %
+                                        (str(net), epg_policy.name))
+                                    criterion.add_ip_address(str(net))
+                            else:
+                                logging.debug(
+                                    "adding attribute Criterion with ip address  %s to EPG %s " %
+                                    (str(net), epg_policy.name))
+                                criterion.add_ip_address(str(net))
+                epg.descr = epg_policy.descr[0:127]
+
+            for contract_policy in self.cdb.get_contract_policies():
+                contract = None
+                if epg_policy.id in contract_policy.src_ids:
+                    name = contract_policy.src_name + '::' + contract_policy.dst_name
+                    pattern = re.escape(re.match(r"(.*)-(.*)", contract_policy.src_name).group(1))
+                    pattern += r"-\d+::"
+                    pattern += re.escape(re.match(r"(.*)-(.*)", contract_policy.dst_name).group(1))
+                    pattern += r"-\d+"
+                    existing = False
+                    for existing_consumed_contract in consumed_contracts:
+                        if re.search(pattern, existing_consumed_contract.name, re.IGNORECASE):
+                            existing = True
+                            contract = existing_consumed_contract
+                    if not existing:
+                        if self.prompt:
+                            msg = "do u want to add a new consuming contract %s for EPG %s" % (name, epg)
+                            shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+                            if shall:
+                                contract = Contract(name, tenant)
+                                epg.consume(contract)
+                                logging.debug("adding a consuming contract %s for EPG %s " % (name, epg_policy.name))
+                        else:
+                            logging.debug("adding a consuming contract %s for EPG %s " % (name, epg_policy.name))
+                            contract = Contract(name, tenant)
+                            epg.consume(contract)
+                if epg_policy.id in contract_policy.dst_ids:
+                    name = contract_policy.src_name + '::' + contract_policy.dst_name
+                    pattern = re.escape(re.match(r"(.*)-(.*)", contract_policy.src_name).group(1))
+                    pattern += r"-\d+::"
+                    pattern += re.escape(re.match(r"(.*)-(.*)", contract_policy.dst_name).group(1))
+                    pattern += r"-\d+"
+                    if contract is None:
+                        existing = False
+                        for existing_provided_contract in provided_contracts:
+                            if re.search(pattern, existing_provided_contract.name, re.IGNORECASE):
+                                existing = True
+                                contract = existing_provided_contract
+                        if not existing:
+                            if self.prompt:
+                                msg = "do u want to add a new consuming contract %s for EPG %s" % (name, epg)
+                                shall = raw_input("%s (y/n) " % msg).lower() == 'y'
+                                if shall:
+                                    contract = Contract(name, tenant)
+                                    logging.debug(
+                                        "adding a providing contract %s for EPG %s " %
+                                        (name, epg_policy.name))
+                            else:
+                                logging.debug("adding a providing contract %s for EPG %s " % (name, epg_policy.name))
+                                contract = Contract(name, tenant)
+                    epg.provide(contract)
+
+    def push_config_to_apic(self):
+        """
+        Push the configuration to the APIC
+
+        :return: Requests Response instance indicating success or not
+        """
+        THROTTLE_SIZE = 500000 / 8
+        # Set the tenant name correctly
+        if self._tenant_name == '' and self.cdb.has_context_config():
+            self.set_tenant_name(self.cdb.get_context_config().tenant_name)
+        elif self._tenant_name == '':
+            self.set_tenant_name('acitoolkit')
+
+        logging.debug('Removing duplicate contracts')
+        self.remove_duplicate_contracts()
+
+        # Log on to the APIC
+        apic_cfg = self.cdb.get_apic_config()
+        apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
+        resp = apic.login()
+        if not resp.ok:
+            return resp
+
+        tenant = Tenant(self._tenant_name)
+        if not Tenant.exists(apic, tenant):
+            # when adding tenant for the first time, all the config is added so prompt is made false
+            print ("tenant doesnot exist. so adding all the config without showing the prompt ")
+            self.prompt = False
+
+        # delete all the unused or not existing EPGs in the present config
+        logging.debug('Deleting unused or not existing EPGs in the present config')
+        resp = self.delete_unwanted_epgs(apic)
+        if not resp.ok:
+            return resp
+
+        logging.debug('Deleting unused or not exitsing attribute criterion in the present config in existing EPGs')
+        resp = self.delete_unwanted_attributeCriterion_in_epgs(apic)
+        if not resp.ok:
+            return resp
+
+        # delete all the unused or not existing contracts in the present config
+        logging.debug('Deleting unused or not existing contracts in the present config')
+        resp = self.delete_unwanted_contracts(apic)
+        if not resp.ok:
+            return resp
+
+        logging.debug('Deleting unused or not existing filter relations from contractSubjects in the present config')
+        resp = self.removing_unwanted_filter_relations(apic)
+        if not resp.ok:
+            return resp
+
+        # pushing remaining contracts
+        logging.debug('Pushing remaining contracts along with filters relations')
+        resp = self.push_remaining_contracts_along_with_filters(apic, THROTTLE_SIZE)
+        if not resp.ok:
+            return resp
+
+        # Push remaining EPGs
+        tenant_names = [self._tenant_name]
         logging.debug('Pushing EPGs')
         if not self.displayonly:
             tenants = Tenant.get_deep(apic, names=tenant_names)
@@ -1028,142 +1399,41 @@ class ApicService(GenericService):
                     if node.role == 'leaf':
                         base_epg.add_static_leaf_binding(node.node, 'vlan', '1', encap_mode='untagged')
 
-            # Create the Attribute based EPGs
-            logging.debug('Creating Attribute Based EPGs')
-            existing_epgs = app.get_children(EPG)
-            for epg_policy in self.cdb.get_epg_policies():
-                if not self.displayonly:
-                    # Check if we need to throttle very large configs
-                    if len(str(tenant.get_json())) > THROTTLE_SIZE:
-                        resp = tenant.push_to_apic(apic)
-                        if not resp.ok:
-                            return resp
-                        tenant = Tenant(self._tenant_name)
-                        app = AppProfile(self._app_name, tenant)
-                        context = Context(context_name, tenant)
-                        bd = BridgeDomain('bd', tenant)
-                        bd.add_context(context)
-                        if self._use_ip_epgs:
-                            base_epg = EPG('base', app)
-                            base_epg.add_bd(bd)
+            if not self.displayonly:
+                # Check if we need to throttle very large configs
+                if len(str(tenant.get_json())) > THROTTLE_SIZE:
+                    resp = tenant.push_to_apic(apic)
+                    if not resp.ok:
+                        return resp
+                    tenant = Tenant(self._tenant_name)
+                    app = AppProfile(self._app_name, tenant)
+                    context = Context(context_name, tenant)
+                    bd = BridgeDomain('bd', tenant)
+                    bd.add_context(context)
+                    if self._use_ip_epgs:
+                        base_epg = EPG('base', app)
+                        base_epg.add_bd(bd)
 
-                matched = False
-                for existing_epg in existing_epgs:
-                    if existing_epg.name != "base":
-                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
-                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
-                            matched = True
-                            break
+            self.consume_and_provide_contracts_for_epgs(tenant, app, bd, base_epg)
 
-                consumed_contracts = []
-                provided_contracts = []
-                if matched is True:
-                    consumed_contracts = existing_epg.get_all_consumed()
-                    provided_contracts = existing_epg.get_all_provided()
-                    epg = existing_epg
-                else:
-                    epg = EPG(epg_policy.name, app)
-
-                # Check if the policy has the default 0.0.0.0 IP address
-                no_default_endpoint = True
-                for node_policy in epg_policy.get_node_policies():
-                    if node_policy.ip == '0.0.0.0' and node_policy.prefix_len == 0:
-                        no_default_endpoint = False
-                        epg.add_bd(bd)
-
-                # Add all of the IP addresses
-                if no_default_endpoint:
-                    epg.is_attributed_based = True
-                    epg.set_base_epg(base_epg)
-                    criterion = AttributeCriterion('criterion', epg)
-                    ipaddrs = []
-                    # TBD check if the existing nodes are there in the present config,if not delete them
-                    for node_policy in epg_policy.get_node_policies():
-                        ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
-                        if not ipaddr.is_multicast:  # Skip multicast addresses. They cannot be IP based EPGs
-                            ipaddrs.append(ipaddr)
-                    nets = ipaddress.collapse_addresses(ipaddrs)
-                    for net in nets:
-                        criterion.add_ip_address(str(net))
-                epg.descr = epg_policy.descr[0:127]
-                # Consume and provide all of the necessary contracts
-                for contract_policy in self.cdb.get_contract_policies():
-                    contract = None
-                    if epg_policy.id in contract_policy.src_ids:
-                        name = contract_policy.src_name + '::' + contract_policy.dst_name
-                        existing = False
-                        for existing_consumed_contract in consumed_contracts:
-                            if name == existing_consumed_contract.name:
-                                existing = True
-                                contract = existing_consumed_contract
-                        if not existing:
-                            contract = Contract(name, tenant)
-                            epg.consume(contract)
-                    if epg_policy.id in contract_policy.dst_ids:
-                        name = contract_policy.src_name + '::' + contract_policy.dst_name
-                        if contract is None:
-                            existing = False
-                            for existing_provided_contract in provided_contracts:
-                                if name == existing_provided_contract.name:
-                                    existing = True
-                                    contract = existing_provided_contract
-                            if not existing:
-                                contract = Contract(name, tenant)
-                        epg.provide(contract)
         else:
             logging.debug('Creating EPGs')
             tenants = Tenant.get_deep(apic, names=tenant_names)
-            tenant = tenants[0]
+            if len(tenants) > 0:
+                tenant = tenants[0]
+                bds = tenant.get_children(BridgeDomain)
+                if len(bds) > 0:
+                    bd = bds[0]
+                    bd.mark_as_deleted()
+            else:
+                tenant = Tenant(self._tenant_name)
             appProfiles = tenant.get_children(AppProfile)
             if len(appProfiles) > 0:
                 app = appProfiles[0]
             else:
                 app = AppProfile(self._app_name, tenant)
 
-            existing_epgs = app.get_children(EPG)
-
-            for epg_policy in self.cdb.get_epg_policies():
-
-                matched = False
-                for existing_epg in existing_epgs:
-                    if existing_epg.name != "base":
-                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
-                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
-                            matched = True
-                            break
-
-                consumed_contracts = []
-                provided_contracts = []
-                if matched is True:
-                    consumed_contracts = existing_epg.get_all_consumed()
-                    provided_contracts = existing_epg.get_all_provided()
-                epg = EPG(epg_policy.name, app)
-                epg.descr = epg_policy.descr[0:127]
-
-                # Consume and provide all of the necessary contracts
-                for contract_policy in self.cdb.get_contract_policies():
-                    contract = None
-                    if epg_policy.id in contract_policy.src_ids:
-                        name = contract_policy.src_name + '::' + contract_policy.dst_name
-                        existing = False
-                        for existing_consumed_contract in consumed_contracts:
-                            if name == existing_consumed_contract.name:
-                                existing = True
-                                contract = existing_consumed_contract
-                        if not existing:
-                            contract = Contract(name, tenant)
-                            epg.consume(contract)
-                    if epg_policy.id in contract_policy.dst_ids:
-                        name = contract_policy.src_name + '::' + contract_policy.dst_name
-                        if contract is None:
-                            existing = False
-                            for existing_provided_contract in provided_contracts:
-                                if name == existing_provided_contract.name:
-                                    existing = True
-                                    contract = existing_provided_contract
-                            if not existing:
-                                contract = Contract(name, tenant)
-                        epg.provide(contract)
+            self.consume_and_provide_contracts_for_epgs(tenant, app)
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
@@ -1173,19 +1443,8 @@ class ApicService(GenericService):
                 return resp
 
         # remove the unwanted filters
-        existing_filters = tenant.get_children(Filter)
-        for existing_filetrEntry in existing_filters:
-            matched = False
-            for filterEntry in filterEntry_list:
-                if filterEntry + '_Filter' == existing_filetrEntry.name:
-                    matched = True
-            if not matched:
-                existing_filetrEntry.mark_as_deleted()
-        if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
-        else:
-            resp = tenant.push_to_apic(apic)
-            return resp
+        logging.debug('Deleting the unused or not existing Filters in the present config')
+        return self.removing_unwanted_filters(apic)
 
     def mangle_names(self):
         unique_id = 0
@@ -1296,6 +1555,7 @@ def execute_tool(args):
 
     tool = ApicService()
     tool.displayonly = args.displayonly
+    tool.prompt = args.prompt
     if args.tenant:
         tool.set_tenant_name(args.tenant)
     if args.app:

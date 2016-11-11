@@ -98,7 +98,7 @@ def connect_mysql(args):
                          epg       CHAR(100) NOT NULL,
                          interface CHAR(100) NOT NULL,
                          timestart TIMESTAMP NOT NULL,
-                         timestop  TIMESTAMP);''')
+                         timestop  TIMESTAMP NULL);''')
         cnx.commit()
 
     return c, cnx
@@ -148,7 +148,7 @@ def tracker(args):
         ep_exists = c.execute("""SELECT * FROM endpoints
                                  WHERE mac="%s"
                                  AND
-                                 timestop="0000-00-00 00:00:00";""" % ep.mac)
+                                 timestop is null;""" % ep.mac)
         c.fetchall()
         if not ep_exists:
             c.execute("""INSERT INTO endpoints (mac, ip, tenant,
@@ -177,7 +177,7 @@ def tracker(args):
                 update_cmd = """UPDATE endpoints SET timestop='%s',
                                 timestart=timestart
                                 WHERE mac='%s' AND tenant='%s' AND
-                                timestop='0000-00-00 00:00:00'""" % data
+                                timestop is null""" % data
                 c.execute(update_cmd)
             else:
                 if ep.if_dn:
