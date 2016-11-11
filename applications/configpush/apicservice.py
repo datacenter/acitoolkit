@@ -885,11 +885,15 @@ class ApicService(GenericService):
                                                 existing_criterion.mark_as_deleted()
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            return 'OK'
         else:
             logging.debug('Pushing EPGS by deleting unwanted uSeg attributes ')
             if len(tenant.get_children()) > 0:
                 resp = tenant.push_to_apic(apic)
-                return resp
+                if resp.ok:
+                    return 'OK'
+                else:
+                    return resp.text
 
     def delete_unwanted_epgs(self, apic):
         '''
@@ -954,11 +958,15 @@ class ApicService(GenericService):
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            return 'OK'
         else:
             logging.debug('Pushing EPGS by deleting unwanted epgs ')
             if len(tenant.get_children()) > 0:
                 resp = tenant.push_to_apic(apic)
-                return resp
+                if resp.ok:
+                    return 'OK'
+                else:
+                    return resp.text
 
     def delete_unwanted_contracts(self, apic):
         '''
@@ -1001,11 +1009,17 @@ class ApicService(GenericService):
 
             if self.displayonly:
                 print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+                return 'OK'
             else:
                 logging.debug('Pushing contracts by deleting unwanted contracts')
                 if len(tenant.get_children()) > 0:
                     resp = tenant.push_to_apic(apic)
-                    return resp
+                    if resp.ok:
+                        return 'OK'
+                    else:
+                        return resp.text
+        else:
+            return 'OK'
 
     def removing_unwanted_filter_relations(self, apic):
         '''
@@ -1050,10 +1064,14 @@ class ApicService(GenericService):
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            return 'OK'
         else:
             logging.debug('Pushing contracts by deleting unwanted filters')
             resp = tenant.push_to_apic(apic)
-            return resp
+            if resp.ok:
+                return 'OK'
+            else:
+                return resp.text
 
     def push_remaining_contracts_along_with_filters(self, apic, THROTTLE_SIZE):
         '''
@@ -1155,10 +1173,14 @@ class ApicService(GenericService):
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            return 'OK'
         else:
             logging.debug('Pushing remaining contracts')
             resp = tenant.push_to_apic(apic)
-            return resp
+            if resp.ok:
+                return 'OK'
+            else:
+                return resp.text
 
     def removing_unwanted_filters(self, apic):
         '''
@@ -1179,9 +1201,13 @@ class ApicService(GenericService):
                     self.prompt_and_mark_as_deleted(apic, existing_filter)
             if self.displayonly:
                 print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+                return 'OK'
             else:
                 resp = tenant.push_to_apic(apic)
-                return resp
+                if resp.ok:
+                    return 'OK'
+                else:
+                    return resp.text
 
     def consume_and_provide_contracts_for_epgs(self, tenant, app, bd=None, base_epg=None):
         existing_epgs = app.get_children(EPG)
@@ -1333,7 +1359,7 @@ class ApicService(GenericService):
         apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
         resp = apic.login()
         if not resp.ok:
-            return resp
+            return resp.text
 
         tenant = Tenant(self._tenant_name)
         if not Tenant.exists(apic, tenant):
@@ -1344,29 +1370,29 @@ class ApicService(GenericService):
         # delete all the unused or not existing EPGs in the present config
         logging.debug('Deleting unused or not existing EPGs in the present config')
         resp = self.delete_unwanted_epgs(apic)
-        if not resp.ok:
+        if not resp == 'OK':
             return resp
 
         logging.debug('Deleting unused or not exitsing attribute criterion in the present config in existing EPGs')
         resp = self.delete_unwanted_attributeCriterion_in_epgs(apic)
-        if not resp.ok:
+        if not resp == 'OK':
             return resp
 
         # delete all the unused or not existing contracts in the present config
         logging.debug('Deleting unused or not existing contracts in the present config')
         resp = self.delete_unwanted_contracts(apic)
-        if not resp.ok:
+        if not resp == 'OK':
             return resp
 
         logging.debug('Deleting unused or not existing filter relations from contractSubjects in the present config')
         resp = self.removing_unwanted_filter_relations(apic)
-        if not resp.ok:
+        if not resp == 'OK':
             return resp
 
         # pushing remaining contracts
         logging.debug('Pushing remaining contracts along with filters relations')
         resp = self.push_remaining_contracts_along_with_filters(apic, THROTTLE_SIZE)
-        if not resp.ok:
+        if not resp == 'OK':
             return resp
 
         # Push remaining EPGs
@@ -1437,10 +1463,11 @@ class ApicService(GenericService):
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            return 'OK'
         else:
             resp = tenant.push_to_apic(apic)
             if not resp.ok:
-                return resp
+                return resp.text
 
         # remove the unwanted filters
         logging.debug('Deleting the unused or not existing Filters in the present config')
@@ -1485,10 +1512,10 @@ class ApicService(GenericService):
         if self.cdb.store_config(config_json) and (self.cdb.has_apic_config() or self.displayonly):
             self.mangle_names()
             resp = self.push_config_to_apic()
-        if self.displayonly or resp.ok:
+        if self.displayonly or resp == 'OK':
             return 'OK'
         else:
-            return 'ERROR:' + resp.text
+            return 'ERROR:' + resp
 
 
 def get_arg_parser():
