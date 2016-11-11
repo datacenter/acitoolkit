@@ -32,8 +32,8 @@
 Simple application that logs on to the APIC and displays all
 of the Endpoints.
 """
-import sys
 import acitoolkit.acitoolkit as aci
+from tabulate import tabulate
 
 
 def main():
@@ -53,7 +53,7 @@ def main():
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
-        sys.exit(0)
+        return
 
     # Download all of the interfaces
     # and store the data as tuples in a list
@@ -67,18 +67,8 @@ def main():
                      tenant.name, app_profile.name, epg.name))
 
     # Display the data downloaded
-    col_widths = [19, 17, 15, 10, 15, 15, 15]
-    template = ''
-    for idx, width in enumerate(col_widths):
-        template += '{%s:%s} ' % (idx, width)
-    print(template.format("MACADDRESS", "IPADDRESS", "INTERFACE",
-                          "ENCAP", "TENANT", "APP PROFILE", "EPG"))
-    fmt_string = []
-    for i in range(0, len(col_widths)):
-        fmt_string.append('-' * (col_widths[i] - 2))
-    print(template.format(*fmt_string))
-    for rec in data:
-        print(template.format(*rec))
+    print tabulate(data, headers=["MACADDRESS", "IPADDRESS", "INTERFACE",
+                                  "ENCAP", "TENANT", "APP PROFILE", "EPG"])
 
 if __name__ == '__main__':
     try:
