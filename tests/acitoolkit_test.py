@@ -2994,6 +2994,7 @@ class TestOutsideNetwork(unittest.TestCase):
         valid_scopes = ['import-rtctrl', 'export-rtctrl', 'import-security', 
                         'shared-security', 'shared-rtctrl']
         for scope in valid_scopes:
+            out_net.set_scope(scope)
             out_net_json = out_net.get_json()
             self.assertEqual(scope, 
                              out_net_json['l3extSubnet']['attributes']['scope'])
@@ -5265,6 +5266,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
     live.addTest(unittest.makeSuite(TestLiveOutsideL3))
+    live.addTest(unittest.makeSuite(TestLiveOutsideEPG))
     live.addTest(unittest.makeSuite(TestLiveContractInterface))
 
     offline = unittest.TestSuite()
@@ -5295,6 +5297,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestMonitorPolicy))
     offline.addTest(unittest.makeSuite(TestAttributeCriterion))
     offline.addTest(unittest.makeSuite(TestOutsideL2))
+    offline.addTest(unittest.makeSuite(TestOutsideNetwork))
     offline.addTest(unittest.makeSuite(TestTunnelInterface))
     offline.addTest(unittest.makeSuite(TestFexInterface))
     offline.addTest(unittest.makeSuite(TestInputTerminal))
