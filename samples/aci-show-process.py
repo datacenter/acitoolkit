@@ -62,7 +62,10 @@ def main():
             processes = ACI.Process.get(session, switch)
             tables = ACI.Process.get_table(processes, 'Process list for Switch ' + switch.name + '::')
             for table in tables:
-                print table.get_text(tablefmt='fancy_grid') + '\n'
+                try:
+                    print table.get_text(tablefmt='fancy_grid') + '\n'
+                except UnicodeEncodeError:
+                    print table.get_text(tablefmt='plain') + '\n'
 
 
 if __name__ == '__main__':
