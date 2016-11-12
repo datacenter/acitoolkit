@@ -2967,6 +2967,14 @@ class TestOutsideNetwork(unittest.TestCase):
         bad_scope = 'bad-scope'
         self.assertRaises(ValueError, out_net.set_scope, bad_scope)
 
+    def test_set_scope_to_none(self):
+        """
+        Test the set_scope with None
+        """
+        tenant = Tenant('cisco')
+        out_net = OutsideNetwork('OutsideNetwork', tenant)
+        self.assertRaises(TypeError, out_net.set_scope, None)
+
     def test_get_json_detail(self):
         """
         Make sure that the json is correct
