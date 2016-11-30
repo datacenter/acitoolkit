@@ -31,7 +31,8 @@ def main():
                               'Do not actually push to the APIC.'))
     parser.add_argument('--prompt', action='store_true', default=False,
                         help=('prompts a message to update the tenant with reference to the given config.'
-                              'y/n ? if yes does the action specified in the message'))
+                              'y/n ? if yes does the action specified in the message.'
+                              'if just pressed enter then the default is taken as no'))
     parser.add_argument('--useipepgs', action='store_true', default=False,
                         help=('Use IP based microsegmented EPGS to '
                               'assign the endpoint to the EPG.'))
