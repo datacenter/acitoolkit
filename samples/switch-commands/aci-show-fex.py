@@ -282,13 +282,13 @@ class FexCollector(object):
 
 def main():
     """
-    Main common routine for show interface description
+    Main common routine for show fex description
     :return: None
     """
     # Set up the command line options
     creds = Credentials(['apic', 'nosnapshotfiles'],
                         description=("This application replicates the switch "
-                                     "CLI command 'show interface fex'"))
+                                     "CLI command 'show interface'"))
     creds.add_argument('-s', '--switch',
                        type=str,
                        default=None,
