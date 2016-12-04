@@ -31,7 +31,8 @@ def main():
                               'Do not actually push to the APIC.'))
     parser.add_argument('--prompt', action='store_true', default=False,
                         help=('prompts a message to update the tenant with reference to the given config.'
-                              'y/n ? if yes does the action specified in the message.'
+                              'y/n/all ? if yes does the action specified in the message.'
+                              'if all,this would allow the user to accept all changes/update.'
                               'if just pressed enter then the default is taken as no'))
     parser.add_argument('--useipepgs', action='store_true', default=False,
                         help=('Use IP based microsegmented EPGS to '
@@ -42,6 +43,9 @@ def main():
     parser.add_argument('--app',
                         default='acitoolkitapp',
                         help='Application profile name for the configuration')
+    parser.add_argument('--l3ext',
+                        default='L3OUT',
+                        help='External Routed Network name for the configuration')
 
     args = parser.parse_args()
     if args.config is None:
