@@ -88,6 +88,8 @@ class Credentials(object):
             DEFAULT_URL = set_default('url')
             DEFAULT_LOGIN = set_default('login')
             DEFAULT_PASSWORD = set_default('password')
+            DEFAULT_CERT_NAME = set_default('cert_name')
+            DEFAULT_KEY = set_default('key')
             self._parser.add_argument('-u', '--url',
                                       default=DEFAULT_URL,
                                       help='APIC URL e.g. http://1.2.3.4')
@@ -97,6 +99,12 @@ class Credentials(object):
             self._parser.add_argument('-p', '--password',
                                       default=DEFAULT_PASSWORD,
                                       help='APIC login password.')
+            self._parser.add_argument('-c', '--cert-name',
+                                      default=DEFAULT_CERT_NAME,
+                                      help='X.509 certificate name attached to APIC AAA user')
+            self._parser.add_argument('-k', '--key',
+                                      default=DEFAULT_KEY,
+                                      help='Private key matching given certificate, used to generate authentication signature')
         if 'nosnapshotfiles' not in qualifier and 'apic' in qualifier:
             self._parser.add_argument('--snapshotfiles', nargs='+',
                                       help='APIC configuration files')
@@ -212,8 +220,15 @@ class Credentials(object):
                 self._args.login = self._get_from_user('APIC login username: ')
             if self._args.url is None:
                 self._args.url = self._get_from_user('APIC URL: ')
-            if self._args.password is None:
+
+            if self._args.password is None and not (self._args.cert_name or self._args.key):
                 self._args.password = self._get_password('APIC Password: ')
+            else:
+                if self._args.cert_name is None:
+                    self._args.cert_name = self._get_from_user('Certificate Name: ')
+                if self._args.key is None:
+                    self._args.key = self._get_from_user('Private Key: ')
+
         if 'mysql' in self._qualifier:
             if self._args.mysqlip is None:
                 self._args.mysqlip = self._get_from_user('MySQL IP address: ')
