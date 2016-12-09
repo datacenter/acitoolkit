@@ -37,8 +37,9 @@ import ssl
 import threading
 import time
 import socket
-
+import base64
 import requests
+from collections import namedtuple
 try:
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
 except ImportError:
@@ -46,7 +47,11 @@ except ImportError:
 from six.moves.queue import Queue
 from websocket import create_connection, WebSocketException
 from requests.exceptions import ConnectionError
-
+try:
+    from OpenSSL.crypto import FILETYPE_PEM, load_privatekey, sign
+    NO_OPENSSL = False
+except ImportError:
+    NO_OPENSSL = True
 try:
     import urllib3
     urllib3.disable_warnings()
@@ -416,7 +421,7 @@ class Session(object):
        Session class
        This class is responsible for all communication with the APIC.
     """
-    def __init__(self, url, uid, pwd, verify_ssl=False,
+    def __init__(self, url, uid, pwd=None, cert_name=None, key=None, verify_ssl=False,
                  subscription_enabled=True, proxies=None):
         """
         :param url:  String containing the APIC URL such as ``https://1.2.3.4``
@@ -424,11 +429,16 @@ class Session(object):
         part of the  the APIC login credentials.
         :param pwd: String containing the password that will be used as\
         part of the  the APIC login credentials.
+        :param cert_name: String containing the certificate name that will be used\
+        as part of the  the APIC certificate authentication credentials.
+        :param key: String containing the private key file name that will be used\
+        as part of the  the APIC certificate authentication credentials.
         :param verify_ssl:  Used only for SSL connections with the APIC.\
         Indicates whether SSL certificates must be verified.  Possible\
         values are True and False with the default being False.
-        :param proxies: Optional dictionary containing the proxies passed
+        :param proxies: Optional dictionary containing the proxies passed\
         directly to the Requests library
+
         """
         if not isinstance(url, str):
             url = str(url)
@@ -440,8 +450,19 @@ class Session(object):
             raise CredentialsError("The URL or APIC address must be a string")
         if not isinstance(uid, str):
             raise CredentialsError("The user ID must be a string")
-        if not isinstance(pwd, str):
-            raise CredentialsError("The password must be a string")
+        if (pwd == None or pwd == 'None') and not cert_name and not key:
+            raise CredentialsError("An authentication method must be provided")
+        if pwd:
+            if not isinstance(pwd, str):
+                raise CredentialsError("The password must be a string")
+        if cert_name:
+            if not isinstance(cert_name, str):
+                raise CredentialsError("The certificate name must be a string")
+        if key:
+            if not isinstance(key, str):
+                raise CredentialsError("The key path must be a string")
+        if (cert_name and not key) or (not cert_name and key):
+                raise CredentialsError("Both a certificate name and private key must be provided")
 
         if 'https://' in url:
             self.ipaddr = url[len('https://'):]
@@ -449,6 +470,34 @@ class Session(object):
             self.ipaddr = url[len('http://'):]
         self.uid = uid
         self.pwd = pwd
+        self.key = key
+        self.cert_name = cert_name
+        if key and cert_name:
+            if NO_OPENSSL:
+                raise ImportError('Cannot use certificate authentication because pyopenssl is not available.\n\
+                Please install it using "pip install pyopenssl"')
+
+            self.cert_auth = True
+            # Cert based auth does not support subscriptions :(
+            if subscription_enabled:
+                logging.warning('Disabling subscription support as certificate authentication does not support it.')
+                logging.warning('Consider passing subscription_enabled=False to hide this warning message.')
+                subscription_enabled = False
+            # Disable the warnings for SSL
+            if not verify_ssl:
+                try:
+                    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+                except AttributeError:
+                    pass
+            with open(self.key, 'r') as f:
+                key_text = f.read()
+            try:
+                self._x509Key = load_privatekey(FILETYPE_PEM, key_text)
+            except Exception:
+                raise TypeError ('Could not load private key file %s\
+                \nAre you sure you provided the private key? (Not the certificate)' % self.key)
+        else:
+            self.cert_auth = False
         # self.api = 'http://%s:80/api/' % self.ip # 7580
         self.api = url
         self.session = None
@@ -473,20 +522,64 @@ class Session(object):
         """
         return self.__class__, (self.api, self.uid, self.pwd)
 
+    def _prep_x509_header(self, method, url, data=None):
+        """
+        This function returns a dictionary containing the authentication signature for a given
+        request based on the private key and certificate name given to the session object.
+
+        If the session object is using normal (user/pass) authentication an empty dictionary
+        is returned.
+
+        To calculate the signature the request is calculated on a string with format:
+           '<HTTP-METHOD><URL><PAYLOAD>'
+
+        > Note, the URL *does not* include the DNS/IP of the APIC
+        """
+        if not self.cert_auth:
+            return {}
+
+        logging.debug("Preparing certificate based authentication with cert name {} \
+        key file {} for request {} {} with data {}".format(self.cert_name, self.key, method, url, data))
+
+        if not self.session:
+            self.session = requests.Session()
+
+        cert_dn = 'uni/userext/user-{0}/usercert-{1}'.format(self.uid, self.cert_name)
+        payload = '{}{}'.format(method, url)
+        if data:
+            payload += data
+        logging.debug('Payload: ', payload)
+
+        signature = base64.b64encode(sign(self._x509Key, payload, 'sha256'))
+        cookie = {'APIC-Request-Signature': signature,
+                    'APIC-Certificate-Algorithm': 'v1.0',
+                    'APIC-Certificate-Fingerprint': 'fingerprint',
+                    'APIC-Certificate-DN': cert_dn}
+
+        logging.debug('Authentication cookie', cookie)
+        return cookie
+
     def _send_login(self, timeout=None):
         """
         Send the actual login request to the APIC and open the web
         socket interface.
         """
-        login_url = '/api/aaaLogin.json'
-        name_pwd = {'aaaUser': {'attributes': {'name': self.uid,
-                                               'pwd': self.pwd}}}
         if not self.verify_ssl:
             try:
                 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
             except AttributeError:
                 pass
         self.session = requests.Session()
+
+        if self.cert_auth:
+            logging.warning('Will not explicitly login because certificate based authentication is being used for this session.')
+            logging.warning('If permanently using cert auth, consider removing the call to login().')
+            CertAuthResponse = namedtuple('CertAuthResponse', ['ok'])
+            return CertAuthResponse(ok=True)
+
+        login_url = '/api/aaaLogin.json'
+        name_pwd = {'aaaUser': {'attributes': {'name': self.uid,
+                                            'pwd': self.pwd}}}
         ret = self.push_to_apic(login_url, data=name_pwd, timeout=timeout)
         if not ret.ok:
             logging.error('Could not relogin to APIC. Aborting login thread.')
@@ -519,8 +612,9 @@ class Session(object):
             resp = requests.Response()
             resp.status_code = 404
             resp._content = '{"error": "Could not relogin to APIC due to ConnectionError"}'
-        self.login_thread.daemon = True
-        self.login_thread.start()
+        if not self.cert_auth:
+            self.login_thread.daemon = True
+            self.login_thread.start()
         return resp
 
     def logged_in(self):
@@ -625,17 +719,25 @@ class Session(object):
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)
 
-        resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
-                                 timeout=timeout, proxies=self._proxies)
-        if resp.status_code == 403:
-            logging.error(resp.text)
-            logging.error('Trying to login again....')
-            resp = self._send_login()
-            self.resubscribe()
-            logging.error('Trying post again...')
-            logging.debug(post_url)
+        if self.cert_auth:
+            data = json.dumps(data, sort_keys=True)
+            cookies = self._prep_x509_header('POST', url, data)
+            resp = self.session.post(post_url, data=data, verify=self.verify_ssl,
+                                     timeout=timeout, proxies=self._proxies, cookies=cookies)
+            if resp.status_code == 403:
+                logging.error('Certificate authentication failed. Please check all settings are correct.')
+        else:
             resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
-                                     timeout=timeout, proxies=self._proxies)
+                                    timeout=timeout, proxies=self._proxies)
+            if resp.status_code == 403:
+                logging.error(resp.text)
+                logging.error('Trying to login again....')
+                resp = self._send_login()
+                self.resubscribe()
+                logging.error('Trying post again...')
+                logging.debug(post_url)
+                resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
+                                        timeout=timeout, proxies=self._proxies)
         logging.debug('Response: %s %s', resp, resp.text)
         return resp
 
@@ -652,23 +754,28 @@ class Session(object):
         get_url = self.api + url
         logging.debug(get_url)
 
-        resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+        cookies = self._prep_x509_header('GET', url)
+        resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies, cookies=cookies)
         if resp.status_code == 403:
-            logging.error(resp.text)
-            logging.error('Trying to login again....')
-            resp = self._send_login()
-            self.resubscribe()
-            logging.error('Trying get again...')
-            logging.debug(get_url)
-            resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+            if self.cert_auth:
+                logging.error('Certificate authentication failed. Please check all settings are correct.')
+            else:
+                logging.error(resp.text)
+                logging.error('Trying to login again....')
+                resp = self._send_login()
+                self.resubscribe()
+                logging.error('Trying get again...')
+                logging.debug(get_url)
+                resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
         elif resp.status_code == 400 and 'Unable to process the query, result dataset is too big' in resp.text:
             # Response is too big so we will need to get the response in pages
             # Get the first chunk of entries
             logging.error('Response too big. Need to collect it in pages. Starting collection...')
             page_number = 0
             logging.debug('Getting first page')
+            cookies = self._prep_x509_header('GET', url + '&page=%s&page-size=10000' % page_number)
             resp = self.session.get(get_url + '&page=%s&page-size=10000' % page_number,
-                                    timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+                                    timeout=timeout, verify=self.verify_ssl, proxies=self._proxies, cookies=cookies)
             entries = []
             if resp.ok:
                 entries += resp.json()['imdata']
@@ -678,9 +785,10 @@ class Session(object):
                     page_number += 1
                     logging.debug('Getting page %s' % page_number)
                     # Get the next chunk
+                    cookies = self._prep_x509_header('GET', url + '&page=%s&page-size=10000' % page_number)
                     resp = self.session.get(get_url + '&page=%s&page-size=10000' % page_number,
                                             timeout=timeout, verify=self.verify_ssl,
-                                            proxies=self._proxies)
+                                            proxies=self._proxies, cookies=cookies)
                     if resp.ok:
                         entries += resp.json()['imdata']
                         total_count -= 10000
@@ -692,7 +800,8 @@ class Session(object):
             retries = 3
             while retries > 0:
                 logging.debug('Retrying query')
-                resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies)
+                cookies = self._prep_x509_header('GET', url)
+                resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies, cookies=cookies)
                 if resp.status_code != 200:
                     logging.debug('Retry was not successful.')
                     retries -= 1

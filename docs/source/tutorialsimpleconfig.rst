@@ -255,6 +255,52 @@ call was successful.
    if resp.ok:
       print 'Success'
 
+`APIC Login (Certificate based)`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The APIC REST API also supports authentication using certificates.
+
+Once setup, it is a more simple and secure form of authentication, with each request being
+uniquely signed. Additionally, login timeout issues are removed. An important point to note
+is that websockets (events) are not supported by the APIC when using certficate authentication,
+so the corresponding acitoolkit functionality will be disabled.
+
+As a prerequisite you must have created a private key and public certificate and attached the
+certificate to the desired user using the APIC Web UI.
+
+Creating a certificate session using the acitoolkit is simple:
+
+1. Use OpenSSL to generate a X.509 certificate and private key. 
+
+.. code-block:: bash
+
+   openssl req -new -newkey rsa:1024 -days 36500 -nodes -x509 -keyout userabc.key -out userabc.crt -subj '/CN=User ABC/O=Cisco Systems/C=US'
+
+2. Upload the generated certificate ``userabc.crt`` to the user via the APIC 
+
+.. image:: userabc.crt.png
+
+3. Certificate authentication has an extra dependency, not installed by default, which can be easily
+installed using pip
+
+.. code-block:: bash
+
+   pip install pyopenssl
+
+4. Create a certificate based authentication session
+
+.. code-block:: python
+
+   # Generic
+   session = Session(URL, LOGIN, cert_name=CERT_NAME, key=KEY)
+
+   # Example
+   session = Session('https://1.1.1.1', 'userabc', cert_name='userabc.crt', key='userabc.key')
+
+You do not need to explicitly call the ``login()`` method when using certificate authentication.
+
+After this point, you can continue to use all of the acitoolkit methods to get and push configuration from the APIC securely and without logging in.
+
 Displaying the JSON Configuration
 ---------------------------------
 

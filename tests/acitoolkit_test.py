@@ -48,7 +48,7 @@ import json
 import sys
 
 try:
-    from credentials import URL, LOGIN, PASSWORD
+    from credentials import URL, LOGIN, PASSWORD, CERT_NAME, KEY
 except ImportError:
     print
     print('To run live tests, please create a credentials.py file with the following variables filled in:')
@@ -56,6 +56,8 @@ except ImportError:
     URL = ''
     LOGIN = ''
     PASSWORD = ''
+    CERT_NAME = ''
+    KEY = ''
     """)
 
 MAX_RANDOM_STRING_SIZE = 20
@@ -3186,6 +3188,16 @@ class TestLiveAPIC(unittest.TestCase):
         return session
 
 
+class TestLiveCertAuth(TestLiveAPIC):
+    """
+    Certificate auth tests with a live APIC
+    """
+    def test_login_to_apic_with_cert(self):
+        session = Session(URL, LOGIN, cert_name=CERT_NAME, key=KEY)
+        tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+
+
 class TestLiveTenant(TestLiveAPIC):
     """
     Tenant tests on a live APIC
@@ -5252,6 +5264,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveHealthScores))
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
+    live.addTest(unittest.makeSuite(TestLiveCertAuth))
     live.addTest(unittest.makeSuite(TestLiveInterface))
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
