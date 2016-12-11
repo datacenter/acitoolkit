@@ -517,7 +517,7 @@ class ConfigRandomizer(object):
         neg_flows = 0
         max_neg_flows = int(self._config.get('NegativeFlowOptions', 'MaxNegativeFlows'))
         while tries < 100:
-            ether_choice = random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'ARPCode')))
+            ether_choice = random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'Ethertypes')))
             proto_choice = ConfigRandomizer._ip_protocols[random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'IPProtocols')))]
             sport = random.randint(int(self._config.get('NegativeFlowOptions', 'PortRangeMin')),int(self._config.get('NegativeFlowOptions', 'PortRangeMax')))
             dport = random.randint(int(self._config.get('NegativeFlowOptions', 'PortRangeMin')),int(self._config.get('NegativeFlowOptions', 'PortRangeMax')))
