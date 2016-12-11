@@ -3934,26 +3934,31 @@ class ContractSubject(BaseACIObject):
 
     def get_json(self):
         """
-        Returns json representation of the ContractSubject
+        Returns json representation of the ContractSubject or TabooContractSubject
 
-        :returns: json dictionary of the ContractSubject
+        :returns: json dictionary of the ContractSubject or TabooContractSubject
         """
+        subject = 'vzSubj'
+        subjectFilter = 'vzRsSubjFiltAtt'
+        if isinstance(self._parent, Taboo):
+            subject = Taboo._get_subject_code()
+            subjectFilter = Taboo._get_subject_relation_code()
         attr = self._generate_attributes()
-        resp_json = super(ContractSubject, self).get_json('vzSubj',
+        resp_json = super(ContractSubject, self).get_json(subject,
                                                           attributes=attr,
                                                           get_children=False)
         filters = []
         for entry in self.get_filters():
-            filt = {'vzRsSubjFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
+            filt = {subjectFilter: {'attributes': {'tnVzFilterName': entry.name}}}
             filters.append(filt)
-        resp_json['vzSubj']['children'] = filters
+        resp_json[subject]['children'] = filters
 
         terminals = []
         for entry in self.get_children():
             if isinstance(entry, BaseTerminal):
                 terminal = entry.get_json()
                 terminals.append(terminal)
-        resp_json['vzSubj']['children'].extend(terminals)
+        resp_json[subject]['children'].extend(terminals)
 
         return resp_json
 
