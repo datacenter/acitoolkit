@@ -548,7 +548,7 @@ class Session(object):
         payload = '{}{}'.format(method, url)
         if data:
             payload += data
-        logging.debug('Payload: ', payload)
+        #logging.debug('Payload: ', payload)
 
         signature = base64.b64encode(sign(self._x509Key, payload, 'sha256'))
         cookie = {'APIC-Request-Signature': signature,
