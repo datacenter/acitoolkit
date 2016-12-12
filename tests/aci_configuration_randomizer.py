@@ -531,12 +531,12 @@ class ConfigRandomizer(object):
                     neg = True
                 else:
                     if ether_choice == 'ip':
-                        if proto_choice not in filters[src_dst_comb]['ip']:
+                        if proto_choice not in filters[src_dst_comb][ether_choice]:
                             neg = True
                         else:
                             if proto_choice == ConfigRandomizer._ip_protocols['tcp'] or proto_choice == ConfigRandomizer._ip_protocols['udp']:
                                 unmatched = 0
-                                for portstring in filters[src_dst_comb]['ip'][proto_choice]:
+                                for portstring in filters[src_dst_comb][ether_choice][proto_choice]:
                                     ports = portstring.split(':')
                                     sFlag = True if (sport < int(ports[0]) and sport > int(ports[1])) else False
                                     dFlag = True if (dport < int(ports[2]) and dport > int(ports[3])) else False
@@ -544,14 +544,20 @@ class ConfigRandomizer(object):
                                     if not sFlag and not dFlag and not rFlag:
                                         continue
                                     unmatched += 1
-                                if unmatched == len(filters[src_dst_comb]['ip'][proto_choice]):
+                                if unmatched == len(filters[src_dst_comb][ether_choice][proto_choice]):
+                                    neg = True
+                            elif proto_choice == ConfigRandomizer._ip_protocols['icmp']:
+                                if not icmp_type in filters[src_dst_comb][ether_choice][proto_choice]:
                                     neg = True
                             else:
-                                if not icmp_type in filters[src_dst_comb]['ip'][ConfigRandomizer._ip_protocols['icmp']]:
-                                    neg = True
-                    else:
-                        if not arpcode in filters[src_dst_comb]['arp']:
+                                #currently considering only tcp,udo,icmp and l2tp
+                                pass
+                    elif ether_choice == 'arp':
+                        if not arpcode in filters[src_dst_comb][ether_choice]:
                             neg = True
+                    else:
+                        #currently considering only ethertypes ip and arp
+                        pass
 
                 if neg:
                     src_dst = src_dst_comb.split(':')
@@ -660,27 +666,27 @@ class ConfigRandomizer(object):
                                     filters[src_dst_comb] = {}
                                 
                                 if filter_entry.etherT == 'arp':
-                                    if not 'arp' in filters[src_dst_comb]:
-                                        filters[src_dst_comb]['arp'] = []
-                                    filters[src_dst_comb]['arp'].append(filter_entry.arpOpc)
+                                    if not filter_entry.etherT in filters[src_dst_comb]:
+                                        filters[src_dst_comb][filter_entry.etherT] = []
+                                    filters[src_dst_comb][filter_entry.etherT].append(filter_entry.arpOpc)
                                 elif filter_entry.etherT == 'ip':
-                                    if not 'ip' in filters[src_dst_comb]:
-                                        filters[src_dst_comb]['ip'] = {}
+                                    if not filter_entry.etherT in filters[src_dst_comb]:
+                                        filters[src_dst_comb][filter_entry.etherT] = {}
                                     if filter_entry.prot == ConfigRandomizer._ip_protocols['tcp'] or filter_entry.prot == ConfigRandomizer._ip_protocols['udp']:
-                                        if not filter_entry.prot in filters[src_dst_comb]['ip']:
-                                            filters[src_dst_comb]['ip'][filter_entry.prot] = []
+                                        if not filter_entry.prot in filters[src_dst_comb][filter_entry.etherT]:
+                                            filters[src_dst_comb][filter_entry.etherT][filter_entry.prot] = []
                                         portstr = filter_entry.dFromPort + ':' + filter_entry.dToPort + ':' + filter_entry.sFromPort + ':' + filter_entry.sToPort
                                         if filter_entry.prot == ConfigRandomizer._ip_protocols['tcp']:
                                             portstr += ':' + filter_entry.tcpRules
-                                        filters[src_dst_comb]['ip'][filter_entry.prot].append(portstr)
+                                        filters[src_dst_comb][filter_entry.etherT][filter_entry.prot].append(portstr)
                                     elif filter_entry.prot == ConfigRandomizer._ip_protocols['icmp'] or filter_entry.prot == ConfigRandomizer._ip_protocols['icmpv6']:
-                                        if not filter_entry.prot in filters[src_dst_comb]['ip']:
-                                            filters[src_dst_comb]['ip'][filter_entry.prot] = []
-                                        filters[src_dst_comb]['ip'][filter_entry.prot].append(filter_entry.icmpv4T if filter_entry.prot == ConfigRandomizer._ip_protocols['icmp'] else filter_entry.icmpv6T)
+                                        if not filter_entry.prot in filters[src_dst_comb][filter_entry.etherT]:
+                                            filters[src_dst_comb][filter_entry.etherT][filter_entry.prot] = []
+                                        filters[src_dst_comb][filter_entry.etherT][filter_entry.prot].append(filter_entry.icmpv4T if filter_entry.prot == ConfigRandomizer._ip_protocols['icmp'] else filter_entry.icmpv6T)
                                     else:
                                         #have to handle cases for other protocols
-                                        if not filter_entry.prot in filters[src_dst_comb]['ip']:
-                                            filters[src_dst_comb]['ip'][filter_entry.prot] = []
+                                        if not filter_entry.prot in filters[src_dst_comb][filter_entry.etherT]:
+                                            filters[src_dst_comb][filter_entry.etherT][filter_entry.prot] = []
                                 else:
                                     #have to handle cases for other ethertypes
                                     if not filter_entry.etherT in filters[src_dst_comb]:
