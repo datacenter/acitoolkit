@@ -99,10 +99,10 @@ class Credentials(object):
             self._parser.add_argument('-p', '--password',
                                       default=DEFAULT_PASSWORD,
                                       help='APIC login password.')
-            self._parser.add_argument('-c', '--cert-name',
+            self._parser.add_argument('--cert-name',
                                       default=DEFAULT_CERT_NAME,
                                       help='X.509 certificate name attached to APIC AAA user')
-            self._parser.add_argument('-k', '--key',
+            self._parser.add_argument('--key',
                                       default=DEFAULT_KEY,
                                       help='Private key matching given certificate, used to generate authentication signature')
         if 'nosnapshotfiles' not in qualifier and 'apic' in qualifier:
