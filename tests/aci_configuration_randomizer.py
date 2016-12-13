@@ -1,11 +1,11 @@
-from acitoolkit import (Credentials, Session, Tenant, BridgeDomain, Context, AppProfile, EPG,
+from acitoolkit import (Credentials, Session, Tenant, BridgeDomain, Context, AppProfile, EPG, Taboo,
                         Contract, ContractSubject, Filter, FilterEntry, Interface, L2Interface)
 import random
 import string
 import ConfigParser
 import json
 import time
-
+import ast
 
 def random_chance(percentage):
     return random_number(0, 99) < percentage
@@ -38,6 +38,10 @@ def random_range(low, high):
     high = random_number(low, high)
     return str(low), str(high)
 
+def is_port_in_range(start, end, port):
+    if end == 0:
+        end = 65535
+    return (port >= start and port <= end)
 
 class Flow(object):
     def __init__(self, ipv4=True, unicast=True):
@@ -56,6 +60,7 @@ class Flow(object):
         self.expected_action = None
         self.dst_intf = None
         self.tcp_rules = None
+        self.icmp_type = None
 
     @staticmethod
     def _get_random_ipv4_address(unicast=True):
@@ -99,7 +104,7 @@ class Flow(object):
             raise NotImplementedError
         if not unicast:
             raise NotImplementedError
-        self.sip = self._get_random_ipv4_address()
+        self.sip = self._get_random_ipv4_address(unicast=unicast)
         self.dip = self._get_random_ipv4_address(unicast=unicast)
 
     def __str__(self):
@@ -113,6 +118,8 @@ class Flow(object):
                 resp = resp + ' dport: ' + self.dport + ' sport: ' + self.sport
             if self.proto == '6':
                 resp = resp + ' tcp_rules: ' + self.tcp_rules
+            elif self.proto == '1':
+                resp = resp + ' icmp_type: ' + self.icmp_type
         if self.proto is not None:
             resp = resp + ' proto: ' + self.proto
         resp = resp + ' expected_action: ' + self.expected_action
@@ -137,6 +144,21 @@ class Limits(object):
 
 
 class ConfigRandomizer(object):
+    
+    _ip_protocols = {
+            'icmp': '1',
+            'igmp': '2',
+            'tcp': '6',
+            'egp': '8',
+            'igp': '9',
+            'udp': '17',
+            'icmpv6': '58',
+            'eigrp': '88',
+            'ospfigp': '89',
+            'pim': '103',
+            'l2tp': '115'
+        }
+    
     def __init__(self, config):
         self._config = config
         self._global_limits = Limits(config)
@@ -146,7 +168,7 @@ class ConfigRandomizer(object):
     def create_random_tenant(self, interfaces=[]):
         max_string_length = int(self._config.get('GlobalDefaults', 'MaximumStringLength'))
         # Create the Tenant object
-        tenant_prefix = 'acitoolkitrandomized-'
+        tenant_prefix = self._config.get('GlobalDefaults', 'TenantPrefix')
         tenant_name_len = random_number(1, max_string_length - len(tenant_prefix))
         tenant_name = tenant_prefix + random_string(tenant_name_len)
         tenant = Tenant(tenant_name)
@@ -162,15 +184,15 @@ class ConfigRandomizer(object):
             bd = BridgeDomain(random_string(random_number(1, max_string_length)), tenant)
             # Randomly choose settings for the BridgeDomain
             if self._config.get('BridgeDomains', 'AllowFloodUnkMacUcast').lower() == 'true':
-                bd.set_unknown_mac_unicast(random.choice(['proxy', 'flood']))
+                bd.set_unknown_mac_unicast(random.choice(ast.literal_eval(self._config.get('BridgeDomainSettings', 'UnknownMacUnicast'))))
             if self._config.get('BridgeDomains', 'AllowOptimizedFloodUnknownMcast').lower() == 'true':
-                bd.set_unknown_multicast(random.choice(['flood', 'opt-flood']))
+                bd.set_unknown_multicast(random.choice(ast.literal_eval(self._config.get('BridgeDomainSettings', 'UnknownMulticast'))))
             if self._config.get('BridgeDomains', 'AllowArpFlood').lower() == 'true':
-                bd.set_arp_flood(random.choice(['yes', 'no']))
+                bd.set_arp_flood(random.choice(ast.literal_eval(self._config.get('BridgeDomainSettings', 'ArpFlood'))))
             if self._config.get('BridgeDomains', 'AllowDisableUnicastRoute').lower() == 'true':
-                bd.set_unicast_route(random.choice(['yes', 'no']))
+                bd.set_unicast_route(random.choice(ast.literal_eval(self._config.get('BridgeDomainSettings', 'UnicastRoute'))))
             if self._config.get('BridgeDomains', 'AllowNonDefaultMultiDstPkt').lower() == 'true':
-                bd.set_multidestination(random.choice(['drop', 'bd-flood', 'encap-flood']))
+                bd.set_multidestination(random.choice(ast.literal_eval(self._config.get('BridgeDomainSettings', 'Multidestination'))))
             bridge_domains.append(bd)
 
         # Create some number of Contexts
@@ -270,19 +292,6 @@ class ConfigRandomizer(object):
         max_filter_entries = int(self._config.get('FilterEntries', 'Maximum'))
         if max_filter_entries > self._global_limits.max_filter_entries:
             max_filter_entries = self._global_limits.max_filter_entries
-        ip_protocols = {
-            'icmp': '1',
-            'igmp': '2',
-            'tcp': '6',
-            'egp': '8',
-            'igp': '9',
-            'udp': '17',
-            'icmpv6': '58',
-            'eigrp': '88',
-            'ospfigp': '89',
-            'pim': '103',
-            'l2tp': '115'
-        }
         if len(filters):
             for i in range(0, random_number(0, random_number(int(self._config.get('FilterEntries', 'Minimum')),
                                                              max_filter_entries))):
@@ -298,41 +307,38 @@ class ConfigRandomizer(object):
                 icmpv4T = 'not-given'
                 icmpv6T = 'not-given'
                 if random_chance(20):  # 20% chance of ARP
-                    arpOpc = random.choice(['req', 'reply'])
+                    arpOpc = random.choice(ast.literal_eval(self._config.get('FilterEntryOptions', 'ARPCode')))
                     etherT = 'arp'
                 elif random_chance(25):  # 20% of remaining 80% is non-IP (16% of total)
-                    ethertype_choices = ['trill', 'mpls_ucast', 'mac_security', 'fcoe']
+                    ethertype_choices = ast.literal_eval(self._config.get('Ethertypes', 'Choice16PC'))
                     # if not filter.has_wildcard_entry():
                     #     ethertype_choices += ['0']
                     etherT = random.choice(ethertype_choices)
                 else:  # remaining is IP
-                    applyToFrag = random.choice(['0', '1'])
+                    applyToFrag = random.choice(ast.literal_eval(self._config.get('FilterEntryOptions', 'Fragmentation')))
                     etherT = 'ip'
                     if random_chance(20):  # Choose more obscure protocols 20% of the time
-                        prot = ip_protocols[random.choice(['igmp', 'egp', 'igp', 'eigrp', 'ospfigp', 'pim', 'l2tp'])]
+                        prot = ConfigRandomizer._ip_protocols[random.choice(ast.literal_eval(self._config.get('IPProtocols', 'Choice20PC')))]
                     else:
-                        prot = ip_protocols[random.choice(['icmp', 'tcp', 'udp', 'icmpv6'])]
-                        if prot == ip_protocols['icmp']:
-                            icmpv4T = random.choice(['echo-rep', 'dst-unreach', 'src-quench', 'echo',
-                                                     'time-exceeded', 'unspecified', 'not-given'])
-                        elif prot == ip_protocols['icmpv6']:
-                            icmpv6T = random.choice(['unspecified', 'dst-unreach', 'time-exceeded',
-                                                     'echo-req', 'echo-rep', 'nbr-solicit', 'nbr-advert',
-                                                     'redirect', 'not-given'])
+                        prot = ConfigRandomizer._ip_protocols[random.choice(ast.literal_eval(self._config.get('IPProtocols', 'Choice80PC')))]
+                        if prot == ConfigRandomizer._ip_protocols['icmp']:
+                            icmpv4T = random.choice(ast.literal_eval(self._config.get('FilterEntryOptions', 'ICMP4Types')))
+                        elif prot == ConfigRandomizer._ip_protocols['icmpv6']:
+                            icmpv6T = random.choice(ast.literal_eval(self._config.get('FilterEntryOptions', 'ICMP6Types')))
                         else:
                             # Remainder is TCP or UDP
-                            dFromPort, dToPort = random_range(0, 65535)
-                            sFromPort, sToPort = random_range(0, 65535)
+                            dFromPort, dToPort = random_range(int(self._config.get('FilterEntryOptions', 'PortRangeMin')), int(self._config.get('FilterEntryOptions', 'PortRangeMax')))
+                            sFromPort, sToPort = random_range(int(self._config.get('FilterEntryOptions', 'PortRangeMin')), int(self._config.get('FilterEntryOptions', 'PortRangeMax')))
                             if dFromPort != '0' or dToPort != '0' or sFromPort != '0' or sToPort != '0':
                                 applyToFrag = '0'
-                            if prot == ip_protocols['tcp']:
+                            if prot == ConfigRandomizer._ip_protocols['tcp']:
                                 # Randomly choose whether to specify tcpRules
                                 if random_chance(30):
                                     # TODO: should actually take odds from the config file
                                     # Choose a random number of the possible tcpRules but
                                     # if est is chosen, then it must be the only tcpRule. Otherwise, APIC rejects it
                                     tcp_rule_choices = []
-                                    tcp_rule_possibilities = ['est', 'syn', 'ack', 'fin', 'rst']
+                                    tcp_rule_possibilities = ast.literal_eval(self._config.get('FilterEntryOptions', 'TCPRules'))
                                     tcp_choice = random.choice(tcp_rule_possibilities)
                                     tcp_rule_choices.append(tcp_choice)
                                     while tcp_choice != 'est':
@@ -346,7 +352,7 @@ class ConfigRandomizer(object):
                 if not parent.has_entry(applyToFrag, arpOpc, dFromPort, dToPort, etherT, prot, sFromPort, sToPort,
                                         tcpRules, stateful, icmpv4T, icmpv6T):
                     filter_entry = FilterEntry(name=random_string(random_number(1, max_string_length)),
-                                               parent=random.choice(filters),
+                                               parent=parent,
                                                applyToFrag=applyToFrag,
                                                arpOpc=arpOpc,
                                                dFromPort=dFromPort,
@@ -355,6 +361,22 @@ class ConfigRandomizer(object):
                                                prot=prot,
                                                sFromPort=sFromPort,
                                                sToPort=sToPort,
+                                               tcpRules=tcpRules,
+                                               stateful=stateful,
+                                               icmpv4T=icmpv4T,
+                                               icmpv6T=icmpv6T)
+                    #for l2tp traffic type we also need to udp filter with src and dst ports 1701
+                    if etherT == 'ip' and prot == ConfigRandomizer._ip_protocols['l2tp']:
+                        filter_entry = FilterEntry(name=random_string(random_number(1, max_string_length)),
+                                               parent=parent,
+                                               applyToFrag='0',
+                                               arpOpc=arpOpc,
+                                               dFromPort='1701',
+                                               dToPort='1701',
+                                               etherT=etherT,
+                                               prot=ConfigRandomizer._ip_protocols['udp'],
+                                               sFromPort='1701',
+                                               sToPort='1701',
                                                tcpRules=tcpRules,
                                                stateful=stateful,
                                                icmpv4T=icmpv4T,
@@ -373,8 +395,8 @@ class ConfigRandomizer(object):
             contracts.append(contract)
 
         # Create some ContractSubjects
+        contract_subjects = []
         if len(contracts):
-            contract_subjects = []
             for i in range(0, random_number(0, random_number(int(self._config.get('ContractSubjects', 'Minimum')),
                                                              int(self._config.get('ContractSubjects', 'Maximum'))))):
                 contract_subject = ContractSubject(random_string(random_number(1, max_string_length)), random.choice(contracts))
@@ -409,6 +431,39 @@ class ConfigRandomizer(object):
                             keep_trying = 0
                         else:
                             keep_trying -= 1
+        
+        # Create some Taboos    
+        taboos = []
+        for i in range(0, random_number(0, random_number(int(self._config.get('Taboos', 'Minimum')),
+                                                         int(self._config.get('Taboos', 'Maximum'))))):
+            taboo = Taboo(random_string(random_number(1, max_string_length)), tenant)
+            taboos.append(taboo)
+            
+        # Create some Taboo ContractSubjects
+        taboo_contract_subjects = []
+        if len(taboos):
+            for i in range(0, random_number(1, random_number(int(self._config.get('TabooContractSubjects', 'Minimum')),
+                                                             int(self._config.get('TabooContractSubjects', 'Maximum'))))):
+                taboo_contract_subject = ContractSubject(random_string(random_number(1, max_string_length)), random.choice(taboos))
+                taboo_contract_subjects.append(taboo_contract_subject)
+                
+        # Randomly assign Filters to TabooContractSubjects
+        for filter in filters:
+            if len(taboo_contract_subjects):
+                already_picked = []
+                # Pick an arbitrary number of Subjects
+                for i in range(0, random_number(1, len(taboo_contract_subjects))):
+                    pick = random_number(0, len(taboo_contract_subjects) - 1)
+                    # Only choose each subject at most once
+                    if pick not in already_picked:
+                        taboo_contract_subjects[pick].add_filter(filter)
+                        already_picked.append(pick)
+        
+        # Randomly protect epgs with taboos                
+        for epg in epgs:
+            if random.choice([True, False, True]) and len(taboos):
+                epg.protect(taboos[random_number(0, len(taboos)-1)])
+        
         return tenant
 
     def create_random_config(self, interfaces=[]):
@@ -421,6 +476,117 @@ class ConfigRandomizer(object):
             self._interfaces[interface] = [0]
         for i in range(0, num_tenants):
             self._tenants.append(self.create_random_tenant(interfaces))
+            
+    def is_flow_protected_by_taboo(self, epg, flow):
+        for epg_taboo in epg.get_all_protected():
+            for epg_taboo_contract_subject in epg_taboo.get_children():
+                for relation in epg_taboo_contract_subject._relations:
+                    for taboo_filter_entry in relation.item.get_children():
+                        if taboo_filter_entry.etherT == flow.proto:
+                            if taboo_filter_entry.etherT == 'ip':
+                                if taboo_filter_entry.prot == ConfigRandomizer._ip_protocols['tcp'] or taboo_filter_entry.prot == ConfigRandomizer._ip_protocols['udp']:
+                                    sFlag = True if is_port_in_range(int(taboo_filter_entry.sFromPort), int(taboo_filter_entry.sToPort), int(flow.sport)) else False
+                                    dFlag = True if is_port_in_range(int(taboo_filter_entry.dFromPort), int(taboo_filter_entry.dToPort), int(flow.dport)) else False
+                                    if (taboo_filter_entry.prot == ConfigRandomizer._ip_protocols['udp'] and sFlag and dFlag) or (sFlag and dFlag and flow.tcp_rules == taboo_filter_entry.tcpRules):
+                                        return True
+                                elif (taboo_filter_entry.prot == ConfigRandomizer._ip_protocols['icmp'] and flow.icmp_type == taboo_filter_entry.icmpv4T) or (taboo_filter_entry.prot == ConfigRandomizer._ip_protocols['icmpv6'] and flow.icmp_type == taboo_filter_entry.icmpv6T):
+                                    return True
+                                else:
+                                    #have to handle other IP protocols
+                                    pass
+                            elif taboo_filter_entry.etherT == 'arp' and flow.arp_opcode == taboo_filter_entry.arpOpc:
+                                return True
+                            else:
+                                #have to handle other ethertypes
+                                pass
+        return False
+    
+    
+    def get_negative_flows(self, filters):
+        """
+        Generate negative flows based on the filters
+        Maximum flows generated can be configured using MaxNegativeFlows
+        Returns a collection of random negative flows that when sent on the indicated interface should have the
+        specified action applied.
+
+        :param filters: map of all filters created
+        :return: List of negative flows
+        """
+        negflows = []
+        tries = 0
+        neg_flows = 0
+        max_neg_flows = int(self._config.get('NegativeFlowOptions', 'MaxNegativeFlows'))
+        while tries < 100:
+            ether_choice = random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'Ethertypes')))
+            proto_choice = ConfigRandomizer._ip_protocols[random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'IPProtocols')))]
+            sport = random.randint(int(self._config.get('NegativeFlowOptions', 'PortRangeMin')),int(self._config.get('NegativeFlowOptions', 'PortRangeMax')))
+            dport = random.randint(int(self._config.get('NegativeFlowOptions', 'PortRangeMin')),int(self._config.get('NegativeFlowOptions', 'PortRangeMax')))
+            tcp_rules = random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'TCPRules')))
+            icmp_type = random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'ICMP4Types')))
+            arpcode = random.choice(ast.literal_eval(self._config.get('NegativeFlowOptions', 'ARPCode')))
+            
+            for src_dst_comb in filters:
+                neg = False
+                if ether_choice not in filters[src_dst_comb]:
+                    neg = True
+                else:
+                    if ether_choice == 'ip':
+                        if proto_choice not in filters[src_dst_comb][ether_choice]:
+                            neg = True
+                        else:
+                            if proto_choice == ConfigRandomizer._ip_protocols['tcp'] or proto_choice == ConfigRandomizer._ip_protocols['udp']:
+                                unmatched = 0
+                                for portstring in filters[src_dst_comb][ether_choice][proto_choice]:
+                                    ports = portstring.split(':')
+                                    sFlag = True if (sport < int(ports[0]) and sport > int(ports[1])) else False
+                                    dFlag = True if (dport < int(ports[2]) and dport > int(ports[3])) else False
+                                    rFlag = True if (proto_choice == ConfigRandomizer._ip_protocols['tcp'] and tcp_rules not in ports[4]) else False
+                                    if not sFlag and not dFlag and not rFlag:
+                                        continue
+                                    unmatched += 1
+                                if unmatched == len(filters[src_dst_comb][ether_choice][proto_choice]):
+                                    neg = True
+                            elif proto_choice == ConfigRandomizer._ip_protocols['icmp']:
+                                if not icmp_type in filters[src_dst_comb][ether_choice][proto_choice]:
+                                    neg = True
+                            else:
+                                #currently considering only tcp,udo,icmp and l2tp
+                                pass
+                    elif ether_choice == 'arp':
+                        if not arpcode in filters[src_dst_comb][ether_choice]:
+                            neg = True
+                    else:
+                        #currently considering only ethertypes ip and arp
+                        pass
+
+                if neg:
+                    src_dst = src_dst_comb.split(':')
+                    flow = Flow()
+                    flow.populate_random_ip_addresses()
+                    flow.populate_random_mac_addresses()
+                    flow.svlan = src_dst[2]
+                    flow.dvlan = src_dst[3]
+                    flow.src_intf = src_dst[0]
+                    flow.dst_intf = src_dst[1]
+                    flow.ethertype = ether_choice
+                    flow.proto = proto_choice
+                    flow.expected_action = 'drop'
+                    flow.negative_flow = True
+                    flow.arp_opcode = arpcode
+                    flow.sport = str(sport)
+                    flow.dport = str(dport)
+                    flow.tcp_rules = tcp_rules
+                    flow.icmp_type = icmp_type
+                    
+                    negflows.append(flow)
+                    neg_flows += 1
+                    break
+                
+            if neg_flows == max_neg_flows:
+                break
+            tries += 1
+          
+        return negflows
 
     def get_flows(self, num_flows_per_entry):
         """
@@ -431,7 +597,10 @@ class ConfigRandomizer(object):
         :return: List of Flows
         """
         flows = []
+        
         for tenant in self._tenants:
+            filters = {}
+            interfaces = {}
             for contract in tenant.get_children(only_class=Contract):
                 providing_epgs = contract.get_all_providing_epgs()
                 consuming_epgs = contract.get_all_consuming_epgs()
@@ -452,6 +621,7 @@ class ConfigRandomizer(object):
                         if providing_vlan == consuming_vlan and providing_phys_if == consuming_phys_if:
                             # Skip this case since traffic would be switched outside fabric
                             continue
+                        
                         for filter_entry in contract.get_all_filter_entries():
                             for i in range(0, num_flows_per_entry):
                                 flow = Flow()
@@ -462,7 +632,7 @@ class ConfigRandomizer(object):
                                 elif flow.ethertype == 'ip':
                                     flow.populate_random_ip_addresses()
                                     flow.proto = filter_entry.prot
-                                    if flow.proto == '6' or flow.proto == '17':
+                                    if flow.proto == ConfigRandomizer._ip_protocols['tcp'] or flow.proto == ConfigRandomizer._ip_protocols['udp']:
                                         dFromPort = int(filter_entry.dFromPort)
                                         dToPort = int(filter_entry.dToPort)
                                         sFromPort = int(filter_entry.sFromPort)
@@ -481,23 +651,65 @@ class ConfigRandomizer(object):
                                                                        dToPort))
                                         flow.sport = str(random_number(sFromPort,
                                                                        sToPort))
-                                        if flow.proto == '6':
+                                        if flow.proto == ConfigRandomizer._ip_protocols['tcp']:
                                             flow.tcp_rules = filter_entry.tcpRules
+                                    elif flow.proto == ConfigRandomizer._ip_protocols['icmp']:
+                                        flow.icmp_type = filter_entry.icmpv4T
+                                        #print flow.icmp_type
                                 flow.svlan = providing_vlan
                                 flow.dvlan = consuming_vlan
                                 flow.src_intf = providing_phys_if
                                 flow.dst_intf = consuming_phys_if
-
+                                
+                                src_dst_comb = providing_phys_if + ':' + consuming_phys_if + ':' + providing_vlan + ':' + consuming_vlan
+                                if not src_dst_comb in filters:
+                                    filters[src_dst_comb] = {}
+                                
+                                if filter_entry.etherT == 'arp':
+                                    if not filter_entry.etherT in filters[src_dst_comb]:
+                                        filters[src_dst_comb][filter_entry.etherT] = []
+                                    filters[src_dst_comb][filter_entry.etherT].append(filter_entry.arpOpc)
+                                elif filter_entry.etherT == 'ip':
+                                    if not filter_entry.etherT in filters[src_dst_comb]:
+                                        filters[src_dst_comb][filter_entry.etherT] = {}
+                                    if filter_entry.prot == ConfigRandomizer._ip_protocols['tcp'] or filter_entry.prot == ConfigRandomizer._ip_protocols['udp']:
+                                        if not filter_entry.prot in filters[src_dst_comb][filter_entry.etherT]:
+                                            filters[src_dst_comb][filter_entry.etherT][filter_entry.prot] = []
+                                        portstr = filter_entry.dFromPort + ':' + filter_entry.dToPort + ':' + filter_entry.sFromPort + ':' + filter_entry.sToPort
+                                        if filter_entry.prot == ConfigRandomizer._ip_protocols['tcp']:
+                                            portstr += ':' + filter_entry.tcpRules
+                                        filters[src_dst_comb][filter_entry.etherT][filter_entry.prot].append(portstr)
+                                    elif filter_entry.prot == ConfigRandomizer._ip_protocols['icmp'] or filter_entry.prot == ConfigRandomizer._ip_protocols['icmpv6']:
+                                        if not filter_entry.prot in filters[src_dst_comb][filter_entry.etherT]:
+                                            filters[src_dst_comb][filter_entry.etherT][filter_entry.prot] = []
+                                        filters[src_dst_comb][filter_entry.etherT][filter_entry.prot].append(filter_entry.icmpv4T if filter_entry.prot == ConfigRandomizer._ip_protocols['icmp'] else filter_entry.icmpv6T)
+                                    else:
+                                        #have to handle cases for other protocols
+                                        if not filter_entry.prot in filters[src_dst_comb][filter_entry.etherT]:
+                                            filters[src_dst_comb][filter_entry.etherT][filter_entry.prot] = []
+                                else:
+                                    #have to handle cases for other ethertypes
+                                    if not filter_entry.etherT in filters[src_dst_comb]:
+                                        filters[src_dst_comb][filter_entry.etherT] = {}
+                                
+                                interfaces[providing_phys_if + ':' + consuming_phys_if + ':' + providing_vlan + ':' + consuming_vlan] = 1
+                                
                                 # Is the flow expected to succeed ?
                                 flow.expected_action = 'drop'
-                                providing_bd = providing_epg.get_bd()
-                                consuming_bd = consuming_epg.get_bd()
-                                if providing_bd and consuming_bd:
-                                    if providing_bd == consuming_bd:
-                                        if providing_bd.get_context() == consuming_bd.get_context():
-                                            flow.expected_action = 'permit'
+                                pt = providing_epg.get_all_protected()
+                                protected_by_taboo = True if (self.is_flow_protected_by_taboo(providing_epg, flow) or self.is_flow_protected_by_taboo(consuming_epg, flow)) else False
+                                if not protected_by_taboo:
+                                    providing_bd = providing_epg.get_bd()
+                                    consuming_bd = consuming_epg.get_bd()
+                                    if providing_bd and consuming_bd:
+                                        if providing_bd == consuming_bd:
+                                            if providing_bd.get_context() and consuming_bd.get_context() and providing_bd.get_context() == consuming_bd.get_context():
+                                                flow.expected_action = 'permit'
                                 flow.populate_random_mac_addresses()
                                 flows.append(flow)
+                        
+            for flow in self.get_negative_flows(filters):
+                flows.append(flow)
         return flows
 
     @property
@@ -522,7 +734,7 @@ def generate_config(session, args):
     config = ConfigParser.ConfigParser()
     config.read(args.config)
     randomizer = ConfigRandomizer(config)
-    interfaces = ['eth 1/101/1/17', 'eth 1/102/1/17']
+    interfaces = ast.literal_eval(config.get('Interfaces', 'Interfaces'))
     randomizer.create_random_config(interfaces)
     flows = randomizer.get_flows(1)
     flow_json = []
