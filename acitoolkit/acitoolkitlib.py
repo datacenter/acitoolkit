@@ -88,8 +88,9 @@ class Credentials(object):
             DEFAULT_URL = set_default('url')
             DEFAULT_LOGIN = set_default('login')
             DEFAULT_PASSWORD = set_default('password')
-            DEFAULT_CERT_NAME = set_default('cert_name')
-            DEFAULT_KEY = set_default('key')
+            if DEFAULT_PASSWORD is not None:
+                DEFAULT_CERT_NAME = set_default('cert_name')
+                DEFAULT_KEY = set_default('key')
             self._parser.add_argument('-u', '--url',
                                       default=DEFAULT_URL,
                                       help='APIC URL e.g. http://1.2.3.4')
@@ -223,7 +224,7 @@ class Credentials(object):
 
             if self._args.password is None and not (self._args.cert_name or self._args.key):
                 self._args.password = self._get_password('APIC Password: ')
-            else:
+            elif self._args.password is None:
                 if self._args.cert_name is None:
                     self._args.cert_name = self._get_from_user('Certificate Name: ')
                 if self._args.key is None:
