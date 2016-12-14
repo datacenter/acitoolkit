@@ -40,6 +40,7 @@ import socket
 import base64
 import requests
 from collections import namedtuple
+from urllib import unquote
 try:
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
 except ImportError:
@@ -422,7 +423,7 @@ class Session(object):
        This class is responsible for all communication with the APIC.
     """
     def __init__(self, url, uid, pwd=None, cert_name=None, key=None, verify_ssl=False,
-                 subscription_enabled=True, proxies=None):
+                 appcenter_user=False, subscription_enabled=True, proxies=None):
         """
         :param url:  String containing the APIC URL such as ``https://1.2.3.4``
         :param uid: String containing the username that will be used as\
@@ -436,6 +437,8 @@ class Session(object):
         :param verify_ssl:  Used only for SSL connections with the APIC.\
         Indicates whether SSL certificates must be verified.  Possible\
         values are True and False with the default being False.
+        :param appcenter_user:  Set True when using certificate authentication from\
+        the context of an APIC appcenter app
         :param proxies: Optional dictionary containing the proxies passed\
         directly to the Requests library
 
@@ -472,6 +475,7 @@ class Session(object):
         self.pwd = pwd
         self.key = key
         self.cert_name = cert_name
+        self.appcenter_user = appcenter_user
         if key and cert_name:
             if NO_OPENSSL:
                 raise ImportError('Cannot use certificate authentication because pyopenssl is not available.\n\
@@ -538,13 +542,29 @@ class Session(object):
         if not self.cert_auth:
             return {}
 
-        logging.debug("Preparing certificate based authentication with cert name {} \
-        key file {} for request {} {} with data {}".format(self.cert_name, self.key, method, url, data))
-
         if not self.session:
             self.session = requests.Session()
 
-        cert_dn = 'uni/userext/user-{0}/usercert-{1}'.format(self.uid, self.cert_name)
+        if self.appcenter_user:
+            cert_dn = 'uni/userext/appuser-{0}/usercert-{1}'.format(self.uid, self.cert_name)
+        else:
+            cert_dn = 'uni/userext/user-{0}/usercert-{1}'.format(self.uid, self.cert_name)
+
+        url = unquote(url)
+
+        logging.debug((
+            "Preparing certificate based authentication with:"
+            "\n Cert DN: {}"
+            "\n Key file: {} "
+            "\n Request: {} {}"
+            "\n Data: {}").format(
+                cert_dn,
+                self.key,
+                method,
+                url,
+                data)
+        )
+
         payload = '{}{}'.format(method, url)
         if data:
             payload += data
@@ -726,6 +746,7 @@ class Session(object):
                                      timeout=timeout, proxies=self._proxies, cookies=cookies)
             if resp.status_code == 403:
                 logging.error('Certificate authentication failed. Please check all settings are correct.')
+                resp.raise_for_status()
         else:
             resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
                                     timeout=timeout, proxies=self._proxies)
@@ -759,6 +780,7 @@ class Session(object):
         if resp.status_code == 403:
             if self.cert_auth:
                 logging.error('Certificate authentication failed. Please check all settings are correct.')
+                resp.raise_for_status()
             else:
                 logging.error(resp.text)
                 logging.error('Trying to login again....')

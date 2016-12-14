@@ -297,6 +297,12 @@ installed using pip
    # Example
    session = Session('https://1.1.1.1', 'userabc', cert_name='userabc.crt', key='userabc.key')
 
+
+.. note:: If using the acitoolkit from the context of an APIC App Center app, make sure to pass the extra
+   parameter ``appcenter_user=True``. App Center apps are provided a user that belongs to a different class
+   of users.
+
+
 You do not need to explicitly call the ``login()`` method when using certificate authentication.
 
 After this point, you can continue to use all of the acitoolkit methods to get and push configuration from the APIC securely and without logging in.
