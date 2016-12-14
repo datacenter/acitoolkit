@@ -3192,9 +3192,31 @@ class TestLiveCertAuth(TestLiveAPIC):
     """
     Certificate auth tests with a live APIC
     """
-    def test_login_to_apic_with_cert(self):
-        session = Session(URL, LOGIN, cert_name=CERT_NAME, key=KEY)
+    def login_to_apic(self):
+        """Login to the APIC using Certificate auth
+           RETURNS:  Instance of class Session
+        """
+        session = Session(URL, LOGIN, cert_name=CERT_NAME, key=KEY, subscription_enabled=False)
+        return session
+
+    def test_get_tenants(self):
+        """
+        Test that cert auth can get Tenants
+        """
+        session = self.login_to_apic()
         tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+
+    def test_get_with_params(self):
+        """
+        Test that URL encoded parameters do not break cert auth
+        """
+        session = self.login_to_apic()
+        tenants = Tenant.get_deep(
+            session,
+            names=['mgmt', 'common'],
+            limit_to=['fvTenant', 'fvAp']
+        )
         self.assertTrue(len(tenants) > 0)
 
 
