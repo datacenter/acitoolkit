@@ -568,7 +568,6 @@ class Session(object):
         payload = '{}{}'.format(method, url)
         if data:
             payload += data
-        #logging.debug('Payload: ', payload)
 
         signature = base64.b64encode(sign(self._x509Key, payload, 'sha256'))
         cookie = {'APIC-Request-Signature': signature,
@@ -576,7 +575,7 @@ class Session(object):
                     'APIC-Certificate-Fingerprint': 'fingerprint',
                     'APIC-Certificate-DN': cert_dn}
 
-        logging.debug('Authentication cookie', cookie)
+        logging.debug('Authentication cookie %s' % cookie)
         return cookie
 
     def _send_login(self, timeout=None):
