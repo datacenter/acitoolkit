@@ -1436,7 +1436,7 @@ class Node(BaseACIPhysObject):
             working_data = WorkingData(session, Node, base_url)
 
         else:
-            class_url = '/api/node/class/fabricNode.json?'
+            class_url = '/api/node/class/fabricNode.json'
             ret = session.get(class_url)
             ret._content = ret._content.decode().replace('\n', '').encode()
             data = ret.json()['imdata']

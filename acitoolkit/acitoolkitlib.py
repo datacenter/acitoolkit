@@ -88,9 +88,11 @@ class Credentials(object):
             DEFAULT_URL = set_default('url')
             DEFAULT_LOGIN = set_default('login')
             DEFAULT_PASSWORD = set_default('password')
-            if DEFAULT_PASSWORD is not None:
-                DEFAULT_CERT_NAME = set_default('cert_name')
-                DEFAULT_KEY = set_default('key')
+            DEFAULT_CERT_NAME = set_default('cert_name')
+            DEFAULT_KEY = set_default('key')
+            #if DEFAULT_PASSWORD is not None:
+            #    DEFAULT_CERT_NAME = set_default('cert_name')
+            #    DEFAULT_KEY = set_default('key')
             # else:
             #     DEFAULT_CERT_NAME = None
             #     DEFAULT_KEY = None
