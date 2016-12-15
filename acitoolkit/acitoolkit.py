@@ -3951,6 +3951,10 @@ class ContractSubject(BaseACIObject):
         for entry in self.get_filters():
             filt = {subjectFilter: {'attributes': {'tnVzFilterName': entry.name}}}
             filters.append(filt)
+
+        for entry in self.get_filters(deleted=True):
+            filt = {'vzRsSubjFiltAtt': {'attributes': {'status': 'deleted', 'tnVzFilterName': entry.name}}}
+            filters.append(filt)
         resp_json[subject]['children'] = filters
 
         terminals = []
@@ -3975,7 +3979,7 @@ class ContractSubject(BaseACIObject):
             raise TypeError('add_filter not called with Filter')
         self._add_relation(filter_obj)
 
-    def get_filters(self):
+    def get_filters(self, deleted=False):
         """
         Get all of the filters that are attached to this ContractSubject.
 
@@ -3983,8 +3987,14 @@ class ContractSubject(BaseACIObject):
         """
         resp = []
         for relation in self._relations:
-            if isinstance(relation.item, Filter):
-                resp.append(relation.item)
+            if deleted:
+                if relation.status == 'detached':
+                    if isinstance(relation.item, Filter):
+                        resp.append(relation.item)
+            else:
+                if relation.status == 'attached':
+                    if isinstance(relation.item, Filter):
+                        resp.append(relation.item)
         return resp
 
     def _get_instance_subscription_urls(self):
