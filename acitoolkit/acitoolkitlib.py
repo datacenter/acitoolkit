@@ -90,6 +90,12 @@ class Credentials(object):
             DEFAULT_PASSWORD = set_default('password')
             DEFAULT_CERT_NAME = set_default('cert_name')
             DEFAULT_KEY = set_default('key')
+            #if DEFAULT_PASSWORD is not None:
+            #    DEFAULT_CERT_NAME = set_default('cert_name')
+            #    DEFAULT_KEY = set_default('key')
+            # else:
+            #     DEFAULT_CERT_NAME = None
+            #     DEFAULT_KEY = None
             self._parser.add_argument('-u', '--url',
                                       default=DEFAULT_URL,
                                       help='APIC URL e.g. http://1.2.3.4')
