@@ -106,8 +106,9 @@ class PolicyObject(object):
         return stripped_name
 
     def replace_invalid_name_chars(self, name):
-        valid_char_set = set('_.:-')
-        return self._replace_invalid_chars(name, valid_char_set)
+        valid_char_set = set('_.-')
+        valid_name = self._replace_invalid_chars(name, valid_char_set)
+        return valid_name[:63]  # valid name validators. Range: min: "1" max: "63"
 
     def replace_invalid_descr_chars(self, name):
         valid_char_set = set('\\!#$%()*,-./:;@ _{|}~?&+')
@@ -230,6 +231,31 @@ class NodePolicy(PolicyObject):
         return self._policy['prefix_len']
 
 
+class RouteTagPolicy(PolicyObject):
+    """
+    RouteTag Policy
+    """
+
+    def __init__(self, policy):
+        super(RouteTagPolicy, self).__init__(policy)
+
+    @property
+    def name(self):
+        """
+        route_tag name
+        :return: String containing the route_tag  name
+        """
+        return self._policy['name']
+
+    @property
+    def subnet_mask(self):
+        """
+        route_tag subnet_mask address
+        :return: String containing the route_tag subnet_mask
+        """
+        return self._policy['subnet_mask']
+
+
 class EPGPolicy(PolicyObject):
     """
     EPG Policy
@@ -239,6 +265,14 @@ class EPGPolicy(PolicyObject):
         super(EPGPolicy, self).__init__(policy)
         self._node_policies = []
         self._populate_node_policies()
+        self._populate_routeTag_policy()
+
+    def _populate_routeTag_policy(self):
+        """
+        Fill in the RouteTag policy
+        :return: None
+        """
+        self._routeTag_policy = RouteTagPolicy(self._policy['route_tag'])
 
     def _populate_node_policies(self):
         """
@@ -299,6 +333,13 @@ class EPGPolicy(PolicyObject):
         """
         return self._node_policies
 
+    def get_route_tag_policy(self):
+        """
+        Get the RouteTag policy
+        :return: List of RouteTagPolicy instances
+        """
+        return self._routeTag_policy
+
 
 class ApplicationPolicy(PolicyObject):
     """
@@ -315,6 +356,10 @@ class ApplicationPolicy(PolicyObject):
     @property
     def clusters(self):
         return self._policy['clusters']
+
+    @name.setter
+    def name(self, value):
+        self._policy['name'] = value
 
 
 class ContextPolicy(PolicyObject):
@@ -336,6 +381,10 @@ class ContextPolicy(PolicyObject):
     @property
     def tenant_name(self):
         return self._policy['tenant_name']
+
+    @name.setter
+    def name(self, value):
+        self._policy['name'] = value
 
 
 class ContractPolicy(PolicyObject):
@@ -1328,9 +1377,14 @@ class ApicService(GenericService):
                     epg.set_base_epg(base_epg)
                     criterion = AttributeCriterion('criterion', epg)
                     ipaddrs = []
+
+                    route_tag_policy = epg_policy.get_route_tag_policy()
+                    ipnetwork = ipaddress.ip_network(unicode(route_tag_policy.subnet_mask))
+
                     for node_policy in epg_policy.get_node_policies():
                         ipaddr = ipaddress.ip_address(unicode(node_policy.ip))
-                        if not ipaddr.is_multicast:  # Skip multicast addresses. They cannot be IP based EPGs
+                        # Skip multicast addresses and broadcast address. They cannot be IP based EPGs
+                        if ipnetwork.broadcast_address != ipaddr and not ipaddr.is_multicast:
                             ipaddrs.append(ipaddr)
                     nets = ipaddress.collapse_addresses(ipaddrs)
                     for net in nets:
@@ -1465,6 +1519,24 @@ class ApicService(GenericService):
                 epg.descr = epg_policy.descr[0:127]
             self.consume_and_provide_contracts_for_epgs(epg_policy, epg, tenant)
 
+    def _replace_invalid_chars(self, name, valid_char_set):
+        stripped_name = ''
+        name_len = 0
+        for char in name:
+            if name_len < 63:  # valid name validators. Range: min: "1" max: "63"
+                if char not in valid_char_set and not char.isalnum():
+                    stripped_name += '_'
+                else:
+                    stripped_name += char
+                name_len = name_len + 1
+        return stripped_name
+
+    def replace_invalid_name_chars(self):
+        valid_char_set = set('_.-')
+        self._tenant_name = self._replace_invalid_chars(self._tenant_name, valid_char_set)
+        self._app_name = self._replace_invalid_chars(self._app_name, valid_char_set)
+        self._l3ext_name = self._replace_invalid_chars(self._l3ext_name, valid_char_set)
+
     def push_config_to_apic(self):
         """
         Push the configuration to the APIC
@@ -1477,6 +1549,9 @@ class ApicService(GenericService):
             self.set_tenant_name(self.cdb.get_context_config().tenant_name)
         elif self._tenant_name == '':
             self.set_tenant_name('acitoolkit')
+        logging.debug('Removing invalid characters in tenant_name, app_name, l3ext_name')
+        self.replace_invalid_name_chars()
+
         logging.debug('Removing duplicate contracts')
         self.remove_duplicate_contracts()
 
@@ -1615,6 +1690,11 @@ class ApicService(GenericService):
     def mangle_names(self):
         unique_id = 0
         name_db_by_id = {}
+        if not self.cdb._context_policy is None:
+            context_policy = self.cdb._context_policy
+            context_policy.name = context_policy.replace_invalid_name_chars(context_policy.name)
+        for application_policy in self.cdb.get_application_policies():
+            application_policy.name = application_policy.replace_invalid_name_chars(application_policy.name)
         for epg_policy in self.cdb.get_epg_policies():
             epg_policy.descr = epg_policy.name + ':' + epg_policy.id
             epg_policy.descr = epg_policy.replace_invalid_descr_chars(epg_policy.descr)
