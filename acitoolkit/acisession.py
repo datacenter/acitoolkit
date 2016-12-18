@@ -39,8 +39,14 @@ import time
 import socket
 import base64
 import requests
+import sys
 from collections import namedtuple
-from urllib import unquote
+
+if sys.version_info < (3, 0, 0):
+    from urllib import unquote
+else:
+    from urllib.parse import unquote
+
 try:
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
 except ImportError:
