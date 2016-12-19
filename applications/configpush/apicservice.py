@@ -1841,8 +1841,12 @@ def execute_tool(args):
         tool.set_l3ext_name(args.l3ext)
     if args.useipepgs:
         tool.use_ip_epgs()
-    if args.appcenter:
-        tool.use_certificate_authentication()
+    try:
+        if args.appcenter:
+            tool.use_certificate_authentication()
+    except AttributeError:
+        # Silently handle no appcenter argument
+        pass
     return tool
 if __name__ == '__main__':
     try:
