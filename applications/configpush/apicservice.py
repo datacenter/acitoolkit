@@ -152,6 +152,30 @@ class ApicPolicy(PolicyObject):
         return self._policy['password']
 
     @property
+    def cert_name(self):
+        """
+        Cert_Name to use to login to the APIC
+        :return: String containing the cert_name
+        """
+        return self._policy['cert_name']
+
+    @property
+    def key(self):
+        """
+        Key to use to login to the APIC
+        :return: String containing the key
+        """
+        return self._policy['key']
+
+    @property
+    def appcenter_user(self):
+        """
+        Appcenter_User to use to login to the APIC
+        :return: String containing the appcenter_user
+        """
+        return self._policy['appcenter_user']
+
+    @property
     def url(self):
         """
         URL to use to login to the APIC
@@ -804,11 +828,15 @@ class ApicService(GenericService):
         self.cdb = ConfigDB()
         self.monitor = None
         super(ApicService, self).__init__()
-        self.set_json_schema('json_schema.json')
+        path = os.path.dirname(os.path.realpath(__file__))
+        schema_file = os.path.join(path, 'json_schema.json')
+        logging.info(schema_file)
+        self.set_json_schema(schema_file)
         self._tenant_name = ''
         self._app_name = 'acitoolkitapp'
         self._l3ext_name = 'L3OUT'
         self._use_ip_epgs = False
+        self._use_certificate_authentication = False
 
     def set_tenant_name(self, name):
         """
@@ -844,6 +872,9 @@ class ApicService(GenericService):
 
     def use_ip_epgs(self):
         self._use_ip_epgs = True
+
+    def use_certificate_authentication(self):
+        self._use_certificate_authentication = True
 
     def prompt_and_mark_as_deleted(self, apic, object_delete=None):
         '''
@@ -1560,10 +1591,16 @@ class ApicService(GenericService):
 
         # Log on to the APIC
         apic_cfg = self.cdb.get_apic_config()
-        apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
-        resp = apic.login()
-        if not resp.ok:
-            return resp.text
+        if self._use_certificate_authentication:
+            apic = Session(apic_cfg.url, apic_cfg.user_name, cert_name=apic_cfg.cert_name,
+                        key=apic_cfg.key, appcenter_user=apic_cfg.appcenter_user,
+                        subscription_enabled=False)
+        else:
+            apic = Session(apic_cfg.url, apic_cfg.user_name, apic_cfg.password)
+            resp = apic.login()
+            if not resp.ok:
+                return resp.text
+
         tenant = Tenant(self._tenant_name)
         if not Tenant.exists(apic, tenant):
             # when adding tenant for the first time, all the config is added so prompt is made false
@@ -1804,6 +1841,8 @@ def execute_tool(args):
         tool.set_l3ext_name(args.l3ext)
     if args.useipepgs:
         tool.use_ip_epgs()
+    if args.appcenter:
+        tool.use_certificate_authentication()
     return tool
 if __name__ == '__main__':
     try:
