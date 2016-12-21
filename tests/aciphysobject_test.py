@@ -618,16 +618,16 @@ class TestCluster(unittest.TestCase):
     def test_get_config_size(self):
         cluster = Cluster('test-cluster')
         cluster.config_size = 50
-        self.assertEquals(cluster.get_config_size(), 50)
+        self.assertEqual(cluster.get_config_size(), 50)
 
     def test_get_cluster_size(self):
         cluster = Cluster('test-cluster')
         cluster.cluster_size = 50
-        self.assertEquals(cluster.get_cluster_size(), 50)
+        self.assertEqual(cluster.get_cluster_size(), 50)
 
     def test_get_apics(self):
         cluster = Cluster('test-cluster')
-        self.assertEquals(len(cluster.get_apics()), 0)
+        self.assertEqual(len(cluster.get_apics()), 0)
 
 
 class TestLiveAPIC(unittest.TestCase):
