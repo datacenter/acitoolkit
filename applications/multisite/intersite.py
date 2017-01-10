@@ -554,6 +554,8 @@ class MultisiteMonitor(threading.Thread):
                     self.handle_endpoint_event()
                 except ConnectionError:
                     logging.error('Could not handle endpoint event due to ConnectionError')
+            else:
+                time.sleep(0.05)
 
 
 class SiteLoginCredentials(object):
