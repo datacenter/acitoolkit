@@ -488,8 +488,9 @@ class Session(object):
                 Please install it using "pip install pyopenssl"')
 
             self.cert_auth = True
-            # Cert based auth does not support subscriptions :(
-            if subscription_enabled:
+            # Cert based auth does not support subscriptions :(  
+            # there's an exception for appcenter_user relying on the requestAppToken api
+            if subscription_enabled and not self.appcenter_user:
                 logging.warning('Disabling subscription support as certificate authentication does not support it.')
                 logging.warning('Consider passing subscription_enabled=False to hide this warning message.')
                 subscription_enabled = False
@@ -548,6 +549,11 @@ class Session(object):
         if not self.cert_auth:
             return {}
 
+        # for appcenter_user with subscription enabled and currently logged_in
+        # no need to build x509 header since authentication is using token
+        if self.appcenter_user and self._subscription_enabled and self._logged_in:
+            return {}
+
         if not self.session:
             self.session = requests.Session()
 
@@ -596,16 +602,19 @@ class Session(object):
                 pass
         self.session = requests.Session()
 
-        if self.cert_auth:
+        if self.appcenter_user and self._subscription_enabled:
+            login_url = '/api/requestAppToken.json'
+            data = {'aaaAppToken':{'attributes':{'appName': self.cert_name}}}
+        elif self.cert_auth:
             logging.warning('Will not explicitly login because certificate based authentication is being used for this session.')
             logging.warning('If permanently using cert auth, consider removing the call to login().')
             CertAuthResponse = namedtuple('CertAuthResponse', ['ok'])
             return CertAuthResponse(ok=True)
-
-        login_url = '/api/aaaLogin.json'
-        name_pwd = {'aaaUser': {'attributes': {'name': self.uid,
-                                            'pwd': self.pwd}}}
-        ret = self.push_to_apic(login_url, data=name_pwd, timeout=timeout)
+        else:
+            login_url = '/api/aaaLogin.json'
+            data = {'aaaUser': {'attributes': {'name': self.uid,
+                                                'pwd': self.pwd}}}
+        ret = self.push_to_apic(login_url, data=data, timeout=timeout)
         if not ret.ok:
             logging.error('Could not relogin to APIC. Aborting login thread.')
             self.login_thread.exit()
@@ -637,7 +646,7 @@ class Session(object):
             resp = requests.Response()
             resp.status_code = 404
             resp._content = '{"error": "Could not relogin to APIC due to ConnectionError"}'
-        if not self.cert_auth:
+        if (self.appcenter_user and self._subscription_enabled) or not self.cert_auth:
             self.login_thread.daemon = True
             self.login_thread.start()
         return resp
