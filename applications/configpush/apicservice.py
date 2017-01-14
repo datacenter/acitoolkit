@@ -1013,9 +1013,10 @@ class ApicService(GenericService):
                                                                   (contract_policy.descr.count('"') +
                                                                    contract_policy.descr.count("'") +
                                                                    contract_policy.descr.count('/'))]
-                    if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
-                            "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
-                        matched = True
+                    if "::" in existing_contract.descr and "::" in contract_policy.descr :
+                        if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                                "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                            matched = True
                 if not matched:
                     self.prompt_and_mark_as_deleted(apic, existing_contract)
                     exist_contract_providing_epgs = existing_contract.get_all_providing_epgs()
@@ -1067,18 +1068,19 @@ class ApicService(GenericService):
         # removing the unwanted contractsubject filters for each contract subject
         for contract_policy in self.cdb.get_contract_policies():
             for existing_contract in existing_contracts:
-                if existing_contract.descr != "" and existing_contract.descr.split("::")[1] == contract_policy.descr.split(
-                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
-                    for child_contractSubject in existing_contract.get_children(ContractSubject):
-                        for child_filter in child_contractSubject.get_filters():
-                            matched = False
-                            for whitelist_policy in contract_policy.get_whitelist_policies():
-                                entry_name = whitelist_policy.proto + '.' + whitelist_policy.port_min + '.' + whitelist_policy.port_max
-                                if child_filter.name == entry_name + '_Filter':
-                                    matched = True
-                                    continue
-                            if not matched:
-                                self.prompt_and_remove_relation(apic, child_contractSubject, child_filter)
+                if existing_contract.descr != "" and "::" in existing_contract.descr and "::" in contract_policy.descr :
+                    if existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                            "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                        for child_contractSubject in existing_contract.get_children(ContractSubject):
+                            for child_filter in child_contractSubject.get_filters():
+                                matched = False
+                                for whitelist_policy in contract_policy.get_whitelist_policies():
+                                    entry_name = whitelist_policy.proto + '.' + whitelist_policy.port_min + '.' + whitelist_policy.port_max
+                                    if child_filter.name == entry_name + '_Filter':
+                                        matched = True
+                                        continue
+                                if not matched:
+                                    self.prompt_and_remove_relation(apic, child_contractSubject, child_filter)
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
             return 'OK'
@@ -1118,10 +1120,11 @@ class ApicService(GenericService):
         for contract_policy in self.cdb.get_contract_policies():
             matched = False
             for existing_contract in existing_contracts:
-                if existing_contract.descr != "" and existing_contract.descr.split("::")[1] == contract_policy.descr.split(
-                        "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
-                    matched = True
-                    break
+                if "::" in existing_contract.descr and "::" in contract_policy.descr:
+                    if existing_contract.descr != "" and existing_contract.descr.split("::")[1] == contract_policy.descr.split(
+                            "::")[1] and existing_contract.descr.split("::")[0] == contract_policy.descr.split("::")[0]:
+                        matched = True
+                        break
             child_filters = []
             if matched:
                 contract = existing_contract
@@ -1466,10 +1469,11 @@ class ApicService(GenericService):
             matched = False
             for existing_epg in existing_epgs:
                 if existing_epg.name != "base":
-                    if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
-                            ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
-                        matched = True
-                        break
+                    if ":" in existing_epg.descr and ":" in epg_policy.descr:
+                        if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                                ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                            matched = True
+                            break
 
             if matched is True:
                 epg = existing_epg
@@ -1648,10 +1652,11 @@ class ApicService(GenericService):
                     matched = False
                     for existing_epg in existing_epgs:
                         if existing_epg.name != "base":
-                            if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
-                                    ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
-                                matched = True
-                                break
+                            if ":" in existing_epg.descr and ":" in epg_policy.descr :
+                                if existing_epg.descr.split(":")[1] == epg_policy.descr.split(
+                                        ":")[1] and existing_epg.descr.split(":")[0] == epg_policy.descr.split(":")[0]:
+                                    matched = True
+                                    break
 
                     if matched is True:
                         epg = existing_epg
@@ -1690,10 +1695,11 @@ class ApicService(GenericService):
                     for l3out_epg_policy in self.cdb.get_l3out_policies():
                         matched = False
                         for existing_outside_epg in existing_outside_epgs:
-                            if existing_outside_epg.descr.split(":")[1] == l3out_epg_policy.descr.split(
-                                    ":")[1] and existing_outside_epg.descr.split(":")[0] == l3out_epg_policy.descr.split(":")[0]:
-                                matched = True
-                                break
+                            if ":" in existing_outside_epg.descr and ":" in l3out_epg_policy.descr :
+                                if existing_outside_epg.descr.split(":")[1] == l3out_epg_policy.descr.split(
+                                        ":")[1] and existing_outside_epg.descr.split(":")[0] == l3out_epg_policy.descr.split(":")[0]:
+                                    matched = True
+                                    break
                         if matched is True:
                             epg = existing_outside_epg
                             self.consume_and_provide_contracts_for_epgs(l3out_epg_policy, epg, tenant)
