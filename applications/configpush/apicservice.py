@@ -238,6 +238,10 @@ class NodePolicy(PolicyObject):
         """
         return self._policy['name']
 
+    @name.setter
+    def name(self, value):
+        self._policy['name'] = value
+
     @property
     def ip(self):
         """
@@ -1199,7 +1203,7 @@ class ApicService(GenericService):
                     logging.debug('Throttling contracts. Pushing config...')
                     resp = tenant.push_to_apic(apic)
                     if not resp.ok:
-                        return resp
+                        return resp.content
                     tenant = Tenant(self._tenant_name)
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
@@ -1746,9 +1750,12 @@ class ApicService(GenericService):
             else:
                 epg_policy.name = epg_policy.replace_invalid_name_chars(epg_policy.name)
                 end_string = '-' + str(unique_id)
-                epg_policy.name = epg_policy.name[0:30 - len(end_string)] + end_string
+                epg_policy.name = epg_policy.name[0:27 - len(end_string)] + end_string
                 unique_id += 1
                 name_db_by_id[epg_policy.id] = epg_policy.name
+
+            for node_policy in epg_policy.get_node_policies():
+                node_policy.name = node_policy.replace_invalid_name_chars(node_policy.name)
         for contract_policy in self.cdb.get_contract_policies():
             contract_policy.descr = contract_policy.src_name + ':' + contract_policy.dst_name + '::'
             contract_policy.descr += contract_policy.src_id + ':' + contract_policy.dst_id
