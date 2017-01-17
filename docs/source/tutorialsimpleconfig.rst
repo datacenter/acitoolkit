@@ -300,10 +300,14 @@ installed using pip
 
 .. note:: If using the acitoolkit from the context of an APIC App Center app, make sure to pass the extra
    parameter ``appcenter_user=True``. App Center apps are provided a user that belongs to a different class
-   of users.
+   of users.  The login and cert_name for App Center users are both in the form of ``vendor_appId``.  
+   App Center users support certificate subsciptions through a special requestAppToken api. To use 
+   subscriptions with an App Center user, you must explicitly call the ``login()`` method which acquires
+   and maintains the App user token. Disable App center subscriptions by setting the parameter 
+   ``subscription_enabled=False``.
 
 
-You do not need to explicitly call the ``login()`` method when using certificate authentication.
+You do not need to explicitly call the ``login()`` method when using certificate authentication.  
 
 After this point, you can continue to use all of the acitoolkit methods to get and push configuration from the APIC securely and without logging in.
 

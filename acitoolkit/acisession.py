@@ -374,6 +374,17 @@ class Subscriber(threading.Thread):
         result = len(self._events[url]) != 0
         return result
 
+    def get_event_count(self, url):
+        """
+        Check the number of subscription events for a particular APIC URL
+
+        :param url: URL string to check for pending events
+        :returns: Interger number of events in event queue
+        """
+        self._process_event_q()
+        if url not in self._events: return 0
+        return len(self._events[url])
+
     def get_event(self, url):
         """
         Get an event for a particular APIC URL subscription.
@@ -489,7 +500,7 @@ class Session(object):
 
             self.cert_auth = True
             # Cert based auth does not support subscriptions :(  
-            # there's an exception for appcenter_user relying on the requestAppToken api
+            # exception for appcenter_user
             if subscription_enabled and not self.appcenter_user:
                 logging.warning('Disabling subscription support as certificate authentication does not support it.')
                 logging.warning('Consider passing subscription_enabled=False to hide this warning message.')
@@ -549,8 +560,7 @@ class Session(object):
         if not self.cert_auth:
             return {}
 
-        # for appcenter_user with subscription enabled and currently logged_in
-        # no need to build x509 header since authentication is using token
+        # for appcenter_user with subscription enabled and correctly logged, skip?
         if self.appcenter_user and self._subscription_enabled and self._logged_in:
             return {}
 
@@ -601,6 +611,7 @@ class Session(object):
             except AttributeError:
                 pass
         self.session = requests.Session()
+        self._logged_in = False
 
         if self.appcenter_user and self._subscription_enabled:
             login_url = '/api/requestAppToken.json'
@@ -718,6 +729,15 @@ class Session(object):
         """
         return self.subscription_thread.has_events(url)
 
+    def get_event_count(self, url):
+        """
+        Check the number of subscription events for a particular APIC URL
+
+        :param url:  URL string belonging to subscription
+        :returns: Interger number of events in event queue
+        """
+        return self.subscription_thread.get_event_count(url)
+
     def get_event(self, url):
         """
         Get an event for a particular URL.  Used internally by the
@@ -753,7 +773,8 @@ class Session(object):
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)
 
-        if self.cert_auth:
+        if self.cert_auth and not \
+            (self.appcenter_user and self._subscription_enabled and self._logged_in):
             data = json.dumps(data, sort_keys=True)
             cookies = self._prep_x509_header('POST', url, data)
             resp = self.session.post(post_url, data=data, verify=self.verify_ssl,
@@ -792,7 +813,7 @@ class Session(object):
         cookies = self._prep_x509_header('GET', url)
         resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies, cookies=cookies)
         if resp.status_code == 403:
-            if self.cert_auth:
+            if self.cert_auth and not (self.appcenter_user and self._subscription_enabled):
                 logging.error('Certificate authentication failed. Please check all settings are correct.')
                 resp.raise_for_status()
             else:
