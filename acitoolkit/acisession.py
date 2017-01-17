@@ -500,7 +500,7 @@ class Session(object):
 
             self.cert_auth = True
             # Cert based auth does not support subscriptions :(  
-            # exception for appcenter_user
+            # there's an exception for appcenter_user relying on the requestAppToken api
             if subscription_enabled and not self.appcenter_user:
                 logging.warning('Disabling subscription support as certificate authentication does not support it.')
                 logging.warning('Consider passing subscription_enabled=False to hide this warning message.')
@@ -560,7 +560,8 @@ class Session(object):
         if not self.cert_auth:
             return {}
 
-        # for appcenter_user with subscription enabled and correctly logged, skip?
+        # for appcenter_user with subscription enabled and currently logged_in
+        # no need to build x509 header since authentication is using token
         if self.appcenter_user and self._subscription_enabled and self._logged_in:
             return {}
 
