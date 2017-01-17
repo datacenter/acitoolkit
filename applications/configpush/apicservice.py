@@ -237,7 +237,7 @@ class NodePolicy(PolicyObject):
         :return: String containing the Node  name
         """
         return self._policy['name']
-
+    
     @name.setter
     def name(self, value):
         self._policy['name'] = value
@@ -986,7 +986,40 @@ class ApicService(GenericService):
 
         for epg_policy in self.cdb.get_l3out_policies():
             self.cdb.remove_epg_policy(epg_policy)
-
+            
+    def removing_unwanted_app_profiles(self,apic):
+        '''
+        deletes the unwanted appProfiles
+        '''
+        tenant_names = [self._tenant_name]
+        tenant = Tenant(self._tenant_name)
+        if Tenant.exists(apic, tenant):
+            tenants = Tenant.get_deep(
+                apic,
+                names=tenant_names,
+                limit_to=[
+                    'fvTenant',
+                    'fvAp'
+                    ])
+            tenant = tenants[0]
+            existing_appProfiles = tenant.get_children(AppProfile)
+            for existing_appProfile in existing_appProfiles:
+                if existing_appProfile.name != self._app_name:
+                    existing_appProfile.mark_as_deleted()
+                    
+            if self.displayonly:
+                print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+                return 'OK'
+            else:
+                logging.debug('Pushing contracts by deleting unwanted app profiles')
+                resp = tenant.push_to_apic(apic)
+                if resp.ok:
+                    return 'OK'
+                else:
+                    return resp.text
+        else:
+            return 'OK'
+        
     def delete_unwanted_contracts(self, apic):
         '''
         deletes the Contracts which are not in the present config['policies']
@@ -1340,7 +1373,10 @@ class ApicService(GenericService):
                         "adding outsideNetwork with ip address  %s to EPG %s " %
                         (str(net), l3out_epg_policy.name))
                     outsideNetwork = OutsideNetwork(node_policy.name, outsideEPG)
-                    outsideNetwork.set_addr(str(net))
+                    if node_policy.ip == '0.0.0.0':
+                        outsideNetwork.set_addr(str(node_policy.ip))
+                    else:
+                        outsideNetwork.set_addr(str(net))
 
             for contract_policy in self.cdb.get_contract_policies():
                 contract = None
@@ -1391,7 +1427,7 @@ class ApicService(GenericService):
                     if len(str(tenant.get_json())) > THROTTLE_SIZE:
                         resp = tenant.push_to_apic(apic)
                         if not resp.ok:
-                            return resp
+                            return resp.content
                         tenant = Tenant(self._tenant_name)
                         app = AppProfile(self._app_name, tenant)
                         context = Context(context_name, tenant)
@@ -1583,6 +1619,7 @@ class ApicService(GenericService):
         """
         THROTTLE_SIZE = 500000 / 8
         tenant_created = False
+        app_created = False
         # Set the tenant name correctly
         if self._tenant_name == '' and self.cdb.has_context_config():
             self.set_tenant_name(self.cdb.get_context_config().tenant_name)
@@ -1632,7 +1669,13 @@ class ApicService(GenericService):
         resp = self.push_remaining_contracts_along_with_filters(apic, THROTTLE_SIZE)
         if not resp == 'OK':
             return resp
-
+        
+        # delete unwanted appProfiles
+        logging.debug('delete unwanted appProfiles')
+        resp = self.removing_unwanted_app_profiles(apic)
+        if not resp == 'OK':
+            return resp
+        
         # Push remaining EPGs
         tenant_names = [self._tenant_name]
         logging.debug('Pushing EPGs')
@@ -1640,16 +1683,19 @@ class ApicService(GenericService):
         tenant = tenants[0]
         appProfiles = tenant.get_children(AppProfile)
         existing_epgs = []
+        app = None
         if len(appProfiles) > 0:
-            app = appProfiles[0]
             for appProfile in appProfiles:
                 if appProfile.name == self._app_name:
-                    existing_epgs = app.get_children(EPG)
-        else:
+                    app = appProfile
+                    existing_epgs = appProfile.get_children(EPG)
+                    
+        if app is None:
             app = AppProfile(self._app_name, tenant)
+            app_created = True
 
         if len(self.cdb.get_epg_policies()) > 0:
-            if tenant_created:
+            if tenant_created or app_created:
                 self.pushing_epgs(apic, tenant, app, THROTTLE_SIZE)
             else:
                 for epg_policy in self.cdb.get_epg_policies():
@@ -1670,12 +1716,14 @@ class ApicService(GenericService):
                             if len(str(tenant.get_json())) > THROTTLE_SIZE:
                                 resp = tenant.push_to_apic(apic)
                                 if not resp.ok:
-                                    return resp
+                                    return resp.content
                                 tenants = Tenant.get_deep(apic, names=tenant_names)
                                 tenant = tenants[0]
                                 appProfiles = tenant.get_children(AppProfile)
-                                app = appProfiles[0]
-                                existing_epgs = app.get_children(EPG)
+                                for appProfile in appProfiles:
+                                    if appProfile.name == self._app_name:
+                                        app = appProfile
+                                        existing_epgs = app.get_children(EPG)
 
         if self.displayonly:
             print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
@@ -1712,12 +1760,13 @@ class ApicService(GenericService):
                                 if len(str(tenant.get_json())) > THROTTLE_SIZE:
                                     resp = tenant.push_to_apic(apic)
                                     if not resp.ok:
-                                        return resp
+                                        return resp.content
                                     tenants = Tenant.get_deep(apic, names=tenant_names)
                                     tenant = tenants[0]
                                     outsideL3s = tenant.get_children(OutsideL3)
-                                    outside_l3 = OutsideL3(self._l3ext_name, tenant)
-                                    existing_outside_epgs = outside_l3.get_children(OutsideEPG)
+                                    for outsideL3 in outsideL3s:
+                                        if outsideL3.name == self._l3ext_name:
+                                            existing_outside_epgs = outsideL3.get_children(OutsideEPG)
                         else:
                             logging.debug('EPG doesnot exist %s ' % (l3out_epg_policy.name))
                             print("EPG doesnot exist " + l3out_epg_policy.name)
@@ -1753,7 +1802,7 @@ class ApicService(GenericService):
                 epg_policy.name = epg_policy.name[0:27 - len(end_string)] + end_string
                 unique_id += 1
                 name_db_by_id[epg_policy.id] = epg_policy.name
-
+                
             for node_policy in epg_policy.get_node_policies():
                 node_policy.name = node_policy.replace_invalid_name_chars(node_policy.name)
         for contract_policy in self.cdb.get_contract_policies():
