@@ -5,7 +5,7 @@ import json
 import unittest
 from apicservice import ApicService
 from acitoolkit import (Tenant, Session, Filter, EPG, Contract, Context, ContractSubject, AppProfile, BridgeDomain,
-                        AttributeCriterion, OutsideL3, OutsideEPG, Session)
+                        AttributeCriterion, OutsideL3, OutsideEPG, OutsideNetwork, Session)
 import sys
 import time
 from deepdiff import DeepDiff
@@ -344,6 +344,80 @@ class TestConfigpush(unittest.TestCase):
         for tenant in tenants:
             if tenant.name == tenant_name:
                 self.assertTrue(True, "tennat exists with name " + tenant_name)
+                
+    def test_tenantname_for_invalidname_in_configpush(self):
+        """
+        this should test the tenant name of tenant. the invalid characters in tenant name should be removed.
+        to test this first i am deleting the tenant if exits and then push the config,the tenant name in existing config from APIC should have valid characters.
+        """
+
+        config_file = """
+        {
+  "clusters": [
+    {
+      "name": "Configpushtest*-(1)",
+      "id": "56c55b8761707062b2d11b00",
+      "descr": "sample description",
+      "route_tag": {
+        "subnet_mask": "173.38.111.0/24",
+        "name": "rtp1-dcm01n-gp-db-dr2:iv2133"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    },
+    {
+      "name": "Configpushtest*-(2)",
+      "id": "56c3d31561707035c0c12b00",
+      "descr": "sample description",
+      "approved": true,
+      "route_tag": {
+        "subnet_mask": "0.0.0.0/0",
+        "name": "INTERNET-EXTNET"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    }
+   ],
+  "policies": [
+    {
+      "src": "56c55b8761707062b2d11b00",
+      "dst": "56c3d31561707035c0c12b00",
+      "src_name": "Configpushtest-policy*-(1)",
+      "dst_name": "Configpushtest-policy*-(2)",
+      "descr": "sample description",
+      "whitelist": [
+      ]
+    }
+  ]
+}
+        """
+        load_config = LoadConfig()
+        tenant_name = 'configpush-test1**#####{{{{}}}}}$$$$$$######################abcdefgh'
+        load_config.load_configFile(config_file, is_file=False, tenant_name=tenant_name)
+        time.sleep(5)
+
+        tenants = Tenant.get(load_config.session)
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                tenant.mark_as_deleted()
+                resp = tenant.push_to_apic(load_config.session)
+                if not resp.ok:
+                    print "tenant deletion failed"
+
+        time.sleep(5)
+        load_config = LoadConfig()
+        load_config.load_configFile(config_file, is_file=False)
+        time.sleep(5)
+        tenants = Tenant.get(load_config.session)# names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == "configpush-test1____________________________________________abc":
+                self.assertTrue(True, "tennat exists with name " + tenant_name)
 
     def test_appProfilename_in_configpush(self):
         """
@@ -422,6 +496,150 @@ class TestConfigpush(unittest.TestCase):
                 app_profiles = tenant.get_children(AppProfile)
                 app = app_profiles[0]
                 self.assertEquals(app[0].name, app_name, "application profile with given name doesnot exist")
+                
+    def test_appProfilename_for_invalidname_in_configpush(self):
+        """
+        this should test the application Profile name of tenant. the invalid characters in application profile should be removed.
+        to test this first i am deleting the tenant if exits and then  push the config,the application Profile name in existing config from APIC should have valid characters.
+        """
+
+        config_file = """
+        {
+  "clusters": [
+    {
+      "name": "Configpushtest*-(1)",
+      "id": "56c55b8761707062b2d11b00",
+      "descr": "sample description",
+      "route_tag": {
+        "subnet_mask": "173.38.111.0/24",
+        "name": "rtp1-dcm01n-gp-db-dr2:iv2133"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    },
+    {
+      "name": "Configpushtest*-(2)",
+      "id": "56c3d31561707035c0c12b00",
+      "descr": "sample description",
+      "approved": true,
+      "route_tag": {
+        "subnet_mask": "0.0.0.0/0",
+        "name": "INTERNET-EXTNET"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    }
+   ],
+  "policies": [
+    {
+      "src": "56c55b8761707062b2d11b00",
+      "dst": "56c3d31561707035c0c12b00",
+      "src_name": "Configpushtest-policy*-(1)",
+      "dst_name": "Configpushtest-policy*-(2)",
+      "descr": "sample description",
+      "whitelist": [
+      ]
+    }
+  ]
+}
+        """
+        load_config = LoadConfig()
+        tenant_name = 'configpush-test1'
+        app_name = 'app-test**-#.{}'
+        load_config.load_configFile(config_file, is_file=False, tenant_name=tenant_name, app_name=app_name)
+        time.sleep(5)
+
+        tenants = Tenant.get(load_config.session)
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                tenant.mark_as_deleted()
+                resp = tenant.push_to_apic(load_config.session)
+                if not resp.ok:
+                    print "tenant deletion failed"
+
+        time.sleep(5)
+        load_config = LoadConfig()
+        load_config.load_configFile(config_file, is_file=False)
+        time.sleep(5)
+        tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                self.assertTrue(True, "tennat exists with name " + tenant_name)
+                app_profiles = tenant.get_children(AppProfile)
+                app = app_profiles[0]
+                self.assertEquals(app[0].name, "app-test**-_.__", "application profile with given name doesnot exist")
+    
+    def test_appProfilename_for_change_in_name_configpush(self):
+        """
+        this should test the application Profile name of tenant.push the same json with diferent --app name for the second time.
+        so that the tenant should have the new application profile and the old one should be deleted
+        """
+
+        config_file = """
+        {
+  "clusters": [
+    {
+      "name": "Configpushtest*-(1)",
+      "id": "56c55b8761707062b2d11b00",
+      "descr": "sample description",
+      "route_tag": {
+        "subnet_mask": "173.38.111.0/24",
+        "name": "rtp1-dcm01n-gp-db-dr2:iv2133"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    },
+    {
+      "name": "Configpushtest*-(2)",
+      "id": "56c3d31561707035c0c12b00",
+      "descr": "sample description",
+      "approved": true,
+      "route_tag": {
+        "subnet_mask": "0.0.0.0/0",
+        "name": "INTERNET-EXTNET"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    }
+   ],
+  "policies": [
+    {
+      "src": "56c55b8761707062b2d11b00",
+      "dst": "56c3d31561707035c0c12b00",
+      "src_name": "Configpushtest-policy*-(1)",
+      "dst_name": "Configpushtest-policy*-(2)",
+      "descr": "sample description",
+      "whitelist": [
+      ]
+    }
+  ]
+}
+        """
+        load_config = LoadConfig()
+        tenant_name = 'configpush-test1'
+        app_name = 'app-test**-#.{}_changed'
+        load_config.load_configFile(config_file, is_file=False, tenant_name=tenant_name, app_name=app_name)
+        time.sleep(5)
+        tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                self.assertTrue(True, "tennat exists with name " + tenant_name)
+                app_profiles = tenant.get_children(AppProfile)
+                app = app_profiles[0]
+                for app in app_profiles:
+                    self.assertEquals(app.name, "app-test__-_.___changed", "application profile with name is not updated to the changed name")
 
     def test_l3ext_name_in_configpush(self):
         """
@@ -513,6 +731,237 @@ class TestConfigpush(unittest.TestCase):
                     l3ext_name,
                     "External routed network with name doesnot exist" +
                     l3ext_name)
+                
+    def test_l3ext_name_for_invalidname_in_configpush(self):
+        """
+        this should test the external routed network name of tenant. the invalid characters in external routed network name should be removed.
+        to test this first i am deleting the tenant if exits and then  push the config,the external routed network name in existing config from APIC should have valid characters.
+        """
+
+        config_file = """
+        {
+  "clusters": [
+    {
+      "name": "Configpushtest*-(1)",
+      "id": "56c55b8761707062b2d11b00",
+      "descr": "sample description",
+      "route_tag": {
+        "subnet_mask": "173.38.111.0/24",
+        "name": "rtp1-dcm01n-gp-db-dr2:iv2133"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    },
+    {
+      "name": "Configpushtest*-(2)",
+      "id": "56c3d31561707035c0c12b00",
+      "descr": "sample description",
+      "approved": true,
+      "route_tag": {
+        "subnet_mask": "0.0.0.0/0",
+        "name": "INTERNET-EXTNET"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+      ]
+    }
+   ],
+  "policies": [
+    {
+      "src": "56c55b8761707062b2d11b00",
+      "dst": "56c3d31561707035c0c12b00",
+      "src_name": "Configpushtest-policy*-(1)",
+      "dst_name": "Configpushtest-policy*-(2)",
+      "descr": "sample description",
+      "whitelist": [
+      ]
+    }
+  ]
+}
+        """
+        load_config = LoadConfig()
+        tenant_name = 'configpush-test1'
+        app_name = 'app-test'
+        l3ext_name = 'l3external-test***#####:::{{{}}}}'
+        load_config.load_configFile(
+            config_file,
+            is_file=False,
+            tenant_name=tenant_name,
+            app_name=app_name,
+            l3ext_name=l3ext_name)
+        time.sleep(5)
+
+        tenants = Tenant.get(load_config.session)
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                tenant.mark_as_deleted()
+                resp = tenant.push_to_apic(load_config.session)
+                if not resp.ok:
+                    print "tenant deletion failed"
+
+        time.sleep(5)
+        load_config = LoadConfig()
+        load_config.load_configFile(config_file, is_file=False)
+        time.sleep(5)
+        tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                self.assertTrue(True, "tenant exists with name " + tenant_name)
+                app_profiles = tenant.get_children(AppProfile)
+                app = app_profiles[0]
+                self.assertEquals(app[0].name, app_name, "application profile with given name doesnot exist" + app_name)
+
+                outsideL3s = tenant.get_children(OutsideL3)
+                print "outsideL3s[0].name  is  "+outsideL3s[0].name
+                self.assertEquals(
+                    outsideL3s[0].name,
+                    l3ext_name,
+                    "External routed network with name doesnot exist" +
+                    l3ext_name)
+                
+    def test_manglenames_in_configpush(self):
+        """
+        this should test the mangle_names method defined in apicserive.py.
+        which will make sure the length of the names of EPGS,Filters, app_profiles, nodes, contracts not to exceed 64 characters 
+        and also replaces the invalid characters
+        """
+
+        config_file = """
+        {
+  "clusters": [
+    {
+      "name": "Configpushtest_____..***()()()%%%%%%%%%%%%*_to_test_length_of_Cluster_name*-(1)",
+      "id": "56c55b8761707062b2d11b00",
+      "descr": "sample description",
+      "external": true,
+      "route_tag": {
+        "subnet_mask": "240.0.0.0/24",
+        "name": "mcast-net"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+        {
+          "ip": "240.0.0.0",
+          "name": "240.0.0.0/24",
+          "prefix_len": 24
+        }
+      ]
+    },
+    {
+      "name": "Configpushtest2____..***()()()%%%%%%%%%%%%*_to_test_length_of_Cluster_name*-(2)",
+      "id": "56c3d31561707035c0c12b00",
+      "descr": "sample description",
+      "approved": true,
+      "route_tag": {
+        "subnet_mask": "0.0.0.0/0",
+        "name": "N/A"
+      },
+      "labels": [
+
+      ],
+      "nodes": [
+        {
+          "ip": "0.0.0.0",
+          "name": "0.0.0.0/0",
+          "prefix_len": 0
+        }
+      ]
+    }
+   ],
+  "policies": [
+    {
+      "src": "56c55b8761707062b2d11b00",
+      "dst": "56c3d31561707035c0c12b00",
+      "src_name": "Configpushtest-policy1_____..***()()()%%%%%%%%%%%%*to_test_length_of_Cluster_name*-(1)",
+      "dst_name": "Configpushtest-policy2_____..***()()()%%%%%%%%%%%%*to_test_length_of_Cluster_name*-(2)",
+      "descr": "sample description",
+      "whitelist": [
+        {
+          "port": [
+            81,
+            81
+          ],
+          "proto": 6,
+          "action": "ALLOW"
+        }
+      ]
+    }
+  ]
+}
+        """
+        load_config = LoadConfig()
+        tenant_name = 'configpush-test1***#####:::{{{}}}}'
+        app_name = 'app-test***#####:::{{{}}}}'
+        l3ext_name = 'l3external-test***#####:::{{{}}}}'
+        load_config.load_configFile(
+            config_file,
+            is_file=False,
+            tenant_name=tenant_name,
+            app_name=app_name,
+            l3ext_name=l3ext_name)
+        time.sleep(5)
+
+        tenants = Tenant.get(load_config.session)
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                tenant.mark_as_deleted()
+                resp = tenant.push_to_apic(load_config.session)
+                if not resp.ok:
+                    print "tenant deletion failed"
+
+        time.sleep(5)
+        load_config = LoadConfig()
+        load_config.load_configFile(
+            config_file,
+            is_file=False,
+            tenant_name=tenant_name,
+            app_name=app_name,
+            l3ext_name=l3ext_name)
+        time.sleep(5)
+        tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == "configpush-test1__________________":
+                self.assertEqual("configpush-test1__________________", tenant.name, "tenant name mangled successfully")
+                app_profiles = tenant.get_children(AppProfile)
+                self.assertEqual(1, len(app_profiles), "num of app_profiles didnot match")
+                for app_profile in app_profiles:
+                    self.assertEqual("app-test__________________", app_profile.name, "app_profile name mangled successfully")
+                    epgs = app_profile.get_children(EPG)
+                    self.assertEqual(1, len(epgs), "num of epgs didnot match")
+                    for epg in epgs:
+                        self.assertEqual(epg.name, "Configpushtest2____..____-1", "epg name mangled successfully")
+                    
+                filters = tenant.get_children(Filter)
+                self.assertEqual(1, len(filters), "num of filters didnot match")
+                    
+                outsideL3s = tenant.get_children(OutsideL3)
+                self.assertEqual(1, len(outsideL3s), "num of outsideL3s didnot match")
+                for outsideL3 in outsideL3s:
+                    self.assertEqual("l3external-test__________________", outsideL3.name, "outsideL3 name mangled successfully")
+                    outsideEpgs = outsideL3.get_children(OutsideEPG)
+                    self.assertEqual(1, len(outsideEpgs), "num 0f outsideEpgs didnot match")
+                    for outsideEpg in outsideEpgs:
+                        self.assertEqual(outsideEpg.name, "Configpushtest_____..____-0", "outsideEpg name mangled successfully")
+                        outsideNetworks = outsideEpg.get_children(OutsideNetwork)
+                        self.assertEqual(1, len(outsideNetworks), "num 0f outsideEpgs didnot match")
+                        for outsideNetwork in outsideNetworks:
+                            self.assertEqual(outsideNetwork.name, "240.0.0.0_24", "outsideNetwork name mangled successfully")
+                    
+                contracts = tenant.get_children(Contract)
+                self.assertEqual(1, len(contracts), "num of contracts didnot match")
+                for contract in contracts:
+                    self.assertEqual(contract.name, "Configpushtest_____..____-0::Configpushtest2____..____-1", "contract name mangled successfully")
+                    contract_subjects = contract.get_children(ContractSubject)
+                    self.assertEqual(1, len(contract_subjects), "num 0f contract_subjects didnot match")
+                    for contract_subject in contract_subjects:
+                        self.assertEqual(contract_subject.name, "Configpushtest_____..____-0::Configpushtest2____..____-1_Subject", "contract_subject name mangled successfully")
 
     def test_update_configpush_for_clusters(self):
         """
@@ -1356,7 +1805,6 @@ class TestConfigpush(unittest.TestCase):
   ]
 }
         """
-        print "***********************************************"
         load_config = LoadConfig()
         load_config.load_configFile(config_file, is_file=False)
         time.sleep(5)
