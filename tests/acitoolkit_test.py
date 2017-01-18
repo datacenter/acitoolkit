@@ -68,7 +68,7 @@ except ImportError:
     APPCENTER_CERT_NAME=''
     APPCENTER_KEY=''
     """)
-    
+
 
 MAX_RANDOM_STRING_SIZE = 20
 
@@ -2962,8 +2962,8 @@ class TestOutsideNetwork(unittest.TestCase):
         """
         Test _get_name_dn_delimiters method
         """
-        self.assertEqual(OutsideNetwork._get_name_dn_delimiters(), 
-                                                        ['/extsubnet-[', '/'])
+        self.assertEqual(OutsideNetwork._get_name_dn_delimiters(),
+                         ['/extsubnet-[', '/'])
 
     def test_set_scope(self):
         """
@@ -2972,7 +2972,7 @@ class TestOutsideNetwork(unittest.TestCase):
         tenant = Tenant('cisco')
         out_net = OutsideNetwork('OutsideNetwork', tenant)
         out_net.set_addr('0.0.0.0/0')
-        valid_scopes = ['import-rtctrl', 'export-rtctrl', 'import-security', 
+        valid_scopes = ['import-rtctrl', 'export-rtctrl', 'import-security',
                         'shared-security', 'shared-rtctrl']
         for scope in valid_scopes:
             out_net.set_scope(scope)
@@ -2997,9 +2997,9 @@ class TestOutsideNetwork(unittest.TestCase):
         out_net = OutsideNetwork(out_net_name, tenant)
         out_net.set_addr(ip_add)
         out_net_json = out_net.get_json()
-        self.assertEqual(ip_add, 
+        self.assertEqual(ip_add,
                          out_net_json['l3extSubnet']['attributes']['ip'])
-        self.assertEqual(out_net_name, 
+        self.assertEqual(out_net_name,
                          out_net_json['l3extSubnet']['attributes']['name'])
 
     def test_get_json_detail_set_scope(self):
@@ -3011,12 +3011,12 @@ class TestOutsideNetwork(unittest.TestCase):
         tenant = Tenant('cisco')
         out_net = OutsideNetwork(out_net_name, tenant)
         out_net.set_addr(ip_add)
-        valid_scopes = ['import-rtctrl', 'export-rtctrl', 'import-security', 
+        valid_scopes = ['import-rtctrl', 'export-rtctrl', 'import-security',
                         'shared-security', 'shared-rtctrl']
         for scope in valid_scopes:
             out_net.set_scope(scope)
             out_net_json = out_net.get_json()
-            self.assertEqual(scope, 
+            self.assertEqual(scope,
                              out_net_json['l3extSubnet']['attributes']['scope'])
 
 
@@ -3229,6 +3229,7 @@ class TestLiveCertAuth(TestLiveAPIC):
         )
         self.assertTrue(len(tenants) > 0)
 
+
 class TestLiveAppcenterSubscription(unittest.TestCase):
     """
     Certificate subscription tests with a live APIC
@@ -3239,12 +3240,13 @@ class TestLiveAppcenterSubscription(unittest.TestCase):
         """Login to the APIC using Certificate auth with appcenter_user enabled
            RETURNS:  Instance of class Session
         """
-        session = Session(URL, APPCENTER_LOGIN, cert_name=APPCENTER_CERT_NAME, 
-                    key=APPCENTER_KEY, subscription_enabled=True, appcenter_user=True)
+        session = Session(URL, APPCENTER_LOGIN, cert_name=APPCENTER_CERT_NAME,
+                          key=APPCENTER_KEY, subscription_enabled=True, appcenter_user=True)
         resp = session.login()
         self.assertTrue(resp.ok)
         return session
 
+    @unittest.skipIf('APPCENTER_LOGIN' not in vars(), 'APPCENTER credentials not given.')
     def test_get_actual_event(self):
         """
         Test get_event for certificate based subscription
@@ -3289,8 +3291,6 @@ class TestLiveAppcenterSubscription(unittest.TestCase):
                                     data=new_tenant.get_json())
         self.assertTrue(resp.ok)
         Tenant.unsubscribe(session)
-        
-
 
 
 class TestLiveTenant(TestLiveAPIC):
