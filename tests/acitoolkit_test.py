@@ -59,6 +59,16 @@ except ImportError:
     CERT_NAME = ''
     KEY = ''
     """)
+try:
+    from credentials import APPCENTER_LOGIN, APPCENTER_CERT_NAME, APPCENTER_KEY
+except ImportError:
+    print('To run appcenter tests, please create a credentials.py file with the following variables filled in:')
+    print("""
+    APPCENTER_LOGIN=''
+    APPCENTER_CERT_NAME=''
+    APPCENTER_KEY=''
+    """)
+    
 
 MAX_RANDOM_STRING_SIZE = 20
 
@@ -3219,6 +3229,69 @@ class TestLiveCertAuth(TestLiveAPIC):
         )
         self.assertTrue(len(tenants) > 0)
 
+class TestLiveAppcenterSubscription(unittest.TestCase):
+    """
+    Certificate subscription tests with a live APIC
+    Note, this test requires appcenter user credentials and valid appcenter user private key
+    """
+
+    def login_to_apic(self):
+        """Login to the APIC using Certificate auth with appcenter_user enabled
+           RETURNS:  Instance of class Session
+        """
+        session = Session(URL, APPCENTER_LOGIN, cert_name=APPCENTER_CERT_NAME, 
+                    key=APPCENTER_KEY, subscription_enabled=True, appcenter_user=True)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+        return session
+
+    def test_get_actual_event(self):
+        """
+        Test get_event for certificate based subscription
+        """
+        session = self.login_to_apic()
+        Tenant.subscribe(session)
+
+        # Get all of the existing tenants
+        tenants = Tenant.get(session)
+        tenant_names = []
+        for tenant in tenants:
+            tenant_names.append(tenant.name)
+
+        # Pick a unique tenant name not currently in APIC
+        tenant_name = tenant_names[0]
+        while tenant_name in tenant_names:
+            tenant_name = random_size_string()
+
+        # Create the tenant and push to APIC
+        new_tenant = Tenant(tenant_name)
+        resp = session.push_to_apic(new_tenant.get_url(),
+                                    data=new_tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Wait for the event to come through the subscription
+        # If it takes more than 2 seconds, fail the test.
+        # Pass the test as quickly as possible
+        start_time = time.time()
+        while True:
+            current_time = time.time()
+            time_elapsed = current_time - start_time
+            self.assertTrue(time_elapsed < 2)
+            if Tenant.has_events(session):
+                break
+
+        event_tenant = Tenant.get_event(session)
+        is_tenant = isinstance(event_tenant, Tenant)
+        self.assertTrue(is_tenant)
+
+        new_tenant.mark_as_deleted()
+        resp = session.push_to_apic(new_tenant.get_url(),
+                                    data=new_tenant.get_json())
+        self.assertTrue(resp.ok)
+        Tenant.unsubscribe(session)
+        
+
+
 
 class TestLiveTenant(TestLiveAPIC):
     """
@@ -5287,6 +5360,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
     live.addTest(unittest.makeSuite(TestLiveCertAuth))
+    live.addTest(unittest.makeSuite(TestLiveAppcenterSubscription))
     live.addTest(unittest.makeSuite(TestLiveInterface))
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
