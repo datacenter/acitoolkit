@@ -21,7 +21,8 @@ import logging
 
 try:
     from multisite_test_credentials import (SITE1_IPADDR, SITE1_LOGIN, SITE1_PASSWORD, SITE1_URL,
-                                            SITE2_IPADDR, SITE2_LOGIN, SITE2_PASSWORD, SITE2_URL)
+                                            SITE2_IPADDR, SITE2_LOGIN, SITE2_PASSWORD, SITE2_URL,
+                                            SITE3_IPADDR, SITE3_LOGIN, SITE3_PASSWORD, SITE3_URL)
 except ImportError:
     print '''
             Please create a file called multisite_test_credentials.py with the following:
@@ -35,6 +36,12 @@ except ImportError:
             SITE2_LOGIN = ''
             SITE2_PASSWORD = ''
             SITE2_URL = 'http://' + SITE2_IPADDR
+
+            SITE3_IPADDR = ''
+            SITE3_LOGIN = ''
+            SITE3_PASSWORD = ''
+            SITE3_URL = 'http://' + SITE3_IPADDR
+
             '''
     sys.exit(0)
 
@@ -789,6 +796,118 @@ class TestBasicEndpoints(BaseEndpointTestCase):
         self.assertFalse(self.verify_remote_site_has_entry(mac1, ip1, 'intersite-testsuite',
                                                            'l3out', 'intersite-testsuite-app-epg'))
         self.assertTrue(self.verify_remote_site_has_entry(mac2, ip2, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+
+class TestBasicEndpointsWithMultipleRemoteSites(BaseEndpointTestCase):
+    """
+    Basic tests for endpoints
+    """
+    def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
+        # Set up site 2
+        super(TestBasicEndpointsWithMultipleRemoteSites, self).setup_remote_site()
+
+        # Create tenant, L3out with contract on site 3
+        site3 = Session(SITE3_URL, SITE3_LOGIN, SITE3_PASSWORD)
+        resp = site3.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-site3')
+        vrf = Context('myvrf', tenant)
+        l3out = OutsideL3('l3out', tenant)
+
+        resp = tenant.push_to_apic(site3)
+        self.assertTrue(resp.ok)
+
+    def teardown_remote_site(self):
+        """
+        Teardown the remote site configuration
+        """
+        time.sleep(2)
+        super(TestBasicEndpointsWithMultipleRemoteSites, self).teardown_remote_site()
+
+        site3 = Session(SITE3_URL, SITE3_LOGIN, SITE3_PASSWORD)
+        resp = site3.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-site3')
+        tenant.mark_as_deleted()
+
+        resp = tenant.push_to_apic(site3)
+        self.assertTrue(resp.ok)
+        time.sleep(2)
+
+    def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
+        config = super(TestBasicEndpointsWithMultipleRemoteSites, self).create_config_file()
+        site3_config = {
+            "site": {
+                "username": "%s" % SITE3_LOGIN,
+                "name": "Site3",
+                "ip_address": "%s" % SITE3_IPADDR,
+                "password": "%s" % SITE3_PASSWORD,
+                "local": "False",
+                "use_https": "False"
+            }
+        }
+        config['config'].append(site3_config)
+        site3_export_config = {
+            "site":
+                {
+                    "name": "Site3",
+                    "interfaces":
+                        [
+                            {
+                                "l3out":
+                                    {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite-site3"
+                                    }
+                            }
+                        ]
+                }
+        }
+        for item in config['config']:
+            if 'export' in item:
+                item['export']['remote_sites'].append(site3_export_config)
+        return config
+
+    def setup_with_endpoint(self, mac='00:11:22:33:33:33'):
+        """
+        Set up the configuration with an endpoint
+        :return: 2 strings containing the MAC and IP address of the endpoint
+        """
+        args = self.get_args()
+        config = self.create_config_file()
+
+        self.write_config_file(config, args)
+
+        execute_tool(args, test_mode=True)
+
+        ip = '3.4.3.4'
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        time.sleep(2)
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        return mac, ip
+
+    def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
