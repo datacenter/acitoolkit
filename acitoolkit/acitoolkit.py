@@ -4975,6 +4975,8 @@ class Endpoint(BaseACIObject):
                 for child in children:
                     for child_item in child:
                         if child_item in ['fvRsCEpToPathEp', 'fvRsStCEpToPathEp']:
+                            if child[child_item]['attributes']['state'] != 'formed':
+                                continue
                             if_dn = str(child[child_item]['attributes']['tDn'])
                             if 'protpaths' in if_dn:
                                 regex = re.search(r'pathep-\[(.+)\]$', if_dn)
