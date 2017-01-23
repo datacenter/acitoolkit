@@ -5342,8 +5342,8 @@ class TestLiveHealthScores(TestLiveAPIC):
         # NameError is risen when code is run with Python3
         except NameError:
             self.assertIsInstance(ts.cur, str)
-        self.assertEqual(ts.cur, '100')
-        self.assertEqual(ts.__str__(), '100')
+        self.assertGreaterEqual(int(ts.cur), 0)
+        self.assertLessEqual(int(ts.cur), 100)
         self.base_test_teardown(session, tenant)
 
     def test_get_unhealthy(self):
