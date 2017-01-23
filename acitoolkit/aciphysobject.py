@@ -3303,6 +3303,8 @@ class Process(BaseACIPhysObject):
         ret = session.get(node_query_url)
         processes = ret.json()['imdata']
         for child in processes:
+            if 'procProc' not in child:
+                continue
             if child['procProc']:
                 process = Process()
                 process._populate_from_attributes(child['procProc']['attributes'])
