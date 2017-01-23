@@ -637,9 +637,20 @@ class TestConfigpush(unittest.TestCase):
             if tenant.name == tenant_name:
                 self.assertTrue(True, "tennat exists with name " + tenant_name)
                 app_profiles = tenant.get_children(AppProfile)
-                app = app_profiles[0]
+                self.assertEqual(len(app_profiles), 1, "len(app_profiles)!=1")
                 for app in app_profiles:
                     self.assertEquals(app.name, "app-test__-_.___changed", "application profile with name is not updated to the changed name")
+        
+        app_name = 'app-test_second**-#.{}_changed'
+        load_config.load_configFile(config_file, is_file=False, tenant_name=tenant_name, app_name=app_name)
+        time.sleep(5)
+        tenants = Tenant.get_deep(load_config.session, names=[load_config.tool.tenant_name])
+        for tenant in tenants:
+            if tenant.name == tenant_name:
+                self.assertTrue(True, "tennat exists with name " + tenant_name)
+                app_profiles = tenant.get_children(AppProfile)
+                self.assertEqual(len(app_profiles), 2, "len(app_profiles)!=2")
+
 
     def test_l3ext_name_in_configpush(self):
         """

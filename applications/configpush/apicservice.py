@@ -1670,12 +1670,14 @@ class ApicService(GenericService):
         if not resp == 'OK':
             return resp
         
+        '''
         # delete unwanted appProfiles
         logging.debug('delete unwanted appProfiles')
         resp = self.removing_unwanted_app_profiles(apic)
         if not resp == 'OK':
             return resp
-        
+        '''
+
         # Push remaining EPGs
         tenant_names = [self._tenant_name]
         logging.debug('Pushing EPGs')
