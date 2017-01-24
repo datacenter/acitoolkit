@@ -4709,6 +4709,7 @@ class PortChannel(BaseInterface):
         super(PortChannel, self).__init__(name)
         self._interfaces = []
         self._nodes = []
+        self._pod = '1'
 
     @classmethod
     def create_from_dn(cls, dn):
@@ -4718,9 +4719,13 @@ class PortChannel(BaseInterface):
         :param dn: String containing the DN
         :return: Instance of PortChannel class
         """
+        pod = dn.partition('/pod-')[-1].partition('/')[0]
         nodes = dn.partition('/protpaths-')[-1].partition('/')[0].split('-')
         name = dn.partition('/pathep-[')[-1].partition(']')[0]
-        return cls(name)
+        port_channel = cls(name)
+        port_channel._nodes = nodes
+        port_channel._pod = pod
+        return port_channel
 
     def attach(self, interface):
         """Attach an interface to this PortChannel
@@ -4765,21 +4770,20 @@ class PortChannel(BaseInterface):
         """Get the path of this interface used when communicating with
            the APIC object model.
         """
-        assert len(self._interfaces)
-        pod = self._interfaces[0].pod
+        #assert len(self._interfaces)
         if self.is_vpc():
             (node1, node2) = self._get_nodes()
             # Make sure the order of the nodes is the right one (lowest numbered
             # first)
             if int(node1) > int(node2):
                 node1, node2 = node2, node1
-            path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (pod,
+            path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (self._pod,
                                                                     node1,
                                                                     node2,
                                                                     self.name)
         else:
             node = self._interfaces[0].node
-            path = 'topology/pod-%s/paths-%s/pathep-%s' % (pod,
+            path = 'topology/pod-%s/paths-%s/pathep-%s' % (self._pod,
                                                            node,
                                                            self.name)
 
