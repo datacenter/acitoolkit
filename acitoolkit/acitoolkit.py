@@ -4664,6 +4664,26 @@ class FexInterface(object):
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.fex + '/'
         self.if_name += self.module + '/' + self.port
+        self.attributes = {'if_name': self.if_name}
+
+    @classmethod
+    def parse_dn(cls, dn):
+        if '/phys-' in dn:
+            pod = dn.split('/pod-')[1].split('/')[0]
+            node = dn.split('/node-')[1].split('/')[0]
+            if_name = dn.split('/phys-[')[1]
+            if_type = if_name[:3]
+            if_name = if_name.split(']')[0]
+            fex, module, port = if_name[3:].split('/')
+            return if_type, pod, node, fex, module, port
+
+    @classmethod
+    def is_dn_a_fex_interface(cls, dn):
+        #topology/pod-1/node-101/sys/phys-[eth101/1/1]
+        if '/phys-[' in dn:
+            if len(dn.split('/phys-[')[1].split(']')[0].split('/')) == 3:
+                return True
+        return False
 
 
 def _interface_from_dn(dn):
@@ -4689,6 +4709,9 @@ def _interface_from_dn(dn):
     '''
     match = re.match(interface_pattern, dn)
     if not match:
+        # Look for Fex interfaces encoded as topology/pod-1/node-101/sys/phys-[eth101/1/1]
+        if FexInterface.is_dn_a_fex_interface(dn):
+            return FexInterface(*FexInterface.parse_dn(dn))
         return Interface(*Interface.parse_dn(dn))
     elif match.group('fex') is not None:
         args = match.group('if_type', 'pod', 'node', 'fex', 'module', 'port')

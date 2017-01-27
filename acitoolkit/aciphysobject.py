@@ -3007,13 +3007,16 @@ class Interface(BaseInterface):
                 attributes['name'] = str(interface['l1PhysIf']['attributes']['name'])
                 attributes['descr'] = str(interface['l1PhysIf']['attributes']['descr'])
                 attributes['usage'] = str(interface['l1PhysIf']['attributes']['usage'])
-                (interface_type, pod, node,
-                 module, port) = Interface.parse_dn(dist_name)
-                attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
-                attributes['operSpeed'] = eth_data_dict[dist_name + '/phys']['operSpeed']
-                interface_obj = Interface(interface_type, pod, node, module, port,
-                                          parent=None, session=session,
-                                          attributes=attributes)
+                try:
+                    attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
+                    attributes['operSpeed'] = eth_data_dict[dist_name + '/phys']['operSpeed']
+                except KeyError:
+                    attributes['operSt'] = 'unknown'
+                    attributes['operSpeed'] = 'unknown'
+
+                interface_obj = ACI._interface_from_dn(dist_name)
+                for attribute in attributes:
+                    interface_obj.attributes[attribute] = attributes[attribute]
                 interface_obj.porttype = porttype
                 interface_obj.adminstatus = adminstatus
                 interface_obj.speed = speed
