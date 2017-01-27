@@ -3017,6 +3017,7 @@ class Interface(BaseInterface):
                 interface_obj = ACI._interface_from_dn(dist_name)
                 for attribute in attributes:
                     interface_obj.attributes[attribute] = attributes[attribute]
+                interface_obj._session = session
                 interface_obj.porttype = porttype
                 interface_obj.adminstatus = adminstatus
                 interface_obj.speed = speed

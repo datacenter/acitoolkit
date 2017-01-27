@@ -4664,6 +4664,7 @@ class FexInterface(object):
         self.if_name = self.interface_type + ' ' + self.pod + '/'
         self.if_name += self.node + '/' + self.fex + '/'
         self.if_name += self.module + '/' + self.port
+        self._session = None
         self.attributes = {'if_name': self.if_name}
 
     @classmethod
