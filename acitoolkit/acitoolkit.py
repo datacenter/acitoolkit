@@ -43,6 +43,7 @@ from .acibaseobject import BaseACIObject, BaseInterface, _Tag
 from .aciphysobject import Interface, Fabric
 from .acisession import Session
 from .aciTable import Table
+from .acicounters import InterfaceStats
 from .acitoolkitlib import Credentials
 
 
@@ -4666,6 +4667,7 @@ class FexInterface(object):
         self.if_name += self.module + '/' + self.port
         self._session = None
         self.attributes = {'if_name': self.if_name}
+        self.stats = InterfaceStats(self, self.attributes.get('dn'))
 
     @classmethod
     def parse_dn(cls, dn):

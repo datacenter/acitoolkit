@@ -2480,7 +2480,11 @@ class Interface(BaseInterface):
         self._parent = parent
         if parent:
             self._parent.add_child(self)
-        self.stats = InterfaceStats(self, self.attributes.get('dn'))
+        try:
+            dn = self.attributes['dn']
+        except KeyError:
+            dn = 'topology/pod-%s/node-%s/sys/phys-[%s%s/%s]' % (pod, node, interface_type, module, port)
+        self.stats = InterfaceStats(self, dn)
 
         self.attributes['interface_type'] = str(interface_type)
         self.attributes['pod'] = str(pod)
