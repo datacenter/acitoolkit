@@ -3209,6 +3209,7 @@ class TestLiveCertAuth(TestLiveAPIC):
         session = Session(URL, LOGIN, cert_name=CERT_NAME, key=KEY, subscription_enabled=False)
         return session
 
+    @unittest.skipUnless(os.path.isfile(KEY), 'Key file does not exist.')
     def test_get_tenants(self):
         """
         Test that cert auth can get Tenants
@@ -3217,6 +3218,7 @@ class TestLiveCertAuth(TestLiveAPIC):
         tenants = Tenant.get(session)
         self.assertTrue(len(tenants) > 0)
 
+    @unittest.skipUnless(os.path.isfile(KEY), 'Key file does not exist.')
     def test_get_with_params(self):
         """
         Test that URL encoded parameters do not break cert auth
