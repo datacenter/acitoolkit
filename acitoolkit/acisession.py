@@ -382,7 +382,8 @@ class Subscriber(threading.Thread):
         :returns: Interger number of events in event queue
         """
         self._process_event_q()
-        if url not in self._events: return 0
+        if url not in self._events:
+            return 0
         return len(self._events[url])
 
     def get_event(self, url):
@@ -470,7 +471,7 @@ class Session(object):
             raise CredentialsError("The URL or APIC address must be a string")
         if not isinstance(uid, str):
             raise CredentialsError("The user ID must be a string")
-        if (pwd == None or pwd == 'None') and not cert_name and not key:
+        if (pwd is None or pwd == 'None') and not cert_name and not key:
             raise CredentialsError("An authentication method must be provided")
         if pwd:
             if not isinstance(pwd, str):
@@ -499,7 +500,7 @@ class Session(object):
                 Please install it using "pip install pyopenssl"')
 
             self.cert_auth = True
-            # Cert based auth does not support subscriptions :(  
+            # Cert based auth does not support subscriptions :(
             # there's an exception for appcenter_user relying on the requestAppToken api
             if subscription_enabled and not self.appcenter_user:
                 logging.warning('Disabling subscription support as certificate authentication does not support it.')
@@ -509,14 +510,14 @@ class Session(object):
             if not verify_ssl:
                 try:
                     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-                except AttributeError:
+                except (AttributeError, NameError):
                     pass
             with open(self.key, 'r') as f:
                 key_text = f.read()
             try:
                 self._x509Key = load_privatekey(FILETYPE_PEM, key_text)
             except Exception:
-                raise TypeError ('Could not load private key file %s\
+                raise TypeError('Could not load private key file %s\
                 \nAre you sure you provided the private key? (Not the certificate)' % self.key)
         else:
             self.cert_auth = False
@@ -594,9 +595,9 @@ class Session(object):
 
         signature = base64.b64encode(sign(self._x509Key, payload, 'sha256'))
         cookie = {'APIC-Request-Signature': signature,
-                    'APIC-Certificate-Algorithm': 'v1.0',
-                    'APIC-Certificate-Fingerprint': 'fingerprint',
-                    'APIC-Certificate-DN': cert_dn}
+                  'APIC-Certificate-Algorithm': 'v1.0',
+                  'APIC-Certificate-Fingerprint': 'fingerprint',
+                  'APIC-Certificate-DN': cert_dn}
 
         logging.debug('Authentication cookie %s' % cookie)
         return cookie
@@ -609,14 +610,14 @@ class Session(object):
         if not self.verify_ssl:
             try:
                 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-            except AttributeError:
+            except (AttributeError, NameError):
                 pass
         self.session = requests.Session()
         self._logged_in = False
 
         if self.appcenter_user and self._subscription_enabled:
             login_url = '/api/requestAppToken.json'
-            data = {'aaaAppToken':{'attributes':{'appName': self.cert_name}}}
+            data = {'aaaAppToken': {'attributes': {'appName': self.cert_name}}}
         elif self.cert_auth:
             logging.warning('Will not explicitly login because certificate based authentication is being used for this session.')
             logging.warning('If permanently using cert auth, consider removing the call to login().')
@@ -625,7 +626,7 @@ class Session(object):
         else:
             login_url = '/api/aaaLogin.json'
             data = {'aaaUser': {'attributes': {'name': self.uid,
-                                                'pwd': self.pwd}}}
+                                               'pwd': self.pwd}}}
         ret = self.push_to_apic(login_url, data=data, timeout=timeout)
         if not ret.ok:
             logging.error('Could not relogin to APIC. Aborting login thread.')
@@ -774,8 +775,7 @@ class Session(object):
         post_url = self.api + url
         logging.debug('Posting url: %s data: %s', post_url, data)
 
-        if self.cert_auth and not \
-            (self.appcenter_user and self._subscription_enabled and self._logged_in):
+        if self.cert_auth and not (self.appcenter_user and self._subscription_enabled and self._logged_in):
             data = json.dumps(data, sort_keys=True)
             cookies = self._prep_x509_header('POST', url, data)
             resp = self.session.post(post_url, data=data, verify=self.verify_ssl,
@@ -785,7 +785,7 @@ class Session(object):
                 resp.raise_for_status()
         else:
             resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
-                                    timeout=timeout, proxies=self._proxies)
+                                     timeout=timeout, proxies=self._proxies)
             if resp.status_code == 403:
                 logging.error(resp.text)
                 logging.error('Trying to login again....')
@@ -794,7 +794,7 @@ class Session(object):
                 logging.error('Trying post again...')
                 logging.debug(post_url)
                 resp = self.session.post(post_url, data=json.dumps(data, sort_keys=True), verify=self.verify_ssl,
-                                        timeout=timeout, proxies=self._proxies)
+                                         timeout=timeout, proxies=self._proxies)
         logging.debug('Response: %s %s', resp, resp.text)
         return resp
 
