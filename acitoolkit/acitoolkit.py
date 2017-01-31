@@ -1241,6 +1241,38 @@ class EPG(CommonEPG):
             }
         }
         self._leaf_bindings.append(text)
+        
+    @staticmethod
+    def get_tenant_from_json(self, tenant_data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        for child in tenant_data['fvAEPg']['children']:
+            if 'fvRsCons' in child:
+                contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
+                contract = Contract(contract_name)
+                self.consume(contract)
+            elif 'fvRsProv' in child:
+                contract_name = child['fvRsProv']['attributes']['tnVzBrCPName']
+                contract = Contract(contract_name)
+                self.provide(contract)
+            elif 'fvRsPathAtt' in child:
+                vlan = child['fvRsPathAtt']['attributes']['encap']
+                vlan_intf = L2Interface(name='',encap_type=vlan.split('-')[0],encap_id=vlan.split('-')[1])
+                self.attach(vlan_intf)
+            elif 'fvRsBd' in child:
+                bd_name = child['fvRsBd']['attributes']['tnFvBDName']
+                if isinstance(parent._parent, Tenant):
+                    bds = parent._parent.get_children(BridgeDomain)
+                    bd_exist = False
+                    for bd in bds:
+                        if bd.name == bd_name:
+                            self.add_bd(bd)
+                            bd_exist = True
+                    if not bd_exist:
+                        bd = BridgeDomain(bd_name,parent=parent._parent)
+                        self.add_bd(bd)
+        return super(EPG, self).get_tenant_from_json(self, tenant_data, parent=parent)
 
     # Output
     def get_json(self):
@@ -2592,6 +2624,22 @@ class BridgeDomain(BaseACIObject):
         if multidestination not in valid_multidestination:
             raise ValueError('multidestination must be of: %s, %s or %s' % valid_multidestination)
         self.multidestination = multidestination
+        
+    @staticmethod
+    def get_tenant_from_json(self, tenant_data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        for child in tenant_data['fvBD']['children']:
+            if 'fvRsCtx' in child:
+                context_name = child['fvRsCtx']['attributes']['tnFvCtxName']
+                context = Context(context_name, parent=parent)
+                self.add_context(context)
+            elif 'fvRsBDToOut' in child:
+                outside_l3_name = child['fvRsBDToOut']['attributes']['tnL3extOutName']
+                outside_l3 = OutsideL3(outside_l3_name, parent=parent)
+                self.add_l3out(outside_l3)
+        return super(BridgeDomain, self).get_tenant_from_json(self, tenant_data, parent=parent)
 
     def get_json(self):
         """
@@ -3932,6 +3980,25 @@ class ContractSubject(BaseACIObject):
         :returns: class of parent object
         """
         return [Contract, Taboo]
+    
+    @staticmethod
+    def get_tenant_from_json(self, tenant_data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        if 'vzSubj' in tenant_data:
+            for child in tenant_data['vzSubj']['children']:
+                if 'vzRsSubjFiltAtt' in child:
+                    filter_name = child['vzRsSubjFiltAtt']['attributes']['tnVzFilterName']
+                    filter_obj = Filter(filter_name)
+                    self._add_relation(filter_obj)
+        elif 'vzTSubj' in tenant_data:
+            for child in tenant_data['vzTSubj']['children']:
+                if 'vzRsDenyRule' in child:
+                    filter_name = child['vzRsDenyRule']['attributes']['tnVzFilterName']
+                    filter_obj = Filter(filter_name)
+                    self._add_relation(filter_obj)
+        return super(ContractSubject, self).get_tenant_from_json(self, tenant_data, parent=parent)
 
     def get_json(self):
         """
@@ -4074,6 +4141,18 @@ class Filter(BaseACIObject):
         for child in filter_data.get('children', ()):
             if 'vzEntry' in child:
                 FilterEntry.create_from_apic_json(child, filt)
+                
+    @staticmethod
+    def get_tenant_from_json(self, tenant_data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        for child in tenant_data['vzFilter']['children']:
+            if 'vzEntry' in child:
+                filterentry_name = child['vzEntry']['attributes']['name']
+                filterentry = FilterEntry(filterentry_name,parent=self)
+                filterentry._populate_from_attributes(child['vzEntry']['attributes'])
+        return super(Filter, self).get_tenant_from_json(self, tenant_data, parent=parent)
 
     def get_json(self):
         """
@@ -4176,6 +4255,16 @@ class Taboo(BaseContract):
 
             result.append(Table(data, headers, title=title + 'Taboo:{0}'.format(taboo.name)))
         return result
+    
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+        These are the children objects
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {'vzTSubj': ContractSubject, }
 
 
 class FilterEntry(BaseACIObject):
