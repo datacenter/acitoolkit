@@ -966,13 +966,13 @@ class BaseACIObject(AciSearch):
         return self.name
     
     @staticmethod
-    def get_tenant_from_json(self, tenant_data, parent=None):
+    def get_from_json(self, data, parent=None):
         """
         returns a Tenant object from a json
         """
-        for key in tenant_data:
+        for key in data:
             if key in self._get_apic_classes():
-                for children in tenant_data[key]['children']:
+                for children in data[key]['children']:
                     for child_key in children:
                         if child_key in self._get_toolkit_to_apic_classmap():
                             class_name = self._get_toolkit_to_apic_classmap()[child_key]
@@ -987,7 +987,7 @@ class BaseACIObject(AciSearch):
                             if not object_exist:
                                 child_obj = class_name(child_name,parent=self)
                                 class_name._populate_from_attributes(child_obj,children[child_key]['attributes'])
-                            class_name.get_tenant_from_json(child_obj,children,parent=self)
+                            class_name.get_from_json(child_obj, children, parent=self)
 
     def get_json(self, obj_class, attributes=None,
                  children=None, get_children=True):

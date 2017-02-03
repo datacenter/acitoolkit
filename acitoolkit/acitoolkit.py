@@ -1243,11 +1243,11 @@ class EPG(CommonEPG):
         self._leaf_bindings.append(text)
         
     @staticmethod
-    def get_tenant_from_json(self, tenant_data, parent=None):
+    def get_from_json(self, data, parent=None):
         """
         returns a Tenant object from a json
         """
-        for child in tenant_data['fvAEPg']['children']:
+        for child in data['fvAEPg']['children']:
             if 'fvRsCons' in child:
                 contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
                 contract = Contract(contract_name)
@@ -1272,7 +1272,7 @@ class EPG(CommonEPG):
                     if not bd_exist:
                         bd = BridgeDomain(bd_name,parent=parent._parent)
                         self.add_bd(bd)
-        return super(EPG, self).get_tenant_from_json(self, tenant_data, parent=parent)
+        return super(EPG, self).get_from_json(self, data, parent=parent)
 
     # Output
     def get_json(self):
@@ -2626,11 +2626,11 @@ class BridgeDomain(BaseACIObject):
         self.multidestination = multidestination
         
     @staticmethod
-    def get_tenant_from_json(self, tenant_data, parent=None):
+    def get_from_json(self, data, parent=None):
         """
         returns a Tenant object from a json
         """
-        for child in tenant_data['fvBD']['children']:
+        for child in data['fvBD']['children']:
             if 'fvRsCtx' in child:
                 context_name = child['fvRsCtx']['attributes']['tnFvCtxName']
                 context = Context(context_name, parent=parent)
@@ -2639,7 +2639,7 @@ class BridgeDomain(BaseACIObject):
                 outside_l3_name = child['fvRsBDToOut']['attributes']['tnL3extOutName']
                 outside_l3 = OutsideL3(outside_l3_name, parent=parent)
                 self.add_l3out(outside_l3)
-        return super(BridgeDomain, self).get_tenant_from_json(self, tenant_data, parent=parent)
+        return super(BridgeDomain, self).get_from_json(self, data, parent=parent)
 
     def get_json(self):
         """
@@ -3982,23 +3982,23 @@ class ContractSubject(BaseACIObject):
         return [Contract, Taboo]
     
     @staticmethod
-    def get_tenant_from_json(self, tenant_data, parent=None):
+    def get_from_json(self, data, parent=None):
         """
         returns a Tenant object from a json
         """
-        if 'vzSubj' in tenant_data:
-            for child in tenant_data['vzSubj']['children']:
+        if 'vzSubj' in data:
+            for child in data['vzSubj']['children']:
                 if 'vzRsSubjFiltAtt' in child:
                     filter_name = child['vzRsSubjFiltAtt']['attributes']['tnVzFilterName']
                     filter_obj = Filter(filter_name)
                     self._add_relation(filter_obj)
-        elif 'vzTSubj' in tenant_data:
-            for child in tenant_data['vzTSubj']['children']:
+        elif 'vzTSubj' in data:
+            for child in data['vzTSubj']['children']:
                 if 'vzRsDenyRule' in child:
                     filter_name = child['vzRsDenyRule']['attributes']['tnVzFilterName']
                     filter_obj = Filter(filter_name)
                     self._add_relation(filter_obj)
-        return super(ContractSubject, self).get_tenant_from_json(self, tenant_data, parent=parent)
+        return super(ContractSubject, self).get_from_json(self, data, parent=parent)
 
     def get_json(self):
         """
@@ -4143,16 +4143,16 @@ class Filter(BaseACIObject):
                 FilterEntry.create_from_apic_json(child, filt)
                 
     @staticmethod
-    def get_tenant_from_json(self, tenant_data, parent=None):
+    def get_from_json(self, data, parent=None):
         """
         returns a Tenant object from a json
         """
-        for child in tenant_data['vzFilter']['children']:
+        for child in data['vzFilter']['children']:
             if 'vzEntry' in child:
                 filterentry_name = child['vzEntry']['attributes']['name']
                 filterentry = FilterEntry(filterentry_name,parent=self)
                 filterentry._populate_from_attributes(child['vzEntry']['attributes'])
-        return super(Filter, self).get_tenant_from_json(self, tenant_data, parent=parent)
+        return super(Filter, self).get_from_json(self, data, parent=parent)
 
     def get_json(self):
         """

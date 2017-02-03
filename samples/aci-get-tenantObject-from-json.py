@@ -24,7 +24,7 @@ def main():
             tenant_json = json.load(data_file)
             
     tenant = ACI.Tenant(args.tenantname)
-    ACI.Tenant.get_tenant_from_json(tenant,tenant_json,parent=tenant)
+    ACI.Tenant.get_from_json(tenant,tenant_json,parent=tenant)
     print(tenant.get_json())
 
 if __name__ == '__main__':
