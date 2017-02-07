@@ -1,5 +1,6 @@
+# aciFaults.py
 """
-aciFaults.py
+This module deals with Fault objects.
 """
 from .acibaseobject import BaseACIObject
 from jsonschema import validate, ValidationError
@@ -11,9 +12,6 @@ class Faults(BaseACIObject):
     A class for Fault objects
     """
     def __init__(self):
-        """
-        A class for BaseFaults objects
-        """
         self.type = None
         self.subject = None
         self.severity = None
@@ -23,10 +21,27 @@ class Faults(BaseACIObject):
         self.cause = None
         self.rule = None
 
+    def is_deleted(self):
+        """
+        Not supported
+
+        :raises: AttributeError
+        """
+        raise AttributeError('\nNot supported on Fault objects.')
+
+    def mark_as_deleted(self):
+        """
+        Not supported
+
+        :raises: AttributeError
+        """
+        raise AttributeError('\nNot supported on Fault objects.')
+
     @classmethod
     def _get_apic_classes(cls):
         """
         Get the APIC classes used by this acitoolkit class.
+
         :returns: list of strings containing APIC class names
         """
         return ['faultInfo']
@@ -35,6 +50,7 @@ class Faults(BaseACIObject):
     def _get_apic_classes_in_faults(cls):
         """
         Get the list of APIC classes used by FaultInst object
+
         :returns: list of strings containing APIC class names
         """
         return ['faultInst', 'faultDelegate']
@@ -44,6 +60,7 @@ class Faults(BaseACIObject):
         """
         Gets the URL used to subscribe fault instances
         in the APIC.
+
         :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash format
                              with domain, types, severity
         :returns: a  URL
@@ -121,12 +138,27 @@ class Faults(BaseACIObject):
     def get_faults_by_filter(self, fault_filter=None):
         """
         filters a fault obj based on the keys given in fault_filter
-        returns fault obj if it satisfies fault_filter
+
+        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash
+                     format with domain, types, severity
+        :returns: fault obj if it satisfies fault_filter
         """
         for key in fault_filter.keys():
             for value in fault_filter[key]:
                 if getattr(self, key) == value:
                     return self
+
+    @classmethod
+    def get_fault(cls, session, extension=''):
+        """
+        Not implemented for this class.  Use get_faults() instead
+
+        :param session: Not used
+        :param extension: Not used
+        :raises: AttributeError
+        """
+        raise AttributeError('\nPlease use get_faults() from the Fault class.\n'
+                             'get_fault is meant to be used from specific toolkit classes such as Tenant.')
 
     @classmethod
     def get_faults(self, session, fault_filter=None, tenant_name=None):
@@ -137,7 +169,7 @@ class Faults(BaseACIObject):
         :param session:  the instance of Session used for APIC communication
         :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash
                              format with domain, types, severity
-        :param tenant_name : tenant_name is a string
+        :param tenant_name: tenant_name is a string
         """
         url = self._get_subscription_urls(fault_filter=fault_filter)
         event = session.get_event(url)
@@ -178,6 +210,9 @@ class Faults(BaseACIObject):
     def validate_fault_filter(self, fault_filter=None):
         """
         validates the fault_filter with the schema
+
+        :param fault_filter: fault_filter is used to filter the attributes of a fault. given in a hash
+                     format with domain, types, severity
         """
         schema = {
             "$schema": "http://json-schema.org/draft-04/schema#",

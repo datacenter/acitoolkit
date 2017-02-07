@@ -1231,7 +1231,7 @@ class BaseACIObject(AciSearch):
     @classmethod
     def get_fault(cls, session, extension=''):
         """
-        Gets the fault that is pending for this class.  Faultss are
+        Gets the fault that is pending for this class.  Faults are
         returned in the form of objects.  Objects that have been deleted
         are marked as such.
 
