@@ -3584,7 +3584,7 @@ class TestLiveInterface(TestLiveAPIC):
         self.assertRaises(TypeError, Interface.get, None)
         intfs = Interface.get(session)
         for interface in intfs:
-            self.assertTrue(isinstance(interface, Interface))
+            self.assertTrue(isinstance(interface, Interface) or isinstance(interface, FexInterface))
             interface_as_a_string = str(interface)
             self.assertTrue(isinstance(interface_as_a_string, str))
             path = interface._get_path()
