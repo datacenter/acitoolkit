@@ -4741,20 +4741,22 @@ class TunnelInterface(object):
         self.if_name += self.node + '/' + self.tunnel
 
 
-class FexInterface(object):
+class FexInterface(BaseACIObject):
     """This class describes a physical interface on a FEX device"""
 
     def __init__(self, if_type, pod, node, fex, module, port):
+        if_name = str(if_type) + ' ' + str(pod) + '/'
+        if_name += str(node) + '/' + str(fex) + '/'
+        if_name += str(module) + '/' + str(port)
+        super(FexInterface, self).__init__(if_name)
         self.interface_type = str(if_type)
         self.pod = str(pod)
         self.node = str(node)
         self.fex = str(fex)
         self.module = str(module)
         self.port = str(port)
-        self.if_name = self.interface_type + ' ' + self.pod + '/'
-        self.if_name += self.node + '/' + self.fex + '/'
-        self.if_name += self.module + '/' + self.port
         self._session = None
+        self.if_name = if_name
         self.attributes = {'if_name': self.if_name}
         self.stats = InterfaceStats(self, self.attributes.get('dn'))
 
@@ -4776,6 +4778,16 @@ class FexInterface(object):
             if len(dn.split('/phys-[')[1].split(']')[0].split('/')) == 3:
                 return True
         return False
+
+    def _get_path(self):
+        """Get the path of this interface used when communicating with
+           the APIC object model.
+        """
+        return 'topology/pod-%s/paths-%s/pathep-[eth%s/%s]' % (self.pod,
+                                                               self.node,
+                                                               self.module,
+                                                               self.port)
+
 
 
 def _interface_from_dn(dn):
