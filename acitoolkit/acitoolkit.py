@@ -4758,6 +4758,8 @@ class FexInterface(BaseACIObject):
         self._session = None
         self.if_name = if_name
         self.attributes = {'if_name': self.if_name}
+        if self.attributes.get('dn') is None:
+            self.attributes['dn'] = self._get_path()
         self.stats = InterfaceStats(self, self.attributes.get('dn'))
 
     @classmethod
@@ -4783,10 +4785,11 @@ class FexInterface(BaseACIObject):
         """Get the path of this interface used when communicating with
            the APIC object model.
         """
-        return 'topology/pod-%s/paths-%s/pathep-[eth%s/%s]' % (self.pod,
-                                                               self.node,
-                                                               self.module,
-                                                               self.port)
+        return 'topology/pod-%s/paths-%s/extpaths-%s/pathep-[eth%s/%s]' % (self.pod,
+                                                                           self.node,
+                                                                           self.fex,
+                                                                           self.module,
+                                                                           self.port)
 
 
 

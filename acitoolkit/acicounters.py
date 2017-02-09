@@ -404,7 +404,7 @@ class InterfaceStats(object):
         :return: Dictonary containing processed data
         """
         result = {}
-        if data:
+        if data and 'l1PhysIf' in data:
             if 'children' in data['l1PhysIf']:
                 children = data['l1PhysIf']['children']
                 for grandchildren in children:
