@@ -961,6 +961,23 @@ class TestBasicEndpointsWithMultipleRemoteSitesButOnlyExportToOne(TestBasicEndpo
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
                                                           'l3out', 'intersite-testsuite-app-epg'))
 
+    def test_basic_remove_endpoint(self):
+        """
+        Test remove endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
 
 class TestBasicEndpointsWithThreeRemoteSites(TestBasicEndpointsWithMultipleRemoteSites):
     def create_config_file(self):
