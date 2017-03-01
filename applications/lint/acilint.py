@@ -393,6 +393,7 @@ class Checker(object):
                         self.output_handler("Warning 014: In tenant '%s' contract "
                                         "'%s' subject '%s' has no Filters." % (
                                         tenant.name, contract.name, subject.name))
+                        missing_filter = False
 
     def error_001(self):
         """
