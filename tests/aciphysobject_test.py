@@ -618,16 +618,16 @@ class TestCluster(unittest.TestCase):
     def test_get_config_size(self):
         cluster = Cluster('test-cluster')
         cluster.config_size = 50
-        self.assertEquals(cluster.get_config_size(), 50)
+        self.assertEqual(cluster.get_config_size(), 50)
 
     def test_get_cluster_size(self):
         cluster = Cluster('test-cluster')
         cluster.cluster_size = 50
-        self.assertEquals(cluster.get_cluster_size(), 50)
+        self.assertEqual(cluster.get_cluster_size(), 50)
 
     def test_get_apics(self):
         cluster = Cluster('test-cluster')
-        self.assertEquals(len(cluster.get_apics()), 0)
+        self.assertEqual(len(cluster.get_apics()), 0)
 
 
 class TestLiveAPIC(unittest.TestCase):
@@ -879,7 +879,7 @@ class TestLivePod(TestLiveAPIC):
             children_types.add(child.get_type())
 
         self.assertEqual(len(children_types), 3)
-        self.assertIn('systemctrlcard', children_types)
+        self.assertTrue('systemctrlcard' in children_types or 'motherboard' in children_types)
         self.assertIn('fantray', children_types)
         self.assertIn('powersupply', children_types)
 
@@ -987,8 +987,9 @@ class TestLivePod(TestLiveAPIC):
             module_types.add(module.get_type())
             if module.get_type() == 'linecard':
                 linecard = module
-
-        self.assertEqual(len(module_types ^ {'linecard', 'supervisor', 'powersupply', 'fantray'}), 0)
+        for known_type in ['linecard', 'supervisor', 'powersupply', 'fantray']:
+            module_types.discard(known_type)
+        self.assertEqual(len(module_types), 0)
 
         interfaces = linecard.get_children()
         for interface in interfaces:
@@ -1000,7 +1001,9 @@ class TestLivePod(TestLiveAPIC):
         module_types = set()
         for module in modules:
             module_types.add(module.get_type())
-        self.assertEqual(len(module_types ^ {'systemctrlcard', 'powersupply', 'fantray'}), 0)
+        for known_type in ['motherboard', 'systemctrlcard', 'powersupply', 'fantray', 'supervisor']:
+            module_types.discard(known_type)
+        self.assertEqual(len(module_types), 0)
 
         links = pod.get_children(Link)
         for link in links:

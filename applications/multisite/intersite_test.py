@@ -21,7 +21,9 @@ import logging
 
 try:
     from multisite_test_credentials import (SITE1_IPADDR, SITE1_LOGIN, SITE1_PASSWORD, SITE1_URL,
-                                            SITE2_IPADDR, SITE2_LOGIN, SITE2_PASSWORD, SITE2_URL)
+                                            SITE2_IPADDR, SITE2_LOGIN, SITE2_PASSWORD, SITE2_URL,
+                                            SITE3_IPADDR, SITE3_LOGIN, SITE3_PASSWORD, SITE3_URL,
+                                            SITE4_IPADDR, SITE4_LOGIN, SITE4_PASSWORD, SITE4_URL)
 except ImportError:
     print '''
             Please create a file called multisite_test_credentials.py with the following:
@@ -35,6 +37,16 @@ except ImportError:
             SITE2_LOGIN = ''
             SITE2_PASSWORD = ''
             SITE2_URL = 'http://' + SITE2_IPADDR
+
+            SITE3_IPADDR = ''
+            SITE3_LOGIN = ''
+            SITE3_PASSWORD = ''
+            SITE3_URL = 'http://' + SITE3_IPADDR
+
+            SITE4_IPADDR = ''
+            SITE4_LOGIN = ''
+            SITE4_PASSWORD = ''
+            SITE4_URL = 'http://' + SITE3_IPADDR
             '''
     sys.exit(0)
 
@@ -792,6 +804,255 @@ class TestBasicEndpoints(BaseEndpointTestCase):
                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
+class TestBasicEndpointsWithMultipleRemoteSites(BaseEndpointTestCase):
+    """
+    Basic tests for endpoints with multiple remote sites
+    """
+    def setup_remote_site(self):
+        """
+        Set up the remote site
+        """
+        # Set up site 2
+        super(TestBasicEndpointsWithMultipleRemoteSites, self).setup_remote_site()
+
+        # Create tenant, L3out with contract on site 3
+        site3 = Session(SITE3_URL, SITE3_LOGIN, SITE3_PASSWORD)
+        resp = site3.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-site3')
+        vrf = Context('myvrf', tenant)
+        l3out = OutsideL3('l3out', tenant)
+
+        resp = tenant.push_to_apic(site3)
+        self.assertTrue(resp.ok)
+
+    def teardown_remote_site(self):
+        """
+        Teardown the remote site configuration
+        """
+        time.sleep(2)
+        super(TestBasicEndpointsWithMultipleRemoteSites, self).teardown_remote_site()
+
+        site3 = Session(SITE3_URL, SITE3_LOGIN, SITE3_PASSWORD)
+        resp = site3.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant('intersite-testsuite-site3')
+        tenant.mark_as_deleted()
+
+        resp = tenant.push_to_apic(site3)
+        self.assertTrue(resp.ok)
+        time.sleep(2)
+
+    def create_additional_site_config(self, login, ip_address, password):
+        """
+        Add the additional site to the configuration
+        :return: Dictionary containing the configuration
+        """
+        config = super(TestBasicEndpointsWithMultipleRemoteSites, self).create_config_file()
+        site3_config = {
+            "site": {
+                "username": "%s" % login,
+                "name": "Site3",
+                "ip_address": "%s" % ip_address,
+                "password": "%s" % password,
+                "local": "False",
+                "use_https": "False"
+            }
+        }
+        config['config'].append(site3_config)
+        return config
+
+    def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
+        config = self.create_additional_site_config(SITE3_LOGIN, SITE3_IPADDR, SITE3_PASSWORD)
+        site3_export_config = {
+            "site":
+                {
+                    "name": "Site3",
+                    "interfaces":
+                        [
+                            {
+                                "l3out":
+                                    {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite-site3"
+                                    }
+                            }
+                        ]
+                }
+        }
+        for item in config['config']:
+            if 'export' in item:
+                item['export']['remote_sites'].append(site3_export_config)
+        return config
+
+    def setup_with_endpoint(self, mac='00:11:22:33:33:33', ip='3.4.3.4'):
+        """
+        Set up the configuration with an endpoint
+        :return: 2 strings containing the MAC and IP address of the endpoint
+        """
+        args = self.get_args()
+        config = self.create_config_file()
+
+        self.write_config_file(config, args)
+
+        execute_tool(args, test_mode=True)
+
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        time.sleep(2)
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        return mac, ip
+
+    def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+    def test_basic_remove_endpoint(self):
+        """
+        Test remove endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+
+class TestBasicEndpointsWithMultipleRemoteSitesButOnlyExportToOne(TestBasicEndpointsWithMultipleRemoteSites):
+    def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
+        config = self.create_additional_site_config(SITE3_LOGIN, SITE3_IPADDR, SITE3_PASSWORD)
+        return config
+
+    def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+    def test_basic_remove_endpoint(self):
+        """
+        Test remove endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+
+class TestBasicEndpointsWithThreeRemoteSites(TestBasicEndpointsWithMultipleRemoteSites):
+    def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
+        config = super(TestBasicEndpointsWithThreeRemoteSites, self).create_config_file()
+        site4_config = {
+            "site": {
+                "username": "%s" % SITE4_LOGIN,
+                "name": "Site4",
+                "ip_address": "%s" % SITE4_IPADDR,
+                "password": "%s" % SITE4_PASSWORD,
+                "local": "False",
+                "use_https": "False"
+            }
+        }
+        config['config'].append(site4_config)
+
+        site4_export_config = {
+            "site":
+                {
+                    "name": "Site4",
+                    "interfaces":
+                        [
+                            {
+                                "l3out":
+                                    {
+                                        "name": "l3out",
+                                        "tenant": "intersite-testsuite-site4"
+                                    }
+                            }
+                        ]
+                }
+        }
+        for item in config['config']:
+            if 'export' in item:
+                item['export']['remote_sites'].append(site4_export_config)
+        return config
+
+    def test_basic_add_endpoint(self):
+        """
+        Test add endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site4',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+    def test_basic_remove_endpoint(self):
+        """
+        Test remove endpoint
+        """
+        mac, ip = self.setup_with_endpoint()
+        time.sleep(2)
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site4',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site4',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+
 class TestBasicMacMove(BaseEndpointTestCase):
     """
     Basic test for MAC move.
@@ -1033,9 +1294,9 @@ class TestMultipleEPG(BaseTestCase):
                                                           'intersite-testsuite-app2-epg2'))
 
 
-class TestBasicExistingEndpoints(BaseTestCase):
+class BaseExistingEndpointsTestCase(BaseTestCase):
     """
-    Tests for endpoints already existing
+    Base class for tests where endpoints already exist
     """
     def setup_local_site(self):
         """
@@ -1106,6 +1367,8 @@ class TestBasicExistingEndpoints(BaseTestCase):
         config['config'].append(export_policy)
         return config
 
+
+class TestBasicExistingEndpoints(BaseExistingEndpointsTestCase):
     def test_basic_add_endpoint(self):
         """
         Test add the endpoint
@@ -1140,6 +1403,266 @@ class TestBasicExistingEndpoints(BaseTestCase):
         time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
                                                            'l3out', 'intersite-testsuite-app-epg'))
+
+
+class BaseExistingEndpointsWith3RemoteSites(BaseExistingEndpointsTestCase):
+    def setup_remote_tenant(self, url, login, password, tenant_name):
+        """
+        Set up the remote site
+        """
+        # Create tenant, L3out with contract on site 2
+        site = Session(url, login, password)
+        resp = site.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant(tenant_name)
+        l3out = OutsideL3('l3out', tenant)
+
+        resp = tenant.push_to_apic(site)
+        self.assertTrue(resp.ok)
+
+    def setup_remote_site(self):
+        """
+        Set up the remote sites
+        """
+        self.setup_remote_tenant(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD, 'intersite-testsuite-site-2')
+        self.setup_remote_tenant(SITE3_URL, SITE3_LOGIN, SITE3_PASSWORD, 'intersite-testsuite-site-3')
+        self.setup_remote_tenant(SITE4_URL, SITE4_LOGIN, SITE4_PASSWORD, 'intersite-testsuite-site-4')
+
+    def teardown_remote_tenant(self, url, login, password, tenant_name):
+        """
+        Teardown the remote site configuration
+        """
+        site2 = Session(url, login, password)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+
+        tenant = Tenant(tenant_name)
+        tenant.mark_as_deleted()
+
+        resp = tenant.push_to_apic(site2)
+        self.assertTrue(resp.ok)
+
+    def teardown_remote_site(self):
+        """
+        Teardown the remote sites
+        """
+        self.teardown_remote_tenant(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD, 'intersite-testsuite-site-2')
+        self.teardown_remote_tenant(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD, 'intersite-testsuite-site-3')
+        self.teardown_remote_tenant(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD, 'intersite-testsuite-site-4')
+        time.sleep(2)
+
+    def add_remote_site_to_config_file(self, config, site_name, ip_address, login, password, tenant_name):
+        site_config = {
+                          "site": {
+                              "username": "%s" % login,
+                              "name": "%s" % site_name,
+                              "ip_address": "%s" % ip_address,
+                              "password": "%s" % password,
+                              "local": "False",
+                              "use_https": "False"
+                          }
+                      }
+        site_export_config = {
+                                 "site": {
+                                     "name": site_name,
+                                     "interfaces": [
+                                         {
+                                             "l3out": {
+                                                 "name": "l3out",
+                                                 "tenant": tenant_name
+                                             }
+                                         }
+                                     ]
+                                 }
+                             }
+        for item in config['config']:
+            if 'export' in item:
+                item['export']['remote_sites'].append(site_export_config)
+        config['config'].append(site_config)
+        return config
+
+    def create_config_file(self):
+        """
+        Create the configuration
+        :return: Dictionary containing the configuration
+        """
+        config = self.create_site_config()
+        export_policy = {
+            "export": {
+                "tenant": "intersite-testsuite",
+                "app": "app",
+                "epg": "epg",
+                "remote_epg": "intersite-testsuite-app-epg",
+                "remote_sites": [
+                ]
+            }
+        }
+        config['config'].append(export_policy)
+        config = self.add_remote_site_to_config_file(config,
+                                                     'Site2',
+                                                     SITE2_IPADDR, SITE2_LOGIN, SITE2_PASSWORD,
+                                                     'intersite-testsuite-site2')
+        config = self.add_remote_site_to_config_file(config,
+                                                     'Site3',
+                                                     SITE3_IPADDR, SITE3_LOGIN, SITE3_PASSWORD,
+                                                     'intersite-testsuite-site3')
+        config = self.add_remote_site_to_config_file(config,
+                                                     'Site4',
+                                                     SITE4_IPADDR, SITE4_LOGIN, SITE4_PASSWORD,
+                                                     'intersite-testsuite-site4')
+        return config
+
+
+class TestBasicExistingEndpointsWith3RemoteSites(BaseExistingEndpointsWith3RemoteSites):
+    def test_basic_add_endpoint(self):
+        """
+        Test add the endpoint
+        """
+        args = self.get_args()
+        config = self.create_config_file()
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
+        time.sleep(2)
+
+        mac = '00:11:22:33:33:33'
+        ip = '3.4.3.4'
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site2',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site4',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+
+    def test_basic_remove_endpoint(self):
+        """
+        Test remove the endpoint
+        """
+        args = self.get_args()
+        config = self.create_config_file()
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
+
+        time.sleep(2)
+        mac = '00:11:22:33:33:33'
+        ip = '3.4.3.4'
+
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site2',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site4',
+                                                          'l3out', 'intersite-testsuite-app-epg'))
+        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site2',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+        self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site4',
+                                                           'l3out', 'intersite-testsuite-app-epg'))
+
+
+class TestLargeScaleExistingEndpointsWith3RemoteSites(BaseExistingEndpointsWith3RemoteSites):
+    def setup_local_site(self):
+        """
+        Set up the local site
+        """
+        for i in range(0, 3):
+            # create Tenant, App, EPG on site 1
+            site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
+            resp = site1.login()
+            self.assertTrue(resp.ok)
+
+            tenant = Tenant('intersite-testsuite')
+            app = AppProfile('app', tenant)
+            epg = EPG('epg', app)
+
+            # Create the physical interface object
+            intf = Interface('eth', '1', '101', '1', '38')
+            vlan_intf = L2Interface('vlan-5', 'vlan', '5')
+            vlan_intf.attach(intf)
+
+            # Attach the EPG to the VLAN interface
+            epg.attach(vlan_intf)
+
+            for j in range(0, 254):
+                mac = '00:11:22:33:%s:%s' % (hex(i)[2:].zfill(2), hex(j)[2:].zfill(2))
+                ip = '3.4.%s.%s' % (i, j)
+
+                ep = Endpoint(mac, epg)
+                ep.mac = mac
+                ep.ip = ip
+                l3ep = IPEndpoint(ip, ep)
+
+                # Assign it to the L2Interface
+                ep.attach(vlan_intf)
+
+            urls = intf.get_url()
+            jsons = intf.get_json()
+
+            # Set the the phys domain, infra, and fabric
+            for k in range(0, len(urls)):
+                if jsons[k] is not None:
+                    resp = site1.push_to_apic(urls[k], jsons[k])
+                    self.assertTrue(resp.ok)
+
+            # Push the endpoint
+            resp = tenant.push_to_apic(site1)
+            self.assertTrue(resp.ok)
+            time.sleep(1)
+
+    def verify_remote_site_has_entries(self, tenant_name, l3out_name, remote_epg_name):
+        """
+        Verify that the remote site has the entry
+        :param mac: String containing the MAC address of the endpoint to find on the remote site
+        :param ip: String containing the IP address of the endpoint to find on the remote site
+        :param tenant_name: String containing the remote tenant name holding the endpoint
+        :param l3out_name: String containing the remote OutsideL3 name holding the endpoint
+        :param remote_epg_name: String containing the remote OutsideEPG on the remote OutsideL3 holding the endpoint
+        :return: True if the remote site has the endpoint. False otherwise
+        """
+        site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
+        resp = site2.login()
+        self.assertTrue(resp.ok)
+
+        query = ('/api/mo/uni/tn-%s/out-%s/instP-%s.json?query-target=children' % (tenant_name,
+                                                                                   l3out_name,
+                                                                                   remote_epg_name))
+        resp = site2.get(query)
+        self.assertTrue(resp.ok)
+
+        subnets = set()
+        for item in resp.json()['imdata']:
+            if 'l3extSubnet' in item:
+                subnets.add(item['l3extSubnet']['attributes']['ip'])
+
+        for i in range(0, 3):
+            for j in range(0, 254):
+                ip = '3.4.%s.%s/32' % (i, j)
+                if ip not in subnets:
+                    return False
+        return True
+
+    def test_add_large_scale_endpoints(self):
+        """
+        Test add the endpoint
+        """
+        args = self.get_args()
+        config = self.create_config_file()
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
+        time.sleep(20)
+
+        self.assertTrue(self.verify_remote_site_has_entries('intersite-testsuite-site2',
+                                                            'l3out',
+                                                            'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entries('intersite-testsuite-site3',
+                                                            'l3out',
+                                                            'intersite-testsuite-app-epg'))
+        self.assertTrue(self.verify_remote_site_has_entries('intersite-testsuite-site4',
+                                                            'l3out',
+                                                            'intersite-testsuite-app-epg'))
 
 
 class TestBasicExistingEndpointsAddPolicyLater(BaseTestCase):
@@ -2869,6 +3392,9 @@ def main_test():
     full.addTest(unittest.makeSuite(TestDuplicatesTwoL3Outs))
     full.addTest(unittest.makeSuite(TestDeletions))
     full.addTest(unittest.makeSuite(TestCli))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithMultipleRemoteSites))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithMultipleRemoteSitesButOnlyExportToOne))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithThreeRemoteSites))
 
     unittest.main()
 

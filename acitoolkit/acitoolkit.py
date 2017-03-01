@@ -43,6 +43,7 @@ from .acibaseobject import BaseACIObject, BaseInterface, _Tag
 from .aciphysobject import Interface, Fabric
 from .acisession import Session
 from .aciTable import Table
+from .acicounters import InterfaceStats
 from .acitoolkitlib import Credentials
 
 
@@ -1240,6 +1241,40 @@ class EPG(CommonEPG):
             }
         }
         self._leaf_bindings.append(text)
+
+    @staticmethod
+    def get_from_json(self, data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        for child in data['fvAEPg']['children']:
+            if 'fvRsCons' in child:
+                contract_name = child['fvRsCons']['attributes']['tnVzBrCPName']
+                contract = Contract(contract_name)
+                self.consume(contract)
+            elif 'fvRsProv' in child:
+                contract_name = child['fvRsProv']['attributes']['tnVzBrCPName']
+                contract = Contract(contract_name)
+                self.provide(contract)
+            elif 'fvRsPathAtt' in child:
+                vlan = child['fvRsPathAtt']['attributes']['encap']
+                vlan_intf = L2Interface(name='',
+                                        encap_type=vlan.split('-')[0],
+                                        encap_id=vlan.split('-')[1])
+                self.attach(vlan_intf)
+            elif 'fvRsBd' in child:
+                bd_name = child['fvRsBd']['attributes']['tnFvBDName']
+                if isinstance(parent._parent, Tenant):
+                    bds = parent._parent.get_children(BridgeDomain)
+                    bd_exist = False
+                    for bd in bds:
+                        if bd.name == bd_name:
+                            self.add_bd(bd)
+                            bd_exist = True
+                    if not bd_exist:
+                        bd = BridgeDomain(bd_name, parent=parent._parent)
+                        self.add_bd(bd)
+        return super(EPG, self).get_from_json(self, data, parent=parent)
 
     # Output
     def get_json(self):
@@ -2592,6 +2627,22 @@ class BridgeDomain(BaseACIObject):
             raise ValueError('multidestination must be of: %s, %s or %s' % valid_multidestination)
         self.multidestination = multidestination
 
+    @staticmethod
+    def get_from_json(self, data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        for child in data['fvBD']['children']:
+            if 'fvRsCtx' in child:
+                context_name = child['fvRsCtx']['attributes']['tnFvCtxName']
+                context = Context(context_name, parent=parent)
+                self.add_context(context)
+            elif 'fvRsBDToOut' in child:
+                outside_l3_name = child['fvRsBDToOut']['attributes']['tnL3extOutName']
+                outside_l3 = OutsideL3(outside_l3_name, parent=parent)
+                self.add_l3out(outside_l3)
+        return super(BridgeDomain, self).get_from_json(self, data, parent=parent)
+
     def get_json(self):
         """
         Returns json representation of the bridge domain
@@ -3150,6 +3201,8 @@ class OutsideNetwork(BaseSubnet):
         if self.get_addr() is None:
             raise ValueError('OutsideNetwork ip is not set')
         attributes['ip'] = self.get_addr()
+        if self._scope:
+            attributes['scope'] = self._scope
         return attributes
 
     def set_scope(self, scope):
@@ -3680,21 +3733,38 @@ class BaseContract(BaseACIObject):
         result['scope'] = self.get_scope()
         return result
 
-    def get_all_filter_entries(self):
+    def get_all_filter_entries(self, direction='bidirectional-only'):
         """
         Get all of the filter entries contained within this Contract/Taboo
+
+        :param direction: String containing the type of filter entries to gather
+                          Valid values are 'bidirectional-only', 'input-only', 'output-only', 'all'
+                          Default is 'bidirectional-only'
         :return: List of FilterEntry instances
         """
+        assert direction in ['bidirectional-only', 'all', 'input-only', 'output-only']
         entries = []
-        for entry in self.get_children(only_class=FilterEntry):
-            entries.append(entry)
+        if direction == 'bidirectional-only' or direction == 'all':
+            for entry in self.get_children(only_class=FilterEntry):
+                entries.append(entry)
         for subject in self.get_children(only_class=ContractSubject):
-            for filter in subject.get_children(only_class=Filter):
-                for entry in filter.get_children(only_class=FilterEntry):
-                    entries.append(entry)
-            for filter in subject.get_filters():
-                for entry in filter.get_children(only_class=FilterEntry):
-                    entries.append(entry)
+            if direction == 'bidirectional-only' or direction == 'all':
+                for subj_filter in subject.get_children(only_class=Filter):
+                    for entry in subj_filter.get_children(only_class=FilterEntry):
+                        entries.append(entry)
+                for subj_filter in subject.get_filters():
+                    for entry in subj_filter.get_children(only_class=FilterEntry):
+                        entries.append(entry)
+            if direction == 'input-only' or direction == 'all':
+                for input_terminal in subject.get_children(only_class=InputTerminal):
+                    for subj_filter in input_terminal.get_filters():
+                        for entry in subj_filter.get_children(only_class=FilterEntry):
+                            entries.append(entry)
+            if direction == 'output-only' or direction == 'all':
+                for output_terminal in subject.get_children(only_class=OutputTerminal):
+                    for subj_filter in output_terminal.get_filters():
+                        for entry in subj_filter.get_children(only_class=FilterEntry):
+                            entries.append(entry)
         return entries
 
 
@@ -3930,28 +4000,56 @@ class ContractSubject(BaseACIObject):
         """
         return [Contract, Taboo]
 
+    @staticmethod
+    def get_from_json(self, data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        if 'vzSubj' in data:
+            for child in data['vzSubj']['children']:
+                if 'vzRsSubjFiltAtt' in child:
+                    filter_name = child['vzRsSubjFiltAtt']['attributes']['tnVzFilterName']
+                    filter_obj = Filter(filter_name)
+                    self._add_relation(filter_obj)
+        elif 'vzTSubj' in data:
+            for child in data['vzTSubj']['children']:
+                if 'vzRsDenyRule' in child:
+                    filter_name = child['vzRsDenyRule']['attributes']['tnVzFilterName']
+                    filter_obj = Filter(filter_name)
+                    self._add_relation(filter_obj)
+        return super(ContractSubject, self).get_from_json(self, data, parent=parent)
+
     def get_json(self):
         """
-        Returns json representation of the ContractSubject
+        Returns json representation of the ContractSubject or TabooContractSubject
 
-        :returns: json dictionary of the ContractSubject
+        :returns: json dictionary of the ContractSubject or TabooContractSubject
         """
+        subject = 'vzSubj'
+        subjectFilter = 'vzRsSubjFiltAtt'
+        if isinstance(self._parent, Taboo):
+            subject = Taboo._get_subject_code()
+            subjectFilter = Taboo._get_subject_relation_code()
         attr = self._generate_attributes()
-        resp_json = super(ContractSubject, self).get_json('vzSubj',
+        resp_json = super(ContractSubject, self).get_json(subject,
                                                           attributes=attr,
                                                           get_children=False)
         filters = []
         for entry in self.get_filters():
-            filt = {'vzRsSubjFiltAtt': {'attributes': {'tnVzFilterName': entry.name}}}
+            filt = {subjectFilter: {'attributes': {'tnVzFilterName': entry.name}}}
             filters.append(filt)
-        resp_json['vzSubj']['children'] = filters
+
+        for entry in self.get_filters(deleted=True):
+            filt = {'vzRsSubjFiltAtt': {'attributes': {'status': 'deleted', 'tnVzFilterName': entry.name}}}
+            filters.append(filt)
+        resp_json[subject]['children'] = filters
 
         terminals = []
         for entry in self.get_children():
             if isinstance(entry, BaseTerminal):
                 terminal = entry.get_json()
                 terminals.append(terminal)
-        resp_json['vzSubj']['children'].extend(terminals)
+        resp_json[subject]['children'].extend(terminals)
 
         return resp_json
 
@@ -3968,7 +4066,7 @@ class ContractSubject(BaseACIObject):
             raise TypeError('add_filter not called with Filter')
         self._add_relation(filter_obj)
 
-    def get_filters(self):
+    def get_filters(self, deleted=False):
         """
         Get all of the filters that are attached to this ContractSubject.
 
@@ -3976,8 +4074,14 @@ class ContractSubject(BaseACIObject):
         """
         resp = []
         for relation in self._relations:
-            if isinstance(relation.item, Filter):
-                resp.append(relation.item)
+            if deleted:
+                if relation.status == 'detached':
+                    if isinstance(relation.item, Filter):
+                        resp.append(relation.item)
+            else:
+                if relation.status == 'attached':
+                    if isinstance(relation.item, Filter):
+                        resp.append(relation.item)
         return resp
 
     def _get_instance_subscription_urls(self):
@@ -4056,6 +4160,18 @@ class Filter(BaseACIObject):
         for child in filter_data.get('children', ()):
             if 'vzEntry' in child:
                 FilterEntry.create_from_apic_json(child, filt)
+
+    @staticmethod
+    def get_from_json(self, data, parent=None):
+        """
+        returns a Tenant object from a json
+        """
+        for child in data['vzFilter']['children']:
+            if 'vzEntry' in child:
+                filterentry_name = child['vzEntry']['attributes']['name']
+                filterentry = FilterEntry(filterentry_name, parent=self)
+                filterentry._populate_from_attributes(child['vzEntry']['attributes'])
+        return super(Filter, self).get_from_json(self, data, parent=parent)
 
     def get_json(self):
         """
@@ -4158,6 +4274,16 @@ class Taboo(BaseContract):
 
             result.append(Table(data, headers, title=title + 'Taboo:{0}'.format(taboo.name)))
         return result
+
+    @classmethod
+    def _get_toolkit_to_apic_classmap(cls):
+        """
+        Gets the APIC class to an acitoolkit class mapping dictionary
+        These are the children objects
+
+        :returns: dict of APIC class names to acitoolkit classes
+        """
+        return {'vzTSubj': ContractSubject, }
 
 
 class FilterEntry(BaseACIObject):
@@ -4634,19 +4760,55 @@ class TunnelInterface(object):
         self.if_name += self.node + '/' + self.tunnel
 
 
-class FexInterface(object):
+class FexInterface(BaseACIObject):
     """This class describes a physical interface on a FEX device"""
 
     def __init__(self, if_type, pod, node, fex, module, port):
+        if_name = str(if_type) + ' ' + str(pod) + '/'
+        if_name += str(node) + '/' + str(fex) + '/'
+        if_name += str(module) + '/' + str(port)
+        super(FexInterface, self).__init__(if_name)
         self.interface_type = str(if_type)
         self.pod = str(pod)
         self.node = str(node)
         self.fex = str(fex)
         self.module = str(module)
         self.port = str(port)
-        self.if_name = self.interface_type + ' ' + self.pod + '/'
-        self.if_name += self.node + '/' + self.fex + '/'
-        self.if_name += self.module + '/' + self.port
+        self._session = None
+        self.if_name = if_name
+        self.attributes = {'if_name': self.if_name}
+        if self.attributes.get('dn') is None:
+            self.attributes['dn'] = self._get_path()
+        self.stats = InterfaceStats(self, self.attributes.get('dn'))
+
+    @classmethod
+    def parse_dn(cls, dn):
+        if '/phys-' in dn:
+            pod = dn.split('/pod-')[1].split('/')[0]
+            node = dn.split('/node-')[1].split('/')[0]
+            if_name = dn.split('/phys-[')[1]
+            if_type = if_name[:3]
+            if_name = if_name.split(']')[0]
+            fex, module, port = if_name[3:].split('/')
+            return if_type, pod, node, fex, module, port
+
+    @classmethod
+    def is_dn_a_fex_interface(cls, dn):
+        # topology/pod-1/node-101/sys/phys-[eth101/1/1]
+        if '/phys-[' in dn:
+            if len(dn.split('/phys-[')[1].split(']')[0].split('/')) == 3:
+                return True
+        return False
+
+    def _get_path(self):
+        """Get the path of this interface used when communicating with
+           the APIC object model.
+        """
+        return 'topology/pod-%s/paths-%s/extpaths-%s/pathep-[eth%s/%s]' % (self.pod,
+                                                                           self.node,
+                                                                           self.fex,
+                                                                           self.module,
+                                                                           self.port)
 
 
 def _interface_from_dn(dn):
@@ -4672,6 +4834,9 @@ def _interface_from_dn(dn):
     '''
     match = re.match(interface_pattern, dn)
     if not match:
+        # Look for Fex interfaces encoded as topology/pod-1/node-101/sys/phys-[eth101/1/1]
+        if FexInterface.is_dn_a_fex_interface(dn):
+            return FexInterface(*FexInterface.parse_dn(dn))
         return Interface(*Interface.parse_dn(dn))
     elif match.group('fex') is not None:
         args = match.group('if_type', 'pod', 'node', 'fex', 'module', 'port')
@@ -4692,6 +4857,7 @@ class PortChannel(BaseInterface):
         super(PortChannel, self).__init__(name)
         self._interfaces = []
         self._nodes = []
+        self._pod = '1'
 
     @classmethod
     def create_from_dn(cls, dn):
@@ -4701,9 +4867,13 @@ class PortChannel(BaseInterface):
         :param dn: String containing the DN
         :return: Instance of PortChannel class
         """
+        pod = dn.partition('/pod-')[-1].partition('/')[0]
         nodes = dn.partition('/protpaths-')[-1].partition('/')[0].split('-')
         name = dn.partition('/pathep-[')[-1].partition(']')[0]
-        return cls(name)
+        port_channel = cls(name)
+        port_channel._nodes = nodes
+        port_channel._pod = pod
+        return port_channel
 
     def attach(self, interface):
         """Attach an interface to this PortChannel
@@ -4748,21 +4918,20 @@ class PortChannel(BaseInterface):
         """Get the path of this interface used when communicating with
            the APIC object model.
         """
-        assert len(self._interfaces)
-        pod = self._interfaces[0].pod
+        # assert len(self._interfaces)
         if self.is_vpc():
             (node1, node2) = self._get_nodes()
             # Make sure the order of the nodes is the right one (lowest numbered
             # first)
             if int(node1) > int(node2):
                 node1, node2 = node2, node1
-            path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (pod,
+            path = 'topology/pod-%s/protpaths-%s-%s/pathep-[%s]' % (self._pod,
                                                                     node1,
                                                                     node2,
                                                                     self.name)
         else:
             node = self._interfaces[0].node
-            path = 'topology/pod-%s/paths-%s/pathep-%s' % (pod,
+            path = 'topology/pod-%s/paths-%s/pathep-%s' % (self._pod,
                                                            node,
                                                            self.name)
 
@@ -4958,6 +5127,8 @@ class Endpoint(BaseACIObject):
                 for child in children:
                     for child_item in child:
                         if child_item in ['fvRsCEpToPathEp', 'fvRsStCEpToPathEp']:
+                            if child[child_item]['attributes']['state'] != 'formed':
+                                continue
                             if_dn = str(child[child_item]['attributes']['tDn'])
                             if 'protpaths' in if_dn:
                                 regex = re.search(r'pathep-\[(.+)\]$', if_dn)

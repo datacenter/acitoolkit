@@ -48,7 +48,7 @@ import json
 import sys
 
 try:
-    from credentials import URL, LOGIN, PASSWORD
+    from credentials import URL, LOGIN, PASSWORD, CERT_NAME, KEY
 except ImportError:
     print
     print('To run live tests, please create a credentials.py file with the following variables filled in:')
@@ -56,7 +56,19 @@ except ImportError:
     URL = ''
     LOGIN = ''
     PASSWORD = ''
+    CERT_NAME = ''
+    KEY = ''
     """)
+try:
+    from credentials import APPCENTER_LOGIN, APPCENTER_CERT_NAME, APPCENTER_KEY
+except ImportError:
+    print('To run appcenter tests, please create a credentials.py file with the following variables filled in:')
+    print("""
+    APPCENTER_LOGIN=''
+    APPCENTER_CERT_NAME=''
+    APPCENTER_KEY=''
+    """)
+
 
 MAX_RANDOM_STRING_SIZE = 20
 
@@ -2916,6 +2928,98 @@ class TestAcitoolkitGraphBuilder(unittest.TestCase):
             os.remove(expected_file)
 
 
+class TestOutsideNetwork(unittest.TestCase):
+    """
+    Test OutsideNetwork class
+    """
+    def test_get_json(self):
+        """
+        Test JSON creation for a OutsideNetwork
+        """
+        tenant = Tenant('cisco')
+        out_net = OutsideNetwork('OutsideNetwork', tenant)
+        out_net.set_addr('0.0.0.0/0')
+        out_net_json = out_net.get_json()
+        self.assertTrue('l3extSubnet' in out_net_json)
+
+    def test_get_json_without_ip(self):
+        """
+        Test JSON creation for a OutsideNetwork without an IP
+        This should raise an error
+        """
+        tenant = Tenant('cisco')
+        out_net = OutsideNetwork('OutsideNetwork', tenant)
+        with self.assertRaises(ValueError):
+            out_net.get_json()
+
+    def test_get_parent_class(self):
+        """
+        Test _get_parent_class method
+        """
+        self.assertEqual(OutsideNetwork._get_parent_class(), OutsideEPG)
+
+    def test_get_name_dn_delimiters(self):
+        """
+        Test _get_name_dn_delimiters method
+        """
+        self.assertEqual(OutsideNetwork._get_name_dn_delimiters(),
+                         ['/extsubnet-[', '/'])
+
+    def test_set_scope(self):
+        """
+        Test the set_scope method
+        """
+        tenant = Tenant('cisco')
+        out_net = OutsideNetwork('OutsideNetwork', tenant)
+        out_net.set_addr('0.0.0.0/0')
+        valid_scopes = ['import-rtctrl', 'export-rtctrl', 'import-security',
+                        'shared-security', 'shared-rtctrl']
+        for scope in valid_scopes:
+            out_net.set_scope(scope)
+        bad_scope = 'bad-scope'
+        self.assertRaises(ValueError, out_net.set_scope, bad_scope)
+
+    def test_set_scope_to_none(self):
+        """
+        Test the set_scope with None
+        """
+        tenant = Tenant('cisco')
+        out_net = OutsideNetwork('OutsideNetwork', tenant)
+        self.assertRaises(TypeError, out_net.set_scope, None)
+
+    def test_get_json_detail(self):
+        """
+        Make sure that the json is correct
+        """
+        ip_add = '0.0.0.0/0'
+        out_net_name = 'OutsideNetwork'
+        tenant = Tenant('cisco')
+        out_net = OutsideNetwork(out_net_name, tenant)
+        out_net.set_addr(ip_add)
+        out_net_json = out_net.get_json()
+        self.assertEqual(ip_add,
+                         out_net_json['l3extSubnet']['attributes']['ip'])
+        self.assertEqual(out_net_name,
+                         out_net_json['l3extSubnet']['attributes']['name'])
+
+    def test_get_json_detail_set_scope(self):
+        """
+        Make sure that the json is correct when a scope is set
+        """
+        ip_add = '0.0.0.0/0'
+        out_net_name = 'OutsideNetwork'
+        tenant = Tenant('cisco')
+        out_net = OutsideNetwork(out_net_name, tenant)
+        out_net.set_addr(ip_add)
+        valid_scopes = ['import-rtctrl', 'export-rtctrl', 'import-security',
+                        'shared-security', 'shared-rtctrl']
+        for scope in valid_scopes:
+            out_net.set_scope(scope)
+            out_net_json = out_net.get_json()
+            self.assertEqual(scope,
+                             out_net_json['l3extSubnet']['attributes']['scope'])
+
+
 class TestContext(unittest.TestCase):
     """
     Test Context class
@@ -3092,6 +3196,103 @@ class TestLiveAPIC(unittest.TestCase):
         resp = session.login()
         self.assertTrue(resp.ok)
         return session
+
+
+class TestLiveCertAuth(TestLiveAPIC):
+    """
+    Certificate auth tests with a live APIC
+    """
+    def login_to_apic(self):
+        """Login to the APIC using Certificate auth
+           RETURNS:  Instance of class Session
+        """
+        session = Session(URL, LOGIN, cert_name=CERT_NAME, key=KEY, subscription_enabled=False)
+        return session
+
+    @unittest.skipUnless('KEY' in globals() and os.path.isfile(KEY), 'Key file does not exist.')
+    def test_get_tenants(self):
+        """
+        Test that cert auth can get Tenants
+        """
+        session = self.login_to_apic()
+        tenants = Tenant.get(session)
+        self.assertTrue(len(tenants) > 0)
+
+    @unittest.skipUnless('KEY' in globals() and os.path.isfile(KEY), 'Key file does not exist.')
+    def test_get_with_params(self):
+        """
+        Test that URL encoded parameters do not break cert auth
+        """
+        session = self.login_to_apic()
+        tenants = Tenant.get_deep(
+            session,
+            names=['mgmt', 'common'],
+            limit_to=['fvTenant', 'fvAp']
+        )
+        self.assertTrue(len(tenants) > 0)
+
+
+class TestLiveAppcenterSubscription(unittest.TestCase):
+    """
+    Certificate subscription tests with a live APIC
+    Note, this test requires appcenter user credentials and valid appcenter user private key
+    """
+
+    def login_to_apic(self):
+        """Login to the APIC using Certificate auth with appcenter_user enabled
+           RETURNS:  Instance of class Session
+        """
+        session = Session(URL, APPCENTER_LOGIN, cert_name=APPCENTER_CERT_NAME,
+                          key=APPCENTER_KEY, subscription_enabled=True, appcenter_user=True)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+        return session
+
+    @unittest.skipIf('APPCENTER_LOGIN' not in vars(), 'APPCENTER credentials not given.')
+    def test_get_actual_event(self):
+        """
+        Test get_event for certificate based subscription
+        """
+        session = self.login_to_apic()
+        Tenant.subscribe(session)
+
+        # Get all of the existing tenants
+        tenants = Tenant.get(session)
+        tenant_names = []
+        for tenant in tenants:
+            tenant_names.append(tenant.name)
+
+        # Pick a unique tenant name not currently in APIC
+        tenant_name = tenant_names[0]
+        while tenant_name in tenant_names:
+            tenant_name = random_size_string()
+
+        # Create the tenant and push to APIC
+        new_tenant = Tenant(tenant_name)
+        resp = session.push_to_apic(new_tenant.get_url(),
+                                    data=new_tenant.get_json())
+        self.assertTrue(resp.ok)
+
+        # Wait for the event to come through the subscription
+        # If it takes more than 2 seconds, fail the test.
+        # Pass the test as quickly as possible
+        start_time = time.time()
+        while True:
+            current_time = time.time()
+            time_elapsed = current_time - start_time
+            self.assertTrue(time_elapsed < 2)
+            if Tenant.has_events(session):
+                break
+
+        event_tenant = Tenant.get_event(session)
+        is_tenant = isinstance(event_tenant, Tenant)
+        self.assertTrue(is_tenant)
+
+        new_tenant.mark_as_deleted()
+        resp = session.push_to_apic(new_tenant.get_url(),
+                                    data=new_tenant.get_json())
+        self.assertTrue(resp.ok)
+        Tenant.unsubscribe(session)
 
 
 class TestLiveTenant(TestLiveAPIC):
@@ -3383,7 +3584,7 @@ class TestLiveInterface(TestLiveAPIC):
         self.assertRaises(TypeError, Interface.get, None)
         intfs = Interface.get(session)
         for interface in intfs:
-            self.assertTrue(isinstance(interface, Interface))
+            self.assertTrue(isinstance(interface, Interface) or isinstance(interface, FexInterface))
             interface_as_a_string = str(interface)
             self.assertTrue(isinstance(interface_as_a_string, str))
             path = interface._get_path()
@@ -5143,8 +5344,8 @@ class TestLiveHealthScores(TestLiveAPIC):
         # NameError is risen when code is run with Python3
         except NameError:
             self.assertIsInstance(ts.cur, str)
-        self.assertEqual(ts.cur, '100')
-        self.assertEqual(ts.__str__(), '100')
+        self.assertGreaterEqual(int(ts.cur), 0)
+        self.assertLessEqual(int(ts.cur), 100)
         self.base_test_teardown(session, tenant)
 
     def test_get_unhealthy(self):
@@ -5160,6 +5361,8 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveHealthScores))
     live.addTest(unittest.makeSuite(TestLiveTenant))
     live.addTest(unittest.makeSuite(TestLiveAPIC))
+    live.addTest(unittest.makeSuite(TestLiveCertAuth))
+    live.addTest(unittest.makeSuite(TestLiveAppcenterSubscription))
     live.addTest(unittest.makeSuite(TestLiveInterface))
     live.addTest(unittest.makeSuite(TestLivePortChannel))
     live.addTest(unittest.makeSuite(TestLiveAppProfile))
@@ -5182,6 +5385,7 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveOSPF))
     live.addTest(unittest.makeSuite(TestLiveMonitorPolicy))
     live.addTest(unittest.makeSuite(TestLiveOutsideL3))
+    live.addTest(unittest.makeSuite(TestLiveOutsideEPG))
     live.addTest(unittest.makeSuite(TestLiveContractInterface))
 
     offline = unittest.TestSuite()
@@ -5212,6 +5416,7 @@ if __name__ == '__main__':
     offline.addTest(unittest.makeSuite(TestMonitorPolicy))
     offline.addTest(unittest.makeSuite(TestAttributeCriterion))
     offline.addTest(unittest.makeSuite(TestOutsideL2))
+    offline.addTest(unittest.makeSuite(TestOutsideNetwork))
     offline.addTest(unittest.makeSuite(TestTunnelInterface))
     offline.addTest(unittest.makeSuite(TestFexInterface))
     offline.addTest(unittest.makeSuite(TestInputTerminal))

@@ -11,3 +11,4 @@ Submodules
    acitoolkit.acisession
    acitoolkit.acitoolkit
    acitoolkit.acitoolkitlib
+   acitoolkit.aciFaults

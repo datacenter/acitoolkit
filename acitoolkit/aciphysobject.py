@@ -1436,7 +1436,7 @@ class Node(BaseACIPhysObject):
             working_data = WorkingData(session, Node, base_url)
 
         else:
-            class_url = '/api/node/class/fabricNode.json?'
+            class_url = '/api/node/class/fabricNode.json'
             ret = session.get(class_url)
             ret._content = ret._content.decode().replace('\n', '').encode()
             data = ret.json()['imdata']
@@ -2480,7 +2480,11 @@ class Interface(BaseInterface):
         self._parent = parent
         if parent:
             self._parent.add_child(self)
-        self.stats = InterfaceStats(self, self.attributes.get('dn'))
+        try:
+            dn = self.attributes['dn']
+        except KeyError:
+            dn = 'topology/pod-%s/node-%s/sys/phys-[%s%s/%s]' % (pod, node, interface_type, module, port)
+        self.stats = InterfaceStats(self, dn)
 
         self.attributes['interface_type'] = str(interface_type)
         self.attributes['pod'] = str(pod)
@@ -3007,13 +3011,17 @@ class Interface(BaseInterface):
                 attributes['name'] = str(interface['l1PhysIf']['attributes']['name'])
                 attributes['descr'] = str(interface['l1PhysIf']['attributes']['descr'])
                 attributes['usage'] = str(interface['l1PhysIf']['attributes']['usage'])
-                (interface_type, pod, node,
-                 module, port) = Interface.parse_dn(dist_name)
-                attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
-                attributes['operSpeed'] = eth_data_dict[dist_name + '/phys']['operSpeed']
-                interface_obj = Interface(interface_type, pod, node, module, port,
-                                          parent=None, session=session,
-                                          attributes=attributes)
+                try:
+                    attributes['operSt'] = eth_data_dict[dist_name + '/phys']['operSt']
+                    attributes['operSpeed'] = eth_data_dict[dist_name + '/phys']['operSpeed']
+                except KeyError:
+                    attributes['operSt'] = 'unknown'
+                    attributes['operSpeed'] = 'unknown'
+
+                interface_obj = ACI._interface_from_dn(dist_name)
+                for attribute in attributes:
+                    interface_obj.attributes[attribute] = attributes[attribute]
+                interface_obj._session = session
                 interface_obj.porttype = porttype
                 interface_obj.adminstatus = adminstatus
                 interface_obj.speed = speed
@@ -3303,6 +3311,8 @@ class Process(BaseACIPhysObject):
         ret = session.get(node_query_url)
         processes = ret.json()['imdata']
         for child in processes:
+            if 'procProc' not in child:
+                continue
             if child['procProc']:
                 process = Process()
                 process._populate_from_attributes(child['procProc']['attributes'])
