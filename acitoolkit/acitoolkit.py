@@ -1241,7 +1241,7 @@ class EPG(CommonEPG):
             }
         }
         self._leaf_bindings.append(text)
-        
+
     @staticmethod
     def get_from_json(self, data, parent=None):
         """
@@ -1258,7 +1258,9 @@ class EPG(CommonEPG):
                 self.provide(contract)
             elif 'fvRsPathAtt' in child:
                 vlan = child['fvRsPathAtt']['attributes']['encap']
-                vlan_intf = L2Interface(name='',encap_type=vlan.split('-')[0],encap_id=vlan.split('-')[1])
+                vlan_intf = L2Interface(name='',
+                                        encap_type=vlan.split('-')[0],
+                                        encap_id=vlan.split('-')[1])
                 self.attach(vlan_intf)
             elif 'fvRsBd' in child:
                 bd_name = child['fvRsBd']['attributes']['tnFvBDName']
@@ -1270,7 +1272,7 @@ class EPG(CommonEPG):
                             self.add_bd(bd)
                             bd_exist = True
                     if not bd_exist:
-                        bd = BridgeDomain(bd_name,parent=parent._parent)
+                        bd = BridgeDomain(bd_name, parent=parent._parent)
                         self.add_bd(bd)
         return super(EPG, self).get_from_json(self, data, parent=parent)
 
@@ -2624,7 +2626,7 @@ class BridgeDomain(BaseACIObject):
         if multidestination not in valid_multidestination:
             raise ValueError('multidestination must be of: %s, %s or %s' % valid_multidestination)
         self.multidestination = multidestination
-        
+
     @staticmethod
     def get_from_json(self, data, parent=None):
         """
@@ -3731,21 +3733,38 @@ class BaseContract(BaseACIObject):
         result['scope'] = self.get_scope()
         return result
 
-    def get_all_filter_entries(self):
+    def get_all_filter_entries(self, direction='bidirectional-only'):
         """
         Get all of the filter entries contained within this Contract/Taboo
+
+        :param direction: String containing the type of filter entries to gather
+                          Valid values are 'bidirectional-only', 'input-only', 'output-only', 'all'
+                          Default is 'bidirectional-only'
         :return: List of FilterEntry instances
         """
+        assert direction in ['bidirectional-only', 'all', 'input-only', 'output-only']
         entries = []
-        for entry in self.get_children(only_class=FilterEntry):
-            entries.append(entry)
+        if direction == 'bidirectional-only' or direction == 'all':
+            for entry in self.get_children(only_class=FilterEntry):
+                entries.append(entry)
         for subject in self.get_children(only_class=ContractSubject):
-            for filter in subject.get_children(only_class=Filter):
-                for entry in filter.get_children(only_class=FilterEntry):
-                    entries.append(entry)
-            for filter in subject.get_filters():
-                for entry in filter.get_children(only_class=FilterEntry):
-                    entries.append(entry)
+            if direction == 'bidirectional-only' or direction == 'all':
+                for subj_filter in subject.get_children(only_class=Filter):
+                    for entry in subj_filter.get_children(only_class=FilterEntry):
+                        entries.append(entry)
+                for subj_filter in subject.get_filters():
+                    for entry in subj_filter.get_children(only_class=FilterEntry):
+                        entries.append(entry)
+            if direction == 'input-only' or direction == 'all':
+                for input_terminal in subject.get_children(only_class=InputTerminal):
+                    for subj_filter in input_terminal.get_filters():
+                        for entry in subj_filter.get_children(only_class=FilterEntry):
+                            entries.append(entry)
+            if direction == 'output-only' or direction == 'all':
+                for output_terminal in subject.get_children(only_class=OutputTerminal):
+                    for subj_filter in output_terminal.get_filters():
+                        for entry in subj_filter.get_children(only_class=FilterEntry):
+                            entries.append(entry)
         return entries
 
 
@@ -3980,7 +3999,7 @@ class ContractSubject(BaseACIObject):
         :returns: class of parent object
         """
         return [Contract, Taboo]
-    
+
     @staticmethod
     def get_from_json(self, data, parent=None):
         """
@@ -4141,7 +4160,7 @@ class Filter(BaseACIObject):
         for child in filter_data.get('children', ()):
             if 'vzEntry' in child:
                 FilterEntry.create_from_apic_json(child, filt)
-                
+
     @staticmethod
     def get_from_json(self, data, parent=None):
         """
@@ -4150,7 +4169,7 @@ class Filter(BaseACIObject):
         for child in data['vzFilter']['children']:
             if 'vzEntry' in child:
                 filterentry_name = child['vzEntry']['attributes']['name']
-                filterentry = FilterEntry(filterentry_name,parent=self)
+                filterentry = FilterEntry(filterentry_name, parent=self)
                 filterentry._populate_from_attributes(child['vzEntry']['attributes'])
         return super(Filter, self).get_from_json(self, data, parent=parent)
 
@@ -4255,7 +4274,7 @@ class Taboo(BaseContract):
 
             result.append(Table(data, headers, title=title + 'Taboo:{0}'.format(taboo.name)))
         return result
-    
+
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
         """
@@ -4775,7 +4794,7 @@ class FexInterface(BaseACIObject):
 
     @classmethod
     def is_dn_a_fex_interface(cls, dn):
-        #topology/pod-1/node-101/sys/phys-[eth101/1/1]
+        # topology/pod-1/node-101/sys/phys-[eth101/1/1]
         if '/phys-[' in dn:
             if len(dn.split('/phys-[')[1].split(']')[0].split('/')) == 3:
                 return True
@@ -4790,7 +4809,6 @@ class FexInterface(BaseACIObject):
                                                                            self.fex,
                                                                            self.module,
                                                                            self.port)
-
 
 
 def _interface_from_dn(dn):
@@ -4900,7 +4918,7 @@ class PortChannel(BaseInterface):
         """Get the path of this interface used when communicating with
            the APIC object model.
         """
-        #assert len(self._interfaces)
+        # assert len(self._interfaces)
         if self.is_vpc():
             (node1, node2) = self._get_nodes()
             # Make sure the order of the nodes is the right one (lowest numbered
