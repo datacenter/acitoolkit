@@ -34,7 +34,6 @@ setup(
                       "py-radix",
                       "jsonschema",
                       "graphviz",
-                      "pygraphviz",
                       "ipaddress",
                       "deepdiff"],
     tests_requires=["mock"],
