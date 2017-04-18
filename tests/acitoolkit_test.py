@@ -2015,6 +2015,67 @@ class TestEPG(unittest.TestCase):
         epg.dont_consume(contract3)
         self.assertTrue(epg.get_all_consumed() == [])
 
+    def test_get_all_contracts_bad_contract_type(self):
+        """
+        Test _get_all_contracts with a bad contract_type
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        with self.assertRaises(ValueError):
+            epg._get_all_contracts(contract_type='bad')
+
+    def test_get_all_provided_with_include_any_epg_set_but_not_used(self):
+        """
+        Test get_all_provided with include_any_epg set to True but not used
+        """
+        tenant = Tenant('mytenant')
+        app = AppProfile('myapp', tenant)
+        epg = EPG('myepg', app)
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 0)
+
+    def test_get_all_provided_with_include_any_epg_only_in_common(self):
+        """
+        Test get_all_provided with include_any_epg set to True and the AnyEPG is only in tenant common
+        """
+        fabric = Fabric()
+        tenant = Tenant('mytenant', parent=fabric)
+        app = AppProfile('myapp', tenant)
+        epg = EPG('myepg', app)
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 0)
+
+        tenant_common = Tenant('common', parent=fabric)
+        context = Context('default', tenant_common)
+        any_epg = AnyEPG('myany', context)
+
+        contract = Contract('mycontract', tenant_common)
+        any_epg.provide(contract)
+
+        self.assertEqual(len(epg.get_all_provided()), 0)
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 1)
+        self.assertEqual(len(epg.get_all_consumed(include_any_epg=True)), 0)
+
+        any_epg.consume(contract)
+        self.assertEqual(len(epg.get_all_consumed(include_any_epg=True)), 1)
+
+    def test_get_all_provided_with_include_any_epg_in_tenant(self):
+        fabric = Fabric()
+        tenant = Tenant('mytenant', parent=fabric)
+        app = AppProfile('myapp', tenant)
+        epg = EPG('myepg', app)
+        context = Context('mycontext', tenant)
+        bd = BridgeDomain('mybd', tenant)
+        bd.add_context(context)
+        epg.add_bd(bd)
+        contract = Contract('mycontract', tenant)
+
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 0)
+
+        any_epg = AnyEPG('myanyepg', context)
+        any_epg.provide(contract)
+
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 1)
+
     def test_protect(self):
         """
         Test protect method
