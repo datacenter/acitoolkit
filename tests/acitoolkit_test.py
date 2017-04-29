@@ -395,6 +395,15 @@ class TestTenant(unittest.TestCase):
         self.assertRaises(TypeError, Tenant, 'badtenant', tenant)
 
 
+class TestSession(unittest.TestCase):
+    """
+    Offline tests for the Session class
+    """
+    def test_session_with_https(self):
+        session = Session('https://myapic.mydomain.com', 'admin', 'password')
+        self.assertTrue(isinstance(session, Session))
+
+
 class TestAppProfile(unittest.TestCase):
     """
     AppProfile class tests.  These do not communicate with APIC
@@ -2015,6 +2024,67 @@ class TestEPG(unittest.TestCase):
         epg.dont_consume(contract3)
         self.assertTrue(epg.get_all_consumed() == [])
 
+    def test_get_all_contracts_bad_contract_type(self):
+        """
+        Test _get_all_contracts with a bad contract_type
+        """
+        tenant = Tenant('tenant')
+        app = AppProfile('app', tenant)
+        epg = EPG('epg1', app)
+        with self.assertRaises(ValueError):
+            epg._get_all_contracts(contract_type='bad')
+
+    def test_get_all_provided_with_include_any_epg_set_but_not_used(self):
+        """
+        Test get_all_provided with include_any_epg set to True but not used
+        """
+        tenant = Tenant('mytenant')
+        app = AppProfile('myapp', tenant)
+        epg = EPG('myepg', app)
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 0)
+
+    def test_get_all_provided_with_include_any_epg_only_in_common(self):
+        """
+        Test get_all_provided with include_any_epg set to True and the AnyEPG is only in tenant common
+        """
+        fabric = Fabric()
+        tenant = Tenant('mytenant', parent=fabric)
+        app = AppProfile('myapp', tenant)
+        epg = EPG('myepg', app)
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 0)
+
+        tenant_common = Tenant('common', parent=fabric)
+        context = Context('default', tenant_common)
+        any_epg = AnyEPG('myany', context)
+
+        contract = Contract('mycontract', tenant_common)
+        any_epg.provide(contract)
+
+        self.assertEqual(len(epg.get_all_provided()), 0)
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 1)
+        self.assertEqual(len(epg.get_all_consumed(include_any_epg=True)), 0)
+
+        any_epg.consume(contract)
+        self.assertEqual(len(epg.get_all_consumed(include_any_epg=True)), 1)
+
+    def test_get_all_provided_with_include_any_epg_in_tenant(self):
+        fabric = Fabric()
+        tenant = Tenant('mytenant', parent=fabric)
+        app = AppProfile('myapp', tenant)
+        epg = EPG('myepg', app)
+        context = Context('mycontext', tenant)
+        bd = BridgeDomain('mybd', tenant)
+        bd.add_context(context)
+        epg.add_bd(bd)
+        contract = Contract('mycontract', tenant)
+
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 0)
+
+        any_epg = AnyEPG('myanyepg', context)
+        any_epg.provide(contract)
+
+        self.assertEqual(len(epg.get_all_provided(include_any_epg=True)), 1)
+
     def test_protect(self):
         """
         Test protect method
@@ -3295,6 +3365,31 @@ class TestLiveAppcenterSubscription(unittest.TestCase):
         Tenant.unsubscribe(session)
 
 
+class TestLiveSession(unittest.TestCase):
+    """
+    Tests for the Session class
+    """
+    def test_bad_password(self):
+        session = Session(URL, LOGIN, 'badpassword')
+        resp = session.login()
+        self.assertFalse(resp.ok)
+
+    def test_refresh_login(self):
+        session = Session(URL, LOGIN, PASSWORD)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+        resp = session.refresh_login()
+        self.assertTrue(resp.ok)
+
+    def test_close(self):
+        session = Session(URL, LOGIN, PASSWORD)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+        self.assertTrue(session.logged_in())
+        session.close()
+        self.assertFalse(session.logged_in())
+
+
 class TestLiveTenant(TestLiveAPIC):
     """
     Tenant tests on a live APIC
@@ -3475,6 +3570,28 @@ class TestLiveSubscription(TestLiveAPIC):
             self.assertFalse(Tenant.has_events(session))
         Tenant.unsubscribe(session)
 
+    def test_is_subscribed(self):
+        """
+        Test is_subscribed function
+        """
+        session = self.login_to_apic()
+        url = Tenant._get_subscription_urls()[0]
+        self.assertFalse(session.is_subscribed(url))
+        session.subscribe(url)
+        self.assertTrue(session.is_subscribed(url))
+        session.unsubscribe(url)
+
+    def test_get_event_count(self):
+        """
+        Test get_event_count function
+        """
+        session = self.login_to_apic()
+        url = Tenant._get_subscription_urls()[0]
+        self.assertFalse(session.get_event_count(url))
+        session.subscribe(url)
+        self.assertTrue(session.get_event_count(url))
+        session.unsubscribe(url)
+
     def test_delete_unsubscribed_class_subscription(self):
         """
         Test deleting a class subscription that has not been subscribed
@@ -3504,6 +3621,11 @@ class TestLiveSubscription(TestLiveAPIC):
         session = self.login_to_apic()
         self.assertFalse(Tenant.has_events(session))
         self.assertIsNone(Tenant.get_event(session))
+        url = Tenant._get_subscription_urls()[0]
+        self.assertFalse(session.is_subscribed(url))
+        with self.assertRaises(ValueError):
+            session.get_event(url)
+
 
     def test_get_actual_event(self):
         """
@@ -3560,7 +3682,7 @@ class TestLiveSubscription(TestLiveAPIC):
         session.subscription_thread.refresh_subscriptions()
 
         # Test the resubscribe used after re-login on login timeout
-        session.subscription_thread._resubscribe()
+        session.resubscribe()
 
 
 class TestLiveInterface(TestLiveAPIC):
@@ -5387,11 +5509,13 @@ if __name__ == '__main__':
     live.addTest(unittest.makeSuite(TestLiveOutsideL3))
     live.addTest(unittest.makeSuite(TestLiveOutsideEPG))
     live.addTest(unittest.makeSuite(TestLiveContractInterface))
+    live.addTest(unittest.makeSuite(TestLiveSession))
 
     offline = unittest.TestSuite()
     offline.addTest(unittest.makeSuite(TestBaseRelation))
     offline.addTest(unittest.makeSuite(TestBaseACIObject))
     offline.addTest(unittest.makeSuite(TestTenant))
+    offline.addTest(unittest.makeSuite(TestSession))
     offline.addTest(unittest.makeSuite(TestAppProfile))
     offline.addTest(unittest.makeSuite(TestBridgeDomain))
     offline.addTest(unittest.makeSuite(TestL2Interface))
