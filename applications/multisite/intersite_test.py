@@ -292,6 +292,36 @@ class TestBadConfiguration(unittest.TestCase):
 
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
+    def test_site_with_bad_local_setting(self):
+        """
+        Test with bad local setting in the site JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        config['config'][0]['site']['username'] = 'admin'
+        config['config'][0]['site']['ip_address'] = SITE1_IPADDR
+        config['config'][0]['site']['local'] = 'BAD'
+        config['config'][0]['site']['use_https'] = 'True'
+        self.create_config_file(args, config)
+
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+    def test_site_with_bad_use_https(self):
+        """
+        Test with bad use_https setting in the site JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        config['config'][0]['site']['username'] = 'admin'
+        config['config'][0]['site']['ip_address'] = SITE1_IPADDR
+        config['config'][0]['site']['local'] = 'True'
+        config['config'][0]['site']['use_https'] = 'BAD'
+        self.create_config_file(args, config)
+
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
     def test_reload_bad_config_filename(self):
         """
         Test reload_config with a non-existent filename
@@ -396,6 +426,36 @@ class TestBadConfiguration(unittest.TestCase):
         self.create_config_file(args, config)
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
+    def test_duplicate_export_policy(self):
+        """
+        Test oversized string lengths for the entities that make up a Intersite tag
+        """
+        # Create a configuration with long names
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        export_policy = {
+            "export":
+                {
+                    "tenant": "mytenant",
+                    "app": "myapp",
+                    "epg": "myepg",
+                    "remote_epg": "intersite-testsuite-app-epg",
+                    "remote_sites":
+                        [
+                            {
+                                "site":
+                                    {
+                                        "name": "mysite",
+                                    }
+                            }
+                        ]
+                }
+        }
+        config['config'].append(export_policy)
+        config['config'].append(export_policy)
+
+        self.create_config_file(args, config)
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
 
 

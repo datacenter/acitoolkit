@@ -881,8 +881,11 @@ class RemoteSitePolicy(ConfigObject):
 
     def get_interfaces(self):
         interfaces = []
-        for interface in self._policy['site']['interfaces']:
-            interfaces.append(L3OutPolicy(interface))
+        try:
+            for interface in self._policy['site']['interfaces']:
+                interfaces.append(L3OutPolicy(interface))
+        except KeyError:
+            logging.warning('No interfaces in JSON for Site %s', self._policy['site']['name'])
         return interfaces
 
     def has_interface_policy(self, interface_policy_name):
