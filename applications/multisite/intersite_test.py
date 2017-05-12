@@ -366,6 +366,38 @@ class TestBadConfiguration(unittest.TestCase):
         # Reload
         self.assertFalse(collector.reload_config())
 
+    def test_oversized_intersite_tag(self):
+        """
+        Test oversized string lengths for the entities that make up a Intersite tag
+        """
+        # Create a configuration with long names
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        export_policy = {
+            "export":
+                {
+                    "tenant": "a" * 64,
+                    "app": "b" * 64,
+                    "epg": "c" * 64,
+                    "remote_epg": "intersite-testsuite-app-epg",
+                    "remote_sites":
+                        [
+                            {
+                                "site":
+                                    {
+                                        "name": "d" * 64,
+                                    }
+                            }
+                        ]
+                }
+        }
+        config['config'].append(export_policy)
+
+        self.create_config_file(args, config)
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+
+
 
 class BaseTestCase(unittest.TestCase):
     """
