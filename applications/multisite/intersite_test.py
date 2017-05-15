@@ -277,6 +277,18 @@ class TestBadConfiguration(unittest.TestCase):
 
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
+    def test_site_with_bad_ipaddress_as_number(self):
+        """
+        Test invalid IP address value in the JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        config['config'][0]['site']['ip_address'] = 100
+        self.create_config_file(args, config)
+
+        self.assertRaises(TypeError, execute_tool, args, test_mode=True)
+
     def test_site_with_good_ipaddress_and_bad_userid(self):
         """
         Test good IP address value but invalid username in the JSON.  Verify that the correct exception is generated.
@@ -456,6 +468,13 @@ class TestBadConfiguration(unittest.TestCase):
 
         self.create_config_file(args, config)
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+    def test_bad_intersite_tag(self):
+        """
+        Test bad intersite tag creation
+        """
+        with self.assertRaises(AssertionError):
+            IntersiteTag.fromstring('badstring')
 
 
 class BaseTestCase(unittest.TestCase):
