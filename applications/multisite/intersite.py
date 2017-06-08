@@ -881,8 +881,11 @@ class RemoteSitePolicy(ConfigObject):
 
     def get_interfaces(self):
         interfaces = []
-        for interface in self._policy['site']['interfaces']:
-            interfaces.append(L3OutPolicy(interface))
+        try:
+            for interface in self._policy['site']['interfaces']:
+                interfaces.append(L3OutPolicy(interface))
+        except KeyError:
+            logging.warning('No interfaces in JSON for Site %s', self._policy['site']['name'])
         return interfaces
 
     def has_interface_policy(self, interface_policy_name):
@@ -918,6 +921,22 @@ class ExportPolicy(ConfigObject):
         if 'export' not in self._policy:
             raise ValueError(self.__class__.__name__ + 'Expecting "export" in configuration')
         policy = self._policy['export']
+        remote_site_names = []
+        try:
+            for remote_site in policy['remote_sites']:
+                remote_site_name = remote_site['site']['name']
+                remote_site_names.append(remote_site_name)
+        except KeyError:
+            raise ValueError(self.__class__.__name__ + ': Expecting named remote sites in export policy.')
+        try:
+            for remote_site_name in remote_site_names:
+                tag = IntersiteTag(policy['tenant'], policy['app'], policy['epg'], remote_site_name)
+                if len(str(tag)) > 64:
+                    error_string = ('Tenant, App, EPG name, Remote site name combined '
+                                    'must not exceed %s characters' % str(64 - len(str(IntersiteTag('','','','')))))
+                    raise ValueError(self.__class__.__name__ + ': ' + error_string)
+        except KeyError:
+            raise ValueError(self.__class__.__name__ + ': Expecting tenant, app, and epg in export policy.')
         for item in policy:
             keyword_validators = {'tenant': '_validate_string',
                                   'app': '_validate_string',

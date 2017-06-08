@@ -277,6 +277,18 @@ class TestBadConfiguration(unittest.TestCase):
 
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
 
+    def test_site_with_bad_ipaddress_as_number(self):
+        """
+        Test invalid IP address value in the JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        config['config'][0]['site']['ip_address'] = 100
+        self.create_config_file(args, config)
+
+        self.assertRaises(TypeError, execute_tool, args, test_mode=True)
+
     def test_site_with_good_ipaddress_and_bad_userid(self):
         """
         Test good IP address value but invalid username in the JSON.  Verify that the correct exception is generated.
@@ -288,6 +300,36 @@ class TestBadConfiguration(unittest.TestCase):
         config['config'][0]['site']['ip_address'] = SITE1_IPADDR
         config['config'][0]['site']['local'] = 'True'
         config['config'][0]['site']['use_https'] = 'True'
+        self.create_config_file(args, config)
+
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+    def test_site_with_bad_local_setting(self):
+        """
+        Test with bad local setting in the site JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        config['config'][0]['site']['username'] = 'admin'
+        config['config'][0]['site']['ip_address'] = SITE1_IPADDR
+        config['config'][0]['site']['local'] = 'BAD'
+        config['config'][0]['site']['use_https'] = 'True'
+        self.create_config_file(args, config)
+
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+    def test_site_with_bad_use_https(self):
+        """
+        Test with bad use_https setting in the site JSON.  Verify that the correct exception is generated.
+        :return: None
+        """
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        config['config'][0]['site']['username'] = 'admin'
+        config['config'][0]['site']['ip_address'] = SITE1_IPADDR
+        config['config'][0]['site']['local'] = 'True'
+        config['config'][0]['site']['use_https'] = 'BAD'
         self.create_config_file(args, config)
 
         self.assertRaises(ValueError, execute_tool, args, test_mode=True)
@@ -365,6 +407,74 @@ class TestBadConfiguration(unittest.TestCase):
 
         # Reload
         self.assertFalse(collector.reload_config())
+
+    def test_oversized_intersite_tag(self):
+        """
+        Test oversized string lengths for the entities that make up a Intersite tag
+        """
+        # Create a configuration with long names
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        export_policy = {
+            "export":
+                {
+                    "tenant": "a" * 64,
+                    "app": "b" * 64,
+                    "epg": "c" * 64,
+                    "remote_epg": "intersite-testsuite-app-epg",
+                    "remote_sites":
+                        [
+                            {
+                                "site":
+                                    {
+                                        "name": "d" * 64,
+                                    }
+                            }
+                        ]
+                }
+        }
+        config['config'].append(export_policy)
+
+        self.create_config_file(args, config)
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+    def test_duplicate_export_policy(self):
+        """
+        Test oversized string lengths for the entities that make up a Intersite tag
+        """
+        # Create a configuration with long names
+        args = self.get_args()
+        config = self.create_empty_config_file()
+        export_policy = {
+            "export":
+                {
+                    "tenant": "mytenant",
+                    "app": "myapp",
+                    "epg": "myepg",
+                    "remote_epg": "intersite-testsuite-app-epg",
+                    "remote_sites":
+                        [
+                            {
+                                "site":
+                                    {
+                                        "name": "mysite",
+                                    }
+                            }
+                        ]
+                }
+        }
+        config['config'].append(export_policy)
+        config['config'].append(export_policy)
+
+        self.create_config_file(args, config)
+        self.assertRaises(ValueError, execute_tool, args, test_mode=True)
+
+    def test_bad_intersite_tag(self):
+        """
+        Test bad intersite tag creation
+        """
+        with self.assertRaises(AssertionError):
+            IntersiteTag.fromstring('badstring')
 
 
 class BaseTestCase(unittest.TestCase):
@@ -477,7 +587,8 @@ class BaseTestCase(unittest.TestCase):
             return False
         return True
 
-    def verify_remote_site_has_entry_with_provided_contract(self, mac, ip, tenant_name, l3out_name, remote_epg_name, contract_name):
+    def verify_remote_site_has_entry_with_contract(self, mac, ip, tenant_name, l3out_name, remote_epg_name,
+                                                   contract_name, contract_type):
         """
         Verify that the remote site has the entry and provides the specfied contract
         :param mac: String containing the MAC address of the endpoint to find on the remote site
@@ -486,11 +597,15 @@ class BaseTestCase(unittest.TestCase):
         :param l3out_name: String containing the remote OutsideL3 name holding the endpoint
         :param remote_epg_name: String containing the remote OutsideEPG on the remote OutsideL3 holding the endpoint
         :param contract_name: String containing the contract name that the remote OutsideEPG should be providing
+        :param contract_type: String containing the contract usage.
+                              Valid values are 'provides', 'consumes', 'consumes_interface', and 'protected_by'
         :return: True if the remote site has the endpoint. False otherwise
         """
         site2 = Session(SITE2_URL, SITE2_LOGIN, SITE2_PASSWORD)
         resp = site2.login()
         self.assertTrue(resp.ok)
+
+        assert contract_type in ['provides', 'consumes', 'consumes_interface', 'protected_by']
 
         query = '/api/mo/uni/tn-%s/out-%s.json?query-target=subtree' % (tenant_name, l3out_name)
         resp = site2.get(query)
@@ -508,9 +623,15 @@ class BaseTestCase(unittest.TestCase):
 
         # Verify that the l3extInstP is providing the contract
         found = False
+        contract_types = {'provides': ['fvRsProv', 'tnVzBrCPName'],
+                          'consumes': ['fvRsCons', 'tnVzBrCPName'],
+                          'consumes_interface': ['fvRsConsIf', 'tnVzCPIfName'],
+                          'protected_by': ['fvRsProtBy', 'tnVzTabooName']
+                          }
+        (aci_class, aci_class_ref) = contract_types[contract_type]
         for item in resp.json()['imdata']:
-            if 'fvRsProv' in item:
-                if item['fvRsProv']['attributes']['tnVzBrCPName'] == contract_name:
+            if aci_class in item:
+                if item[aci_class]['attributes'][aci_class_ref] == contract_name:
                     found = True
                     break
         if not found:
@@ -935,9 +1056,9 @@ class TestBasicEndpointsWithMultipleRemoteSites(BaseEndpointTestCase):
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
 class TestBasicEndpointsWithMultipleRemoteSitesButOnlyExportToOne(TestBasicEndpointsWithMultipleRemoteSites):
@@ -958,7 +1079,7 @@ class TestBasicEndpointsWithMultipleRemoteSitesButOnlyExportToOne(TestBasicEndpo
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
 
     def test_basic_remove_endpoint(self):
         """
@@ -969,13 +1090,13 @@ class TestBasicEndpointsWithMultipleRemoteSitesButOnlyExportToOne(TestBasicEndpo
         self.assertTrue(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
 class TestBasicEndpointsWithThreeRemoteSites(TestBasicEndpointsWithMultipleRemoteSites):
@@ -1046,11 +1167,11 @@ class TestBasicEndpointsWithThreeRemoteSites(TestBasicEndpointsWithMultipleRemot
         self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site3',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
         self.assertFalse(self.verify_remote_site_has_entry(mac, ip, 'intersite-testsuite-site4',
-                                                          'l3out', 'intersite-testsuite-app-epg'))
+                                                           'l3out', 'intersite-testsuite-app-epg'))
 
 
 class TestBasicMacMove(BaseEndpointTestCase):
@@ -1995,9 +2116,9 @@ class TestExportPolicyRemoval(BaseTestCase):
                                                           'l3out', 'intersite-testsuite-app-epg2'))
 
 
-class TestBasicEndpointsWithContract(BaseTestCase):
+class BaseTestCaseEndpointsWithContract(BaseTestCase):
     """
-    Basic Tests for endpoints with a contract
+    Base class for Tests for endpoints with a contract
     """
     def setup_local_site(self):
         """
@@ -2032,12 +2153,18 @@ class TestBasicEndpointsWithContract(BaseTestCase):
         resp = tenant.push_to_apic(site2)
         self.assertTrue(resp.ok)
 
-    def create_config_file(self):
+    def create_config_file(self, contract_type):
         """
         Create the configuration
         :return: Dictionary containing the configuration
         """
         config = self.create_site_config()
+        if contract_type == 'protected_by':
+            contract_name = 'taboo_name'
+        elif contract_type == 'consumes_interface':
+            contract_name = 'cif_name'
+        else:
+            contract_name = 'contract_name'
         export_policy = {
             "export": {
                 "tenant": "intersite-testsuite",
@@ -2053,9 +2180,9 @@ class TestBasicEndpointsWithContract(BaseTestCase):
                                     "l3out": {
                                         "name": "l3out",
                                         "tenant": "intersite-testsuite",
-                                        "provides": [
+                                        contract_type: [
                                             {
-                                                "contract_name": "contract-1"
+                                                contract_name: "contract-1"
                                             }
                                         ]
                                     }
@@ -2069,99 +2196,225 @@ class TestBasicEndpointsWithContract(BaseTestCase):
         config['config'].append(export_policy)
         return config
 
-    def test_basic_add_endpoint(self):
+    def common_test_basic_add_endpoint(self, contract_type):
         """
         Test adding endpoint
         """
         args = self.get_args()
-        config = self.create_config_file()
+        config = self.create_config_file(contract_type)
         self.write_config_file(config, args)
         execute_tool(args, test_mode=True)
 
         mac = '00:11:22:33:33:33'
         ip = '3.4.3.4'
-        self.assertFalse(self.verify_remote_site_has_entry_with_provided_contract(mac, ip, 'intersite-testsuite', 'l3out',
-                                                                                  'intersite-testsuite-app-epg', 'contract-1'))
+        self.assertFalse(self.verify_remote_site_has_entry_with_contract(mac, ip, 'intersite-testsuite', 'l3out',
+                                                                         'intersite-testsuite-app-epg', 'contract-1',
+                                                                         contract_type))
 
         time.sleep(2)
         self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
         time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry_with_provided_contract(mac, ip, 'intersite-testsuite', 'l3out',
-                                                                                 'intersite-testsuite-app-epg', 'contract-1'))
+        self.assertTrue(self.verify_remote_site_has_entry_with_contract(mac, ip, 'intersite-testsuite', 'l3out',
+                                                                        'intersite-testsuite-app-epg', 'contract-1',
+                                                                        contract_type))
+
+    def common_test_basic_add_multiple_endpoint(self, contract_type):
+        """
+        Test adding multiple endpoints
+        """
+        args = self.get_args()
+        config = self.create_config_file(contract_type)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
+
+        time.sleep(2)
+        mac1 = '00:11:22:33:33:34'
+        ip1 = '3.4.3.5'
+        self.add_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
+        mac2 = '00:11:22:33:33:35'
+        ip2 = '3.4.3.6'
+        self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+
+        self.assertTrue(self.verify_remote_site_has_entry_with_contract(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                                        'intersite-testsuite-app-epg', 'contract-1',
+                                                                        contract_type))
+        self.assertTrue(self.verify_remote_site_has_entry_with_contract(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                                        'intersite-testsuite-app-epg', 'contract-1',
+                                                                        contract_type))
+
+    def common_test_basic_remove_endpoint(self, contract_type):
+        """
+        Test removing endpoint
+        """
+        args = self.get_args()
+        config = self.create_config_file(contract_type)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
+
+        time.sleep(2)
+        mac = '00:11:22:33:33:33'
+        ip = '3.4.3.4'
+        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+
+        self.assertTrue(self.verify_remote_site_has_entry_with_contract(mac, ip, 'intersite-testsuite', 'l3out',
+                                                                        'intersite-testsuite-app-epg', 'contract-1',
+                                                                        contract_type))
+        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
+        self.assertFalse(self.verify_remote_site_has_entry_with_contract(mac, ip, 'intersite-testsuite', 'l3out',
+                                                                         'intersite-testsuite-app-epg', 'contract-1',
+                                                                         contract_type))
+
+    def common_test_basic_remove_one_of_multiple_endpoint(self, contract_type):
+        """
+        Test removing one of multiple endpoints
+        """
+        args = self.get_args()
+        config = self.create_config_file(contract_type)
+        self.write_config_file(config, args)
+        execute_tool(args, test_mode=True)
+
+        time.sleep(2)
+        mac1 = '00:11:22:33:33:34'
+        ip1 = '3.4.3.5'
+        self.add_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
+        mac2 = '00:11:22:33:33:35'
+        ip2 = '3.4.3.6'
+        self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
+        time.sleep(2)
+
+        self.assertTrue(self.verify_remote_site_has_entry_with_contract(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                                        'intersite-testsuite-app-epg', 'contract-1',
+                                                                        contract_type))
+        self.assertTrue(self.verify_remote_site_has_entry_with_contract(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                                        'intersite-testsuite-app-epg', 'contract-1',
+                                                                        contract_type))
+
+        self.remove_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
+        self.assertFalse(self.verify_remote_site_has_entry_with_contract(mac1, ip1, 'intersite-testsuite', 'l3out',
+                                                                         'intersite-testsuite-app-epg', 'contract-1',
+                                                                         contract_type))
+        self.assertTrue(self.verify_remote_site_has_entry_with_contract(mac2, ip2, 'intersite-testsuite', 'l3out',
+                                                                        'intersite-testsuite-app-epg', 'contract-1',
+                                                                        contract_type))
+
+
+class TestBasicEndpointsWithProvidedContract(BaseTestCaseEndpointsWithContract):
+    """
+    Basic Tests for endpoints with a provided contract
+    """
+    def test_basic_add_endpoint(self):
+        """
+        Test adding endpoint
+        """
+        self.common_test_basic_add_endpoint(contract_type='provides')
 
     def test_basic_add_multiple_endpoint(self):
         """
         Test adding multiple endpoints
         """
-        args = self.get_args()
-        config = self.create_config_file()
-        self.write_config_file(config, args)
-        execute_tool(args, test_mode=True)
-
-        time.sleep(2)
-        mac1 = '00:11:22:33:33:34'
-        ip1 = '3.4.3.5'
-        self.add_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
-        mac2 = '00:11:22:33:33:35'
-        ip2 = '3.4.3.6'
-        self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
-        time.sleep(2)
-
-        self.assertTrue(self.verify_remote_site_has_entry_with_provided_contract(mac1, ip1, 'intersite-testsuite', 'l3out',
-                                                                                 'intersite-testsuite-app-epg', 'contract-1'))
-        self.assertTrue(self.verify_remote_site_has_entry_with_provided_contract(mac2, ip2, 'intersite-testsuite', 'l3out',
-                                                                                 'intersite-testsuite-app-epg', 'contract-1'))
+        self.common_test_basic_add_multiple_endpoint(contract_type='provides')
 
     def test_basic_remove_endpoint(self):
         """
         Test removing endpoint
         """
-        args = self.get_args()
-        config = self.create_config_file()
-        self.write_config_file(config, args)
-        execute_tool(args, test_mode=True)
-
-        time.sleep(2)
-        mac = '00:11:22:33:33:33'
-        ip = '3.4.3.4'
-        self.add_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
-        time.sleep(2)
-
-        self.assertTrue(self.verify_remote_site_has_entry_with_provided_contract(mac, ip, 'intersite-testsuite', 'l3out',
-                                                                                 'intersite-testsuite-app-epg', 'contract-1'))
-        self.remove_endpoint(mac, ip, 'intersite-testsuite', 'app', 'epg')
-        self.assertFalse(self.verify_remote_site_has_entry_with_provided_contract(mac, ip, 'intersite-testsuite', 'l3out',
-                                                                                  'intersite-testsuite-app-epg', 'contract-1'))
+        self.common_test_basic_remove_endpoint(contract_type='provides')
 
     def test_basic_remove_one_of_multiple_endpoint(self):
         """
         Test removing one of multiple endpoints
         """
-        args = self.get_args()
-        config = self.create_config_file()
-        self.write_config_file(config, args)
-        execute_tool(args, test_mode=True)
+        self.common_test_basic_remove_one_of_multiple_endpoint(contract_type='provides')
 
-        time.sleep(2)
-        mac1 = '00:11:22:33:33:34'
-        ip1 = '3.4.3.5'
-        self.add_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
-        mac2 = '00:11:22:33:33:35'
-        ip2 = '3.4.3.6'
-        self.add_endpoint(mac2, ip2, 'intersite-testsuite', 'app', 'epg')
-        time.sleep(2)
 
-        self.assertTrue(self.verify_remote_site_has_entry_with_provided_contract(mac1, ip1, 'intersite-testsuite', 'l3out',
-                                                                                 'intersite-testsuite-app-epg', 'contract-1'))
-        self.assertTrue(self.verify_remote_site_has_entry_with_provided_contract(mac2, ip2, 'intersite-testsuite', 'l3out',
-                                                                                 'intersite-testsuite-app-epg', 'contract-1'))
+class TestBasicEndpointsWithConsumedContract(BaseTestCaseEndpointsWithContract):
+    """
+    Basic Tests for endpoints with a consumed contract
+    """
+    def test_basic_add_endpoint(self):
+        """
+        Test adding endpoint
+        """
+        self.common_test_basic_add_endpoint(contract_type='consumes')
 
-        self.remove_endpoint(mac1, ip1, 'intersite-testsuite', 'app', 'epg')
-        self.assertFalse(self.verify_remote_site_has_entry_with_provided_contract(mac1, ip1, 'intersite-testsuite', 'l3out',
-                                                                                  'intersite-testsuite-app-epg', 'contract-1'))
-        self.assertTrue(self.verify_remote_site_has_entry_with_provided_contract(mac2, ip2, 'intersite-testsuite', 'l3out',
-                                                                                 'intersite-testsuite-app-epg', 'contract-1'))
+    def test_basic_add_multiple_endpoint(self):
+        """
+        Test adding multiple endpoints
+        """
+        self.common_test_basic_add_multiple_endpoint(contract_type='consumes')
+
+    def test_basic_remove_endpoint(self):
+        """
+        Test removing endpoint
+        """
+        self.common_test_basic_remove_endpoint(contract_type='consumes')
+
+    def test_basic_remove_one_of_multiple_endpoint(self):
+        """
+        Test removing one of multiple endpoints
+        """
+        self.common_test_basic_remove_one_of_multiple_endpoint(contract_type='consumes')
+
+
+class TestBasicEndpointsWithConsumedContractInterface(BaseTestCaseEndpointsWithContract):
+    """
+    Basic Tests for endpoints with a consumed contract interface
+    """
+    def test_basic_add_endpoint(self):
+        """
+        Test adding endpoint
+        """
+        self.common_test_basic_add_endpoint(contract_type='consumes_interface')
+
+    def test_basic_add_multiple_endpoint(self):
+        """
+        Test adding multiple endpoints
+        """
+        self.common_test_basic_add_multiple_endpoint(contract_type='consumes_interface')
+
+    def test_basic_remove_endpoint(self):
+        """
+        Test removing endpoint
+        """
+        self.common_test_basic_remove_endpoint(contract_type='consumes_interface')
+
+    def test_basic_remove_one_of_multiple_endpoint(self):
+        """
+        Test removing one of multiple endpoints
+        """
+        self.common_test_basic_remove_one_of_multiple_endpoint(contract_type='consumes_interface')
+
+
+class TestBasicEndpointsWithTaboo(BaseTestCaseEndpointsWithContract):
+    """
+    Basic Tests for endpoints with a Taboo
+    """
+    def test_basic_add_endpoint(self):
+        """
+        Test adding endpoint
+        """
+        self.common_test_basic_add_endpoint(contract_type='protected_by')
+
+    def test_basic_add_multiple_endpoint(self):
+        """
+        Test adding multiple endpoints
+        """
+        self.common_test_basic_add_multiple_endpoint(contract_type='protected_by')
+
+    def test_basic_remove_endpoint(self):
+        """
+        Test removing endpoint
+        """
+        self.common_test_basic_remove_endpoint(contract_type='protected_by')
+
+    def test_basic_remove_one_of_multiple_endpoint(self):
+        """
+        Test removing one of multiple endpoints
+        """
+        self.common_test_basic_remove_one_of_multiple_endpoint(contract_type='protected_by')
 
 
 class TestBasicEndpointMove(BaseTestCase):
@@ -3384,7 +3637,10 @@ def main_test():
     full.addTest(unittest.makeSuite(TestBasicExistingEndpoints))
     full.addTest(unittest.makeSuite(TestBasicExistingEndpointsAddPolicyLater))
     full.addTest(unittest.makeSuite(TestExportPolicyRemoval))
-    full.addTest(unittest.makeSuite(TestBasicEndpointsWithContract))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithProvidedContract))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithConsumedContract))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithConsumedContractInterface))
+    full.addTest(unittest.makeSuite(TestBasicEndpointsWithTaboo))
     full.addTest(unittest.makeSuite(TestBasicEndpointMove))
     full.addTest(unittest.makeSuite(TestPolicyChangeProvidedContract))
     full.addTest(unittest.makeSuite(TestChangeL3Out))
