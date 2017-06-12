@@ -56,6 +56,13 @@ A tutorial and overview of the acitoolkit object model can be found in
 the Documentation section found at
 [http://datacenter.github.io/acitoolkit/](http://datacenter.github.io/acitoolkit/)
 
+
+# Using Docker Image
+
+```
+docker run -it --name acitoolkit dockercisco/acitoolkit
+```
+
 # License
 
 Copyright 2015 Cisco Systems, Inc.
