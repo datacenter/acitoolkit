@@ -1,33 +1,5 @@
 #!/usr/bin/env python
-################################################################################
-#                 _    ____ ___   _____           _ _    _ _                   #
-#                / \  / ___|_ _| |_   _|__   ___ | | | _(_) |_                 #
-#               / _ \| |    | |    | |/ _ \ / _ \| | |/ / | __|                #
-#              / ___ \ |___ | |    | | (_) | (_) | |   <| | |_                 #
-#        ____ /_/   \_\____|___|___|_|\___/ \___/|_|_|\_\_|\__|                #
-#       / ___|___   __| | ___  / ___|  __ _ _ __ ___  _ __ | | ___  ___        #
-#      | |   / _ \ / _` |/ _ \ \___ \ / _` | '_ ` _ \| '_ \| |/ _ \/ __|       #
-#      | |__| (_) | (_| |  __/  ___) | (_| | | | | | | |_) | |  __/\__ \       #
-#       \____\___/ \__,_|\___| |____/ \__,_|_| |_| |_| .__/|_|\___||___/       #
-#                                                    |_|                       #
-################################################################################
-#                                                                              #
-# Copyright (c) 2015 Cisco Systems                                             #
-# All Rights Reserved.                                                         #
-#                                                                              #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
-#    not use this file except in compliance with the License. You may obtain   #
-#    a copy of the License at                                                  #
-#                                                                              #
-#         http://www.apache.org/licenses/LICENSE-2.0                           #
-#                                                                              #
-#    Unless required by applicable law or agreed to in writing, software       #
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
-#    License for the specific language governing permissions and limitations   #
-#    under the License.                                                        #
-#                                                                              #
-################################################################################
+
 """
 Simple application that logs on to the APIC and displays all
 of the Interfaces.
@@ -37,7 +9,12 @@ import re
 import json
 import acitoolkit.acitoolkit as aci
 
-
+data = {}
+longest_names = {'Node': len('Node'),
+                 'Interface': len('Interface'),
+                 'IP Address': len('IP Address'),
+                 'Admin Status': len('Admin Status'),
+                 'Status': len('Status')}
 def main():
     """
     Main execution routine
@@ -48,6 +25,7 @@ def main():
     # Otherwise, take them from your environment variables file ~/.profile
     description = 'Simple application that logs on to the APIC and displays all of the Interfaces.'
     creds = aci.Credentials('apic', description)
+    creds.add_argument('--tenant', help='The name of Tenant')
     args = creds.get()
 
     # Login to APIC
@@ -59,7 +37,6 @@ def main():
 
     resp = session.get('/api/class/ipv4Addr.json')
     intfs = json.loads(resp.text)['imdata']
-    data = {}
 
     for i in intfs:
         ip = i['ipv4Addr']['attributes']['addr']
@@ -69,18 +46,49 @@ def main():
         node = dn.split('/')[2]
         intf = re.split(r'\[|\]', dn)[1]
         vrf = re.split(r'/|dom-', dn)[7]
-        if vrf not in data.keys():
-            data[vrf] = []
+        tn = vrf
+        if vrf.find(":") != -1:
+            tn = re.search("(.*):(.*)", vrf).group(1)
+        
+        check_longest_name(node, "Node")
+        check_longest_name(intf, "Interface")
+        check_longest_name(ip, "IP Address")
+        check_longest_name(cfg, "Admin Status")
+        check_longest_name(op, "Status")
+
+        if args.tenant is None:
+            if vrf not in data.keys():
+                data[vrf] = []
+            else:
+                data[vrf].append((node, intf, ip, cfg, op))
         else:
-            data[vrf].append((node, intf, ip, cfg, op))
+            if tn == args.tenant:
+                if vrf not in data.keys():
+                    data[vrf] = []
+                else:
+                    data[vrf].append((node, intf, ip, cfg, op))
 
     for k in data.keys():
         header = 'IP Interface Status for VRF "{}"'.format(k)
-        print header
-        template = "{0:15} {1:10} {2:20} {3:8} {4:10}"
-        print(template.format("Node", "Interface", "IP Address ", "Admin Status", "Status"))
+        print(header)
+        template = '{0:' + str(longest_names["Node"]) + '} ' \
+                   '{1:' + str(longest_names["Interface"]) + '} ' \
+                   '{2:' + str(longest_names["IP Address"]) + '} ' \
+                   '{3:' + str(longest_names["Admin Status"]) + '} ' \
+                   '{4:' + str(longest_names["Status"]) + '}'
+        print(template.format("Node", "Interface", "IP Address", "Admin Status", "Status"))
+        print(template.format('-' * longest_names["Node"],
+                              '-' * longest_names["Interface"],
+                              '-' * longest_names["IP Address"],
+                              '-' * longest_names["Admin Status"],
+                              '-' * longest_names["Status"]))
         for rec in sorted(data[k]):
             print(template.format(*rec))
+        print('')
+
+def check_longest_name(item, title):
+    if len(item) > longest_names[title]:
+        longest_names[title] = len(item)
 
 if __name__ == '__main__':
     main()

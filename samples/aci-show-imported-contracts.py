@@ -1,11 +1,13 @@
+#!/usr/bin/env python
+
 """
 Find out where a contract has been imported and consumed on an EPG.
-
 """
 import acitoolkit.acitoolkit as aci
 from acitoolkit.acitoolkit import *
 from tabulate import tabulate
 
+data = []
 
 def main():
     description = ('Simple application that logs on to the APIC'
@@ -23,7 +25,6 @@ def main():
     if not resp.ok:
         print('%% Could not login to APIC')
 
-    data = []
     tenants = aci.Tenant.get_deep(session)
     for tenant in tenants:
         contracts_interfaces = tenant.get_children(only_class=ContractInterface)
