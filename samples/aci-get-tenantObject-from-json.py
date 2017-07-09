@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Simple application that takes a tenant json from a file and returns a tenant object
 """
@@ -20,9 +22,9 @@ def main():
 
     tenantObject = None
     if args.tenantconfigfile:
-        with open(args.tenantconfigfile) as data_file:    
+        with open(args.tenantconfigfile) as data_file:
             tenant_json = json.load(data_file)
-            
+
     tenant = ACI.Tenant(args.tenantname)
     ACI.Tenant.get_from_json(tenant,tenant_json,parent=tenant)
     print(tenant.get_json())

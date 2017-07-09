@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import locale
 from time import localtime, strftime
@@ -18,7 +20,7 @@ class Stats(object):
         :param txtformat: Output format, 'text' or 'csv'
         :param verbose: Verbosity level of debug output
         """
-        print 'Getting inital info from APIC....'
+        print('Getting inital info from APIC....')
         self.session = session
         self.nodes = Node.get_deep(session)
         self.txtformat = txtformat
@@ -51,25 +53,25 @@ class Stats(object):
         """
         if self.txtformat == 'csv':
             csv = True
-            print "'Node Name','Interface','Epoch','Ingress bit rate'," \
-                  "'Egress bit rate'"
+            print("'Node Name','Interface','Epoch','Ingress bit rate'," \
+                  "'Egress bit rate'")
         else:
             csv = False
-            print "Report generated on {}.".format(
-                  strftime("%Y-%b-%d %H:%M:%S %Z", localtime()))
-            print "Using reporting threshold of {:d}%.".format(threshold)
-            
+            print("Report generated on {}.".format(
+                  strftime("%Y-%b-%d %H:%M:%S %Z", localtime())))
+            print("Using reporting threshold of {:d}%.".format(threshold))
+
         max_in_per = max_out_per = 0
         for node in sorted(self.nodes, key=attrgetter('name')):
             if node.role in node_type:
                 if not csv:
-                    print "  Node =", node.name
+                    print("  Node =", node.name)
                 if self.verbose > 0:
                     print >> sys.stderr, "  Node =", node.name
                 for lc in sorted(node.get_children(Linecard),
                                  key=attrgetter('name')):
                     if not csv:
-                        print "    Linecard =", lc.name
+                        print("    Linecard =", lc.name)
                     if self.verbose > 0:
                         print >> sys.stderr, "    Linecard =", lc.name
                     for intf in sorted(Interface.get(self.session, lc),
@@ -109,9 +111,9 @@ class Stats(object):
                                                              interval, epoch,
                                                              'intervalStart')
                             if csv:
-                                print "'{}','{}',{},{},{}".format(
+                                print("'{}','{}',{},{},{}".format(
                                     node.name, intf.name, value_time,
-                                    value_in, value_out)
+                                    value_in, value_out))
                             else:
                                 interval_count += 1
                                 value_in_per = (value_in / intf_speed) * 100
@@ -133,28 +135,28 @@ class Stats(object):
                                         max_value_time = value_time
 
                         if excess_interval_count and not csv:
-                            print "      Interface =", intf.name
-                            print "      Interface Speed = {}({})".format(
+                            print("      Interface =", intf.name)
+                            print("      Interface Speed = {}({})".format(
                                   info_dict['attributes']['operSpeed'],
-                                  locale.format('%d', intf_speed, True))
-                            print "        Highest usage interval with " \
+                                  locale.format('%d', intf_speed, True)))
+                            print("        Highest usage interval with " \
                                   " utilization exceeding {}% for {}.".format(
-                                      threshold, interval)
-                            print "          Interval time: {}".format(
-                                max_value_time)
-                            print "          Ingress bps: {}".format(
-                                locale.format('%d', max_value_in, True))
-                            print "          Egress bps: {}".format(
-                                locale.format('%d', max_value_out, True))
-                            print "        {} of {} intervals over {}%" \
+                                      threshold, interval))
+                            print("          Interval time: {}".format(
+                                max_value_time))
+                            print("          Ingress bps: {}".format(
+                                locale.format('%d', max_value_in, True)))
+                            print("          Egress bps: {}".format(
+                                locale.format('%d', max_value_out, True)))
+                            print("        {} of {} intervals over {}%" \
                                   " utilization".format(excess_interval_count,
                                                         interval_count,
-                                                        threshold)
-                                  
+                                                        threshold))
+
         if not csv:
-            print "Max input usage found is {:d}%".format(int(max_in_per))
-            print "Max output usage found is {:d}%".format(int(max_out_per))
-        
+            print("Max input usage found is {:d}%".format(int(max_in_per)))
+            print("Max output usage found is {:d}%".format(int(max_out_per)))
+
 
 def get_interface_stats_from_nodes():
     """
@@ -206,9 +208,9 @@ def get_interface_stats_from_nodes():
     session = Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(0)
-    
+
     statistics = Stats(session, args.format, args.verbose)
     statistics.get_int_traffic(node_type, args.interval, threshold)
 
