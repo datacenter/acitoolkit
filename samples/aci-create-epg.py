@@ -16,6 +16,7 @@ def main():
     creds.add_argument('--app', help='The name of ApplicationProfile')
     creds.add_argument('--bd', help='The name of BridgeDomain')
     creds.add_argument('--epg', help='The name of EPG')
+    creds.add_argument('--json', const='false', nargs='?', help='Json output only')
 
     args = creds.get()
     session = Session(args.url, args.login, args.password)
@@ -27,13 +28,15 @@ def main():
     epg = EPG(args.epg, app)
     epg.add_bd(bd)
 
-    resp = session.push_to_apic(tenant.get_url(),
-                                tenant.get_json())
-
-    if not resp.ok:
-        print('%% Error: Could not push configuration to APIC')
-        print(resp.text)
+    if args.json:
+        print(tenant.get_json())
+    else:
+        resp = session.push_to_apic(tenant.get_url(),
+                                    tenant.get_json())
+    
+        if not resp.ok:
+            print('%% Error: Could not push configuration to APIC')
+            print(resp.text)        
 
 if __name__ == '__main__':
     main()
-
