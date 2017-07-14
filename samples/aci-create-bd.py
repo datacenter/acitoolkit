@@ -17,6 +17,7 @@ def main():
     creds.add_argument('--bd', help='The name of BridgeDomain')
     creds.add_argument('--address', help='Subnet IPv4 Address')
     creds.add_argument('--scope', help='The scope of subnet ("public", "private", "shared", "public,shared", "private,shared", "shared,public", "shared,private")')
+    creds.add_argument('--json', const='false', nargs='?', help='Json output only')
 
     args = creds.get()
     session = Session(args.url, args.login, args.password)
@@ -42,12 +43,15 @@ def main():
         else:
             subnet.set_scope(args.scope)
 
-    resp = session.push_to_apic(tenant.get_url(),
-                                tenant.get_json())
-
-    if not resp.ok:
-        print('%% Error: Could not push configuration to APIC')
-        print(resp.text)
+    if args.json:
+        print(tenant.get_json())
+    else:
+        resp = session.push_to_apic(tenant.get_url(),
+                                    tenant.get_json())
+    
+        if not resp.ok:
+            print('%% Error: Could not push configuration to APIC')
+            print(resp.text)
 
 if __name__ == '__main__':
     main()

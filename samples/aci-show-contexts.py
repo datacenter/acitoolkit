@@ -1,33 +1,5 @@
 #!/usr/bin/env python
-################################################################################
-#                 _    ____ ___   _____           _ _    _ _                   #
-#                / \  / ___|_ _| |_   _|__   ___ | | | _(_) |_                 #
-#               / _ \| |    | |    | |/ _ \ / _ \| | |/ / | __|                #
-#              / ___ \ |___ | |    | | (_) | (_) | |   <| | |_                 #
-#        ____ /_/   \_\____|___|___|_|\___/ \___/|_|_|\_\_|\__|                #
-#       / ___|___   __| | ___  / ___|  __ _ _ __ ___  _ __ | | ___  ___        #
-#      | |   / _ \ / _` |/ _ \ \___ \ / _` | '_ ` _ \| '_ \| |/ _ \/ __|       #
-#      | |__| (_) | (_| |  __/  ___) | (_| | | | | | | |_) | |  __/\__ \       #
-#       \____\___/ \__,_|\___| |____/ \__,_|_| |_| |_| .__/|_|\___||___/       #
-#                                                    |_|                       #
-################################################################################
-#                                                                              #
-# Copyright (c) 2015 Cisco Systems                                             #
-# All Rights Reserved.                                                         #
-#                                                                              #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may   #
-#    not use this file except in compliance with the License. You may obtain   #
-#    a copy of the License at                                                  #
-#                                                                              #
-#         http://www.apache.org/licenses/LICENSE-2.0                           #
-#                                                                              #
-#    Unless required by applicable law or agreed to in writing, software       #
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT #
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the  #
-#    License for the specific language governing permissions and limitations   #
-#    under the License.                                                        #
-#                                                                              #
-################################################################################
+
 """
 Simple application that logs on to the APIC and displays all
 of the Contexts.
@@ -35,7 +7,9 @@ of the Contexts.
 import sys
 import acitoolkit.acitoolkit as ACI
 
-
+data = []
+longest_names = {'Tenant': len('Tenant'),
+                 'Context': len('Context')}
 def main():
     """
     Main execution routine
@@ -46,6 +20,7 @@ def main():
     # Otherwise, take them from your environment variables file ~/.profile
     description = 'Simple application that logs on to the APIC and displays all of the Contexts.'
     creds = ACI.Credentials('apic', description)
+    creds.add_argument('--tenant', help='The name of Tenant')
     args = creds.get()
 
     # Login to APIC
@@ -57,21 +32,35 @@ def main():
 
     # Download all of the contexts
     # and store the data as tuples in a list
-    data = []
     tenants = ACI.Tenant.get(session)
     for tenant in tenants:
-        contexts = ACI.Context.get(session, tenant)
-        for context in contexts:
-            data.append((tenant.name, context.name))
+        check_longest_name(tenant.name, "Tenant")
+        if args.tenant is None:
+            get_context(session, tenant)
+        else:
+            if tenant.name == args.tenant:
+                get_context(session, tenant)
 
     # IPython.embed()
 
     # Display the data downloaded
-    template = '{0:19} {1:20}'
+    template = '{0:' + str(longest_names["Tenant"]) + '} ' \
+               '{1:' + str(longest_names["Context"]) + '}'
     print(template.format("Tenant", "Context"))
-    print(template.format("------", "-------"))
-    for rec in data:
+    print(template.format('-' * longest_names["Tenant"],
+                          '-' * longest_names["Context"]))
+    for rec in sorted(data):
         print(template.format(*rec))
+
+def get_context(session, tenant):
+    contexts = ACI.Context.get(session, tenant)
+    for context in contexts:
+        check_longest_name(context.name, "Context")
+        data.append((tenant.name, context.name))
+
+def check_longest_name(item, title):
+    if len(item) > longest_names[title]:
+        longest_names[title] = len(item)
 
 if __name__ == '__main__':
     main()
