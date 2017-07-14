@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Simple application that logs on to the APIC and displays
 health on all the Tenants.

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Simple application that logs on to the APIC and displays all
 the response of an API query given the class name and scope
@@ -28,7 +30,7 @@ def main():
         sys.exit(0)
 
     class_url = '/api/node/class/'+args.class_name+'.json?query-target='+args.query_target
-    print "class_url is "+class_url
+    print("class_url is "+class_url)
     ret = session.get(class_url)
     response = ret.json()
     imdata = response['imdata']

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Simple application that logs on to the APIC and displays all
 networks that match the given IP
@@ -5,7 +7,6 @@ networks that match the given IP
 import sys
 from ipaddr import IPNetwork
 import acitoolkit.acitoolkit as aci
-
 
 def main():
     """
@@ -25,10 +26,10 @@ def main():
         print('%% Could not login to APIC')
 
     if not args.find_ip:
-        print "Error: -f|--find_ip <ip_address> argument required"
+        print("Error: -f|--find_ip <ip_address> argument required")
         sys.exit(1)
 
-    print "searching for " + args.find_ip
+    print("searching for " + args.find_ip)
     # Download all of the tenants, app profiles, and Subnets
     # and store the names as tuples in two lists
     priv = []
@@ -70,7 +71,7 @@ def main():
     # Display
     template = "{0:20} {1:20} {2:20} {3:18} {4:15}"
     if len(priv):
-        print ""
+        print("")
         print(template.format("Tenant",
                               "App",
                               "Bridge Domain",
@@ -84,7 +85,7 @@ def main():
         for rec in priv:
             print(template.format(*rec))
     if len(publ):
-        print ""
+        print("")
         print(template.format("Tenant",
                               "OutsideL3",
                               "OutsideEPG",
