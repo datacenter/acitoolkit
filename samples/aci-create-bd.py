@@ -5,6 +5,7 @@ Sample of creating a BridgeDomain
 
 from acitoolkit.acitoolkit import Credentials, Session, Tenant, Context, BridgeDomain, Subnet
 
+
 def main():
     """
     Main execution routine
@@ -48,7 +49,7 @@ def main():
     else:
         resp = session.push_to_apic(tenant.get_url(),
                                     tenant.get_json())
-    
+
         if not resp.ok:
             print('%% Error: Could not push configuration to APIC')
             print(resp.text)

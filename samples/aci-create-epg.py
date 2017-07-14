@@ -3,7 +3,8 @@
 Sample of creating a EPG
 """
 
-from acitoolkit.acitoolkit import Credentials, Session, Tenant, AppProfile, BridgeDomain, EPG
+from acitoolkit import Credentials, Session, Tenant, AppProfile, BridgeDomain, EPG
+
 
 def main():
     """
@@ -33,10 +34,10 @@ def main():
     else:
         resp = session.push_to_apic(tenant.get_url(),
                                     tenant.get_json())
-    
+
         if not resp.ok:
             print('%% Error: Could not push configuration to APIC')
-            print(resp.text)        
+            print(resp.text)
 
 if __name__ == '__main__':
     main()
