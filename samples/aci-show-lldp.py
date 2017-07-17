@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Simple application that logs on to the APIC, pull all LLDP neighbours,
 and display in text table format
@@ -40,12 +42,12 @@ def main():
         for table_data in table.data:
             if table_data not in output_list:
                 output_list.append(table_data)
-    print tabulate(output_list, headers=["Node-ID",
+    print(tabulate(output_list, headers=["Node-ID",
                                          "Ip",
                                          "Name",
                                          "Chassis_id_t",
                                          "Neighbour Platform",
-                                         "Neighbour Interface"])
+                                         "Neighbour Interface"]))
 
 if __name__ == '__main__':
     main()
