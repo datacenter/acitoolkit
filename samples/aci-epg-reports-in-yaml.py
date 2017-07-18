@@ -7,9 +7,8 @@ EPGs.
 import socket
 import yaml
 import sys
-from pprint import pprint
-import acitoolkit.acitoolkit as aci
-from acitoolkit.acitoolkit import Tenant, AppProfile, EPG, Endpoint
+from acitoolkit import Credentials, Session, Tenant, AppProfile, EPG, Endpoint
+
 
 def main():
     """
@@ -19,9 +18,9 @@ def main():
     # Login to APIC
     description = ('Simple application that logs on to the APIC'
                    ' and displays all of the EPGs.')
-    creds = aci.Credentials('apic', description)
+    creds = Credentials('apic', description)
     args = creds.get()
-    session = aci.Session(args.url, args.login, args.password)
+    session = Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
@@ -40,23 +39,19 @@ def main():
 
         tenants_dict['app-profiles'] = []
         for app in tenant.get_children(AppProfile):
-            app_profiles = {}
-            app_profiles['name'] =app.name
+            app_profiles = {'name': app.name}
             if app.descr:
                 app_profiles['description'] = app.descr
             app_profiles['epgs'] = []
 
-
             for epg in app.get_children(EPG):
-                epgs_info = {}
-                epgs_info['name'] = epg.name
+                epgs_info = {'name': epg.name}
                 if epg.descr:
-                    epgs_info['description']  = epg.descr
+                    epgs_info['description'] = epg.descr
                 epgs_info['endpoints'] = []
 
                 for endpoint in epg.get_children(Endpoint):
-                    endpoint_info = {}
-                    endpoint_info['name'] = endpoint.name
+                    endpoint_info = {'name': endpoint.name}
                     if endpoint.ip != '0.0.0.0':
                         endpoint_info['ip'] = endpoint.ip
                         try:
@@ -73,9 +68,9 @@ def main():
             tenants_dict['app-profiles'].append(app_profiles)
         tenants_list.append(tenants_dict)
 
-    tenants_info = {}
-    tenants_info['tenants'] = tenants_list
-    print(yaml.safe_dump(tenants_info,sys.stdout, indent= 4,default_flow_style=False))
+    tenants_info = {'tenants': tenants_list}
+    print(yaml.safe_dump(tenants_info, sys.stdout,
+                         indent=4, default_flow_style=False))
 
 if __name__ == '__main__':
     try:

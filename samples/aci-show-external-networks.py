@@ -4,7 +4,7 @@
 Simple application that logs on to the APIC and displays all of
 the External Networks.
 """
-import acitoolkit.acitoolkit as aci
+from acitoolkit import *
 
 data = []
 longest_names = {'Tenant': len('Tenant'),
@@ -12,6 +12,8 @@ longest_names = {'Tenant': len('Tenant'),
                  'External EPG': len('External EPG'),
                  'Subnet': len('Subnet'),
                  'Scope': len('Scope')}
+
+
 def main():
     """
     Main routine
@@ -20,21 +22,21 @@ def main():
     # Login to APIC
     description = ('Simple application that logs on to the APIC'
                    ' and displays all of the External Subnets.')
-    creds = aci.Credentials('apic', description)
+    creds = Credentials('apic', description)
     creds.add_argument('--tenant', help='The name of Tenant')
     args = creds.get()
 
-    session = aci.Session(args.url, args.login, args.password)
+    session = Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
 
     # Download all of the tenants, app profiles, and Subnets
     # and store the names as tuples in a list
-    tenants = aci.Tenant.get_deep(session, limit_to=['fvTenant',
-                                                     'l3extOut',
-                                                     'l3extInstP',
-                                                     'l3extSubnet'])
+    tenants = Tenant.get_deep(session, limit_to=['fvTenant',
+                                                 'l3extOut',
+                                                 'l3extInstP',
+                                                 'l3extSubnet'])
     for tenant in tenants:
         check_longest_name(tenant.name, "Tenant")
         if args.tenant is None:
@@ -58,14 +60,20 @@ def main():
     for rec in sorted(data):
         print(template.format(*rec))
 
+
 def get_external_epg(session, tenant):
-    outside_l3s = tenant.get_children(only_class=aci.OutsideL3)
+    """
+    Get the external EPGs
+    :param session: Session class instance
+    :param tenant: String containing the Tenant name
+    """
+    outside_l3s = tenant.get_children(only_class=OutsideL3)
     for outside_l3 in outside_l3s:
         check_longest_name(outside_l3.name, "L3Out")
-        outside_epgs = outside_l3.get_children(only_class=aci.OutsideEPG)
+        outside_epgs = outside_l3.get_children(only_class=OutsideEPG)
         for outside_epg in outside_epgs:
             check_longest_name(outside_epg.name, "External EPG")
-            outside_networks = outside_epg.get_children(only_class=aci.OutsideNetwork)
+            outside_networks = outside_epg.get_children(only_class=OutsideNetwork)
             if len(outside_networks) == 0:
                 data.append((tenant.name, outside_l3.name, outside_epg.name, "", ""))
             else:
@@ -78,9 +86,16 @@ def get_external_epg(session, tenant):
                                  outside_network.addr,
                                  outside_network.get_scope()))
 
+
 def check_longest_name(item, title):
+    """
+    Check the longest name
+    :param item: String containing the name
+    :param title: String containing the column title
+    """
     if len(item) > longest_names[title]:
         longest_names[title] = len(item)
+
 
 if __name__ == '__main__':
     try:

@@ -7,7 +7,7 @@ of the Interfaces.
 import sys
 import re
 import json
-import acitoolkit.acitoolkit as aci
+from acitoolkit import Credentials, Session
 
 data = {}
 longest_names = {'Node': len('Node'),
@@ -15,6 +15,8 @@ longest_names = {'Node': len('Node'),
                  'IP Address': len('IP Address'),
                  'Admin Status': len('Admin Status'),
                  'Status': len('Status')}
+
+
 def main():
     """
     Main execution routine
@@ -24,12 +26,12 @@ def main():
     # Take login credentials from the command line if provided
     # Otherwise, take them from your environment variables file ~/.profile
     description = 'Simple application that logs on to the APIC and displays all of the Interfaces.'
-    creds = aci.Credentials('apic', description)
+    creds = Credentials('apic', description)
     creds.add_argument('--tenant', help='The name of Tenant')
     args = creds.get()
 
     # Login to APIC
-    session = aci.Session(args.url, args.login, args.password)
+    session = Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
@@ -49,7 +51,7 @@ def main():
         tn = vrf
         if vrf.find(":") != -1:
             tn = re.search("(.*):(.*)", vrf).group(1)
-        
+
         check_longest_name(node, "Node")
         check_longest_name(intf, "Interface")
         check_longest_name(ip, "IP Address")
@@ -86,9 +88,16 @@ def main():
             print(template.format(*rec))
         print('')
 
+
 def check_longest_name(item, title):
+    """
+    Check the longest name
+    :param item: String containing the name
+    :param title: String containing the column title
+    """
     if len(item) > longest_names[title]:
         longest_names[title] = len(item)
+
 
 if __name__ == '__main__':
     main()
