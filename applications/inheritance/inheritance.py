@@ -1187,7 +1187,7 @@ def execute_tool(args):
     ]
 }
         """
-        print sample_config
+        print(sample_config)
         return
 
     tool = InheritanceService()
