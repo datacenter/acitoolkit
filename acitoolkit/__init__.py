@@ -42,7 +42,7 @@ from .acitoolkit import (  # noqa
     OSPFInterfacePolicy, OSPFRouter, OutputTerminal, OutsideEPG,
     OutsideL2, OutsideL2EPG, OutsideL3, OutsideNetwork,
     PhysDomain, PortChannel, Search, Subnet, Taboo, Tenant, TunnelInterface,
-    VMM, VMMCredentials, VmmDomain, VMMvSwitchInfo, Tag
+    VMM, VMMCredentials, VmmDomain, VMMvSwitchInfo, Tag, _interface_from_dn
 )
 from .acitoolkitlib import Credentials, AcitoolkitGraphBuilder  # noqa
 from .acifakeapic import FakeSession  # noqa
