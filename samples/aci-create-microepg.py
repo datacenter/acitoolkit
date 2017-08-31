@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ################################################################################
 #                 _    ____ ___   _____           _ _    _ _                   #
 #                / \  / ___|_ _| |_   _|__   ___ | | | _(_) |_                 #
@@ -28,73 +29,58 @@
 #                                                                              #
 ################################################################################
 """
-Simple demonstration application configuring a basic ACI fabric
+This example logs into the APIC and creates a tenant with an application profile
+that contains a microEPG.  A single base EPG is used to provide the networking and
+many microepgs can use the same base EPG. Note that the base EPG is statically bound
+to a leaf switch in this example (hardcoded as leaf 101 and using untagged vlan 1).
 """
-from acitoolkit.acisession import Session
-from acitoolkit.acitoolkit import Credentials, Tenant, AppProfile, EPG
-from acitoolkit.acitoolkit import Context, BridgeDomain, Contract, FilterEntry
+from acitoolkit import (Credentials, Session, Tenant, AppProfile, EPG, Context,
+                        BridgeDomain, AttributeCriterion)
 
 
 def main():
-    """ Create 2 EPGs within the same Context and have
-        1 EPG provide a contract to the other EPG.
     """
-    description = ('Create 2 EPGs within the same Context and have'
-                   '1 EPG provide a contract to the other EPG.')
+    Main routine
+    """
+    # Get all the arguments
+    description = 'Creates a tenant with a micro-EPG.'
     creds = Credentials('apic', description)
     args = creds.get()
 
-    # Create the Tenant
-    tenant = Tenant('aci-toolkit-demo')
-
-    # Create the Application Profile
-    app = AppProfile('my-demo-app', tenant)
-
-    # Create the EPGs
-    web_epg = EPG('web-frontend', app)
-    db_epg = EPG('database-backend', app)
-    web_epg.set_intra_epg_isolation(False)
-    db_epg.set_intra_epg_isolation(True)
-
-    # Create a Context and BridgeDomain
-    # Place both EPGs in the Context and in the same BD
-    context = Context('VRF-1', tenant)
-    bd = BridgeDomain('BD-1', tenant)
-    bd.add_context(context)
-    web_epg.add_bd(bd)
-    db_epg.add_bd(bd)
-
-    # Define a contract with a single entry
-    contract = Contract('mysql-contract', tenant)
-    entry1 = FilterEntry('entry1',
-                         applyToFrag='no',
-                         arpOpc='unspecified',
-                         dFromPort='3306',
-                         dToPort='3306',
-                         etherT='ip',
-                         prot='tcp',
-                         sFromPort='1',
-                         sToPort='65535',
-                         tcpRules='unspecified',
-                         parent=contract)
-
-    # Provide the contract from 1 EPG and consume from the other
-    db_epg.provide(contract)
-    web_epg.consume(contract)
-
-    # Login to APIC and push the config
+    # Login to the APIC
     session = Session(args.url, args.login, args.password)
-    session.login()
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
 
-    # Cleanup (uncomment the next line to delete the config)
-    # tenant.mark_as_deleted()
+    # Create the Tenant and AppProfile
+    tenant = Tenant('acitoolkit-microepg-example')
+    app_profile = AppProfile('myapp', tenant)
+
+    # Create a Base EPG that will provide networking for the microEPGs
+    base_epg = EPG('base', app_profile)
+    base_epg.add_static_leaf_binding('101', 'vlan', '1', encap_mode='untagged')
+    vrf = Context('myvrf', tenant)
+    bd = BridgeDomain('mybd', tenant)
+    bd.add_context(vrf)
+    base_epg.add_bd(bd)
+
+    # Create a microEPG
+    microepg = EPG('microepg', app_profile)
+    microepg.is_attributed_based = True
+    microepg.set_base_epg(base_epg)
+    # Add an IP address to this microepg
+    criterion = AttributeCriterion('criterion', microepg)
+    criterion.add_ip_address('1.2.3.4')
+
+    # Contracts can be provided/consumed from the microepg as desired (not shown)
+
+    # Push the tenant to the APIC
     resp = tenant.push_to_apic(session)
+    if not resp.ok:
+        print('%% Error: Could not push configuration to APIC')
+        print(resp.text)
 
-    if resp.ok:
-        # Print what was sent
-        print('Pushed the following JSON to the APIC')
-        print('URL: ' + str(tenant.get_url()))
-        print('JSON: ' + str(tenant.get_json()))
 
 if __name__ == '__main__':
     try:

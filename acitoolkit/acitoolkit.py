@@ -1052,6 +1052,82 @@ class EPG(CommonEPG):
         """
         self._dom_resolution_immediacy = immediacy
 
+    def _get_all_contracts(self, contract_type, deleted=False, include_any_epg=False):
+        """
+        Internal common function to get all of the Contracts/Taboos used by this EPG
+
+        :param contract_type: String containing the contract type. Valid values are:
+                              'provided', 'consumed'
+        :param deleted: Boolean indicating whether to get Contracts that are provided
+                        or that the provided was marked as deleted
+        :param include_any_epg: Boolean indicating whether to include Contracts that
+                                are provided due to inheritance from an AnyEPG within
+                                the same Context providing it.
+        :returns: List of Contract objects that are provided by the EPG.
+        """
+        if contract_type not in ['provided', 'consumed']:
+            raise ValueError
+        resp = []
+        if include_any_epg:
+            # Check if the tenant context has an AnyEPG
+            any_epgs = []
+            if self.has_bd() and self.get_bd().has_context():
+                any_epgs += self.get_bd().get_context().get_children(only_class=AnyEPG)
+            else:
+                # Look for AnyEPG in the tenant common Context
+                try:
+                    my_fabric = self.get_parent().get_parent().get_parent()
+                    tenants = my_fabric.get_children(only_class=Tenant)
+                    for tenant in tenants:
+                        if tenant.name == 'common':
+                            common_contexts = tenant.get_children(only_class=Context)
+                            for context in common_contexts:
+                                if context.name == 'default':
+                                    any_epgs += context.get_children(only_class=AnyEPG)
+                except AttributeError:
+                    # Couldn't find tenant common
+                    pass
+            for any_epg in any_epgs:
+                if contract_type == 'provided':
+                    resp += any_epg.get_all_provided(deleted=deleted)
+                else:
+                    resp += any_epg.get_all_consumed(deleted=deleted)
+        if contract_type == 'provided':
+            resp += super(EPG, self).get_all_provided(deleted=deleted)
+        else:
+            resp += super(EPG, self).get_all_consumed(deleted=deleted)
+        return resp
+
+    def get_all_provided(self, deleted=False, include_any_epg=False):
+        """
+        Get all of the Contracts provided by this EPG
+
+        :param deleted: Boolean indicating whether to get Contracts that are provided
+                        or that the provided was marked as deleted
+        :param include_any_epg: Boolean indicating whether to include Contracts that
+                                are provided due to inheritance from an AnyEPG within
+                                the same Context that this EPG is in.
+        :returns: List of Contract objects that are provided by the EPG.
+        """
+        return self._get_all_contracts(contract_type='provided',
+                                       deleted=deleted,
+                                       include_any_epg=include_any_epg)
+
+    def get_all_consumed(self, deleted=False, include_any_epg=False):
+        """
+        Get all of the Contracts consumed by this EPG
+
+        :param deleted: Boolean indicating whether to get Contracts that are consumed
+                        or that the consumed was marked as deleted
+        :param include_any_epg: Boolean indicating whether to include Contracts that
+                                are consumed due to inheritance from an AnyEPG within
+                                the same Context that this EPG is in.
+        :returns: List of Contract objects that are consumed by the EPG.
+        """
+        return self._get_all_contracts(contract_type='consumed',
+                                       deleted=deleted,
+                                       include_any_epg=include_any_epg)
+
     def _extract_relationships(self, data, obj_dict):
         app_profile = self.get_parent()
         tenant = app_profile.get_parent()

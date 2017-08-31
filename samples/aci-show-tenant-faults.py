@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Simple application that logs on to the APIC and displays all
 of the faults on all the Tenants.
@@ -41,17 +43,16 @@ def main():
             if faults is not None:
                 for fault in faults:
                     if fault is not None:
-                        print "****************"
+                        print("****************")
                         if fault.descr is not None:
-                            print "     descr     : " + fault.descr
+                            print("     descr     : " + fault.descr)
                         else:
-                            print "     descr     : " + "  "
-                        print "     dn        : " + fault.dn
-                        print "     rule      : " + fault.rule
-                        print "     severity  : " + fault.severity
-                        print "     type      : " + fault.type
-                        print "     domain    : " + fault.domain
-
+                            print("     descr     : " + "  ")
+                        print("     dn        : " + fault.dn)
+                        print("     rule      : " + fault.rule)
+                        print("     severity  : " + fault.severity)
+                        print("     type      : " + fault.type)
+                        print("     domain    : " + fault.domain)
 
 if __name__ == '__main__':
     main()

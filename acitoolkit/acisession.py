@@ -690,6 +690,7 @@ class Session(object):
         Close the session
         """
         self.session.close()
+        self._logged_in = False
 
     def subscribe(self, url, only_new=False):
         """

@@ -22,17 +22,17 @@ Required
 
 ## Downloading
 
-Option A:
+### Option A:
 
 If you have git installed, clone the repository
 
     git clone https://github.com/datacenter/acitoolkit.git
 
-Option B:
+### Option B:
 
 If you don't have git, [download a zip copy of the repository](https://github.com/datacenter/acitoolkit/archive/master.zip) and extract.
 
-Option C:
+### Option C:
 
 The latest build of this project is also available as a Docker image from Docker Hub
 
@@ -55,6 +55,13 @@ If you plan on modifying the actual toolkit files, you should install the develo
 A tutorial and overview of the acitoolkit object model can be found in
 the Documentation section found at
 [http://datacenter.github.io/acitoolkit/](http://datacenter.github.io/acitoolkit/)
+
+
+# Using Docker Image
+
+```
+docker run -it --name acitoolkit dockercisco/acitoolkit
+```
 
 # License
 

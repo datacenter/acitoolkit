@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ################################################################################
-# _    ____ ___   _____           _ _    _ _                   #
+#                 _    ____ ___   _____           _ _    _ _                   #
 #                / \  / ___|_ _| |_   _|__   ___ | | | _(_) |_                 #
 #               / _ \| |    | |    | |/ _ \ / _ \| | |/ / | __|                #
 #              / ___ \ |___ | |    | | (_) | (_) | |   <| | |_                 #
@@ -44,70 +44,59 @@ Possible Enhancements:
  the most recent 6 periods of 5min data to bring the database up to
  date without any gaps.
 """
-import sys
-import acitoolkit.acitoolkit as ACI
-from acicounters import InterfaceStats
+from acitoolkit import Credentials, Session, InterfaceStats
 import mysql.connector
+
+valid_tables = []
 
 
 def convert_timestamp_to_mysql(timestamp):
-    (ts, remaining) = timestamp.split('T')
-    ts += ' '
-    ts = ts + remaining.split('+')[0].split('.')[0]
-    return ts
-
-# Take login credentials from the command line if provided
-# Otherwise, take them from your environment variables file ~/.profile
-description = ('Application that logs on to the APIC and tracks'
-               ' all of the Endpoint stats in a MySQL database.')
-creds = ACI.Credentials(qualifier=('apic', 'mysql'),
-                        description=description)
-args = creds.get()
-
-# Login to APIC
-session = ACI.Session(args.url, args.login, args.password)
-resp = session.login()
-if not resp.ok:
-    print('%% Could not login to APIC')
-    sys.exit(0)
-
-# Create the MySQL database
-cnx = mysql.connector.connect(user=args.mysqllogin, password=args.mysqlpassword,
-                              host=args.mysqlip)
-c = cnx.cursor()
-c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit_interface_stats;')
-cnx.commit()
-c.execute('USE acitoolkit_interface_stats;')
-validTables = []
+    """
+    Convert timestamp to the format used in MySQL
+    :param timestamp: String containing ACI timestamp
+    :return: String containing MySQL timestamp
+    """
+    (mysql_timestamp, remaining) = timestamp.split('T')
+    mysql_timestamp += ' '
+    mysql_timestamp = mysql_timestamp + remaining.split('+')[0].split('.')[0]
+    return mysql_timestamp
 
 
-def create_table(table_name, counter_list):
+def create_table(c, cnx, table_name, counter_list):
+    """
+    Create the table in the MySQL database
+    :param c:
+    :param cnx:
+    :param table_name: String containing the table name
+    :param counter_list: List of counter names
+    :return: None
+    """
     command_str = u'CREATE TABLE IF NOT EXISTS {0:s} (interface CHAR(16) NOT NULL'.format(table_name)
-    for columnName in counter_list:
-        if columnName in ['intervalStart', 'intervalEnd']:
-            command_str += ', ' + columnName.lower() + ' TIMESTAMP'
-        elif 'rate' in columnName.lower():
-            command_str += ', ' + columnName.lower() + ' FLOAT UNSIGNED'
-        elif 'cum' in columnName.lower():
-            command_str += ', ' + columnName.lower() + ' BIGINT UNSIGNED'
-        elif 'bytes' in columnName.lower():
-            command_str += ', ' + columnName.lower() + ' BIGINT UNSIGNED'
+    for column_name in counter_list:
+        if column_name in ['intervalStart', 'intervalEnd']:
+            command_str += ', ' + column_name.lower() + ' TIMESTAMP'
+        elif 'rate' in column_name.lower():
+            command_str += ', ' + column_name.lower() + ' FLOAT UNSIGNED'
+        elif 'cum' in column_name.lower():
+            command_str += ', ' + column_name.lower() + ' BIGINT UNSIGNED'
+        elif 'bytes' in column_name.lower():
+            command_str += ', ' + column_name.lower() + ' BIGINT UNSIGNED'
         else:
-            command_str += ', ' + columnName.lower() + ' INT UNSIGNED'
+            command_str += ', ' + column_name.lower() + ' INT UNSIGNED'
     command_str += ');'
 
     c.execute(command_str)
     cnx.commit()
-    validTables.append(table_name)
+    valid_tables.append(table_name)
 
 
-def insert_stats_row(table, interface_name, stats):
+def insert_stats_row(c, cnx, table, interface_name, stats):
     """this will insert a row of stats in the specified table
     """
     column_names = list(stats.keys())
 
-    if table not in validTables:
-        create_table(table, column_names)
+    if table not in valid_tables:
+        create_table(c, cnx, table, column_names)
 
     command_str = 'INSERT INTO {0:s} ({1:s}'.format(table, 'interface')
 
@@ -127,7 +116,7 @@ def insert_stats_row(table, interface_name, stats):
     cnx.commit()
 
 
-def interval_end_exists(table, interface_name, interval_end):
+def interval_end_exists(c, table, interface_name, interval_end):
     sql_interval_end = convert_timestamp_to_mysql(interval_end)
     c.execute("SELECT interface, intervalend FROM %s where intervalend='%s' and interface='%s';" % (
         table, sql_interval_end, interface_name))
@@ -139,14 +128,45 @@ def interval_end_exists(table, interface_name, interval_end):
         return False
 
 
-all_stats = InterfaceStats.get_all_ports(session, 1)
-for intf in all_stats:
-    stats = all_stats[intf]
-    for statsFamily in stats:
-        if '5min' in stats[statsFamily]:
-            for epoch in stats[statsFamily]['5min']:
-                if epoch != 0:
-                    ss = stats[statsFamily]['5min'][epoch]
-                    if not interval_end_exists(statsFamily, intf, ss['intervalEnd']):
-                        insert_stats_row(statsFamily, intf, ss)
+def main():
+    """
+    Main execution routine
+    """
+    # Take login credentials from the command line if provided
+    # Otherwise, take them from your environment variables file ~/.profile
+    description = ('Application that logs on to the APIC and tracks'
+                   ' all of the Endpoint stats in a MySQL database.')
+    creds = Credentials(qualifier=('apic', 'mysql'),
+                        description=description)
+    args = creds.get()
 
+    # Login to APIC
+    session = Session(args.url, args.login, args.password)
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
+        return
+
+    # Create the MySQL database
+    cnx = mysql.connector.connect(user=args.mysqllogin, password=args.mysqlpassword,
+                                  host=args.mysqlip)
+    c = cnx.cursor()
+    c.execute('CREATE DATABASE IF NOT EXISTS acitoolkit_interface_stats;')
+    cnx.commit()
+    c.execute('USE acitoolkit_interface_stats;')
+
+    all_stats = InterfaceStats.get_all_ports(session, 1)
+    for intf in all_stats:
+        stats = all_stats[intf]
+        for stats_family in stats:
+            if '5min' in stats[stats_family]:
+                for epoch in stats[stats_family]['5min']:
+                    if epoch != 0:
+                        ss = stats[stats_family]['5min'][epoch]
+                        if stats_family not in valid_tables:
+                            create_table(c, cnx, stats_family, list(ss.keys()))
+                        if not interval_end_exists(c, stats_family, intf, ss['intervalEnd']):
+                            insert_stats_row(c, cnx, stats_family, intf, ss)
+
+if __name__ == '__main__':
+    main()
