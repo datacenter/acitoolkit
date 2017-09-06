@@ -55,8 +55,8 @@ except:
 
 
 def error_message(resp):
-    print 'Error:  Unable to push configuration to APIC'
-    print 'Reason:', resp.text
+    print('Error:  Unable to push configuration to APIC')
+    print('Reason: ' + str(resp.text))
 
 
 class SubMode(Cmd):
@@ -94,10 +94,10 @@ class SubMode(Cmd):
                 tenant_dict[tenant.name] = []
             if to_return:
                 return tenant_dict
-            print 'Tenant'
-            print '------'
+            print('Tenant')
+            print('------')
             for tenant in tenants:
-                print tenant.name
+                print(tenant.name)
         elif words[0] == 'bridgedomain':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -115,10 +115,10 @@ class SubMode(Cmd):
                 for bd in bds:
                     output.append((tenant.name, bd.name))
             template = '{0:19} {1:20}'
-            print template.format('Tenant', 'BridgeDomain')
-            print template.format('------', '------------')
+            print(template.format('Tenant', 'BridgeDomain'))
+            print(template.format('------', '------------'))
             for rec in output:
-                print template.format(*rec)
+                print(template.format(*rec))
         elif words[0] == 'context':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -130,10 +130,10 @@ class SubMode(Cmd):
                 for context in contexts:
                     output.append((tenant.name, context.name))
             template = '{0:19} {1:20}'
-            print template.format('Tenant', 'Context')
-            print template.format('------', '-------')
+            print(template.format('Tenant', 'Context'))
+            print(template.format('------', '-------'))
             for rec in output:
-                print template.format(*rec)
+                print(template.format(*rec))
         elif words[0] == 'contract':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -145,21 +145,21 @@ class SubMode(Cmd):
                 for contract in contracts:
                     output.append((tenant.name, contract.name))
             template = '{0:19} {1:20}'
-            print template.format('Tenant', 'Contract')
-            print template.format('------', '-------')
+            print(template.format('Tenant', 'Contract'))
+            print(template.format('------', '-------'))
             for rec in output:
-                print template.format(*rec)
+                print(template.format(*rec))
         elif words[0] == 'interface':
             ifs = Interface.get(self.apic)
-            print 'Interface\tType\tStatus\tSpeed\tMTU'
+            print('Interface\tType\tStatus\tSpeed\tMTU')
             for interface in ifs:
-                print interface
+                print(interface)
         elif words[0] == 'port-channel':
             portchannels = PortChannel.get(self.apic)
-            print 'Port Channel'
-            print '------------'
+            print('Port Channel')
+            print('------------')
             for pc in portchannels:
-                print pc
+                print(pc)
         elif words[0] == 'app':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -173,10 +173,10 @@ class SubMode(Cmd):
                         continue
                     output.append((app.get_parent().name, app.name))
             template = '{0:19} {1:20}'
-            print template.format('Tenant', 'App Profile')
-            print template.format('------', '-----------')
+            print(template.format('Tenant', 'App Profile'))
+            print(template.format('------', '-----------'))
             for rec in output:
-                print template.format(*rec)
+                print(template.format(*rec))
         elif words[0] == 'epg':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -209,15 +209,15 @@ class SubMode(Cmd):
             output = []
             association = ''
             if len(infradomains) > 0:
-                print ('---------------')
-                print ('Physical Domain')
-                print ('---------------')
+                print('---------------')
+                print('Physical Domain')
+                print('---------------')
 
             for domain in infradomains:
-                print domain.name
+                print(domain.name)
 
             if len(infradomains) > 0:
-                print '\n'
+                print('\n')
 
             infradomains = []
             infradomains = VmmDomain.get(self.apic)
@@ -225,45 +225,45 @@ class SubMode(Cmd):
             output = []
             association = ''
             if len(infradomains) > 0:
-                print ('----------')
-                print ('VMM Domain')
-                print ('----------')
+                print('----------')
+                print('VMM Domain')
+                print('----------')
 
             for domain in infradomains:
-                print (domain.name)
+                print(domain.name)
 
             if len(infradomains) > 0:
-                print ('\n')
+                print('\n')
 
             infradomains = L2ExtDomain.get(self.apic)
 
             output = []
             association = ''
             if len(infradomains) > 0:
-                print ('------------------')
-                print ('L2 External Domain')
-                print ('------------------')
+                print('------------------')
+                print('L2 External Domain')
+                print('------------------')
 
             for domain in infradomains:
-                print (domain.name)
+                print(domain.name)
 
             if len(infradomains) > 0:
-                print ('\n')
+                print('\n')
 
             infradomains = L3ExtDomain.get(self.apic)
 
             output = []
             association = ''
             if len(infradomains) > 0:
-                print ('------------------')
-                print ('L3 External Domain')
-                print ('------------------')
+                print('------------------')
+                print('L3 External Domain')
+                print('------------------')
 
             for domain in infradomains:
-                print (domain.name)
+                print(domain.name)
 
             if len(infradomains) > 0:
-                print ('\n')
+                print('\n')
 
             infradomains = EPGDomain.get(self.apic)
 
@@ -274,11 +274,11 @@ class SubMode(Cmd):
 
             if len(infradomains) > 0:
                 template = '{0:20} {1:11} {2:26}'
-                print (template.format('Infra Domain Profile', 'Domain Type', 'TENANT:APP:EPG Association'))
-                print (template.format('--------------------', '-----------', '--------------------------'))
+                print(template.format('Infra Domain Profile', 'Domain Type', 'TENANT:APP:EPG Association'))
+                print(template.format('--------------------', '-----------', '--------------------------'))
                 for rec in output:
-                    print (template.format(*rec))
-                print ('\n')
+                    print(template.format(*rec))
+                print('\n')
         else:
             sys.stdout.write('%% Unrecognized command\n')
 
@@ -407,11 +407,11 @@ class BridgeDomainConfigSubMode(SubMode):
             subnet.set_addr(args[1])
 
             if self.negative:
-                print 'Executing delete subnet command'
+                print('Executing delete subnet command')
                 self.bridgedomain.remove_subnet(subnet)
                 subnet.mark_as_deleted()
             else:
-                print 'Executing create subnet command'
+                print('Executing create subnet command')
                 self.bridgedomain.add_subnet(subnet)
             resp = self.apic.push_to_apic(self.tenant.get_url(),
                                           self.tenant.get_json())
@@ -439,8 +439,8 @@ class BridgeDomainConfigSubMode(SubMode):
     def do_context(self, args):
         context = Context(args, self.tenant)
         if self.negative:
-            print ('Bridgedomain to Context assignment cannot be deleted,'
-                   ' only reassigned to another Context')
+            print('Bridgedomain to Context assignment cannot be deleted,'
+                  ' only reassigned to another Context')
             return
         else:
             self.bridgedomain.add_context(context)
@@ -488,10 +488,10 @@ class ContextConfigSubMode(SubMode):
         if not resp.ok:
             error_message(resp)
         else:
-            print 'push configuration to APIC'
+            print('push configuration to APIC')
 
     def do_getjson(self, args):
-        print self.context.get_json()
+        print(self.context.get_json())
 
 
 class InterfaceConfigSubMode(SubMode):
@@ -510,13 +510,13 @@ class InterfaceConfigSubMode(SubMode):
         """
         num_args = len(args.split())
         if num_args == 0:
-            print '%% epg called with no epg-name'
+            print('%% epg called with no epg-name')
             return
         if self.tenant is None:
-            print '%% epg requires switchto tenant'
+            print('%% epg requires switchto tenant')
             return
         if self.negative:
-            print 'Removing epg from interface'
+            print('Removing epg from interface')
             raise NotImplementedError
         else:
             args = args.split()
@@ -528,15 +528,15 @@ class InterfaceConfigSubMode(SubMode):
                 encap_type = args[1]
                 encap_id = args[2]
             except:
-                print '%% Improper encap specified'
+                print('%% Improper encap specified')
                 return
             try:
                 (app_name, epg_name) = args[0].split('/')
             except:
-                print '%% epg called with misformed name.'
-                print '%% Proper format is epg <app-name>/<epg-name>'
+                print('%% epg called with misformed name.')
+                print('%% Proper format is epg <app-name>/<epg-name>')
                 return
-            print 'Adding epg to interface'
+            print('Adding epg to interface')
             app = AppProfile(app_name, self.tenant)
             epg = EPG(epg_name, app)
             l2if_name = '%s-%s-%s' % (self.intf.name, encap_type, encap_id)
@@ -594,7 +594,7 @@ class InterfaceConfigSubMode(SubMode):
     def do_shutdown(self, args):
         num_args = len(args.split())
         if num_args:
-            print '%% shutdown takes no arguments'
+            print('%% shutdown takes no arguments')
             return
         if self.negative:
             self.intf.adminstatus = 'up'
@@ -620,15 +620,15 @@ class InterfaceConfigSubMode(SubMode):
         """
         num_args = len(args.split())
         if num_args != 1:
-            print '%% speed called with invalid format'
-            print '%% Proper format is speed <speed-value>'
+            print('%% speed called with invalid format')
+            print('%% Proper format is speed <speed-value>')
             return
         speed = args.upper()
         if speed not in ('100M', '1G', '10G', '40G'):
-            print '%% Valid speed values are 100M, 1G, 10G, and 40G'
+            print('%% Valid speed values are 100M, 1G, 10G, and 40G')
             return
         if self.negative:
-            print 'Reverting to default speed (10G)'
+            print('Reverting to default speed (10G)')
             speed = '10G'
         self.intf.speed = speed
 
@@ -742,14 +742,14 @@ class ConfigSubMode(SubMode):
     def do_tenant(self, args):
         " Tenant Creation\ttenant <tenant-name> "
         if len(args.split()) > 1:
-            print '%% tenant must be called with 1 tenant-name\n'
+            print('%% tenant must be called with 1 tenant-name\n')
             return
         if len(args.split()) == 0:
-            print '%% tenant called with no tenant-name\n'
+            print('%% tenant called with no tenant-name\n')
             return
         tenant = Tenant(args.strip())
         if self.negative:
-            print 'Executing delete tenant command\n'
+            print('Executing delete tenant command\n')
             tenant.mark_as_deleted()
         else:
             sys.stdout.write('Executing create tenant command\n')
@@ -758,17 +758,17 @@ class ConfigSubMode(SubMode):
     def do_bridgedomain(self, args):
         " Bridge Domain Creation\tbridge-domain <bridge-domain-name> "
         if len(args.split()) > 1:
-            print '%% bridge-domain requires only 1 name'
+            print('%% bridge-domain requires only 1 name')
             return
         if self.tenant is None:
-            print '%% bridge-domain requires switchto tenant'
+            print('%% bridge-domain requires switchto tenant')
             return
         bridgedomain = BridgeDomain(args.strip(), self.tenant)
         if self.negative:
-            print 'Executing delete bridgedomain command'
+            print('Executing delete bridgedomain command')
             bridgedomain.mark_as_deleted()
         else:
-            print 'Executing create bridgedomain command'
+            print('Executing create bridgedomain command')
         resp = self.apic.push_to_apic(self.tenant.get_url(),
                                       self.tenant.get_json())
         if not self.negative:
@@ -786,21 +786,21 @@ class ConfigSubMode(SubMode):
     def do_context(self, args):
         " Context Creation\tcontext <context-name> "
         if len(args.split()) == 0:
-            print '%% context requires a name'
+            print('%% context requires a name')
             return
         elif len(args.split()) > 1:
-            print '%% context requires only 1 name'
+            print('%% context requires only 1 name')
             return
         if self.tenant is None:
-            print '%% context requires switchto tenant'
+            print('%% context requires switchto tenant')
             return
         context = Context(args.strip(), self.tenant)
         context.set_allow_all(False)
         if self.negative:
-            print 'Executing delete context command'
+            print('Executing delete context command')
             context.mark_as_deleted()
         else:
-            print 'Executing create context command'
+            print('Executing create context command')
             resp = self.apic.push_to_apic(self.tenant.get_url(),
                                           self.tenant.get_json())
             if not resp.ok:
@@ -822,7 +822,7 @@ class ConfigSubMode(SubMode):
         if self.negative:
             pass  # only relevant for port-channels
         else:
-            print 'Executing interface command'
+            print('Executing interface command')
             name = args.strip()
             try:  # Physical Interface
                 (if_type, pod, node, module, port) = Interface.parse_name(name)
@@ -842,7 +842,7 @@ class ConfigSubMode(SubMode):
                 return
                 try:
                     for pc in portchannels:
-                        print pc
+                        print(pc)
                     return
                 except:
                     return
@@ -850,13 +850,13 @@ class ConfigSubMode(SubMode):
     def do_app(self, args):
         " Application Profile Creation\tapp <app-profile-name> "
         if len(args.split()) > 1 or len(args.split()) == 0:
-            print '%% app requires 1 name\n'
+            print('%% app requires 1 name\n')
             return
         if self.tenant is None:
-            print '%% app requires switchto tenant\n'
+            print('%% app requires switchto tenant\n')
             return
         if self.negative:
-            print 'Executing delete app command\n'
+            print('Executing delete app command\n')
             app = AppProfile(args.strip(), self.tenant)
             app.mark_as_deleted()
             resp = self.apic.push_to_apic(self.tenant.get_url(),
@@ -864,7 +864,7 @@ class ConfigSubMode(SubMode):
             if not resp.ok:
                 error_message(resp)
         else:
-            print 'Executing create app command'
+            print('Executing create app command')
             app = AppProfile(args.strip(), self.tenant)
             resp = self.apic.push_to_apic(self.tenant.get_url(),
                                           self.tenant.get_json())
@@ -887,15 +887,15 @@ class ConfigSubMode(SubMode):
         if self.negative:
             contract = Contract(args.strip(), self.tenant)
             contract.mark_as_deleted()
-            print 'Deleting Contract'
+            print('Deleting Contract')
             resp = self.apic.push_to_apic(self.tenant.get_url(),
                                           self.tenant.get_json())
             if not resp.ok:
                 error_message(resp)
             else:
-                print 'Deleted contract'
+                print('Deleted contract')
         else:
-            print 'Executing create contract command'
+            print('Executing create contract command')
             contract = Contract(args.strip(), self.tenant)
             resp = self.apic.push_to_apic(self.tenant.get_url(),
                                           self.tenant.get_json())
@@ -946,7 +946,7 @@ class EPGConfigSubMode(SubMode):
             if not resp.ok:
                 error_message(resp)
             else:
-                print 'Assigned bridgedomain to EPG.'
+                print('Assigned bridgedomain to EPG.')
 
     def do_infradomain(self, args):
         " Infrastructure Domain\infradomain <infra-domain-name> "
@@ -970,7 +970,7 @@ class EPGConfigSubMode(SubMode):
             if not resp.ok:
                 error_message(resp)
             else:
-                print 'Assigned Infrastructure Domain to EPG.'
+                print('Assigned Infrastructure Domain to EPG.')
 
 
 class AppProfileConfigSubMode(SubMode):
@@ -1003,7 +1003,7 @@ class AppProfileConfigSubMode(SubMode):
             sys.stdout.write('%% epg called with no epg-name\n')
             return
         if self.negative:
-            print 'Executing delete epg command'
+            print('Executing delete epg command')
             epg = EPG(args.strip(), self.app)
             epg.mark_as_deleted()
             resp = self.apic.push_to_apic(self.tenant.get_url(),
@@ -1011,7 +1011,7 @@ class AppProfileConfigSubMode(SubMode):
             if not resp.ok:
                 error_message(resp)
         else:
-            print 'Executing create epg command'
+            print('Executing create epg command')
             epg_name = args.strip()
             epg = EPG(epg_name, self.app)
             resp = self.apic.push_to_apic(self.tenant.get_url(),
@@ -1043,13 +1043,13 @@ class ContractConfigSubMode(SubMode):
 
     def do_scope(self, args):
         if self.negative is True:
-            print 'You can not delete contract scope'
+            print('You can not delete contract scope')
             return
         if args.split()[0] not in self.scope_args:
-            print '%% Unknown scope. Valid values are:', self.scope_args
+            print('%% Unknown scope. Valid values are: ' + str(self.scope_args))
             return
         self.contract.set_scope(args.split()[0])
-        print 'contract scope set to', self.contract.get_scope()
+        print('contract scope set to ' + str(self.contract.get_scope()))
 
     def complete_scope(self, text, line, begidx, endidx):
         text = text.lstrip()
@@ -1063,11 +1063,11 @@ class ContractConfigSubMode(SubMode):
                 try:
                     oprt = args[idx + 1]
                     if oprt not in self.operators:
-                        print 'Error, invalid Operator.'
+                        print('Error, invalid Operator.')
                         return
                     port = args[idx + 2: idx + 4 if oprt == 'range' else idx + 3]
                 except IndexError:
-                    print 'too few arguemnts.'
+                    print('too few arguemnts.')
                     return
                 if oprt == 'range':
                     pass
@@ -1087,7 +1087,7 @@ class ContractConfigSubMode(SubMode):
                 try:
                     return [sign, args[idx + 1]]
                 except IndexError:
-                    print 'Error, tcp rule is not defined.'
+                    print('Error, tcp rule is not defined.')
             if ('+') in args:
                 return check_name(args, '+')[1]
             elif ('-') in args:
@@ -1097,10 +1097,10 @@ class ContractConfigSubMode(SubMode):
         if args[0] == 'arp':
             arp_arg = 0
             if len(args) > 2:
-                print '%% arp takes one arguments, %s are given\n' % len(args)
+                print('%% arp takes one arguments, %s are given\n' % len(args))
                 return
             elif len(args) <= 1:
-                print 'Invalid argument. Default value', arp_arg, 'is applied.'
+                print('Invalid argument. Default value ' + str(arp_arg) + ' is applied.')
             else:
                 if args[1] in ['request', '1', 1]:
                     arp_arg = 1
@@ -1112,7 +1112,7 @@ class ContractConfigSubMode(SubMode):
                         etherT='arp')
         elif args[0] == 'ethertype':
             if len(args) != 2:
-                print '%% ethertype must be called with 1 ethertype number\n'
+                print('%% ethertype must be called with 1 ethertype number\n')
             else:
                 FilterEntry(str(self.sequence_number),
                             self.contract,
@@ -1340,7 +1340,7 @@ class CmdLine(SubMode):
             self.tenant = Tenant(args.strip())
             self.set_prompt()
         else:
-            print '%% Tenant %s does not exist' % tenant.name
+            print('%% Tenant %s does not exist' % tenant.name)
 
     def complete_switchto(self, text, line, begidx, endidx):
         switchto_args = [a for a in self.do_show('tenant',
@@ -1375,7 +1375,7 @@ class MockStdin:
 
     def readline(self):
         line = self.lines.pop(0)
-        print line
+        print(line)
         if len(self.lines) == 0:
             sys.stdin = self.original_stdin
         return line
@@ -1404,12 +1404,12 @@ if __name__ == '__main__':
                                     "output-file=", "debug-file=",
                                     "test-file="])
     except getopt.GetoptError:
-        print sys.argv[0], ': illegal option'
-        print usage
+        print(str(sys.argv[0]) + ' : illegal option')
+        print(usage)
         sys.exit(2)
     for opt, arg in opts:
         if opt in ('-h', '--help'):
-            print usage
+            print(usage)
             sys.exit()
         elif opt in ('-l', '--apic-login'):
             LOGIN = arg
@@ -1427,7 +1427,7 @@ if __name__ == '__main__':
             TESTFILE = arg
 
     if URL == '' or LOGIN == '' or PASSWORD == '':
-        print usage
+        print(usage)
         sys.exit(2)
 
     logging.basicConfig(format=('%(levelname)s:[%(module)s:'
@@ -1439,10 +1439,10 @@ if __name__ == '__main__':
     try:
         apic.login()
     except requests.exceptions.ConnectionError:
-        print '%% Could not connect to APIC.'
+        print('%% Could not connect to APIC.')
         sys.exit(2)
     except requests.exceptions.MissingSchema:
-        print '%% Invalid URL.'
+        print('%% Invalid URL.')
         sys.exit(2)
 
     if 'TESTFILE' in locals():

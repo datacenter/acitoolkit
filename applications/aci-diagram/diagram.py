@@ -28,7 +28,7 @@ session = Session(args.url, args.login, args.password)
 try:
     assert (session.login().ok)
 except:
-    print "Connection to APIC failed"
+    print("Connection to APIC failed")
     sys.exit()
 
 graph = pgv.AGraph(directed=True, rankdir="LR")
@@ -68,7 +68,7 @@ def ctrct_node(tn, ctrct):
 
 
 for tenant in tenants:
-    print "Processing tenant " + tenant.name
+    print("Processing tenant " + tenant.name)
 
     tncluster = graph.add_subgraph(name=tn_node(tenant),
                                    label="Tenant: " + tenant.name, color="blue")
@@ -124,10 +124,10 @@ for tenant in tenants:
                                     epg_node(tenant, app, epg))
 
 if args.verbose:
-    print "Finished loading the structure from APIC, here is the graph source (GraphViz DOT format):"
-    print "================================================================================"
-    print graph.string()
-    print "================================================================================"
+    print("Finished loading the structure from APIC, here is the graph source (GraphViz DOT format):")
+    print("================================================================================")
+    print(graph.string())
+    print("================================================================================")
 
-print "\n\nDrawing graph to %s" % args.output
+print("\n\nDrawing graph to %s" % args.output)
 graph.draw(args.output, prog='dot')
