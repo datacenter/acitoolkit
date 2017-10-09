@@ -45,9 +45,9 @@ as follows::
 
 If you plan on modifying the actual toolkit files, you should install the developer
 environment that will link the package installation to your development directory. Do
-this instead of the install option above.
+this instead of the install option above ::
 
-    python setup.py develop
+    sudo python setup.py develop
 
 Common Installation Errors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
