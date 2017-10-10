@@ -112,6 +112,11 @@ class Tenant(BaseACIObject):
                                     self.get_json())
         return resp
 
+    def _get_url_extension(self):
+
+        rn = self._get_name_dn_delimiters()[0] + self.name
+        return rn
+
     @classmethod
     def _get_toolkit_to_apic_classmap(cls):
         """
@@ -346,8 +351,6 @@ class AppProfile(BaseACIObject):
         return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
                                  parent=tenant, tenant=tenant)
 
-    def _get_url_extension(self):
-        return '/ap-%s' % self.name
 
     @staticmethod
     def get_table(app_profiles, title=''):
@@ -2922,9 +2925,6 @@ class BridgeDomain(BaseACIObject):
         return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
                                  tenant, tenant)
 
-    def _get_url_extension(self):
-        return '/BD-%s' % self.name
-
     def _populate_from_attributes(self, attributes):
         """
         Populates various attributes
@@ -4506,7 +4506,7 @@ class FilterEntry(BaseACIObject):
         else:
             tenant_url = '/tn-%s' % tenant.name
             if parent is not None:
-                tenant_url = tenant_url + parent._get_url_extension()
+                tenant_url = parent._get_url_extension()
         query_url = ('/api/mo/uni%s.json?query-target=subtree&'
                      'target-subtree-class=%s' % (tenant_url, apic_class))
         ret = session.get(query_url)
@@ -7281,6 +7281,25 @@ class Tag(_Tag):
     """
     Tag class.
     """
+    def get_parent(self):
+        """
+        :returns: Parent of this object.
+        """
+        return self._parent
+
+    @classmethod
+    def get(cls, session, parent=None, tenant=None):
+        """Gets all of the Tags from the APIC.
+
+        :param session: the instance of Session used for APIC communication
+        :param parent: Instance of the possible Tag parent classes used to limit the Tags\
+                       retreived from the APIC.
+        :param tenant: Instance of Tenant class used to limit the Tags\
+                       retreived from the APIC.
+        :returns: List of Tag instances
+        """
+        return BaseACIObject.get(session, cls, cls._get_apic_classes()[0],
+                                 parent=parent, tenant=tenant,query_target_type='children')
     @staticmethod
     def _get_parent_class():
         """

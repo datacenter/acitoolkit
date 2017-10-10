@@ -239,7 +239,7 @@ class BaseACIObject(AciSearch):
         Return a list of strings that surround the name within the dn
         :return: list of strings that surround the name within the dn
         """
-        raise NotImplementedError
+        return None
 
     @classmethod
     def _get_starting_name_delimiter(cls):
@@ -960,7 +960,15 @@ class BaseACIObject(AciSearch):
 
     def _get_url_extension(self):
         """Get the URL extension used for a particular object"""
-        return ''
+        if not self._get_starting_name_delimiter():
+            return ''
+        rn = self._get_starting_name_delimiter()+self.name
+        assert(self.has_parent())
+        return self.get_parent()._get_url_extension()+rn
+
+
+
+
 
     def __str__(self):
         return self.name
@@ -1086,7 +1094,7 @@ class BaseACIObject(AciSearch):
         return attributes
 
     @classmethod
-    def get(cls, session, toolkit_class, apic_class, parent=None, tenant=None):
+    def get(cls, session, toolkit_class, apic_class, parent=None, tenant=None, query_target_type='subtree'):
         """
         Generic classmethod to get all of a particular APIC class.
 
@@ -1096,7 +1104,10 @@ class BaseACIObject(AciSearch):
                             model.
         :param parent:  Object to assign as the parent to the created objects.
         :param tenant:  Tenant object to assign the created objects.
+        :param query_target_type: type of the query either self,children,subtree
         """
+        if query_target_type not in ['self','children','subtree']:
+            raise ValueError
         if isinstance(tenant, str):
             raise TypeError
         logging.debug('%s.get called', toolkit_class.__name__)
@@ -1105,9 +1116,9 @@ class BaseACIObject(AciSearch):
         else:
             tenant_url = '/tn-%s' % tenant.name
             if parent is not None:
-                tenant_url = tenant_url + parent._get_url_extension()
-        query_url = ('/api/mo/uni%s.json?query-target=subtree&'
-                     'target-subtree-class=%s' % (tenant_url, apic_class))
+                tenant_url = parent._get_url_extension()
+        query_url = ('/api/mo/uni%s.json?query-target=%s&'
+                     'target-subtree-class=%s' % (tenant_url, query_target_type, apic_class))
         ret = session.get(query_url)
         resp = []
         if ret.ok:
@@ -1585,7 +1596,6 @@ class _Tag(BaseACIObject):
         """
         name = dn.split('/tag-')[1].split('/')[0]
         return name
-
 
 class BaseACIPhysModule(BaseACIPhysObject):
     """BaseACIPhysModule: base class for modules  """
