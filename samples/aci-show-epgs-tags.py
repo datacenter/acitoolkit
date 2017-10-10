@@ -28,7 +28,7 @@
 #                                                                              #
 ################################################################################
 """
-Create a tenant with two EPGs and assign a tag to the tenant and all of its children
+Print all tenants which have the tag specified by the user
 """
 
 
@@ -36,72 +36,59 @@ import acitoolkit.acitoolkit as aci
 
 
 def main():
+
     # Get the APIC login credentials
     description = 'testing tags'
     creds = aci.Credentials('apic', description)
-    creds.add_argument('--tag',
-                       help='Add tag to all objects in this configuration')
-    creds.add_argument('--tenant', help='Tenant name to be created')
+    creds.add_argument('--tenant', help='show tags of this tenant if specify')
     args = creds.get()
-
-    #Create the Tenant
-    if args.tenant:
-        tenant = aci.Tenant(args.tenant)
-    else:
-        tenant = aci.Tenant('tutorial-tag')
-
-    # Create the Application Profile
-    app = aci.AppProfile('myapp', tenant)
-
-    # Create the EPG
-    epg1 = aci.EPG('myepg1', app)
-    epg2 = aci.EPG('myepg2', app)
-
-    # Create a Context and BridgeDomain
-    context = aci.Context('myvrf', tenant)
-    bd = aci.BridgeDomain('mybd', tenant)
-    bd.add_context(context)
-
-    # Place the EPG in the BD
-    epg1.add_bd(bd)
-    epg2.add_bd(bd)
-
-    # Add Tag to the EPGs
-    epg1.add_tag("web server")
-    epg2.add_tag("database")
-
-    # test
-    app2 = aci.AppProfile('myapp2', tenant)
-    epg21 = aci.EPG('myepg21', app2)
-    epg22 = aci.EPG('myepg22', app2)
-
-
-
-    # Add Tag to all objects in this configuration
-    if args.tag:
-        tenant.add_tag(args.tag)
-        app.add_tag(args.tag)
-        context.add_tag(args.tag)
-        bd.add_tag(args.tag)
-        epg1.add_tag(args.tag)
-        epg2.add_tag(args.tag)
-
 
 
     # Login to APIC and push the config
     session = aci.Session(args.url, args.login, args.password)
-    session.login()
-    resp = tenant.push_to_apic(session)
-    if resp.ok:
-        print ('Success')
+    resp = session.login()
+    if not resp.ok:
+        print('%% Could not login to APIC')
+        return
+    # Get tenants from the APIC
+    if args.tenant:
+        tenants = aci.Tenant.get_deep(session, limit_to=['fvTenant'], names=[args.tenant])
+    else:
+        tenants = aci.Tenant.get(session)
+    # get all EPGs with their tag
+    data = []
+    for tenant in tenants:
+        apps = aci.AppProfile.get(session, tenant)
 
-    # Print what was sent
-    print ('Pushed the following JSON to the APIC')
-    print ('URL:', tenant.get_url())
-    print ('JSON:', tenant.get_json())
 
+        for app in apps:
+            tag_list = aci.Tag.get(session, parent=app, tenant=tenant)
+            tag_list = [tag.name for tag in tag_list]
+            print(app.name)
+            print(tag_list)
+            epgs = aci.EPG.get(session, app, tenant)
+            #print(len(epgs))
+            for epg in epgs:
+                tag_list = aci.Tag.get(session, parent=epg, tenant=tenant)
+                if len(tag_list):
+                    tag_list = [tag.name for tag in tag_list if tag._deleted is False]
+                    data.append((tenant.name, app.name, epg.name, ",".join(tag_list)))
 
+    template = "{0:20} {1:20} {2:20} {3:20}"
+    if len(data):
+
+        print(template.format("Tenant",
+                              "App",
+                              "EPG",
+                              "Tag"))
+        print(template.format("-" * 20,
+                              "-" * 20,
+                              "-" * 20,
+                              "-" * 20))
+        for d in data:
+            print(template.format(*d))
 
 if __name__ == '__main__':
     main()
+
 
