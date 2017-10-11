@@ -34,7 +34,7 @@ import logging
 from cmd import Cmd
 from acitoolkit import (Tenant, Contract, AppProfile, EPG, Interface, PortChannel, L2ExtDomain, Subnet,
                         PhysDomain, VmmDomain, L3ExtDomain, EPGDomain, Context, BridgeDomain, L2Interface,
-                        FilterEntry, Session)
+                        FilterEntry, Session, Tag)
 import requests
 import pprint
 READLINE = True
@@ -160,6 +160,50 @@ class SubMode(Cmd):
             print('------------')
             for pc in portchannels:
                 print(pc)
+        elif words[0] == 'tag':
+            if self.tenant is None:
+                tenants = Tenant.get(self.apic)
+            else:
+                tenants = [Tenant(self.tenant.name)]
+            output = []
+            if len(words) == 2:
+                if words[1] == 'epg':
+                    for tenant in tenants:
+                        apps = AppProfile.get(self.apic, tenant)
+                        for app in apps:
+                            epgs = EPG.get(self.apic, app, tenant)
+                            for epg in epgs:
+                                tag_list = Tag.get(self.apic, parent=epg, tenant=tenant)
+                                if len(tag_list):
+                                    tag_list = [tag.name for tag in tag_list]
+                                    if len(tag_list):
+                                        output.append((tenant.name, app.name, epg.name, ",".join(tag_list)))
+                    template = "{0:20} {1:20} {2:20} {3:20}"
+                    if len(output):
+                        print(template.format("Tenant",
+                                              "App",
+                                              "EPG",
+                                              "Tag"))
+                        print(template.format("-" * 20,
+                                              "-" * 20,
+                                              "-" * 20,
+                                              "-" * 20))
+                        for rec in output:
+                            print(template.format(*rec))
+
+                elif words[1] == 'bd':
+                    print("bd")
+            else:
+                for tenant in tenants:
+                    tag_list = Tag.get(self.apic, parent=tenant, tenant=tenant)
+                    tag_list = [tag.name for tag in tag_list]
+                    if len(tag_list):
+                        output.append((tenant.name,",".join(tag_list)))
+                template = '{0:20} {1:20}'
+                print(template.format('Tenant', 'Tag'))
+                print(template.format('------', '-----------'))
+                for rec in output:
+                    print(template.format(*rec))
         elif words[0] == 'app':
             if self.tenant is None:
                 tenants = Tenant.get(self.apic)
@@ -847,6 +891,32 @@ class ConfigSubMode(SubMode):
                 except:
                     return
 
+    def do_tag(self, args):
+        " tag creation <tag-name>"
+        if len(args.split()) > 1 or len(args.split()) == 0:
+            print('%% tag requires 1 name\n')
+            return
+        if self.tenant is None:
+            print('%% tag requires switchto tenant\n')
+            return
+        if self.negative:
+            print('Executing delete tag command\n')
+            self.tenant.add_tag(args.strip())
+            self.tenant.delete_tag(args.strip())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
+            if not resp.ok:
+                error_message(resp)
+        else:
+            print('Executing create tag command')
+            self.tenant.add_tag(args.strip())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
+            if not resp.ok:
+                error_message(resp)
+            # else:
+            #     self.cmdloop()
+
     def do_app(self, args):
         " Application Profile Creation\tapp <app-profile-name> "
         if len(args.split()) > 1 or len(args.split()) == 0:
@@ -930,6 +1000,31 @@ class EPGConfigSubMode(SubMode):
         if self.tenant is not None:
             self.prompt += '-' + self.tenant.name
         self.prompt += '(config-epg)# '
+
+    def do_tag(self, args):
+        " Create tag <tag-name>"
+        if len(args.split()) != 1:
+            sys.stdout.write('%% tag requires 1 name\n')
+            return
+        if self.negative:
+            print('Executing delete tag command\n')
+            self.epg.add_tag(args.strip())
+            #print(self.epg.has_tags())
+            self.epg.delete_tag(args.strip())
+            #print ('JSON:', self.tenant.get_json())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
+            #resp = self.tenant.push_to_apic(self.apic)
+            if not resp.ok:
+                error_message(resp)
+        else:
+            print('Executing create tag command')
+            self.epg.add_tag(args.strip())
+            resp = self.apic.push_to_apic(self.tenant.get_url(),
+                                          self.tenant.get_json())
+            if not resp.ok:
+                error_message(resp)
+
 
     def do_bridgedomain(self, args):
         " Bridge Domain\tbridge-domain <bridge-domain-name> "
@@ -1302,6 +1397,7 @@ class CmdLine(SubMode):
         cmd, arg, line = self.parseline(line)
         cmds = self.completenames(cmd)
         num_cmds = len(cmds)
+        print(cmds)
         if num_cmds == 1:
             getattr(self, 'do_' + cmds[0])(arg)
         elif num_cmds > 1:
