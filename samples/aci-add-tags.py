@@ -80,7 +80,6 @@ def main():
     # Add Tag to all objects in this configuration
     if args.tag:
         tenant.add_tag(args.tag)
-        app.add_tag(args.tag)
         context.add_tag(args.tag)
         bd.add_tag(args.tag)
         epg1.add_tag(args.tag)
