@@ -58,13 +58,14 @@ def main():
         tenants = aci.Tenant.get(session)
 
         names_tenants = [tenant.name for tenant in tenants]
-        tenants_with_tag = aci.Tenant.get_deep(session, limit_to=['tagInst'], names=[names_tenants])
+        tenants_with_tag = aci.Tenant.get_deep(session, limit_to=['tagInst'], names=names_tenants)
 
     data = []
     for tenant in tenants_with_tag:
         if tenant.has_tags():
             tag_list = [tag.name for tag in tenant.get_tags()]
-            data.append((tenant.name,",".join(tag_list)))
+            if len(tag_list):
+                data.append((tenant.name,",".join(tag_list)))
 
     template = "{0:20} {1:20}"
     if len(data):

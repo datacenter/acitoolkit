@@ -28,7 +28,7 @@
 #                                                                              #
 ################################################################################
 """
-Print all tenants which have the tag specified by the user
+delete a tag from a tenant or all tenants
 """
 
 
@@ -40,10 +40,13 @@ def main():
     # Get the APIC login credentials
     description = 'testing tags'
     creds = aci.Credentials('apic', description)
-    creds.add_argument('--tenant', help='show tags of this tenant if specify')
+    creds.add_argument('--tenant', help='delete this tag from the given tenant')
+    creds.add_argument('--tag', help='the tag to be deleted')
     args = creds.get()
 
-
+    if not args.tag:
+        print("please pass tag argument")
+        return
     # Login to APIC and push the config
     session = aci.Session(args.url, args.login, args.password)
     resp = session.login()
@@ -52,35 +55,23 @@ def main():
         return
     # Get tenants from the APIC
     if args.tenant:
-        tenants = aci.Tenant.get_deep(session, limit_to=['fvTenant'], names=[args.tenant])
+        tenants = aci.Tenant.get_deep(session, limit_to=['tagInst'], names=[args.tenant])
     else:
+        # Get all Tenants within APIC
         tenants = aci.Tenant.get(session)
+        names_tenants = [tenant.name for tenant in tenants]
+        tenants = aci.Tenant.get_deep(session, limit_to=['tagInst'], names=names_tenants)
     # get all EPGs with their tag
-    data = []
     for tenant in tenants:
-        apps = aci.AppProfile.get(session, tenant)
-        for app in apps:
-            epgs = aci.EPG.get(session, app, tenant)
-            for epg in epgs:
-                tag_list = aci.Tag.get(session, parent=epg, tenant=tenant)
-                if len(tag_list):
-                    tag_list = [tag.name for tag in tag_list]
-                    if len(tag_list):
-                        data.append((tenant.name, app.name, epg.name, ",".join(tag_list)))
+        tenant.delete_tag(args.tag)
+        resp = tenant.push_to_apic(session)
+        if resp.ok:
+            print ('Success')
 
-    template = "{0:20} {1:20} {2:20} {3:20}"
-    if len(data):
-
-        print(template.format("Tenant",
-                              "App",
-                              "EPG",
-                              "Tag"))
-        print(template.format("-" * 20,
-                              "-" * 20,
-                              "-" * 20,
-                              "-" * 20))
-        for d in data:
-            print(template.format(*d))
+        # Print what was sent
+        print ('Pushed the following JSON to the APIC')
+        print ('URL:', tenant.get_url())
+        print ('JSON:', tenant.get_json())
 
 if __name__ == '__main__':
     main()
