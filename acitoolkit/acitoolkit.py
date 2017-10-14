@@ -4041,7 +4041,8 @@ class ContractSubject(BaseACIObject):
                 contract_data = tenant_data['fvTenant']['children']
         if len(contract_data):
             for child in contract_data:
-                if 'vzBrCP' in child and 'children' in child['vzBrCP']:
+                if 'vzBrCP' in child and 'children' in child['vzBrCP'] and \
+                                child['vzBrCP']['attributes']['name'] == contract.name:
                     for subj in child['vzBrCP']['children']:
                         try:
                             if subj['vzSubj']['attributes']['name'] == self.name:
@@ -7281,12 +7282,6 @@ class Tag(_Tag):
     """
     Tag class.
     """
-    def get_parent(self):
-        """
-        :returns: Parent of this object.
-        """
-        return self._parent
-
     @classmethod
     def get(cls, session, parent=None, tenant=None):
         """Gets all of the Tags from the APIC.
