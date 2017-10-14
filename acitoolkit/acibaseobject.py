@@ -87,7 +87,7 @@ class BaseRelation(object):
         if isinstance(other, self.__class__):
             key_attrs = attrgetter('item', 'status', 'relation_type')
             return key_attrs(self) == key_attrs(other)
-        return NotImplemented
+        raise TypeError
 
     def __hash__(self):
         return hash((self.item, self.status, self.relation_type))
@@ -965,10 +965,6 @@ class BaseACIObject(AciSearch):
         rn = self._get_starting_name_delimiter()+self.name
         assert(self.has_parent())
         return self.get_parent()._get_url_extension()+rn
-
-
-
-
 
     def __str__(self):
         return self.name
