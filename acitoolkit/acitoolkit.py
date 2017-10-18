@@ -5706,7 +5706,7 @@ class PhysDomain(BaseACIObject):
     Physical Network domain
     """
 
-    def __init__(self, name, parent):
+    def __init__(self, name, parent=None):
         """
         :param name: String containing the PhysDomain name
         :param parent: An instance of DomP class representing
@@ -5717,15 +5717,63 @@ class PhysDomain(BaseACIObject):
         self.name = name
         super(PhysDomain, self).__init__(name, parent)
 
+    def add_network(self, network_pool):
+        """
+        associate network pool to the physical domain
+        :param network_pool: vlan or vxlan pool
+        """
+        if not isinstance(network_pool, NetworkPool):
+            raise TypeError('add_network not called with NetworkPool')
+        self._remove_all_relation(network_pool)
+        self._add_relation(network_pool)
+
+    def remove_network(self):
+        """
+        removes the associated vlan or vxlan from the physical domain
+        :return:
+        """
+        self._remove_all_relation(NetworkPool)
+
+    def get_network(self):
+        """
+        Get the network pool for this domain
+
+        :returns: Instance of NetworkPool class associated to this Domain.
+        """
+        return self._get_any_relation(NetworkPool)
+
+    def has_network(self):
+        """
+        Check if the network pool has been set for this physical domain
+
+        :returns: True or False. True if this network pool is assigned to the\
+                  domain.
+        """
+        return self._has_any_relation(NetworkPool)
+
     def get_json(self):
         """
-        Returns json representation of the fvTenant object
+        Returns json representation of the physDomP object
 
-        :returns: A json dictionary of fvTenant
+        :returns: A json dictionary of physical domain
         """
         attr = self._generate_attributes()
+        children = []
+        if self.has_network():
+            network_pool = self.get_network()
+            infraNsDn = 'uni/infra/%sns-[%s]-%s' % (network_pool.encap_type,
+                                                    network_pool.name,
+                                                    network_pool.mode)
+            if network_pool.encap_type == 'vlan':
+                infraNsType = 'infraRsVlanNs'
+            elif network_pool.encap_type == 'vxlan':
+                infraNsType = 'infraRsVxlanNs'
+
+            infraRsNs = {infraNsType: {'attributes': {'tDn': infraNsDn}}}
+            children.append(infraRsNs)
         return super(PhysDomain, self).get_json(self._get_apic_classes()[0],
-                                                attributes=attr)
+                                                attributes=attr,
+                                                children=children)
 
     def _generate_attributes(self):
         """
@@ -5756,6 +5804,7 @@ class PhysDomain(BaseACIObject):
         :returns: Parent of this object.
         """
         return self._parent
+
 
     @staticmethod
     def get_url(fmt='json'):
@@ -5799,6 +5848,7 @@ class PhysDomain(BaseACIObject):
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
+
         logging.debug('response returned %s', data)
         resp = []
         for object_data in data:
@@ -5809,9 +5859,27 @@ class PhysDomain(BaseACIObject):
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.childAction = object_data[apic_class]['attributes']['childAction']
-
+            obj.get_network_from_apic(session)
             resp.append(obj)
         return resp
+
+    def get_network_from_apic(self, session):
+        """
+        get network from apic
+        :param session:
+        """
+        apic_classes = {'infraRsVlanNs': 'vlan', 'infraRsVxlanNs': 'vxlan'}
+        for ac in apic_classes:
+            query_url = ('/api/mo/uni/phys-' + self.name + '.json?query-target=subtree&target-subtree-class=' + ac)
+            ret = session.get(query_url)
+            data_pool = ret.json()['imdata']
+            data_pool = data_pool[0]
+            if ac in data_pool:
+                tDn = data_pool[ac]['attributes']['tDn']
+                mode = tDn.split("-")[-1]
+                name_pool = tDn.split("-[")[1].split("]-")[0]
+                network = NetworkPool(name_pool, apic_classes[ac], mode)
+                self.add_network(network)
 
     @classmethod
     def get_by_name(cls, session, infra_name):
@@ -6425,7 +6493,7 @@ class NetworkPool(BaseACIObject):
     """This class defines a pool of network ids
     """
 
-    def __init__(self, name, encap_type, start_id, end_id, mode):
+    def __init__(self, name, encap_type, mode, start_id=None, end_id=None):
         super(NetworkPool, self).__init__(name)
         valid_encap_types = ['vlan', 'vxlan']
         if encap_type not in valid_encap_types:
@@ -6433,7 +6501,7 @@ class NetworkPool(BaseACIObject):
         self.encap_type = encap_type
         self.start_id = start_id
         self.end_id = end_id
-        valid_modes = ['static', 'dynamic']
+        valid_modes = ['static', 'dynamic','UOL_VXLAN']
         if mode not in valid_modes:
             raise ValueError('Mode specified is not a valid mode')
         self.mode = mode
@@ -6471,6 +6539,52 @@ class NetworkPool(BaseACIObject):
         infra = {'infraInfra': {'attributes': {},
                                 'children': [fvnsEncapInstP]}}
         return infra
+
+    @classmethod
+    def _get_apic_classes(cls):
+        """
+        Get the APIC classes used by the acitoolkit class.
+        :returns: list of strings containing APIC class names
+        """
+        return ['fvnsVlanInstP','fvnsVxlanInstP']
+
+    @classmethod
+    def get(cls, session):
+        """
+        :param session: apic session
+        :returns: list of network pools
+        """
+        toolkit_class = cls
+        apic_classes = cls._get_apic_classes()
+
+        logging.debug('%s.get called', cls.__name__)
+        resp = []
+        for ac in apic_classes:
+            query_url = (('/api/mo/uni.json?query-target=subtree&'
+                      'target-subtree-class=') + str(ac))
+            ret = session.get(query_url)
+            data = ret.json()['imdata']
+
+            #print(data)
+            for object_data in data:
+                # print (apic_classes[0])
+                #print (object_data)
+                if ac in object_data:
+                    #print("vlan")
+                    name = str(object_data[ac]['attributes']['name'])
+                    dn = object_data[ac]['attributes']['dn']
+                    encap_type = "vlan"
+                    if ac == 'fvnsVxlanInstP':
+                        encap_type = "vxlan"
+                    mode = dn.split("-")[-1]
+                    #print(mode)
+                    try:
+                        obj = toolkit_class(name,encap_type,mode)
+                    except ValueError:
+                        pass
+                    resp.append(obj)
+
+        return resp
 
 
 class VMMCredentials(BaseACIObject):
