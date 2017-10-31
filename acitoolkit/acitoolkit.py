@@ -5873,7 +5873,7 @@ class PhysDomain(BaseACIObject):
             query_url = ('/api/mo/uni/phys-' + self.name + '.json?query-target=subtree&target-subtree-class=' + ac)
             ret = session.get(query_url)
             data_pool = ret.json()['imdata']
-            data_pool = data_pool[0]
+            data_pool = data_pool[0] if len(data_pool) else {}
             if ac in data_pool:
                 tDn = data_pool[ac]['attributes']['tDn']
                 mode = tDn.split("-")[-1]
