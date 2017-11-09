@@ -5872,6 +5872,8 @@ class PhysDomain(BaseACIObject):
         for ac in apic_classes:
             query_url = ('/api/mo/uni/phys-' + self.name + '.json?query-target=subtree&target-subtree-class=' + ac)
             ret = session.get(query_url)
+            if int(ret.json()['totalCount']) == 0:
+                continue
             data_pool = ret.json()['imdata']
             data_pool = data_pool[0]
             if ac in data_pool:
