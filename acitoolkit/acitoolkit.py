@@ -38,6 +38,7 @@ import sys
 import copy
 
 from requests.compat import urlencode
+from requests.exceptions import ConnectionError
 
 from .acibaseobject import BaseACIObject, BaseInterface, _Tag
 from .aciphysobject import Interface, Fabric
@@ -5698,6 +5699,8 @@ class IPEndpoint(BaseACIObject):
                 endpoint.ip = ep_addr
                 endpoint.mac = IPEndpoint._get_mac_from_dn(ep_dn)
                 endpoints.append(endpoint)
+        else:
+            raise ConnectionError
         return endpoints
 
 
