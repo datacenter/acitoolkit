@@ -125,6 +125,9 @@ class Login(threading.Thread):
                 self._apic.resubscribe()
                 if resp.ok:
                     self._check_callbacks()
+                else:
+                    logging.error('Could not relogin to APIC.')
+                    self._login_timeout = 30
             except ConnectionError:
                 logging.error('Could not relogin to APIC due to ConnectionError')
                 self._apic.login_error = True
@@ -441,7 +444,8 @@ class Session(object):
        This class is responsible for all communication with the APIC.
     """
     def __init__(self, url, uid, pwd=None, cert_name=None, key=None, verify_ssl=False,
-                 appcenter_user=False, subscription_enabled=True, proxies=None):
+                 appcenter_user=False, subscription_enabled=True, proxies=None,
+                 relogin_forever=False):
         """
         :param url:  String containing the APIC URL such as ``https://1.2.3.4``
         :param uid: String containing the username that will be used as\
@@ -459,7 +463,8 @@ class Session(object):
         the context of an APIC appcenter app
         :param proxies: Optional dictionary containing the proxies passed\
         directly to the Requests library
-
+        :param relogin_forever: Boolean that when set to True will attempt to re-login
+                                forever regardless of the error returned from APIC.
         """
         if not isinstance(url, str):
             url = str(url)
@@ -484,6 +489,8 @@ class Session(object):
                 raise CredentialsError("The key path must be a string")
         if (cert_name and not key) or (not cert_name and key):
                 raise CredentialsError("Both a certificate name and private key must be provided")
+        if not isinstance(relogin_forever, bool):
+            raise CredentialsError("relogin_forever must be a boolean")
 
         if 'https://' in url:
             self.ipaddr = url[len('https://'):]
@@ -530,6 +537,7 @@ class Session(object):
         self._relogin_callbacks = []
         self.login_error = False
         self._logged_in = False
+        self.relogin_forever = relogin_forever
         self._subscription_enabled = subscription_enabled
         self._proxies = proxies
         if subscription_enabled:
@@ -629,6 +637,9 @@ class Session(object):
                                                'pwd': self.pwd}}}
         ret = self.push_to_apic(login_url, data=data, timeout=timeout)
         if not ret.ok:
+            if self.relogin_forever:
+                logging.error('Could not relogin to APIC. Relogin forever enabled...')
+                return ret
             logging.error('Could not relogin to APIC. Aborting login thread.')
             self.login_thread.exit()
             self.subscription_thread.exit()
@@ -681,8 +692,9 @@ class Session(object):
         """
         refresh_url = '/api/aaaRefresh.json'
         resp = self.get(refresh_url, timeout=timeout)
-        ret_data = json.loads(resp.text)['imdata'][0]
-        self.token = str(ret_data['aaaLogin']['attributes']['token'])
+        if resp.ok:
+            ret_data = json.loads(resp.text)['imdata'][0]
+            self.token = str(ret_data['aaaLogin']['attributes']['token'])
         return resp
 
     def close(self):

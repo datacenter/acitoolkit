@@ -582,7 +582,7 @@ class Site(object):
             url = 'https://' + url
         else:
             url = 'http://' + url
-        self.session = Session(url, self.credentials.user_name, self.credentials.password)
+        self.session = Session(url, self.credentials.user_name, self.credentials.password, relogin_forever=True)
         resp = self.session.login()
         return resp
 
