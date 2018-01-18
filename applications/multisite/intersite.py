@@ -295,11 +295,11 @@ class EndpointHandler(object):
                 remote_tenant = Tenant(l3out_policy.tenant)
                 remote_l3out = OutsideL3(l3out_policy.name, remote_tenant)
                 remote_epg = OutsideEPG(policy.remote_epg, remote_l3out)
-                remote_ep = OutsideNetwork(endpoint.name, remote_epg)
                 if ':' in endpoint.name:
-                    remote_ep.ip = endpoint.name + '/128'
+                    remote_ep_ip = endpoint.name + '/128'
                 else:
-                    remote_ep.ip = endpoint.name + '/32'
+                    remote_ep_ip = endpoint.name + '/32'
+                remote_ep = OutsideNetwork(endpoint.name, remote_epg, address=remote_ep_ip)
                 if endpoint.is_deleted():
                     remote_ep.mark_as_deleted()
                 tenant_json = remote_tenant.get_json()
@@ -392,18 +392,18 @@ class EndpointHandler(object):
                                 l3out = OutsideL3(pushed_l3out, tenant)
                             if l3epg is None:
                                 l3epg = OutsideEPG(remote_epg, l3out)
-                            outside_network = OutsideNetwork(subnet.partition('/')[0], l3epg)
-                            outside_network.ip = subnet
+                            outside_network = OutsideNetwork(subnet.partition('/')[0], l3epg, address=subnet)
                             outside_network.mark_as_deleted()
 
         # Push the completed JSON to the remote site
         if not found_duplicates:
+            logging.warning('Could not find any duplicates.')
             return False
         resp = tenant.push_to_apic(session)
         if resp.ok:
             logging.warning('Deleted duplicate entries: %s', tenant.get_json())
         else:
-            logging.error('Could not get delete duplicate entries: %s %s', resp, resp.text)
+            logging.error('Could not delete duplicate entries: %s %s', resp, resp.text)
             return False
         return found_duplicates
 
@@ -1805,7 +1805,10 @@ class CommandLine(cmd.Cmd):
         if policy is None:
             print 'Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>'
             return
-        local_endpoints = IPEndpoint.get_all_by_epg(local_site.session, tenant_name, app_name, epg_name)
+        try:
+            local_endpoints = IPEndpoint.get_all_by_epg(local_site.session, tenant_name, app_name, epg_name)
+        except ConnectionError:
+            print 'Could not collect endpoints from the APIC'
         print 'Local Endpoints:', len(local_endpoints)
         local_ips = []
         for ep in local_endpoints:

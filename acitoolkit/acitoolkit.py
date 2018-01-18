@@ -3003,13 +3003,14 @@ class BaseSubnet(BaseACIObject):
     Base class for Subnet and OutsideNetwork
     """
 
-    def __init__(self, name, parent=None):
+    def __init__(self, name, parent=None, address=None):
         """
         :param name: String containing the name of this instance.
         :param parent: An instance of the parent class.
+        :param address: String containing the IP address. Can optionally be set later.
         """
+        self._addr = address
         super(BaseSubnet, self).__init__(name, parent)
-        self._addr = None
         self._scope = None
 
     @property
@@ -3257,8 +3258,15 @@ class OutsideNetwork(BaseSubnet):
     OutsideNetwork class, roughly equivalent to l3extSubnet in the APIC model
     """
 
-    def __init__(self, name, parent):
-        super(OutsideNetwork, self).__init__(name, parent)
+    def __init__(self, name, parent, address=None):
+        """
+        :param name: String containing the OutsideNetwork name
+        :param parent: An instance of OutsideEPG class
+        :param address: String containing the IP address of the OutsideNetwork. e.g. '1.2.3.0/24'
+        """
+        if address:
+            self.addr = address
+        super(OutsideNetwork, self).__init__(name, parent, address=address)
 
     @staticmethod
     def _get_parent_class():
