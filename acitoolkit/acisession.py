@@ -639,6 +639,7 @@ class Session(object):
         if not ret.ok:
             if self.relogin_forever:
                 logging.error('Could not relogin to APIC. Relogin forever enabled...')
+                self.login_error = True
                 return ret
             logging.error('Could not relogin to APIC. Aborting login thread.')
             self.login_thread.exit()
