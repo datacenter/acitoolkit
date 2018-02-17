@@ -639,6 +639,7 @@ class Session(object):
         if not ret.ok:
             if self.relogin_forever:
                 logging.error('Could not relogin to APIC. Relogin forever enabled...')
+                self.login_error = True
                 return ret
             logging.error('Could not relogin to APIC. Aborting login thread.')
             self.login_thread.exit()
@@ -911,5 +912,7 @@ class Session(object):
         Invoke registered callback functions when the session performs a
         successful relogin attempt after disconnecting from the APIC.
         """
+        logging.info('Invoking login callbacks')
         for callback_fn in self._relogin_callbacks:
+            logging.info('Invoking login callback...')
             callback_fn(self)

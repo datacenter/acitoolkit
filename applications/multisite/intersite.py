@@ -28,6 +28,8 @@ import argparse
 # Maximum number of endpoints to handle in a single burst
 MAX_ENDPOINTS = 500
 
+endpoint_db_lock = threading.Lock()
+
 
 class IntersiteTag(object):
     """
@@ -550,10 +552,11 @@ class MultisiteMonitor(threading.Thread):
 
         while not self._exit:
             if IPEndpoint.has_events(self._session):
-                try:
-                    self.handle_endpoint_event()
-                except ConnectionError:
-                    logging.error('Could not handle endpoint event due to ConnectionError')
+                with endpoint_db_lock:
+                    try:
+                        self.handle_endpoint_event()
+                    except ConnectionError:
+                        logging.error('Could not handle endpoint event due to ConnectionError')
             else:
                 time.sleep(0.05)
 
@@ -1093,7 +1096,10 @@ class LocalSite(Site):
                 else:
                     children = []
                     for item in resp.json()['imdata']:
-                        ip_addr = item['l3extSubnet']['attributes']['ip'].rpartition('-')[-1]
+                        try:
+                            ip_addr = item['l3extSubnet']['attributes']['ip'].rpartition('-')[-1]
+                        except KeyError:
+                            continue
                         if '/32' in ip_addr:
                             search_ip_addr = ip_addr.rpartition('/32')[0]
                         else:
@@ -1182,10 +1188,11 @@ class LocalSite(Site):
         # Clear the queue
         self.policy_tenant_queue = {}
         # Handle the cleanup for each policy
-        for policy in self.policy_queue:
-            self.remove_stale_entries(policy)
-            self.monitor.handle_existing_endpoints(policy)
-        self.monitor._endpoints.push_to_remote_sites(self.monitor._my_collector)
+        with endpoint_db_lock:
+            for policy in self.policy_queue:
+                self.remove_stale_entries(policy)
+                self.monitor.handle_existing_endpoints(policy)
+            self.monitor._endpoints.push_to_remote_sites(self.monitor._my_collector)
         # Clear the queue
         self.policy_queue = []
 
@@ -1880,7 +1887,7 @@ def execute_tool(args, test_mode=False):
     :param args: command line arguments
     :param test_mode: True or False. True indicates that the command line parser should not be run.
                       This is used by test routines and when invoked by the REST API
-    :return: None
+    :return: None if test_mode is False. An instance of MultisiteCollector if test_mode is True.
     """
     # Set up the logging infrastructure
     if args.debug is not None:
