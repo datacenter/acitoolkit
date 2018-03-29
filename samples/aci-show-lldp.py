@@ -23,18 +23,30 @@ def main():
     args = creds.get()
 
     # Login to APIC
+
+    print "Logging In"   
+
     session = ACI.Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
         return
 
+    print "Collecting Nodes"   
+
     nodes = Node.get_deep(session, include_concrete=True)
     lldps = []
+
+
+    print "Collecting LLDP information from each Node"   
+
     for node in nodes:
         node_concrete_lldp = node.get_children(child_type=ConcreteLLdp)
         for node_concrete_lldp_obj in node_concrete_lldp:
             lldps.append(node_concrete_lldp_obj)
+
+
+    print "Compliling LLDP information into a list and tabulating for stdout"   
 
     tables = ConcreteLLdp.get_table(lldps)
     output_list = []
@@ -43,6 +55,7 @@ def main():
             if table_data not in output_list:
                 output_list.append(table_data)
     print(tabulate(output_list, headers=["Node-ID",
+                                         "Local Interface",
                                          "Ip",
                                          "Name",
                                          "Chassis_id_t",

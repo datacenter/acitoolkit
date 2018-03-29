@@ -3349,8 +3349,11 @@ class ConcreteLLdp(BaseConcreteDp):
                 for adjEp in lldpIf.get_children(ConcreteLLdpAdjEp):
                     node_match = re.search(r'node-\d+', adjEp.raw_local_interface)
                     node = node_match.group()
+                    local_int_match = re.search(r'(\[)([\w\d\/]+)', adjEp.raw_local_interface)
+                    local_int = local_int_match.group(2)
                     data.append([
                         node,
+                        local_int,
                         adjEp.ip,
                         adjEp.name,
                         adjEp.chassis_id_t,
