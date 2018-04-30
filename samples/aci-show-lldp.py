@@ -43,6 +43,7 @@ def main():
             if table_data not in output_list:
                 output_list.append(table_data)
     print(tabulate(output_list, headers=["Node-ID",
+                                         "Local Interface",
                                          "Ip",
                                          "Name",
                                          "Chassis_id_t",
