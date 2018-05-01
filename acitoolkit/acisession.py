@@ -396,6 +396,7 @@ class Subscriber(threading.Thread):
 
         :param url: URL string to get pending event
         """
+        self._process_event_q()
         if url not in self._events:
             raise ValueError
         event = self._events[url].pop(0)
