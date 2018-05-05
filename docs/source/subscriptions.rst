@@ -42,10 +42,10 @@ class instance.  This is shown in the code snippet below using the
 
     Tenant.subscribe(session)
     
-To check an event has arrived, the method ``has_event`` can be called
+To check an event has arrived, the method ``has_events`` can be called
 on the subscribed class.::
 
-    Tenant.has_event(session)
+    Tenant.has_events(session)
 
 If there is an event waiting, this will return ``True``.
 
@@ -88,7 +88,7 @@ as::
 
     bob = Tenant('bob')
     bob.subscribe(session)
-    bob.has_event(session)
+    bob.has_events(session)
     event = bob.get_event(session)
 
 
@@ -99,7 +99,7 @@ print a message if the instance was deleted.::
     bob = Tenant('Bob')
     bob.subscribe(session)
     while True:
-        if bob.has_event(session):
+        if bob.has_events(session):
 	    bobs_event = bob.get_event(session)
 	    if bobs_event.is_deleted():
 	        print 'Bob was deleted'
