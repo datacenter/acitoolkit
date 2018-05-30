@@ -437,7 +437,7 @@ class Checker(object):
                     context_info[current_context] = {'v4list': [],
                                                      'v6list': []}
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddress.ip_network(unicode(subnet.addr),
+                    ip_subnet = ipaddress.ip_network(str(subnet.addr),
                                                      strict=False)
                     index = 0
                     index_to_insert = 0
@@ -551,7 +551,7 @@ class Checker(object):
                     # BridgeDomain Context has no associated ExternalNetworks so ignore it.
                     continue
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddress.ip_network(unicode(subnet.addr),
+                    ip_subnet = ipaddress.ip_network(str(subnet.addr),
                                                      strict=False)
                     ip_subnet_str = ip_subnet.network_address
                     if ip_subnet_str in context_set[bd_ctxt.name]:
