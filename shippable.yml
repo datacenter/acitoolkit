@@ -9,7 +9,7 @@ before_install:
    - mkdir -p shippable/codecoverage
 
 install: 
-  - "pip install requests"
+  - "pip install --index-url=https://pypi.python.org/simple/ requests"
   - "pip install coverage"
   - "python setup.py -q develop"
 
