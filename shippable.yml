@@ -2,23 +2,18 @@ language: python
 python:
   - "2.7"
   - "3.4"
-  - "pypy"
 cache: true
 
-before_install:
+build:
+  ci:
    - mkdir -p shippable/codecoverage
-
-install: 
-  - "pip install --index-url=https://pypi.python.org/simple/ requests"
-  - "pip install coverage"
-  - "python setup.py -q develop"
-
-script:
-  - coverage run -p tests/acitoolkit_test.py
-  - coverage run -p tests/aciphysobject_test.py
-  - coverage run -p tests/acitoolkitlib_test.py
-
-after_success:
-  - coverage combine
-  - coverage report --include=*acitoolkit*
-  - coverage xml -o shippable/codecoverage/coverage.xml --include=*acitoolkit*
+   - "pip install --index-url=https://pypi.python.org/simple/ requests"
+   - "pip install coverage"
+   - "python setup.py -q develop"
+   - coverage run -p tests/acitoolkit_test.py
+   - coverage run -p tests/aciphysobject_test.py
+   - coverage run -p tests/acitoolkitlib_test.py
+  on_success:
+   - coverage combine
+   - coverage report --include=*acitoolkit*
+   - coverage xml -o shippable/codecoverage/coverage.xml --include=*acitoolkit*
