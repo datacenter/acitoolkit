@@ -7,7 +7,7 @@ cache: true
 build:
   ci:
    - mkdir -p shippable/codecoverage
-   - "pip install --index-url=https://pypi.python.org/simple/ requests"
+   - "pip install requests"
    - "pip install coverage"
    - "python setup.py -q develop"
    - coverage run -p tests/acitoolkit_test.py

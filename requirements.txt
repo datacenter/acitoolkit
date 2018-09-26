@@ -1,0 +1,20 @@
+#
+#  Package Requirements
+#
+requests
+websocket-client > 0.33.0
+gitpython
+flask-httpauth
+flask-sqlalchemy
+flask-admin
+flask-bootstrap
+flask-wtf
+flask-cors
+flask
+pymysql
+tabulate
+py-radix
+jsonschema
+graphviz
+ipaddress
+deepdiff
