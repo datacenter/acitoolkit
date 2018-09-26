@@ -7,8 +7,8 @@ cache: true
 build:
   ci:
    - mkdir -p shippable/codecoverage
-   - "pip install requests"
-   - "pip install coverage"
+   - shippable_retry pip install -r requirements.txt
+   - shippable_retry pip install coverage
    - "python setup.py -q develop"
    - coverage run -p tests/acitoolkit_test.py
    - coverage run -p tests/aciphysobject_test.py
