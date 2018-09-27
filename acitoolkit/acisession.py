@@ -72,6 +72,9 @@ else:
 
 
 class CredentialsError(Exception):
+    """
+    Exception class for errors with Credentials class
+    """
     def __init___(self, message):
         Exception.__init__(self, "Session Credentials Error:{0}".format(message))
         self.message = message
@@ -209,7 +212,8 @@ class Subscriber(threading.Thread):
             return resp
         resp_data = json.loads(resp.text)
         if 'subscriptionId' not in resp_data:
-            logging.error('Did not receive proper subscription response from APIC for url %s response: %s', url, resp_data)
+            logging.error('Did not receive proper subscription response from APIC for url %s response: %s',
+                          url, resp_data)
             resp = requests.Response()
             resp.status_code = 404
             resp._content = '{"error": "Could not send subscription to APIC"}'
@@ -489,7 +493,7 @@ class Session(object):
             if not isinstance(key, str):
                 raise CredentialsError("The key path must be a string")
         if (cert_name and not key) or (not cert_name and key):
-                raise CredentialsError("Both a certificate name and private key must be provided")
+            raise CredentialsError("Both a certificate name and private key must be provided")
         if not isinstance(relogin_forever, bool):
             raise CredentialsError("relogin_forever must be a boolean")
 
@@ -595,8 +599,7 @@ class Session(object):
                 self.key,
                 method,
                 url,
-                data)
-        )
+                data))
 
         payload = '{}{}'.format(method, url)
         if data:
@@ -608,7 +611,7 @@ class Session(object):
                   'APIC-Certificate-Fingerprint': 'fingerprint',
                   'APIC-Certificate-DN': cert_dn}
 
-        logging.debug('Authentication cookie %s' % cookie)
+        logging.debug('Authentication cookie %s', cookie)
         return cookie
 
     def _send_login(self, timeout=None):
@@ -628,7 +631,8 @@ class Session(object):
             login_url = '/api/requestAppToken.json'
             data = {'aaaAppToken': {'attributes': {'appName': self.cert_name}}}
         elif self.cert_auth:
-            logging.warning('Will not explicitly login because certificate based authentication is being used for this session.')
+            logging.warning('Will not explicitly login because certificate based authentication'
+                            ' is being used for this session.')
             logging.warning('If permanently using cert auth, consider removing the call to login().')
             CertAuthResponse = namedtuple('CertAuthResponse', ['ok'])
             return CertAuthResponse(ok=True)
@@ -827,7 +831,8 @@ class Session(object):
         logging.debug(get_url)
 
         cookies = self._prep_x509_header('GET', url)
-        resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies, cookies=cookies)
+        resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl,
+                                proxies=self._proxies, cookies=cookies)
         if resp.status_code == 403:
             if self.cert_auth and not (self.appcenter_user and self._subscription_enabled):
                 logging.error('Certificate authentication failed. Please check all settings are correct.')
@@ -856,7 +861,7 @@ class Session(object):
                 total_count = orig_total_count - 10000
                 while total_count > 0 and resp.ok:
                     page_number += 1
-                    logging.debug('Getting page %s' % page_number)
+                    logging.debug('Getting page %s', page_number)
                     # Get the next chunk
                     cookies = self._prep_x509_header('GET', url + '&page=%s&page-size=10000' % page_number)
                     resp = self.session.get(get_url + '&page=%s&page-size=10000' % page_number,
@@ -869,12 +874,13 @@ class Session(object):
                                 'totalCount': orig_total_count}
                 resp._content = json.dumps(resp_content)
         elif 400 < resp.status_code < 600:
-            logging.debug('Received error: %s %s' % (str(resp.status_code), resp.text))
+            logging.debug('Received error: %s %s', str(resp.status_code), resp.text)
             retries = 3
             while retries > 0:
                 logging.debug('Retrying query')
                 cookies = self._prep_x509_header('GET', url)
-                resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl, proxies=self._proxies, cookies=cookies)
+                resp = self.session.get(get_url, timeout=timeout, verify=self.verify_ssl,
+                                        proxies=self._proxies, cookies=cookies)
                 if resp.status_code != 200:
                     logging.debug('Retry was not successful.')
                     retries -= 1

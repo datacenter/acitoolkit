@@ -55,6 +55,12 @@ except:
 
 
 def error_message(resp):
+    """
+    Print an error message
+
+    :param resp: Response object from Requests library
+    :return: None
+    """
     print('Error:  Unable to push configuration to APIC')
     print('Reason: ' + str(resp.text))
 
@@ -198,7 +204,7 @@ class SubMode(Cmd):
                     tag_list = Tag.get(self.apic, parent=tenant, tenant=tenant)
                     tag_list = [tag.name for tag in tag_list]
                     if len(tag_list):
-                        output.append((tenant.name,",".join(tag_list)))
+                        output.append((tenant.name, ",".join(tag_list)))
                 template = '{0:20} {1:20}'
                 print(template.format('Tenant', 'Tag'))
                 print(template.format('------', '-----------'))
@@ -360,7 +366,7 @@ class SubMode(Cmd):
         return -1
 
     def precmd(self, line):
-
+        """precmd"""
         # Check for negative of the command (no in front)
         if line.strip()[0:len('no')] == 'no':
             line = line.strip()[len('no'):]
@@ -381,6 +387,7 @@ class SubMode(Cmd):
         return line
 
     def get_args_num_nth(self, text, line, nth='last'):
+        """get_args_num_nth"""
         args = line.split()
         # the number of completed argument
         num_completed_arg = len(args) - 1 if text == args[len(args) - 1] else len(args)
@@ -394,6 +401,7 @@ class SubMode(Cmd):
         return args, num_completed_arg, first_cmd, nth_cmd, last_cmd
 
     def get_args_num_last(self, text, line):
+        """get_args_num_last"""
         args = line.split()
         # the number of completed argument
         num_completed_arg = len(args) - 1 if text == args[len(args) - 1] else len(args)
@@ -402,24 +410,26 @@ class SubMode(Cmd):
         return args, num_completed_arg, last_completed_arg
 
     def get_completions(self, text, array):
+        """get_completions"""
         if args == '':
             return array
         return [a for a in array if a.startswith(text)]
 
     def get_operator_port(self, line, arg):
+        """get_operator_port"""
         line = line.split(' ')
         if arg in line:
             index = line.index(arg)
             return line[index + 1:index + 3]
 
     def filter_args(self, black_list, array):
+        """filter_args"""
         if type(black_list) == str:
             black_list = black_list.split()
         return list(set(array) - set(black_list) & set(array))
 
 
 class BridgeDomainConfigSubMode(SubMode):
-
     """
     Bridge domain configuration sub mode
     """
@@ -463,9 +473,10 @@ class BridgeDomainConfigSubMode(SubMode):
                 error_message(resp)
 
     def complete_ip(self, text, line, begidx, endidx):
-
+        """ip"""
         # TODO: need to replace the "get_ip_mask" function
         def get_ip_mask():
+            """get ip mask"""
             # return ['ip_mask_1', 'ip_mask_2']
             pass
 
@@ -481,6 +492,7 @@ class BridgeDomainConfigSubMode(SubMode):
                     return self.get_completions(text, ['name'])
 
     def do_context(self, args):
+        """context"""
         context = Context(args, self.tenant)
         if self.negative:
             print('Bridgedomain to Context assignment cannot be deleted,'
@@ -494,9 +506,10 @@ class BridgeDomainConfigSubMode(SubMode):
             error_message(resp)
 
     def complete_context(self, text, line, begidx, endidx):
-
+        """context"""
         # TODO: need to replace the "get_context" function
         def get_context():
+            """get context"""
             # return ['context_1', 'context_2']
             pass
 
@@ -507,7 +520,6 @@ class BridgeDomainConfigSubMode(SubMode):
 
 
 class ContextConfigSubMode(SubMode):
-
     """
     Context domain configuration sub mode
     """
@@ -523,6 +535,7 @@ class ContextConfigSubMode(SubMode):
         self.prompt += '(config-ctx)# '
 
     def do_allowall(self, args):
+        """do_allowall"""
         if self.negative:
             self.context.set_allow_all(False)
         else:
@@ -535,11 +548,12 @@ class ContextConfigSubMode(SubMode):
             print('push configuration to APIC')
 
     def do_getjson(self, args):
+        """do_getjson"""
         print(self.context.get_json())
 
 
 class InterfaceConfigSubMode(SubMode):
-
+    """Interface configuration submode"""
     def __init__(self):
         SubMode.__init__(self)
         self.tenant = None
@@ -593,25 +607,30 @@ class InterfaceConfigSubMode(SubMode):
                 error_message(resp)
 
     def complete_epg(self, text, line, begidx, endidx):
-
+        """epg"""
         # TODO: need to replace the five "get" functions
         def get_epg_name():
+            """get epg name"""
             # return ['epg_1', 'epg_2']
             pass
 
         def get_vlan_id():
+            """get vlan id"""
             # return ['vlan_id_1', 'vlan_id_2']
             pass
 
         def get_vnid():
+            """get vnid"""
             # return ['vnid_1', 'vnid_2']
             pass
 
         def get_mcast_addr():
+            """get mcast addr"""
             # return ['mcast_addr_1', 'mcast_addr_2']
             pass
 
         def get_vsid():
+            """get vsid"""
             # return ['vsid_1', 'vsid_2']
             pass
 
@@ -636,6 +655,7 @@ class InterfaceConfigSubMode(SubMode):
                 return self.get_completions(text, ['vlan', 'vxlan', 'nvgre'])
 
     def do_shutdown(self, args):
+        """shutdown"""
         num_args = len(args.split())
         if num_args:
             print('%% shutdown takes no arguments')
@@ -690,28 +710,34 @@ class InterfaceConfigSubMode(SubMode):
             error_message(resp)
 
     def do_ip(self):
+        """ip"""
         pass
 
     def complete_ip(self, text, line, begidx, endidx):
-
+        """ip"""
         # TODO: need to replace the five "get" functions
         def get_ip_mask():
+            """get ip mask"""
             # return ['ip_mask_1', 'ip_mask_2']
             pass
 
         def get_context():
+            """get context"""
             # return ['context_1', 'context_2']
             pass
 
         def get_area_id():
+            """get area id"""
             # return ['area_id_1', 'area_id_2']
             pass
 
         def get_key_id():
+            """get key id"""
             # return ['key_id_1', 'key_id_2']
             pass
 
         def get_auth_key():
+            """get_auth_key"""
             # return ['auth_key_1', 'auth_key_2']
             pass
 
@@ -755,7 +781,7 @@ class InterfaceConfigSubMode(SubMode):
 
 
 class ConfigSubMode(SubMode):
-
+    """Configuration submode"""
     def __init__(self):
         SubMode.__init__(self)
         self.tenant = None
@@ -775,6 +801,7 @@ class ConfigSubMode(SubMode):
         self.prompt += '(config)# '
 
     def set_apic(self, apic):
+        """set the apic"""
         self.apic = apic
         self.bridgedomain_submode.apic = apic
         self.context_submode.apic = apic
@@ -822,6 +849,7 @@ class ConfigSubMode(SubMode):
             self.bridgedomain_submode.cmdloop()
 
     def complete_bridgedomain(self, text, line, begidx, endidx):
+        """bridgedomain"""
         bridgedomain_args = [a for a in self.do_show('bridgedomain',
                                                      to_return=True).values()[0]]
         completions = [a for a in bridgedomain_args if a.startswith(line[13:])]
@@ -882,7 +910,7 @@ class ConfigSubMode(SubMode):
                     return
                 port = args.split()[1]
 
-                portchannels = PortChannel.get2(self.apic)
+                portchannels = PortChannel.get(self.apic)
                 return
                 try:
                     for pc in portchannels:
@@ -1137,6 +1165,7 @@ class ContractConfigSubMode(SubMode):
         self.scope_args = ['context', 'global', 'tenant', 'application-profile']
 
     def do_scope(self, args):
+        """scope"""
         if self.negative is True:
             print('You can not delete contract scope')
             return
@@ -1147,12 +1176,14 @@ class ContractConfigSubMode(SubMode):
         print('contract scope set to ' + str(self.contract.get_scope()))
 
     def complete_scope(self, text, line, begidx, endidx):
+        """complete_scope"""
         text = text.lstrip()
         return self.get_completions(text, self.scope_args)
 
     def do_permit(self, args):
-
+        """permit"""
         def check_from_to_args(args, cmd):
+            """check_from_to_args"""
             if cmd in args:
                 idx = args.index(cmd)
                 try:
@@ -1177,7 +1208,9 @@ class ContractConfigSubMode(SubMode):
                 return [0, 0]
 
         def check_tcp_rule(args):
+            """check tcp rule"""
             def check_name(args, sign):
+                """ check name """
                 idx = args.index(sign)
                 try:
                     return [sign, args[idx + 1]]
@@ -1244,6 +1277,9 @@ class ContractConfigSubMode(SubMode):
             error_message(resp)
 
     def complete_permit(self, text, line, begidx, endidx):
+        """
+        complete permit
+        """
         signs = ['+', '-']
         protocol_args = ['from-port', 'to-port']
         tcp_rule_array = ['unspecified', 'est', 'syn', 'ack', 'fin', 'rst']
@@ -1269,9 +1305,14 @@ class ContractConfigSubMode(SubMode):
             return self.get_completions(text, self.operators)
 
     def complete_sequence_number(self, text, line, begidx, endidx, with_do_args=True):
-
+        """
+        Complete the sequence number
+        """
         # TODO: Bon we need a get method to obtain the array.
         def get_seq_nums():
+            """
+            Get sequence numbers
+            """
             # return ['123', '456', '789', '100']
             return []
 
@@ -1297,7 +1338,7 @@ class ContractConfigSubMode(SubMode):
             begidx = readline.get_begidx() - stripped
             endidx = readline.get_endidx() - stripped
             if begidx > 0:
-                cmd, args, foo = self.parseline(line)
+                cmd, args, _ = self.parseline(line)
                 if cmd == '':
                     compfunc = self.completedefault
                 else:
@@ -1439,6 +1480,10 @@ class CmdLine(SubMode):
             print('%% Tenant %s does not exist' % tenant.name)
 
     def complete_switchto(self, text, line, begidx, endidx):
+        """
+        Switch to a particular tenant
+        :return: List of possible tenants for completions
+        """
         switchto_args = [a for a in self.do_show('tenant',
                                                  to_return=True).keys()]
         completions = [a for a in switchto_args if a.startswith(line[9:])]
@@ -1457,12 +1502,18 @@ class CmdLine(SubMode):
         return -1
 
     def complete_configure(self, text, line, begidx, endidx):
+        """
+        Complete the configuration commands
+        :return: List of strings that can be completed
+        """
         completions = ['terminal']
         return completions
 
 
-class MockStdin:
-
+class MockStdin(object):
+    """
+    Mock of the Stdin
+    """
     def __init__(self, filename, original_stdin):
         self.original_stdin = original_stdin
         f = open(filename)
@@ -1470,6 +1521,10 @@ class MockStdin:
         f.close()
 
     def readline(self):
+        """
+        Mock reading a single line from stdin
+        :return: String containing the line
+        """
         line = self.lines.pop(0)
         print(line)
         if len(self.lines) == 0:
@@ -1478,9 +1533,15 @@ class MockStdin:
 
 
 def main(apic):
+    """
+    Main execution routine
+
+    :param apic: Instance of Session class
+    """
     cmdLine = CmdLine()
     cmdLine.apic = apic
     cmdLine.cmdloop()
+
 
 # *** MAIN LOOP ***
 if __name__ == '__main__':

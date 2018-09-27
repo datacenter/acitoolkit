@@ -468,9 +468,12 @@ class BaseACIObject(AciSearch):
             if not session.has_events(url):
                 continue
             event = session.get_event(url)
+            class_name = None
             for class_name in cls._get_apic_classes():
                 if class_name in event['imdata'][0]:
                     break
+            if class_name is None:
+                return None
             attributes = event['imdata'][0][class_name]['attributes']
             status = str(attributes['status'])
             dn = str(attributes['dn'])
@@ -911,7 +914,8 @@ class BaseACIObject(AciSearch):
                 resp.append(relation.item)
         return resp
 
-    def _get_all_relations_by_class(self, relations, attached_class,
+    @staticmethod
+    def _get_all_relations_by_class(relations, attached_class,
                                     status='attached', relation_type=None):
         """
         Internal function to get relations or attachments for a given class.
@@ -968,8 +972,7 @@ class BaseACIObject(AciSearch):
 
     def __str__(self):
         return self.name
-    
-    @staticmethod
+
     def get_from_json(self, data, parent=None):
         """
         returns a Tenant object from a json
@@ -989,8 +992,8 @@ class BaseACIObject(AciSearch):
                                         class_object._populate_from_attributes(children[child_key]['attributes'])
                                         object_exist = True
                             if not object_exist:
-                                child_obj = class_name(child_name,parent=self)
-                                class_name._populate_from_attributes(child_obj,children[child_key]['attributes'])
+                                child_obj = class_name(child_name, parent=self)
+                                class_name._populate_from_attributes(child_obj, children[child_key]['attributes'])
                             class_name.get_from_json(child_obj, children, parent=self)
 
     def get_json(self, obj_class, attributes=None,
@@ -1102,7 +1105,7 @@ class BaseACIObject(AciSearch):
         :param tenant:  Tenant object to assign the created objects.
         :param query_target_type: type of the query either self,children,subtree
         """
-        if query_target_type not in ['self','children','subtree']:
+        if query_target_type not in ['self', 'children', 'subtree']:
             raise ValueError
         if isinstance(tenant, str):
             raise TypeError
@@ -1356,9 +1359,12 @@ class BaseACIObject(AciSearch):
 class BaseACIPhysObject(BaseACIObject):
     """Base class for physical objects
     """
-
     def __init__(self, name='', parent=None, pod=None):
         self._session = None
+        if not hasattr(self, 'type'):
+            self.type = None
+        if not hasattr(self, 'module'):
+            self.module = None
         self.pod = None
         if pod:
             self.pod = pod
@@ -1593,6 +1599,7 @@ class _Tag(BaseACIObject):
         name = dn.split('/tag-')[1].split('/')[0]
         return name
 
+
 class BaseACIPhysModule(BaseACIPhysObject):
     """BaseACIPhysModule: base class for modules  """
 
@@ -1748,6 +1755,15 @@ class BaseInterface(BaseACIObject):
     """Abstract class used to provide base functionality to other Interface
        classes.
     """
+    def __init__(self, name, parent=None):
+        if not hasattr(self, 'module'):
+            self.module = None
+        if not hasattr(self, 'port'):
+            self.port = None
+        if not hasattr(self, 'node'):
+            self.node = None
+        super(BaseInterface, self).__init__(name, parent)
+
     @staticmethod
     def is_dn_vpc(dn):
         """

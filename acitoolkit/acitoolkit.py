@@ -1183,7 +1183,8 @@ class EPG(CommonEPG):
                                         encap_id,
                                         encap_mode)
                 else:
-                    l2int = L2Interface('l2_int_{}-{}_on_{}{}/{}/{}/{}'.format(encap_type, encap_id, int_type, pod, node, module, port),
+                    l2int = L2Interface('l2_int_{}-{}_on_{}{}/{}/{}/{}'.format(encap_type, encap_id, int_type,
+                                                                               pod, node, module, port),
                                         encap_type,
                                         encap_id,
                                         encap_mode)
@@ -4869,6 +4870,11 @@ class FexInterface(BaseACIObject):
 
     @classmethod
     def parse_dn(cls, dn):
+        """
+        Parse the pod, node, interface name from the dn
+        :param dn: String containing the interface DN
+        :return: Tuple consisting of if_type, pod, node, fex, module, port
+        """
         if '/phys-' in dn:
             pod = dn.split('/pod-')[1].split('/')[0]
             node = dn.split('/node-')[1].split('/')[0]
@@ -5432,7 +5438,8 @@ class Endpoint(BaseACIObject):
         :param tenant_name: String containing the tenant name
         :param app_name: String containing the app name
         :param epg_name: String containing the epg name
-        :param with_interface_attachments: Boolean indicating whether interfaces should be attached or not. True is default.
+        :param with_interface_attachments: Boolean indicating whether interfaces should be attached or not.
+                                           True is default.
         :return: List of Endpoint instances
         """
         if with_interface_attachments:
@@ -6516,7 +6523,7 @@ class NetworkPool(BaseACIObject):
         self.encap_type = encap_type
         self.start_id = start_id
         self.end_id = end_id
-        valid_modes = ['static', 'dynamic','UOL_VXLAN']
+        valid_modes = ['static', 'dynamic', 'UOL_VXLAN']
         if mode not in valid_modes:
             raise ValueError('Mode specified is not a valid mode')
         self.mode = mode
@@ -6561,7 +6568,7 @@ class NetworkPool(BaseACIObject):
         Get the APIC classes used by the acitoolkit class.
         :returns: list of strings containing APIC class names
         """
-        return ['fvnsVlanInstP','fvnsVxlanInstP']
+        return ['fvnsVlanInstP', 'fvnsVxlanInstP']
 
     @classmethod
     def get(cls, session):
@@ -6576,23 +6583,18 @@ class NetworkPool(BaseACIObject):
         resp = []
         for ac in apic_classes:
             query_url = (('/api/mo/uni.json?query-target=subtree&'
-                      'target-subtree-class=') + str(ac))
+                          'target-subtree-class=') + str(ac))
             ret = session.get(query_url)
             data = ret.json()['imdata']
 
-            #print(data)
             for object_data in data:
-                # print (apic_classes[0])
-                #print (object_data)
                 if ac in object_data:
-                    #print("vlan")
                     name = str(object_data[ac]['attributes']['name'])
                     dn = object_data[ac]['attributes']['dn']
                     encap_type = "vlan"
                     if ac == 'fvnsVxlanInstP':
                         encap_type = "vxlan"
                     mode = dn.split("-")[-1]
-                    #print(mode)
                     try:
                         obj = toolkit_class(name,encap_type,mode)
                     except ValueError:
