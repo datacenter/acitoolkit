@@ -437,7 +437,7 @@ class Checker(object):
                     context_info[current_context] = {'v4list': [],
                                                      'v6list': []}
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddress.ip_network(str(subnet.addr),
+                    ip_subnet = ipaddress.ip_network(unicode(subnet.addr),
                                                      strict=False)
                     index = 0
                     index_to_insert = 0
