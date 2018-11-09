@@ -5402,6 +5402,9 @@ class Endpoint(BaseACIObject):
                                 endpoint.if_dn.append(interface_dn)
                     # endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
                     # ret = session.get(endpoint_query_url)
+                # Todo: Sven Waschkut | added 20181109
+                if 'fvIp' in child:
+                    endpoint.secondary_ip.append(child['fvIp']['attributes']['addr'])
             endpoints.append(endpoint)
         return endpoints
 
