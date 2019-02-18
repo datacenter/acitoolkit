@@ -5402,6 +5402,7 @@ class Endpoint(BaseACIObject):
                                 endpoint.if_dn.append(interface_dn)
                     # endpoint_query_url = '/api/mo/' + endpoint.if_name + '.json'
                     # ret = session.get(endpoint_query_url)
+
                 if 'fvIp' in child:
                     if str(child['fvIp']['attributes']['addr']) != endpoint.ip:
                         endpoint.secondary_ip.append(child['fvIp']['attributes']['addr'])
