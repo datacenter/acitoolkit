@@ -17,4 +17,4 @@ py-radix
 jsonschema
 graphviz
 ipaddress
-deepdiff
+deepdiff==3.3.0
