@@ -6481,11 +6481,11 @@ class EPGDomain(BaseACIObject):
             obj = toolkit_class(name, parent)
             attribute_data = object_data[apic_class]['attributes']
             obj._populate_from_attributes(attribute_data)
-            obj.domain_name = object_data[apic_class]['attributes']['tDn'].split('/')[1].split('-')[1]
-            obj.domain_type = object_data[apic_class]['attributes']['tDn'].split('/')[1].split('-')[0]
-            obj.tenant_name = object_data[apic_class]['attributes']['dn'].split('/')[1].split('-')[1]
-            obj.app_name = object_data[apic_class]['attributes']['dn'].split('/')[2].split('-')[1]
-            obj.epg_name = object_data[apic_class]['attributes']['dn'].split('/')[3].split('-')[1]
+            obj.domain_name = object_data[apic_class]['attributes']['tDn'].split('/')[1].split('-', 1)[1]
+            obj.domain_type = object_data[apic_class]['attributes']['tDn'].split('/')[1].split('-', 1)[0]
+            obj.tenant_name = object_data[apic_class]['attributes']['dn'].split('/')[1].split('-', 1)[1]
+            obj.app_name = object_data[apic_class]['attributes']['dn'].split('/')[2].split('-', 1)[1]
+            obj.epg_name = object_data[apic_class]['attributes']['dn'].split('/')[3].split('-', 1)[1]
             obj.dn = object_data[apic_class]['attributes']['dn']
             obj.lcOwn = object_data[apic_class]['attributes']['lcOwn']
             obj.tDn = object_data[apic_class]['attributes']['tDn']
