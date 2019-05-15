@@ -165,10 +165,11 @@ def tracker(args):
             ep = aci.Endpoint.get_event(session)
             try:
                 epg = ep.get_parent()
+                app_profile = epg.get_parent()
+                tenant = app_profile.get_parent()
             except AttributeError:
                 continue
-            app_profile = epg.get_parent()
-            tenant = app_profile.get_parent()
+
             if ep.is_deleted():
                 ep.if_name = None
                 data = (convert_timestamp_to_mysql(ep.timestamp),
