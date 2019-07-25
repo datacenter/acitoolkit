@@ -9,7 +9,7 @@ Virtual Machine for VMware Environments
 A pre-installed virtual machine in the form of a OVA file for VMware hypervisors
 can be found in the link below:
 
-`ACI Toolkit OVA <http://bit.ly/2mV12RQ>`_
+`ACI Toolkit OVA <http://bit.ly/32TwwJE>`_
 
 The virtual machine is configured with the following parameters::
 
