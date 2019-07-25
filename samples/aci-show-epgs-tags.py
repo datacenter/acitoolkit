@@ -82,6 +82,7 @@ def main():
         for d in data:
             print(template.format(*d))
 
+
 if __name__ == '__main__':
     main()
 
