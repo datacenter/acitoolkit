@@ -7,6 +7,7 @@ cache: true
 build:
   ci:
    - mkdir -p shippable/codecoverage
+   - shippable_retry pip install --upgrade pip
    - shippable_retry pip install -r requirements.txt
    - shippable_retry pip install coverage
    - "python setup.py -q develop"
