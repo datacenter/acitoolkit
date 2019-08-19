@@ -22,13 +22,13 @@ Reports: ACI Toolkit report GUI.
 """
 from flask import Flask, session, redirect, url_for
 from flask import flash
-from flask.ext import admin
-from flask.ext.admin import BaseView, AdminIndexView, expose
-from flask.ext.admin.actions import action
-from flask.ext.admin.contrib.sqla import ModelView
-from flask.ext.admin.model.template import macro
-from flask.ext.bootstrap import Bootstrap
-from flask.ext.wtf import Form, CsrfProtect
+import flask_admin as admin
+from flask_admin import BaseView, AdminIndexView, expose
+from flask_admin.actions import action
+from flask_admin.contrib.sqla import ModelView
+from flask_admin.model.template import macro
+from flask_bootstrap import Bootstrap
+from flask_wtf import Form, CsrfProtect
 from wtforms import SubmitField
 from wtforms import SelectField
 from acitoolkit.acitoolkitlib import Credentials
