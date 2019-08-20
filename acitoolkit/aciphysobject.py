@@ -3037,8 +3037,10 @@ class Interface(BaseInterface):
                 else:
                     resp.append(interface_obj)
 
-        resp = Interface._get_discoveryprot_relations(session, resp, 'cdp', cdp_policies)
-        resp = Interface._get_discoveryprot_relations(session, resp, 'lldp', lldp_policies)
+        if len(cdp_policies):
+            resp = Interface._get_discoveryprot_relations(session, resp, 'cdp', cdp_policies)
+        if len(lldp_policies):
+            resp = Interface._get_discoveryprot_relations(session, resp, 'lldp', lldp_policies)
         return resp
 
     def __str__(self):
