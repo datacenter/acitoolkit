@@ -25,10 +25,10 @@ import re
 from copy import copy
 from flask import Flask, session, redirect, url_for, jsonify
 from flask import flash, request
-from flask.ext import admin
-from flask.ext.admin import BaseView, AdminIndexView, expose
-from flask.ext.bootstrap import Bootstrap
-from flask.ext.wtf import Form, CsrfProtect
+import flask_admin as admin
+from flask_admin import BaseView, AdminIndexView, expose
+from flask_bootstrap import Bootstrap
+from flask_wtf import Form, CsrfProtect
 from acitoolkit.acitoolkitlib import Credentials
 from acitoolkit.acisession import Session, CredentialsError
 from requests import Timeout, ConnectionError

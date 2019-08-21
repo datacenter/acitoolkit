@@ -38,8 +38,10 @@ from acitoolkit import Endpoint, Tenant, AppProfile, Contract, EPG, OutsideL3, O
 from acitoolkit.aciphysobject import Session
 from acitoolkit.acitoolkit import BaseTerminal, InputTerminal, AnyEPG
 from acitoolkit.acitoolkitlib import Credentials
+from distutils.version import StrictVersion
 
-if radix.__version__ < '0.9.5':
+
+if StrictVersion(radix.__version__) < StrictVersion('0.9.5'):
     raise AssertionError("!!! Please upgrade your py-radix to a version later than 0.9.4.  "
                          "You are running {0}!!!".format(radix.__version__))
 

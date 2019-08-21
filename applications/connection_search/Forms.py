@@ -20,7 +20,7 @@
 """
 Forms for report GUI
 """
-from flask.ext.wtf import Form
+from flask_wtf import Form
 from wtforms import StringField, SubmitField, PasswordField, BooleanField
 from wtforms import TextAreaField, SelectField
 from wtforms.validators import IPAddress
