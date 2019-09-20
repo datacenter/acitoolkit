@@ -676,6 +676,7 @@ class Session(object):
             resp = requests.Response()
             resp.status_code = 404
             resp._content = '{"error": "Could not relogin to APIC due to ConnectionError"}'
+            return resp
         if (self.appcenter_user and self._subscription_enabled) or not self.cert_auth:
             self.login_thread.daemon = True
             self.login_thread.start()

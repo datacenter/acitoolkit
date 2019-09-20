@@ -217,6 +217,7 @@ class Checker(object):
         """
         provide_db = {}
         for tenant in self.tenants:
+            # TODO: Need code to deal with imported contracts.
             for app in tenant.get_children(AppProfile):
                 for epg in app.get_children(EPG):
                     if epg.has_bd():
@@ -231,6 +232,16 @@ class Checker(object):
                                 provide_db[tenant.name][contract.name] = []
                             if context.name not in provide_db[tenant.name][contract.name]:
                                 provide_db[tenant.name][contract.name].append(context.name)
+            for l3out in tenant.get_children(OutsideL3):
+                for epg in l3out.get_children(OutsideEPG):
+                    provided = epg.get_all_provided()
+                    for contract in provided:
+                        if tenant.name not in provide_db:
+                            provide_db[tenant.name] = {}
+                        if contract.name not in provide_db[tenant.name]:
+                            provide_db[tenant.name][contract.name] = []
+                        if context.name not in provide_db[tenant.name][contract.name]:
+                            provide_db[tenant.name][contract.name].append(context.name)
 
         for tenant in self.tenants:
             if tenant.name not in provide_db:
@@ -248,14 +259,34 @@ class Checker(object):
                         context = bd.get_context()
                     consumed = epg.get_all_consumed()
                     for contract in consumed:
-                        if contract.name not in provide_db[tenant.name]:
+                        if contract.name in provide_db[tenant.name]:
+                            if context.name not in provide_db[tenant.name][contract.name]:
+                                self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
+                                                    "where it is being consumed for"
+                                                    " tenant '%s'" % (contract.name, context.name, tenant.name))
+                        elif (tenant.name != 'common') and (contract.name in provide_db['common']):
+                            if context.name not in provide_db['common'][contract.name]:
+                                self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
+                                                    "where it is being consumed for"
+                                                    " tenant '%s'" % (contract.name, context.name, tenant.name))
+                        elif tenant.name == 'common':
                             self.output_handler("Warning 010: Contract '%s' not provided "
                                                 "within the same tenant "
                                                 "'%s'" % (contract.name, tenant.name))
-                        elif context.name not in provide_db[tenant.name][contract.name]:
-                            self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
-                                                "where it is being consumed for"
-                                                " tenant '%s'" % (contract.name, context.name, tenant.name))
+                        else:
+                            self.output_handler("Warning 010: Contract '%s' not provided "
+                                                "within the same tenant "
+                                                "'%s' or 'common'" % (contract.name, tenant.name))
+                        #if contract.name not in provide_db[tenant.name].keys() + provide_db['common'].keys():
+                        #    self.output_handler("Warning 010: Contract '%s' not provided "
+                        #                        "within the same tenant "
+                        #                        "'%s'" % (contract.name, tenant.name))
+                        ##elif context.name not in provide_db[tenant.name][contract.name] + provide_db['common'][contract.name]:
+                        #elif (contract.name in provide_db[tenant.name] and context.name not in provide_db[tenant.name][contract.name]) \
+                        #        or (contract.name in provide_db['common'] and context.name not in provide_db['common'][contract.name]):
+                        #    self.output_handler("Warning 010: Contract '%s' not provided in context '%s' "
+                        #                        "where it is being consumed for"
+                        #                        " tenant '%s'" % (contract.name, context.name, tenant.name))
 
     @staticmethod
     def subj_matches_proto(filterlist, protocol):
@@ -393,6 +424,7 @@ class Checker(object):
                         self.output_handler("Warning 014: In tenant '%s' contract "
                                         "'%s' subject '%s' has no Filters." % (
                                         tenant.name, contract.name, subject.name))
+                        missing_filter = False
 
     def error_001(self):
         """
