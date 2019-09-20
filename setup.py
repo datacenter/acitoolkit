@@ -1,9 +1,14 @@
 """
 ACIToolkit Installer using setuptools
 """
-import os
+import os, sys
 from setuptools import setup
 
+# Check if Python 2 is running.
+if sys.version_info[0] == 2:
+    deepdiff_version = "==3.3.0"
+else:
+    deepdiff_version = ""
 
 base_dir = os.path.dirname(__file__)
 
@@ -35,7 +40,7 @@ setup(
                       "jsonschema",
                       "graphviz",
                       "ipaddress",
-                      "deepdiff"],
+                      "deepdiff%s" % deepdiff_version],
     tests_requires=["mock"],
     description="This library allows basic Cisco ACI APIC configuration.",
 )
