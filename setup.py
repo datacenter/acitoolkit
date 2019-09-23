@@ -1,9 +1,8 @@
 """
 ACIToolkit Installer using setuptools
 """
-import os
+import os, sys
 from setuptools import setup
-
 
 base_dir = os.path.dirname(__file__)
 
@@ -35,7 +34,7 @@ setup(
                       "jsonschema",
                       "graphviz",
                       "ipaddress",
-                      "deepdiff"],
+                      "{}".format("deepdiff==3.3.0" if sys.version_info[0] == 2 else "deepdiff")],
     tests_requires=["mock"],
     description="This library allows basic Cisco ACI APIC configuration.",
 )
