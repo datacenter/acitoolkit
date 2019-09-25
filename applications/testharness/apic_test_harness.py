@@ -129,7 +129,7 @@ parser.add_argument('--port',
 args = parser.parse_args()
 
 if args.directory is None:
-    print '%% No snapshot directory given.'
+    print('%% No snapshot directory given.')
     sys.exit(0)
 
 if args.debug is not None:

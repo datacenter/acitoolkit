@@ -1,6 +1,6 @@
-############## 
+##############
 Statistics
-############## 
+##############
 
 
 .. toctree::
@@ -48,7 +48,7 @@ Accessing Stats
 *******************
 
 Each statistic family is described in detail below and can be accessed
-via the ``stats`` object contained in the ``Interface`` object.  
+via the ``stats`` object contained in the ``Interface`` object.
 
 You first use the get() method to read the stats from the APIC
 controller.::
@@ -73,26 +73,26 @@ The specific counter names can be found at
 Each counter family has an interval start and end value as well which
 can be used to understand exactly when the counters were gathered.::
 
-  print 'start', interface.stats['ingrPkts']['1h'][1]['intervalStart']
-  print 'end', interface.stats['ingrPkts']['1h'][1]['intervalEnd']
-   
+  print('start', interface.stats['ingrPkts']['1h'][1]['intervalStart'])
+  print('end', interface.stats['ingrPkts']['1h'][1]['intervalEnd'])
+
 One thing to note about accessing the stats is that if a particular
 counter is not currently being kept by the APIC controller, that
 particular counter will not be returned by the get() method.  This
 means that you should either test for its existence before accessing
-it, or use the standard python dictionary get method to 
+it, or use the standard python dictionary get method to
 return a default value that your code can handle::
 
   print stats['ingrPkts']['1h'][1].get('unicastPer',0)
 
 A typical example of counters that may not exist would be for an
-epoch that is not being retained or a granularity that is not 
+epoch that is not being retained or a granularity that is not
 be gathered.
 
 One issue with the above is that some counters are floating point, some
 are integers and some are timestamps.  Returning a default of
 zero can lead to inconsistent formatting.  To work around this problem
-use the ``retrieve()`` method that will return 
+use the ``retrieve()`` method that will return
 the coutner value or a default value that is consistent.  The format
 of the retrive method is as follows::
 
@@ -132,7 +132,7 @@ The epoch can be specified with the ``-epoch`` option.::
 
   python aci-show-interface-stats.py -granularity 1h -epoch 3
 
-A specific interface can be specified with the ``-interface`` option.  
+A specific interface can be specified with the ``-interface`` option.
 This might be useful
 if there are a large number of interfaces.::
 
@@ -187,7 +187,7 @@ Epoch
 The ``<epoch>`` is an integer representing which set of historical
 stats you want to reference.  Epoch ``0`` is the current epoch which
 has not yet completed.  Epoch ``1`` is the most recent one and so on.
-The length of each epoch is determined by the granularity. 
+The length of each epoch is determined by the granularity.
 
 The number of epochs available will be determined by the retention
 policy and granularity specified in the monitoring policy and how long

@@ -88,7 +88,7 @@ class SnapshotScheduler(threading.Thread):
         :param callback: Optional callback function that is called when the
                          schedule settings change.
         """
-        print 'Set schedule'
+        print('Set schedule')
         assert frequency in ['onetime', 'interval']
         assert granularity in ['minutes', 'hours', 'days']
         self._schedule = {}
@@ -145,7 +145,7 @@ class SnapshotScheduler(threading.Thread):
         while not self._exit:
             cur_time = datetime.datetime.now()
             if start < cur_time:
-                print 'Taking snapshot'
+                print('Taking snapshot')
                 # self._cdb.take_snapshot(self._callback)
                 self._cdb.take_snapshot_using_export_policy(self._callback)
                 if self._schedule['frequency'] == 'onetime':
@@ -177,7 +177,7 @@ class SnapshotScheduler(threading.Thread):
                                                                   hours=addnl_hours,
                                                                   minutes=addnl_minutes)
                     self._next_snapshot_time = next_snapshot
-                    print 'Next snapshot in', self._next_snapshot_time
+                    print('Next snapshot in', self._next_snapshot_time)
                     time.sleep(seconds)
             else:
                 delta = start - datetime.datetime.now()
@@ -201,7 +201,7 @@ class ConfigDB(object):
         try:
             self.repo = git.Repo.init(self.repo_dir)
         except:
-            print 'Unable to initialize repository. Are you sure git is installed ?'
+            print('Unable to initialize repository. Are you sure git is installed ?')
             sys.exit(0)
         self._snapshot_scheduler = None
         self.rsp_prop_include = 'config-only'
@@ -422,11 +422,11 @@ class ConfigDB(object):
                     tfile.extractall(self.repo_dir)
                 os.remove(file_name)
                 for json_filename in os.listdir(self.repo_dir):
-                    print 'checking', json_filename
+                    print('checking', json_filename)
                     if json_filename.startswith('ce2_snapback') and json_filename.endswith('.json'):
                         new_filename = 'snapshot_' + self.session.ipaddr + '_' + json_filename.rpartition('_')[2]
                         new_filename = os.path.join(self.repo_dir, new_filename)
-                        print 'renaming', json_filename, 'to', new_filename
+                        print('renaming', json_filename, 'to', new_filename)
                         json_filename = os.path.join(self.repo_dir, json_filename)
                         with open(json_filename, 'r') as old_file:
                             config = json.loads(old_file.read())
@@ -705,7 +705,7 @@ class ConfigDB(object):
         else:
             underline = len(title)
         print title
-        print '=' * underline
+        print('=' * underline)
         for item in items:
             print item
 
@@ -834,7 +834,7 @@ class ConfigDB(object):
             url = self._get_url_for_file(filename)
             for data in old_version['imdata']:
                 self.session.push_to_apic(url, data)
-                print 'Pushing....'
+                print('Pushing....')
                 print data
 
             # Get the current version
@@ -963,10 +963,10 @@ def main(args=None):
     try:
         resp = cdb.login(args)
         if not resp.ok:
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
             sys.exit(0)
     except (Timeout, ConnectionError):
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(0)
     if args.list_configfiles is not None:
         if len(args.list_configfiles):

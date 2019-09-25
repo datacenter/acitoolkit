@@ -13,7 +13,7 @@ class FexCollector(object):
         self._apic = Session(url, login, password)
         if not self._apic.login().ok:
             self._logged_in = False
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
         else:
             self._logged_in = True
 
@@ -101,26 +101,26 @@ class FexCollector(object):
 
     @staticmethod
     def print_fex(fex_attr, chassis_attr, detail=False):
-        print 'FEX:%s  Description: FEX0%s  state: %s' % (fex_attr['id'],
+        print('FEX:%s  Description: FEX0%s  state: %s' % (fex_attr['id'],)
                                                           fex_attr['id'],
                                                           fex_attr['operSt'])
-        print '  FEX version: %s [Switch version: %s]' % (fex_attr['ver'],
+        print('  FEX version: %s [Switch version: %s]' % (fex_attr['ver'],)
                                                           fex_attr['swVer'])
 
         if detail:
-            print '  FEX Interim version:', fex_attr['intVer']
-            print '  Switch Interim version:', fex_attr['swIntVer']
-        print '  Extender Model: %s, Extender Serial: %s' % (fex_attr['model'],
+            print('  FEX Interim version:', fex_attr['intVer'])
+            print('  Switch Interim version:', fex_attr['swIntVer'])
+        print('  Extender Model: %s, Extender Serial: %s' % (fex_attr['model'],)
                                                              fex_attr['ser'])
-        print '  Part No:', chassis_attr['partNum']
+        print('  Part No:', chassis_attr['partNum'])
         if detail:
-            print '  Card Id: %s,' % fex_attr['swCId']
-            print 'Mac Addr: %s,' % fex_attr['macAddr']
-            print 'Num Macs:', fex_attr['numMacs']
-            print '  Module Sw Gen:', fex_attr['swGen']
-            print ' [Switch Sw Gen: %s]' % fex_attr['swSwGen']
-        print ' pinning-mode: static    Max-links: 1'
-        print '  Fabric port for control traffic:', fex_attr['controlFPort']
+            print('  Card Id: %s,' % fex_attr['swCId'])
+            print('Mac Addr: %s,' % fex_attr['macAddr'])
+            print('Num Macs:', fex_attr['numMacs'])
+            print('  Module Sw Gen:', fex_attr['swGen'])
+            print(' [Switch Sw Gen: %s]' % fex_attr['swSwGen'])
+        print(' pinning-mode: static    Max-links: 1')
+        print('  Fabric port for control traffic:', fex_attr['controlFPort'])
 
     @staticmethod
     def convert_to_ascii(data):
@@ -142,26 +142,26 @@ class FexCollector(object):
                 fab_port_attr = fab_port['satmFabP']['attributes']
                 if fab_port_attr['id'].startswith('po'):
                     continue
-                print 'Fex Uplink:', fab_port_num
-                print '    Fabric Port :', fab_port_attr['id']
+                print('Fex Uplink:', fab_port_num)
+                print('    Fabric Port :', fab_port_attr['id'])
                 if 'fcot-present' in fab_port_attr['flags']:
                     transceiver_attr = self.get_transceiver_attributes(node_id, str(fab_port_attr['id']))
                     try:
                         transceiver_attr = transceiver_attr[0]['satmRemoteFcot']['attributes']
                     except KeyError:
                         raise NotImplementedError  # probably satmRemoteFcotV2
-                    print '    sfp is present'
-                    print '    name is', self.convert_to_ascii(transceiver_attr['vendorName'])
-                    print '    type is', transceiver_attr['typeName']
-                    print '    part number is', self.convert_to_ascii(transceiver_attr['vendorPn'])
-                    print '    revision is', self.convert_to_ascii(transceiver_attr['vendorRev'])
-                    print '    serial number is', self.convert_to_ascii(transceiver_attr['vendorSn'])
-                    print '    nominal bitrate is %s MBits/sec' % str(int(transceiver_attr['brIn100MHz']) * 100)
-                    print '    Link length supported for 50/125mm fiber is 0 m(s)'
-                    print '    Link length supported for 62.5/125mm fiber is 0 m(s)'
-                    print '    Link length supported for copper is %s m' % transceiver_attr['distIn1mForCu']
-                    print '    cisco id is', transceiver_attr['xcvrId']
-                    print '    cisco extended id number is', transceiver_attr['xcvrExtId']
+                    print('    sfp is present')
+                    print('    name is', self.convert_to_ascii(transceiver_attr['vendorName']))
+                    print('    type is', transceiver_attr['typeName'])
+                    print('    part number is', self.convert_to_ascii(transceiver_attr['vendorPn']))
+                    print('    revision is', self.convert_to_ascii(transceiver_attr['vendorRev']))
+                    print('    serial number is', self.convert_to_ascii(transceiver_attr['vendorSn']))
+                    print('    nominal bitrate is %s MBits/sec' % str(int(transceiver_attr['brIn100MHz']) * 100))
+                    print('    Link length supported for 50/125mm fiber is 0 m(s)')
+                    print('    Link length supported for 62.5/125mm fiber is 0 m(s)')
+                    print('    Link length supported for copper is %s m' % transceiver_attr['distIn1mForCu'])
+                    print('    cisco id is', transceiver_attr['xcvrId'])
+                    print('    cisco extended id number is', transceiver_attr['xcvrExtId'])
                 fab_port_num += 1
 
     def print_fex_version(self, node_id, fex_id):
@@ -181,16 +181,16 @@ class FexCollector(object):
             cpu_attr = self.get_chassis_cpu_attributes(node_id, fex_id)
             cpu_attr = cpu_attr[0]['eqptExtChCPU']['attributes']
 
-            print 'Software'
-            print '  Bootloader version:           %s' % chassis_running_attr['loaderVer']
-            print '  System boot mode:             primary'
-            print '  System image version:         %s [build %s]' % (fex_attr['ver'], fex_attr['intVer'])
+            print('Software')
+            print('  Bootloader version:           %s' % chassis_running_attr['loaderVer'])
+            print('  System boot mode:             primary')
+            print('  System image version:         %s [build %s]' % (fex_attr['ver'], fex_attr['intVer']))
 
-            print '\nHardware'
-            print '  Module:                       %s' % card_attr['descr']
-            print '  CPU:                          %s' % cpu_attr['model']
-            print '  Serial number:                %s' % card_attr['modSerial']
-            print '  Bootflash:                    locked'
+            print('\nHardware')
+            print('  Module:                       %s' % card_attr['descr'])
+            print('  CPU:                          %s' % cpu_attr['model'])
+            print('  Serial number:                %s' % card_attr['modSerial'])
+            print('  Bootflash:                    locked')
 
             # TODO: Finish - need to add timestamping
 
@@ -218,9 +218,9 @@ class FexCollector(object):
                                      fex_attr['ser']))
                     data.sort(key=lambda tup: tup[0])
                     if len(data):
-                        print 'Switch:', node_id
+                        print('Switch:', node_id)
                         print tabulate(data, headers=['Number', 'Description', 'State', 'Model', 'Serial'])
-                        print '\n'
+                        print('\n')
                 elif detail:
                     # Show fex detail
                     fex_ids = self.get_fex_ids(node_id)
@@ -253,14 +253,14 @@ class FexCollector(object):
                                  fex_attr['id']))
                 resp = self._apic.get(query_url)
                 if not resp.ok:
-                    print 'Could not collect APIC data for switch %s.' % node_id
+                    print('Could not collect APIC data for switch %s.' % node_id)
                     print resp.text
                     return
                 if int(resp.json()['totalCount']) > 0:
-                    print '  Fabric interface state:'
+                    print('  Fabric interface state:')
                     for interface in resp.json()['imdata']:
                         intf_attr = interface['satmFabP']['attributes']
-                        print '    %15s - Interface %4s. State: %s' % (intf_attr['id'],
+                        print('    %15s - Interface %4s. State: %s' % (intf_attr['id'],)
                                                                        intf_attr['operSt'],
                                                                        intf_attr['fsmSt'])
                         if detailed:
@@ -268,7 +268,7 @@ class FexCollector(object):
                                          '&target-subtree-class=satmHostP' % (node_id, intf_attr['id']))
                             resp = self._apic.get(query_url)
                             if not resp.ok:
-                                print 'Could not collect APIC data for switch %s.' % node_id
+                                print('Could not collect APIC data for switch %s.' % node_id)
                                 print resp.text
                                 return
                             if int(resp.json()['totalCount']) > 0:

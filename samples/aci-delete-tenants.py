@@ -90,16 +90,16 @@ def main():
                 resp = input(prompt)
             if not resp.lower().startswith('y'):
                 tenants_to_delete.remove(tenant)
-                print 'Skipping tenant', tenant.name
+                print('Skipping tenant', tenant.name)
 
     # Delete the tenants
     for tenant in tenants_to_delete:
         tenant.mark_as_deleted()
         resp = tenant.push_to_apic(apic)
         if resp.ok:
-            print 'Deleted tenant', tenant.name
+            print('Deleted tenant', tenant.name)
         else:
-            print 'Could not delete tenant', tenant.name
+            print('Could not delete tenant', tenant.name)
             print resp.text
 
 

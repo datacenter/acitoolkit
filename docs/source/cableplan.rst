@@ -1,5 +1,5 @@
 .. toctree::
-   :maxdepth: 3 
+   :maxdepth: 3
 
 =====================
 Cableplan Application
@@ -23,7 +23,7 @@ Using the Cable Plan
 
 .. _tut-invoking:
 
-Invoking 
+Invoking
 ========
 
 The Cable Plan module is imported from :file:`cableplan.py` which can
@@ -38,7 +38,7 @@ used from the command-line.
 
 When you want to create a cable plan from the current running topology
 of an ACI fabric, simply do the following::
-    
+
   >>>cp = CABLEPLAN.get(session)
 
 Where ``session`` is an ACI session object generated using the
@@ -46,7 +46,7 @@ Where ``session`` is an ACI session object generated using the
 
 You can export that cable plan by opening a file and calling the
 ``export()`` method as follows::
-  
+
   >>>cpFile = open('cableplan1.xml','w')
   >>>cp.export(cpFile)
   >>>cpFile.close()
@@ -72,7 +72,7 @@ read from the :file:`cableplan2.xml` file does not have switch "Spine3"
 and the first cable plan does have it.  The following example will
 print all of the switches in the first cable plan and not in the
 second.::
-  
+
   >>>missing_switches = cp1.difference_switch(cp2)
   >>>for switch in missing_switches :
   >>>    print switch.get_name()
@@ -87,13 +87,13 @@ links::
 
 To understand all of the differences between two cable plans it is
 necessary to compare them in both directions ::
-  
+
   >>>missing_links = cp1.difference_link(cp2)
   >>>extra_links = cp2.difference_link(cp1)
-  >>>print 'The following links are missing from the second cable plan'
+  >>>print('The following links are missing from the second cable plan')
   >>>for link in missing_links :
   >>>    print link.get_name()
-  >>>print 'The following links are extra links in the second cable plan'
+  >>>print('The following links are extra links in the second cable plan')
   >>>for link in extra_links:
   >>>    print link.get_name()
 
@@ -105,19 +105,19 @@ method of the CpLink object.::
 
     >>>missing_links = cp1.difference_link(cp2)
     >>>for link in missing_links :
-    >>>   print 'Link',link.get_name(), 'still needs',link.remaining_need(),'links to satisfy its mimimum requirement'
+    >>>   print('Link',link.get_name(), 'still needs',link.remaining_need(),'links to satisfy its mimimum requirement')
 
 There is a similar method,
 
     >>>missing_links = cp1.difference_link(cp2)
     >>>for link in missing_links :
-    >>>   print 'Link',link.get_name(), 'still needs',link.remaining_need(),'links to satisfy its mimimum requirement'
+    >>>   print('Link',link.get_name(), 'still needs',link.remaining_need(),'links to satisfy its mimimum requirement')
 
 There is a similar method,
-  
+
     >>>missing_links = cp1.difference_link(cp2)
     >>>for link in missing_links :
-    >>>   print 'Link',link.get_name(), 'still needs',link.remaining_need(),'links to satisfy its mimimum requirement'
+    >>>   print('Link',link.get_name(), 'still needs',link.remaining_need(),'links to satisfy its mimimum requirement')
 
 There is a similar method, ``remaining_avail()`` that returns the
 number of physical links the link object could match.
@@ -129,7 +129,7 @@ It might be necessary to compare cable plans when the names of the
 switches are different, but the topologies are the same.  This can
 easily done by simply changing the names of the switches that are
 different and then doing the comparisons.::
-  
+
   >>>switch = cp1.get_switch('Spine1')
   >>>switch.set_name('Spine1_new_name')
 
@@ -140,7 +140,7 @@ file.  Simply read it in, change the switch name, and export it out.
 The following example will read in :file:`cable_plan2.xml`, change the
 name of 'Leaf1' to 'Leaf35', and then export to the same file the
 modified cable plan::
-  
+
   >>>fileName = 'cable_plan2.xml'
   >>>cp2 = CABLEPLAN.get(fileName)
   >>>switch = cp2.get_switch('Leaf1')
@@ -163,7 +163,7 @@ This will then return usage instructions that explain each of the
 command line options.
 
 There are two primary functions that can be invoked from the
-command-line: 'export' and 'compare'.  
+command-line: 'export' and 'compare'.
 
 The 'export' function, selected with the '-e' option,  will create a cable plan by reading the state of
 the ACI fabric from the APIC controller.  This cable plan will be
@@ -187,7 +187,7 @@ This comparison will list all of the links in the first cable plan
 that are not in the second and vice-versa.
 
 *********************
-Cable Plan XML Syntax 
+Cable Plan XML Syntax
 *********************
 
 The cable plan XML looks like the following ::

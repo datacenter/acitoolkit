@@ -54,7 +54,7 @@ args = creds.get()
 session = Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 # Pull in the data from the APIC

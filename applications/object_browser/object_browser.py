@@ -28,9 +28,9 @@ def login(session):
     """
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
     else:
-        print 'Logged into {0} {1}'.format(args.url, args.login)
+        print('Logged into {0} {1}'.format(args.url, args.login))
 
 
 @app.route('/')
@@ -138,7 +138,7 @@ def get_attributes(dn):
     if len(data) > 0:
         if 'error' in data[0]:
             if data[0]['error']['attributes']['code'] == '403':
-                print 'attempting re-login'
+                print('attempting re-login')
                 login(session)
                 ret = session.get(mo_query_url)
                 ret._content = ret._content.replace('\n', '')
@@ -157,7 +157,7 @@ def get_attributes(dn):
                         attrib_type = 'text'
                     result.append((str(attrib), str(node[key]['attributes'][attrib]), attrib_type))
     if key == 'error':
-        print 'found error', data
+        print('found error', data)
 
     result.sort()
     return key, result

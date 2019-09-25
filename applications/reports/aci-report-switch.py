@@ -69,7 +69,7 @@ args = creds.get()
 session = ACI.Session(args.url, args.login, args.password)
 resp = session.login()
 if not resp.ok:
-    print '%% Could not login to APIC'
+    print('%% Could not login to APIC')
     sys.exit(0)
 
 
@@ -222,7 +222,7 @@ if (args.all or
     start_time = datetime.datetime.now()
     show_switch_long()
     end_time = datetime.datetime.now()
-    print 'Elapsed time=', end_time - start_time
+    print('Elapsed time=', end_time - start_time)
 
 else:
     show_switch_short(args.switch, args.tablefmt)

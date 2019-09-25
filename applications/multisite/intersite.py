@@ -1289,7 +1289,7 @@ class MultisiteCollector(object):
         """
         local_site = self.get_local_site()
         if local_site is None:
-            print '%% No local site configured'
+            print('%% No local site configured')
             return
 
         # Export all of the configured exported contracts
@@ -1413,7 +1413,7 @@ class MultisiteCollector(object):
         """
         Print the site information
         """
-        print 'Number of sites:', len(self.sites)
+        print('Number of sites:', len(self.sites))
         for site in self.sites:
             print site.name, site.credentials.ip_address
 
@@ -1471,21 +1471,21 @@ class MultisiteCollector(object):
             with open(self.config_filename) as config_file:
                 new_config = json.load(config_file)
         except IOError:
-            print '%% Could not load configuration file'
+            print('%% Could not load configuration file')
             return False
         except ValueError as e:
-            print 'Could not load improperly formatted configuration file'
+            print('Could not load improperly formatted configuration file')
             print e
             return False
         if 'config' not in new_config:
-            print '%% Invalid configuration file'
+            print('%% Invalid configuration file')
             return False
         old_config = self.config
         logging.debug('Old configuration: %s', self.config.get_config())
         try:
             new_config = IntersiteConfiguration(new_config)
         except ValueError as e:
-            print 'Could not load improperly formatted configuration file'
+            print('Could not load improperly formatted configuration file')
             print e
             return False
         # Handle any changes in site configuration
@@ -1498,7 +1498,7 @@ class MultisiteCollector(object):
 
         local_site = self.get_local_site()
         if local_site is None:
-            print '%% No local site configured'
+            print('%% No local site configured')
             return False
 
         # Handle any policies that have been deleted
@@ -1566,7 +1566,7 @@ def initialize_tool(config):
     try:
         IntersiteConfiguration(config)
     except ValueError as e:
-        print 'Could not load improperly formatted configuration file'
+        print('Could not load improperly formatted configuration file')
         print e
         raise
         sys.exit(0)
@@ -1585,7 +1585,7 @@ def initialize_tool(config):
     local_site = collector.get_local_site()
     if local_site is None:
         logging.error('No local site configured')
-        print '%% No local site configured.'
+        print('%% No local site configured.')
         return collector
     for remote_site_policy in collector.config.site_policies:
         remote_site = collector.get_site(remote_site_policy.name)
@@ -1637,9 +1637,9 @@ class CommandLine(cmd.Cmd):
                 current_level = 'VERBOSE'
             elif current_level == 'WARNING':
                 current_level = 'WARNINGS'
-            print 'Debug level currently set to:', current_level
+            print('Debug level currently set to:', current_level)
         elif keyword == 'configfile':
-            print 'Configuration file is set to:', self.collector.config_filename
+            print('Configuration file is set to:', self.collector.config_filename)
         elif keyword == 'config':
             print json.dumps(self.collector.config.get_config(), indent=4, separators=(',', ':'))
         elif keyword == 'log':
@@ -1655,8 +1655,8 @@ class CommandLine(cmd.Cmd):
                 print site.name, ':', state
         elif keyword == 'stats':
             handler = self.collector.get_local_site().monitor._endpoints
-            print 'Endpoint addition events:', handler.endpoint_add_events
-            print 'Endpoint deletion events:', handler.endpoint_del_events
+            print('Endpoint addition events:', handler.endpoint_add_events)
+            print('Endpoint deletion events:', handler.endpoint_del_events)
 
     def emptyline(self):
         """
@@ -1688,7 +1688,7 @@ class CommandLine(cmd.Cmd):
         Reload the configuration file and apply the configuration.
         '''
         if self.collector.reload_config():
-            print 'Configuration reload complete'
+            print('Configuration reload complete')
 
     def do_configfile(self, filename):
         '''
@@ -1697,9 +1697,9 @@ class CommandLine(cmd.Cmd):
         '''
         if len(filename):
             self.collector.config_filename = filename
-            print 'Configuration file is set to:', self.collector.config_filename
+            print('Configuration file is set to:', self.collector.config_filename)
         else:
-            print 'No config filename given.'
+            print('No config filename given.')
 
     def do_clear(self, keyword):
         '''
@@ -1741,7 +1741,7 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'critical':
             level = logging.CRITICAL
         else:
-            print 'Unknown debug level. Valid values are:', self.DEBUG_CMDS[:]
+            print('Unknown debug level. Valid values are:', self.DEBUG_CMDS[:])
             return
         logging.getLogger().setLevel(level)
         level_name = logging.getLevelName(logging.getLogger().getEffectiveLevel())
@@ -1751,7 +1751,7 @@ class CommandLine(cmd.Cmd):
             level_name = 'warnings'
         elif level_name == 'CRITICAL':
             level_name = 'critical'
-        print 'Debug level currently set to:', level_name
+        print('Debug level currently set to:', level_name)
 
     def complete_debug(self, text, line, begidx, endidx):
         """
@@ -1778,16 +1778,16 @@ class CommandLine(cmd.Cmd):
         '''
         logging.info('')
         if len(keyword.split('/')) != 3:
-            print 'Usage: reapply <tenant_name>/<app_profile_name>/<epg_name>'
+            print('Usage: reapply <tenant_name>/<app_profile_name>/<epg_name>')
             return
         (tenant_name, app_name, epg_name) = keyword.split('/')
         local_site = self.collector.get_local_site()
         if local_site is None:
-            print 'No local site configured.'
+            print('No local site configured.')
             return
         policy = local_site.get_policy_for_epg(tenant_name, app_name, epg_name)
         if policy is None:
-            print 'Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>'
+            print('Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>')
             return
         local_site.monitor.handle_existing_endpoints(policy)
 
@@ -1801,22 +1801,22 @@ class CommandLine(cmd.Cmd):
         '''
         logging.info('')
         if len(keyword.split('/')) != 3:
-            print 'Usage: verify <tenant_name>/<app_profile_name>/<epg_name>'
+            print('Usage: verify <tenant_name>/<app_profile_name>/<epg_name>')
             return
         (tenant_name, app_name, epg_name) = keyword.split('/')
         local_site = self.collector.get_local_site()
         if local_site is None:
-            print 'No local site configured.'
+            print('No local site configured.')
             return
         policy = local_site.get_policy_for_epg(tenant_name, app_name, epg_name)
         if policy is None:
-            print 'Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>'
+            print('Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>')
             return
         try:
             local_endpoints = IPEndpoint.get_all_by_epg(local_site.session, tenant_name, app_name, epg_name)
         except ConnectionError:
-            print 'Could not collect endpoints from the APIC'
-        print 'Local Endpoints:', len(local_endpoints)
+            print('Could not collect endpoints from the APIC')
+        print('Local Endpoints:', len(local_endpoints))
         local_ips = []
         for ep in local_endpoints:
             local_ips.append(ep.name)
@@ -1955,30 +1955,30 @@ def execute_tool(args, test_mode=False):
 
         json_data = json.dumps(config, indent=4, separators=(',', ': '))
         config_file = open('sample_config.json', 'w')
-        print 'Sample configuration file written to sample_config.json'
+        print('Sample configuration file written to sample_config.json')
         print "Replicate the site JSON for each site."
         print "    Valid values for use_https and local are 'True' and 'False'"
         print "    One site must have local set to 'True'"
-        print 'Replicate the export JSON for each exported contract.'
+        print('Replicate the export JSON for each exported contract.')
         config_file.write(json_data)
         config_file.close()
         return
 
     if args.config is None:
-        print '%% No configuration file given.'
+        print('%% No configuration file given.')
         return
 
     try:
         with open(args.config) as config_file:
             config = json.load(config_file)
     except IOError:
-        print '%% Unable to open configuration file', args.config
+        print('%% Unable to open configuration file', args.config)
         return
     except ValueError:
-        print '%% File could not be decoded as JSON.'
+        print('%% File could not be decoded as JSON.')
         return
     if 'config' not in config:
-        print '%% Invalid configuration file'
+        print('%% Invalid configuration file')
         return
 
     collector = initialize_tool(config)

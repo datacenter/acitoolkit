@@ -150,7 +150,7 @@ def setup_multisite_test(printonly=False, delete=False):
         session.login()
         # Cleanup (uncomment the next line to delete the config)
         if delete:
-            print 'Deleting...'
+            print('Deleting...')
             tenant1.mark_as_deleted()
         resp = tenant1.push_to_apic(session)
         if resp.ok:

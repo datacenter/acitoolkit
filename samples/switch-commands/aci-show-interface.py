@@ -27,7 +27,7 @@ class InterfaceBriefCollector(object):
         self._if_types = self._if_brief_headers.keys()
         if not self._apic.login().ok:
             self._logged_in = False
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
         else:
             self._logged_in = True
         self._interfaces = []
@@ -616,7 +616,7 @@ class InterfaceDetailedCollector(object):
         self._apic = Session(url, login, password)
         if not self._apic.login().ok:
             self._logged_in = False
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
         else:
             self._logged_in = True
         self._interfaces = []
@@ -699,7 +699,7 @@ class InterfaceDetailedCollector(object):
         :return: None
         """
         for node_id in self.get_node_ids(node):
-            print 'Switch', node_id
+            print('Switch', node_id)
             self.populate_detailed_interfaces(node_id, intf_id)
             for interface in self._interfaces:
                 if interface.if_type == 'l1PhysIf':
@@ -723,19 +723,19 @@ class InterfaceDetailedCollector(object):
                         else:
                             print "%s is %s (%s)" % (interface.id, state, rsn)
 
-                    print 'admin state is', interface.admin_st
+                    print('admin state is', interface.admin_st)
                     if interface.is_member_pc():
                         print "  Belongs to %s" % interface.port_channel_id
                     if not interface.descr == '':
-                        print '  Port description is', interface.descr
-                    print '  Hardware:', interface.port_cap_speed, 'Ethernet, address:', interface.address, \
+                        print('  Port description is', interface.descr)
+                    print('  Hardware:', interface.port_cap_speed, 'Ethernet, address:', interface.address, \)
                           '(bia', interface.backplane_mac, ')'
-                    print '  MTU', interface.mtu, 'bytes, BW', interface.bw, 'Kbit, DLY', interface.delay, 'usec'
-                    print '  reliability', '%s/255' % interface.reliability, \
+                    print('  MTU', interface.mtu, 'bytes, BW', interface.bw, 'Kbit, DLY', interface.delay, 'usec')
+                    print('  reliability', '%s/255' % interface.reliability, \)
                           'txload %d/255, rxload %d/255' %  (interface.tx_load, interface.rx_load)
-                    print '  Encapsulation ARPA, medium is broadcast'
+                    print('  Encapsulation ARPA, medium is broadcast')
                     if interface.layer != 'Layer2':
-                        print '  Port mode is routed'
+                        print('  Port mode is routed')
                     else:
                         print "  Port mode is %s" % interface.mode
                     if not interface.is_mgmt() and interface.oper_mode == 'ips':
@@ -745,7 +745,7 @@ class InterfaceDetailedCollector(object):
                     print "  %s-duplex, %sb/s%s" % (duplex, interface.speed, interface.fcot_str)
                     if (interface.is_ether() and not interface.is_sub()) or interface.is_mgmt():
                         if not interface.is_mgmt():
-                            print '  FEC (forward-error-correction) :', interface.oper_fec_mode
+                            print('  FEC (forward-error-correction) :', interface.oper_fec_mode)
                         print "  Beacon is turned", interface.beacon_state
                         print "  Auto-Negotiation is turned", interface.auto_neg
                     if interface.is_ether() or interface.is_pc() or interface.is_mgmt():
@@ -767,12 +767,12 @@ class InterfaceDetailedCollector(object):
 
                     if interface.is_ether():
                         if interface.span_mode == "not-a-span-dest":
-                            print '  Switchport monitor is off'
+                            print('  Switchport monitor is off')
                         else:
-                            print '  Switchport monitor is on'
+                            print('  Switchport monitor is on')
 
                     if interface.is_ether() or interface.is_pc() or interface.is_mgmt():
-                        print '  EtherType is', interface.dot1q_ethertype
+                        print('  EtherType is', interface.dot1q_ethertype)
 
                     if interface.is_ether():
                         if interface.eee_state == "not-applicable":
@@ -795,9 +795,9 @@ class InterfaceDetailedCollector(object):
                         last_clear = 'never'
                         if interface.clear_ts != 'never':
                             last_clear = dateutil.parser.parse(interface.clear_ts).replace(tzinfo=None)
-                        print '  Last clearing of "show interface" counters %s' % last_clear
+                        print('  Last clearing of "show interface" counters %s' % last_clear)
                         if not interface.is_svi():
-                            print '  ', interface.reset_ctr,'interface resets'
+                            print('  ', interface.reset_ctr,'interface resets')
                     elif interface.is_tun():
                         pass
                     if interface.is_svi():
@@ -837,33 +837,33 @@ class InterfaceDetailedCollector(object):
                         bytes = "%d bytes" % interface.rx_input_bytes
                         print "    %s  %s" % (pkts, bytes)
 
-                        print '   ', interface.rx_oversize_packets, 'jumbo packets ',\
+                        print('   ', interface.rx_oversize_packets, 'jumbo packets ',\)
                               interface.rx_storm_supression_packets, 'storm suppression bytes'
 
-                        print '   ', interface.rx_runts, 'runts', interface.rx_oversize_packets,\
+                        print('   ', interface.rx_runts, 'runts', interface.rx_oversize_packets,\)
                               'giants', interface.rx_crc, 'CRC  0 no buffer'
 
-                        print '   ', interface.rx_error_packets, 'input error',\
+                        print('   ', interface.rx_error_packets, 'input error',\)
                               interface.rx_runts, 'short frame  0 overrun  0 underrun  0 ignored'
 
-                        print '    0 watchdog  0 bad etype drop', interface.bad_proto_drop,\
+                        print('    0 watchdog  0 bad etype drop', interface.bad_proto_drop,\)
                               'bad proto drop  0 if down drop'
 
-                        print '    0 input with dribble', interface.rx_input_discard, 'input discard'
+                        print('    0 input with dribble', interface.rx_input_discard, 'input discard')
 
-                        print '   ', interface.rx_pause_frames, 'Rx pause'
+                        print('   ', interface.rx_pause_frames, 'Rx pause')
 
-                        print '  TX'
-                        print '   ', interface.tx_unicast_packets, 'unicast packets', interface.tx_multicast_packets,\
+                        print('  TX')
+                        print('   ', interface.tx_unicast_packets, 'unicast packets', interface.tx_multicast_packets,\)
                               'multicast packets', interface.tx_broadcast_packets, 'broadcast packets'
 
-                        print '   ', interface.tx_output_packets, 'output packets', interface.tx_output_bytes, 'bytes'
-                        print '   ', interface.tx_oversize_packets, 'jumbo packets'
-                        print '   ', interface.tx_error_packets, 'output error', interface.collisions, 'collision',\
+                        print('   ', interface.tx_output_packets, 'output packets', interface.tx_output_bytes, 'bytes')
+                        print('   ', interface.tx_oversize_packets, 'jumbo packets')
+                        print('   ', interface.tx_error_packets, 'output error', interface.collisions, 'collision',\)
                               interface.deferred_transmissions, 'deferred', interface.late_collisions, 'late collision'
-                        print '    0 lost carrier', interface.carrier_sense_errors, '0 babble',\
+                        print('    0 lost carrier', interface.carrier_sense_errors, '0 babble',\)
                               interface.tx_output_discard, 'output discard'
-                        print '   ', interface.out_pause_frames, 'Tx pause'
+                        print('   ', interface.out_pause_frames, 'Tx pause')
 
                     print ""
 

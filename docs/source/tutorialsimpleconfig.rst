@@ -253,7 +253,7 @@ call was successful.
 .. code-block:: python
 
    if resp.ok:
-      print 'Success'
+      print('Success')
 
 `APIC Login (Certificate based)`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -270,13 +270,13 @@ certificate to the desired user using the APIC Web UI.
 
 Creating a certificate session using the acitoolkit is simple:
 
-1. Use OpenSSL to generate a X.509 certificate and private key. 
+1. Use OpenSSL to generate a X.509 certificate and private key.
 
 .. code-block:: bash
 
    openssl req -new -newkey rsa:1024 -days 36500 -nodes -x509 -keyout userabc.key -out userabc.crt -subj '/CN=User ABC/O=Cisco Systems/C=US'
 
-2. Upload the generated certificate ``userabc.crt`` to the user via the APIC 
+2. Upload the generated certificate ``userabc.crt`` to the user via the APIC
 
 .. image:: userabc.crt.png
 
@@ -300,14 +300,14 @@ installed using pip
 
 .. note:: If using the acitoolkit from the context of an APIC App Center app, make sure to pass the extra
    parameter ``appcenter_user=True``. App Center apps are provided a user that belongs to a different class
-   of users.  The login and cert_name for App Center users are both in the form of ``vendor_appId``.  
-   App Center users support certificate subsciptions through a special requestAppToken api. To use 
+   of users.  The login and cert_name for App Center users are both in the form of ``vendor_appId``.
+   App Center users support certificate subsciptions through a special requestAppToken api. To use
    subscriptions with an App Center user, you must explicitly call the ``login()`` method which acquires
-   and maintains the App user token. Disable App center subscriptions by setting the parameter 
+   and maintains the App user token. Disable App center subscriptions by setting the parameter
    ``subscription_enabled=False``.
 
 
-You do not need to explicitly call the ``login()`` method when using certificate authentication.  
+You do not need to explicitly call the ``login()`` method when using certificate authentication.
 
 After this point, you can continue to use all of the acitoolkit methods to get and push configuration from the APIC securely and without logging in.
 
@@ -326,9 +326,9 @@ expose.
 
 .. code-block:: python
 
-   print 'Pushed the following JSON to the APIC'
-   print 'URL:', tenant.get_url()
-   print 'JSON:', tenant.get_json()
+   print('Pushed the following JSON to the APIC')
+   print('URL:', tenant.get_url())
+   print('JSON:', tenant.get_json())
 
 Removing the tenant configuration
 ---------------------------------
