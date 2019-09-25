@@ -37,7 +37,7 @@ def main():
         print domain.name
 
     if len(domains) > 0:
-        print '\n'
+        print('\n')
 
     domains = aci.VmmDomain.get(session)
 

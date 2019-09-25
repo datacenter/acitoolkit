@@ -49,7 +49,7 @@ def main():
 
     args = parser.parse_args()
     if args.config is None:
-        print '%% No configuration file given'
+        print('%% No configuration file given')
         return
 
     # Load in the configuration
@@ -57,15 +57,15 @@ def main():
         with open(args.config) as config_file:
             config = json.load(config_file)
     except IOError:
-        print '%% Could not load configuration file'
+        print('%% Could not load configuration file')
         return
     except ValueError:
-        print 'Could not load improperly formatted configuration file'
+        print('Could not load improperly formatted configuration file')
         return
 
     if 'apic' not in config:
         if args.url is None or args.login is None or args.password is None:
-            print 'APIC credentials not given'
+            print('APIC credentials not given')
             return
         elif args.url is not None and 'http://' in args.url:
             ip_address = args.url.partition('http://')[-1]
@@ -74,7 +74,7 @@ def main():
             ip_address = args.url.partition('https://')[-1]
             use_https = True
         else:
-            print 'Improperly formatted URL'
+            print('Improperly formatted URL')
             return
         config['apic'] = {'user_name': args.login,
                           'password': args.password,
@@ -85,7 +85,7 @@ def main():
     resp = tool.add_config(config)
     if resp == 'OK':
         if not args.displayonly:
-            print 'Success'
+            print('Success')
     else:
         print resp
 

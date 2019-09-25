@@ -257,7 +257,7 @@ class StackedDiffs(BaseView):
             session['hideall'] = True
         else:
             session['hideall'] = False
-        print 'Passing ', session.get('hideall')
+        print('Passing ', session.get('hideall'))
         return redirect(url_for('stackeddiffs.index'))
 
     @expose('/setstartenddiffs', methods=['GET', 'POST'])

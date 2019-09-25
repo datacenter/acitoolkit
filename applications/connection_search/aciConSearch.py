@@ -1609,7 +1609,7 @@ class SearchDb(object):
                                             'contract': c_contract['contract']})
 
         # t2 = datetime.datetime.now()
-        # print 'connections done', t2-t1
+        # print('connections done', t2-t1)
         # t1=t2
         for connection in connections:
             if connection['source_tenant'] in self.valid_tenants or connection['dest_tenant'] in self.valid_tenants:
@@ -1625,7 +1625,7 @@ class SearchDb(object):
                 if len(matching_filters) > 0:
                     result.append(self._build_result_flow_spec(connection, matching_filters))
         # t2 = datetime.datetime.now()
-        # print 'search result done', t2-t1
+        # print('search result done', t2-t1)
         # t1=t2
 
         # for flow_spec in result:
@@ -1696,7 +1696,7 @@ class SearchDb(object):
                 self.valid_tenants.add(tenant_name)
 
         # t2 = datetime.datetime.now()
-        # print 'tenants done', t2-t1
+        # print('tenants done', t2-t1)
         # t1=t2
 
         # if 'common' not in tenants:
@@ -1718,7 +1718,7 @@ class SearchDb(object):
         nodes = set()
 
         # t2 = datetime.datetime.now()
-        # print 'contexts done', t2-t1
+        # print('contexts done', t2-t1)
         # t1=t2
         for context in contexts:
             if context in self.context_radix:
@@ -1742,7 +1742,7 @@ class SearchDb(object):
                             nodes.add(node2)
 
         # t2 = datetime.datetime.now()
-        # print 'nodes done', t2-t1
+        # print('nodes done', t2-t1)
         # t1=t2
         # now have all the nodes
         if nodes is not None:
@@ -1761,7 +1761,7 @@ class SearchDb(object):
                     pass
 
         # t2 = datetime.datetime.now()
-        # print 'overlap done', t2-t1
+        # print('overlap done', t2-t1)
         # t1=t2
         result = []
         for epg in epgs_prefix:
@@ -1781,7 +1781,7 @@ class SearchDb(object):
                                            'tenant': epg.get_parent().get_parent().name})
 
         # t2 = datetime.datetime.now()
-        # print 'result done', t2-t1
+        # print('result done', t2-t1)
         # t1=t2
 
         return result
@@ -1863,7 +1863,7 @@ def main():
     session = Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(0)
 
     sdb = SearchDb(session)

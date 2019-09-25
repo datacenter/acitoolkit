@@ -29,19 +29,19 @@ def get_data_from_apic(url, username, password):
     ep_db = {}
 
     # Login to the APIC
-    print 'Logging in to APIC...'
+    print('Logging in to APIC...')
     session = Session(url, username, password, subscription_enabled=False)
     resp = session.login()
     if not resp.ok:
-        print 'Could not login to APIC'
+        print('Could not login to APIC')
         sys.exit(0)
 
     # Get the endpoint from the APIC
-    print 'Getting endpoints from the APIC....'
+    print('Getting endpoints from the APIC....')
     endpoints = Endpoint.get(session)
 
     # Loop through the endpoints and count them on a per EPG basis
-    print 'Counting the endpoints....'
+    print('Counting the endpoints....')
     for endpoint in endpoints:
         epg = endpoint.get_parent()
         app = epg.get_parent()
@@ -55,7 +55,7 @@ def get_data_from_apic(url, username, password):
         ep_db[tenant.name][app.name][epg.name] += 1
 
     # Write the results to a JSON formatted dictionary
-    print 'Translating results to JSON...'
+    print('Translating results to JSON...')
     epgs = {'name': 'epgs',
             'children': []}
     for tenant in ep_db:
@@ -72,15 +72,15 @@ def get_data_from_apic(url, username, password):
         epgs['children'].append(tenant_json)
 
     # Write the formatted JSON to a file
-    print 'Writing results to a file....'
+    print('Writing results to a file....')
     try:
         with open('static/epgs.json', 'w') as epg_file:
             epg_file.write(json.dumps(epgs))
     except IOError:
-        print '%% Unable to open configuration file', 'static/epgs.json'
+        print('%% Unable to open configuration file', 'static/epgs.json')
         sys.exit(0)
     except ValueError:
-        print '%% File could not be decoded as JSON.'
+        print('%% File could not be decoded as JSON.')
         sys.exit(0)
 
 
@@ -95,9 +95,9 @@ if __name__ == '__main__':
                         'Endpoints per EPG bubble chart visualization')
     args = creds.get()
 
-    print 'Getting data from APIC....'
+    print('Getting data from APIC....')
     get_data_from_apic(args.url, args.login, args.password)
 
-    print 'Running server. Point your browser to http://%s:%s' % (args.ip,
+    print('Running server. Point your browser to http://%s:%s' % (args.ip,)
                                                                   args.port)
     flask_app.run(debug=False, host=args.ip, port=int(args.port))

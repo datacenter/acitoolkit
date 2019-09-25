@@ -355,7 +355,7 @@ class SearchIndexLookup(object):
                 self.by_class_attr_value[(atk_class, a, v)].add(uid)
 
         t2 = datetime.datetime.now()
-        print 'elapsed time', t2 - t1
+        print('elapsed time', t2 - t1)
 
     def _index_searchables_sql(self, searchables):
 
@@ -388,7 +388,7 @@ class SearchIndexLookup(object):
                 self.cursor.execute(sql_command)
         conn.commit()
         t2 = datetime.datetime.now()
-        print 'elapsed time', t2 - t1
+        print('elapsed time', t2 - t1)
 
     def _index_searchables_sql_for_local_update(self, searchables, status):
 
@@ -485,7 +485,7 @@ class SearchIndexLookup(object):
 
         results2 = self._rank_results(results)
         t2 = datetime.datetime.now()
-        print 'elapsed time', t2 - t1
+        print('elapsed time', t2 - t1)
         return results2
 
     def search_sql(self, term_string):
@@ -521,7 +521,7 @@ class SearchIndexLookup(object):
 
         results2 = self._rank_results(results)
         t2 = datetime.datetime.now()
-        print 'elapsed time', t2 - t1
+        print('elapsed time', t2 - t1)
         return results2
 
     def term_complete(self, term_string):
@@ -547,7 +547,7 @@ class SearchIndexLookup(object):
                 [result.add(term.prefix+str(x[0])) for x in cursor.fetchall()]
 
         t2 = datetime.datetime.now()
-        print 'elapsed time', t2 - t1
+        print('elapsed time', t2 - t1)
         return list(result), len(result)
 
     def get_keys(self):
@@ -703,10 +703,10 @@ class SearchObjectStore(object):
         """
         attrs = root.get_attributes()
         if 'dn' not in attrs:
-            print 'no guid'
+            print('no guid')
         guid = attrs['dn']
         if guid in self.object_directory:
-            print 'Duplicate guid', guid
+            print('Duplicate guid', guid)
             return
 
         self.object_directory[guid] = root
@@ -784,7 +784,7 @@ class SearchObjectStore(object):
                         self._add_relation('provides', relation.item, epg)
                         self._add_relation('provided by', epg, relation.item)
                     else:
-                        print 'unexpected relation type', relation.relation_type
+                        print('unexpected relation type', relation.relation_type)
                 if isinstance(relation.item, BridgeDomain):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
@@ -800,7 +800,7 @@ class SearchObjectStore(object):
                         self._add_relation('provides', relation.item, epg)
                         self._add_relation('provided by', epg, relation.item)
                     else:
-                        print 'unexpected relation type', relation.relation_type
+                        print('unexpected relation type', relation.relation_type)
                 if isinstance(relation.item, BridgeDomain):
                     self._add_relation('bridge domain', relation.item, epg)
                     self._add_relation('epgs', epg, relation.item)
@@ -1133,7 +1133,7 @@ def main():
     try:
         fabric = Fabric.get(session.session)[0]
     except (LoginError, Timeout, ConnectionError):
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(0)
 
     fabric.populate_children(deep=True, include_concrete=True)

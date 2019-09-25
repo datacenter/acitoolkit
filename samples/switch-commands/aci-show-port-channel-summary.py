@@ -13,7 +13,7 @@ class InterfaceCollector(object):
         self._apic = Session(url, login, password)
         if not self._apic.login().ok:
             self._logged_in = False
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
         else:
             self._logged_in = True
         self._interfaces = []

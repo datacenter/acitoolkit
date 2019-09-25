@@ -76,7 +76,7 @@ class TestTenantUpdateInDatabase(unittest.TestCase):
 
         resp = self.session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         if resp.ok:
-            print 'Success'
+            print('Success')
 
         time.sleep(10)
         self.conn.execute("SELECT * FROM avc where class='Tenant' and attribute='name' and value='test_Tenant'")
@@ -197,7 +197,7 @@ class TestTenantUpdateInDatabase(unittest.TestCase):
         tenant.mark_as_deleted()
         resp = self.session.push_to_apic(tenant.get_url(), data=tenant.get_json())
         if resp.ok:
-            print 'Success'
+            print('Success')
 
         time.sleep(10)
         self.conn.execute("SELECT * FROM avc where class='Tenant' and attribute='name' and value='test_Tenant'")

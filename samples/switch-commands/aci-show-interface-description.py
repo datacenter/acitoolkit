@@ -27,7 +27,7 @@ def show_interface_description(apic, node_ids, apic_intf_class='l1PhysIf',
                                                                   specific_interface)
         resp = apic.get(query_url)
         if not resp.ok:
-            print 'Could not collect APIC data for switch %s.' % node_id
+            print('Could not collect APIC data for switch %s.' % node_id)
             print resp.text
             return
         data = []
@@ -45,9 +45,9 @@ def show_interface_description(apic, node_ids, apic_intf_class='l1PhysIf',
                 data.append((obj_attr['id'], description))
                 headers = ["Interfaces", "Description"]
         if len(headers) and len(data):
-            print 'Switch:', node_id
+            print('Switch:', node_id)
             print tabulate(data, headers=headers)
-            print '\n'
+            print('\n')
 
 
 def get_node_ids(apic, args):
@@ -66,7 +66,7 @@ def get_node_ids(apic, args):
                      'query-target-filter=eq(fabricNode.role,"leaf")')
         resp = apic.get(query_url)
         if not resp.ok:
-            print 'Could not get switch list from APIC.'
+            print('Could not get switch list from APIC.')
             return
         nodes = resp.json()['imdata']
         for node in nodes:

@@ -16,7 +16,7 @@ import ast
 try:
     from apicservice_test_credentials import (LOGIN, PASSWORD, IPADDR)
 except ImportError:
-    print '''
+    print(''')
             Please create a file called apicservice_test_credentials.py with the following:
 
             IPADDR = ''
@@ -344,7 +344,7 @@ class TestConfigpush(unittest.TestCase):
         for tenant in tenants:
             if tenant.name == tenant_name:
                 self.assertTrue(True, "tennat exists with name " + tenant_name)
-                
+
     def test_tenantname_for_invalidname_in_configpush(self):
         """
         this should test the tenant name of tenant. the invalid characters in tenant name should be removed.
@@ -496,7 +496,7 @@ class TestConfigpush(unittest.TestCase):
                 app_profiles = tenant.get_children(AppProfile)
                 app = app_profiles[0]
                 self.assertEquals(app[0].name, app_name, "application profile with given name doesnot exist")
-                
+
     def test_appProfilename_for_invalidname_in_configpush(self):
         """
         this should test the application Profile name of tenant. the invalid characters in application profile should be removed.
@@ -574,7 +574,7 @@ class TestConfigpush(unittest.TestCase):
                 app_profiles = tenant.get_children(AppProfile)
                 app = app_profiles[0]
                 self.assertEquals(app[0].name, "app-test**-_.__", "application profile with given name doesnot exist")
-    
+
     def test_appProfilename_for_change_in_name_configpush(self):
         """
         this should test the application Profile name of tenant.push the same json with diferent --app name for the second time.
@@ -640,7 +640,7 @@ class TestConfigpush(unittest.TestCase):
                 self.assertEqual(len(app_profiles), 1, "len(app_profiles)!=1")
                 for app in app_profiles:
                     self.assertEquals(app.name, "app-test__-_.___changed", "application profile with name is not updated to the changed name")
-        
+
         app_name = 'app-test_second**-#.{}_changed'
         load_config.load_configFile(config_file, is_file=False, tenant_name=tenant_name, app_name=app_name)
         time.sleep(5)
@@ -742,7 +742,7 @@ class TestConfigpush(unittest.TestCase):
                     l3ext_name,
                     "External routed network with name doesnot exist" +
                     l3ext_name)
-                
+
     def test_l3ext_name_for_invalidname_in_configpush(self):
         """
         this should test the external routed network name of tenant. the invalid characters in external routed network name should be removed.
@@ -834,11 +834,11 @@ class TestConfigpush(unittest.TestCase):
                     l3ext_name,
                     "External routed network with name doesnot exist" +
                     l3ext_name)
-                
+
     def test_manglenames_in_configpush(self):
         """
         this should test the mangle_names method defined in apicserive.py.
-        which will make sure the length of the names of EPGS,Filters, app_profiles, nodes, contracts not to exceed 64 characters 
+        which will make sure the length of the names of EPGS,Filters, app_profiles, nodes, contracts not to exceed 64 characters
         and also replaces the invalid characters
         """
 
@@ -948,10 +948,10 @@ class TestConfigpush(unittest.TestCase):
                     self.assertEqual(1, len(epgs), "num of epgs didnot match")
                     for epg in epgs:
                         self.assertEqual(epg.name, "Configpushtest2____..____-1", "epg name mangled successfully")
-                    
+
                 filters = tenant.get_children(Filter)
                 self.assertEqual(1, len(filters), "num of filters didnot match")
-                    
+
                 outsideL3s = tenant.get_children(OutsideL3)
                 self.assertEqual(1, len(outsideL3s), "num of outsideL3s didnot match")
                 for outsideL3 in outsideL3s:
@@ -964,7 +964,7 @@ class TestConfigpush(unittest.TestCase):
                         self.assertEqual(1, len(outsideNetworks), "num 0f outsideEpgs didnot match")
                         for outsideNetwork in outsideNetworks:
                             self.assertEqual(outsideNetwork.name, "240.0.0.0_24", "outsideNetwork name mangled successfully")
-                    
+
                 contracts = tenant.get_children(Contract)
                 self.assertEqual(1, len(contracts), "num of contracts didnot match")
                 for contract in contracts:

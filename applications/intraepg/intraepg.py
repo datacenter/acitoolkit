@@ -560,7 +560,7 @@ class EndpointMonitor(threading.Thread):
         host_template = jinja2.Template(HOSTS_TEMPLATE)
         rendered_host_template = host_template.render({'all_host_ip': host_ips,
                                                        'new_host_ip': new_host_ips})
-        print 'hosts_file:'
+        print('hosts_file:')
         print rendered_host_template
         hosts_file = NamedTemporaryFile(delete=False)
         hosts_file.write(rendered_host_template)
@@ -570,7 +570,7 @@ class EndpointMonitor(threading.Thread):
         ferm_config = contract_policy.generate_configuration(self._endpoint_db[epg])
         ferm_config_template = jinja2.Template(ferm_config)
         rendered_ferm_config_template = ferm_config_template.render({'ferm_conf': 'ferm.conf'})
-        print 'ferm.conf:'
+        print('ferm.conf:')
         print rendered_ferm_config_template
         ferm_config_file = NamedTemporaryFile(delete=False)
         ferm_config_file.write(rendered_ferm_config_template)
@@ -581,7 +581,7 @@ class EndpointMonitor(threading.Thread):
         my_rendered_playbook_template = my_playbook_template.render({'ferm_conf': ferm_config_file.name,
                                                                      'user_name': SERVER_USERNAME})
         my_playbook_file = NamedTemporaryFile(delete=False)
-        print 'Playbook:'
+        print('Playbook:')
         print my_rendered_playbook_template
         my_playbook_file.write(my_rendered_playbook_template)
         my_playbook_file.close()
@@ -596,7 +596,7 @@ class EndpointMonitor(threading.Thread):
                                remote_pass=SERVER_PASSWORD,
                                become_pass=SERVER_PASSWORD)
         result = pb.run()
-        print 'result:', result
+        print('result:', result)
         if self._ansible_stats.failures or self._ansible_stats.dark:
             raise RuntimeError('Playbook failed')
 
@@ -610,8 +610,8 @@ class EndpointMonitor(threading.Thread):
             app = epg.get_parent()
             tenant = app.get_parent()
 
-            print 'Endpoint found', ep.name
-            print 'Has EPG policy', (tenant.name, app.name, epg.name), (tenant.name, app.name, epg.name) in self._endpoint_db
+            print('Endpoint found', ep.name)
+            print('Has EPG policy', (tenant.name, app.name, epg.name), (tenant.name, app.name, epg.name) in self._endpoint_db)
             if (tenant.name, app.name, epg.name) in self._endpoint_db:
                 # Store the Endpoint in our Endpoint DB
                 if ep.is_deleted():
@@ -644,7 +644,7 @@ class EndpointMonitor(threading.Thread):
 
             self.process_policy(contract_policy, epg, host_ips, new_host_ips)
         end_time = time.time()
-        print 'Time taken:', end_time - start_time
+        print('Time taken:', end_time - start_time)
 
     def run(self):
         # Subscribe to endpoints
@@ -692,7 +692,7 @@ class IntraEPGTool(object):
         try:
             self.config = IntraEPGConfiguration(config)
         except ValueError as e:
-            print 'Could not load improperly formatted configuration file'
+            print('Could not load improperly formatted configuration file')
             print e
             sys.exit(0)
         logging.debug('New configuration: %s', self.config.get_config())
@@ -711,7 +711,7 @@ class IntraEPGTool(object):
 
     def _initialize_apic(self):
         if self.config.apic_policy is None:
-            print 'no apic policy'
+            print('no apic policy')
             return
         self.apic = Apic(self.config.apic_policy)
         return self.apic.login()
@@ -720,7 +720,7 @@ class IntraEPGTool(object):
         try:
             self.config = IntraEPGConfiguration(config)
         except ValueError as e:
-            print 'Could not load improperly formatted configuration file'
+            print('Could not load improperly formatted configuration file')
             print e
             sys.exit(0)
 
@@ -736,7 +736,7 @@ class IntraEPGTool(object):
             self.monitor.process_policy(contract_policy, epg,
                                         host_ips, new_host_ips)
         end_time = time.time()
-        print 'Time taken:', end_time - start_time
+        print('Time taken:', end_time - start_time)
 
 
 class CommandLine(cmd.Cmd):
@@ -772,9 +772,9 @@ class CommandLine(cmd.Cmd):
         show stats - show some basic event statistics
         '''
         if keyword == 'debug':
-            print 'Debug level currently set to:', logging.getLevelName(logging.getLogger().getEffectiveLevel())
+            print('Debug level currently set to:', logging.getLevelName(logging.getLogger().getEffectiveLevel()))
         elif keyword == 'configfile':
-            print 'Configuration file is set to:', self.tool.config_filename
+            print('Configuration file is set to:', self.tool.config_filename)
         elif keyword == 'config':
             print json.dumps(self.tool.config.get_config(), indent=4, separators=(',', ':'))
         elif keyword == 'log':
@@ -782,7 +782,7 @@ class CommandLine(cmd.Cmd):
             p.communicate()
         elif keyword == 'apic':
             if self.tool.apic is None:
-                print 'No APIC configured'
+                print('No APIC configured')
                 return
             if self.tool.apic.logged_in():
                 state = 'Connected'
@@ -817,17 +817,17 @@ class CommandLine(cmd.Cmd):
             with open(self.tool.config_filename) as config_file:
                 config = json.load(config_file)
         except IOError:
-            print '%% Unable to open configuration file', self.tool.config_filename
+            print('%% Unable to open configuration file', self.tool.config_filename)
             return
         except ValueError:
-            print '%% File could not be decoded as JSON.'
+            print('%% File could not be decoded as JSON.')
             return
         if 'config' not in config:
-            print '%% Invalid configuration file'
+            print('%% Invalid configuration file')
             return
 
         if self.tool.reload_config(config):
-            print 'Configuration reload complete'
+            print('Configuration reload complete')
 
     def do_configfile(self, filename):
         '''
@@ -836,9 +836,9 @@ class CommandLine(cmd.Cmd):
         '''
         if len(filename):
             self.tool.config_filename = filename
-            print 'Configuration file is set to:', self.tool.config_filename
+            print('Configuration file is set to:', self.tool.config_filename)
         else:
-            print 'No config filename given.'
+            print('No config filename given.')
 
     def do_clear(self, keyword):
         '''
@@ -872,7 +872,7 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'critical':
             level = logging.CRITICAL
         else:
-            print 'Unknown debug level. Valid values are:', self.DEBUG_CMDS[:]
+            print('Unknown debug level. Valid values are:', self.DEBUG_CMDS[:])
             return
         logging.getLogger().setLevel(level)
         level_name = logging.getLevelName(logging.getLogger().getEffectiveLevel())
@@ -882,7 +882,7 @@ class CommandLine(cmd.Cmd):
             level_name = 'warnings'
         elif level_name == 'CRITICAL':
             level_name = 'critical'
-        print 'Debug level currently set to:', level_name
+        print('Debug level currently set to:', level_name)
 
     def complete_debug(self, text, line, begidx, endidx):
         if not text:
@@ -901,16 +901,16 @@ class CommandLine(cmd.Cmd):
         '''
         logging.info('')
         if len(keyword.split('/')) != 3:
-            print 'Usage: reapply <tenant_name>/<app_profile_name>/<epg_name>'
+            print('Usage: reapply <tenant_name>/<app_profile_name>/<epg_name>')
             return
         (tenant_name, app_name, epg_name) = keyword.split('/')
         local_apic = self.collector.get_local_apic()
         if local_apic is None:
-            print 'No local apic configured.'
+            print('No local apic configured.')
             return
         policy = local_apic.get_policy_for_epg(tenant_name, app_name, epg_name)
         if policy is None:
-            print 'Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>'
+            print('Could not find policy for specified <tenant_name>/<app_profile_name>/<epg_name>')
             return
         local_apic.monitor.handle_existing_endpoints(policy)
 
@@ -1021,29 +1021,29 @@ def execute_tool(args, test_mode=False):
 
         json_data = json.dumps(config, indent=4, separators=(',', ': '))
         config_file = open('sample_config.json', 'w')
-        print 'Sample configuration file written to sample_config.json'
+        print('Sample configuration file written to sample_config.json')
         print "    Valid values for use_https and local are 'True' and 'False'"
-        print 'Replicate the contract JSON for each IntraEPG contract.'
-        print 'Replicate the epg JSON for each EPG using the IntraEPG contract.'
+        print('Replicate the contract JSON for each IntraEPG contract.')
+        print('Replicate the epg JSON for each EPG using the IntraEPG contract.')
         config_file.write(json_data)
         config_file.close()
         return
 
     if args.config is None:
-        print '%% No configuration file given.'
+        print('%% No configuration file given.')
         return
 
     try:
         with open(args.config) as config_file:
             config = json.load(config_file)
     except IOError:
-        print '%% Unable to open configuration file', args.config
+        print('%% Unable to open configuration file', args.config)
         return
     except ValueError:
-        print '%% File could not be decoded as JSON.'
+        print('%% File could not be decoded as JSON.')
         return
     if 'config' not in config:
-        print '%% Invalid configuration file'
+        print('%% Invalid configuration file')
         return
 
     tool = IntraEPGTool(config, args.config)

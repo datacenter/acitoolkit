@@ -67,9 +67,9 @@ def push_config_to_apic(session, tenant_name, filename):
     tenant_json['fvTenant']['attributes']['name'] = tenant_name
     resp = session.push_to_apic(tenant.get_url(), tenant_json)
     if resp.ok:
-        print 'Successfully pushed configuration to APIC.'
+        print('Successfully pushed configuration to APIC.')
     else:
-        print 'Could not push configuration to APIC.', resp.text
+        print('Could not push configuration to APIC.', resp.text)
 
 
 def main():
@@ -98,15 +98,15 @@ def main():
 
     # Sanity check the command line arguments
     if args.config is None:
-        print '%% No configuration file given.'
+        print('%% No configuration file given.')
         creds.print_help()
         return
     if args.tenant is None:
-        print '%% No Tenant name given.'
+        print('%% No Tenant name given.')
         creds.print_help()
         return
     if not args.push_to_apic and not args.pull_from_apic:
-        print '%% No direction (push-to-apic/pull-from-apic) given.'
+        print('%% No direction (push-to-apic/pull-from-apic) given.')
         creds.print_help()
         return
 
@@ -114,7 +114,7 @@ def main():
     session = Session(args.url, args.login, args.password)
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         return
 
     # Do the work

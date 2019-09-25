@@ -20,7 +20,7 @@ def show_interface_fex(apic, node_ids):
                      '&target-subtree-class=satmDExtCh' % node_id)
         resp = apic.get(query_url)
         if not resp.ok:
-            print 'Could not collect APIC data for switch %s.' % node_id
+            print('Could not collect APIC data for switch %s.' % node_id)
             print resp.text
             return
         fex_list = {}
@@ -31,7 +31,7 @@ def show_interface_fex(apic, node_ids):
                      '&target-subtree-class=satmFabP' % node_id)
         resp = apic.get(query_url)
         if not resp.ok:
-            print 'Could not collect APIC data for switch %s.' % node_id
+            print('Could not collect APIC data for switch %s.' % node_id)
             print resp.text
             return
         data = []
@@ -50,10 +50,10 @@ def show_interface_fex(apic, node_ids):
             data.append((int(fex), fabric_port, fabric_port_state, fex_uplink, model, serial))
         data.sort(key=lambda tup: tup[0])
         if len(data):
-            print 'Switch:', node_id
+            print('Switch:', node_id)
             print tabulate(data, headers=['Fex', 'Fabric Port', 'Fabric Port State',
                                           'Fex uplink', 'Fex model', 'Fex serial'])
-            print '\n'
+            print('\n')
 
 
 def get_node_ids(apic, args):
@@ -72,7 +72,7 @@ def get_node_ids(apic, args):
                      'query-target-filter=eq(fabricNode.role,"leaf")')
         resp = apic.get(query_url)
         if not resp.ok:
-            print 'Could not get switch list from APIC.'
+            print('Could not get switch list from APIC.')
             return
         nodes = resp.json()['imdata']
         for node in nodes:

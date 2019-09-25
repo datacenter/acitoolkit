@@ -1086,7 +1086,7 @@ def compare_cable_plans(session, file1, file2=None):
     else:
         resp = session.login()
         if not resp.ok:
-            print '%% Could not login to APIC'
+            print('%% Could not login to APIC')
             sys.exit(1)
         cp1 = CABLEPLAN.get(session)
         source1 = 'APIC'
@@ -1097,30 +1097,30 @@ def compare_cable_plans(session, file1, file2=None):
     extra_switches = cp2.difference_switch(cp1)
 
     if missing_switches:
-        print '\nThe following switches are in', source1 + ', but not in', source2
+        print('\nThe following switches are in', source1 + ', but not in', source2)
         for switch in missing_switches:
-            print '   ', switch.get_name()
+            print('   ', switch.get_name())
 
     if extra_switches:
-        print '\nThe following switches are in', source2 + ', but not in', source1
+        print('\nThe following switches are in', source2 + ', but not in', source1)
         for switch in missing_switches:
-            print '   ', switch.get_name()
+            print('   ', switch.get_name())
 
     if missing_switches or extra_switches:
-        print 'Link comparisons skipped because the switches are miss-matched'
+        print('Link comparisons skipped because the switches are miss-matched')
     else:
         missing_links = cp1.difference_link(cp2)
         extra_links = cp2.difference_link(cp1)
 
         if missing_links:
-            print '\nThe following links in', source1, 'are not found in', source2
+            print('\nThe following links in', source1, 'are not found in', source2)
             for link in missing_links:
-                print '   ', link.get_name()
+                print('   ', link.get_name())
 
         if extra_links:
-            print '\nThe following links in', source2, 'are not found in', source1
+            print('\nThe following links in', source2, 'are not found in', source1)
             for link in extra_links:
-                print '   ', link.get_name()
+                print('   ', link.get_name())
         if not missing_links and not extra_links:
             print source1, 'and', source2, 'are the same'
 
@@ -1128,7 +1128,7 @@ def compare_cable_plans(session, file1, file2=None):
 def export_to_file(session, file1=None):
     resp = session.login()
     if not resp.ok:
-        print '%% Could not login to APIC'
+        print('%% Could not login to APIC')
         sys.exit(1)
     cp = CABLEPLAN.get(session)
 
@@ -1168,17 +1168,17 @@ def main():
 
     if args.export_file and (args.cableplan1 or args.cableplan2):
         creds.print_help()
-        print '\nError: export and compare operations are mutually exclusive'
+        print('\nError: export and compare operations are mutually exclusive')
         exit()
 
     if args.cableplan2 and not args.cableplan1:
         creds.print_help()
-        print '\nError: -c2 option only valid with -c1 option'
+        print('\nError: -c2 option only valid with -c1 option')
         exit()
 
     if not args.export_file and not args.cableplan1:
         creds.print_help()
-        print '\nError: Either export (-e) or compare (-c1) is required'
+        print('\nError: Either export (-e) or compare (-c1) is required')
         exit()
 
     if args.export_file:

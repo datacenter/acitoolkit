@@ -495,7 +495,7 @@ class ConfigRandomizer(object):
         num_tenants = random_number(int(self._config.get('Tenants', 'Minimum')),
                                     int(self._config.get('Tenants', 'Maximum')))
         if int(self._config.get('Tenants', 'GlobalMaximum')) < int(self._config.get('Tenants', 'Maximum')):
-            print 'Tenant Maximum cannot be greater than Tenant GlobalMaximum'
+            print('Tenant Maximum cannot be greater than Tenant GlobalMaximum')
             return
         for interface in interfaces:
             self._interfaces[interface] = [0]
@@ -774,10 +774,10 @@ def delete_all_randomized_tenants(session):
             tenant.mark_as_deleted()
             resp = tenant.push_to_apic(session)
             if not resp.ok:
-                print 'Could not delete tenant', tenant.name
+                print('Could not delete tenant', tenant.name)
                 print resp.status_code, resp.text
             else:
-                print 'Deleted tenant', tenant.name
+                print('Deleted tenant', tenant.name)
 
 
 def generate_config(session, args):
@@ -793,8 +793,8 @@ def generate_config(session, args):
     flow_json = json.dumps({'flows': flow_json})
 
     for tenant in randomizer.tenants:
-        print 'TENANT CONFIG'
-        print '-------------'
+        print('TENANT CONFIG')
+        print('-------------')
         print tenant.get_json()
         print
         print
@@ -803,7 +803,7 @@ def generate_config(session, args):
             if not resp.ok:
                 print resp.status_code, resp.text
             assert resp.ok
-    print 'Total number of tenants pushed:', len(randomizer.tenants)
+    print('Total number of tenants pushed:', len(randomizer.tenants))
 
 
 def main():
@@ -835,7 +835,7 @@ def main():
 
     # Ensure that a config file has been given
     if args.config is None:
-        print '%% Expected --config or --delete option'
+        print('%% Expected --config or --delete option')
         return
 
     if args.testloop:

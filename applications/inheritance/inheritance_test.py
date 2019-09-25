@@ -2469,7 +2469,7 @@ if __name__ == '__main__':
         config_filename = DEFAULT_INI_FILENAME
     credentials.set_config(config_filename)
     if credentials.ip_address == '0.0.0.0':
-        print 'APIC credentials not given. Please ensure that there is a .ini file present and credentials are filled in.'
+        print('APIC credentials not given. Please ensure that there is a .ini file present and credentials are filled in.')
         sys.exit()
 
     # Run the tests

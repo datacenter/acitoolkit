@@ -396,7 +396,7 @@ def search_result_page(search_terms='1/101/1/49'):
     :param search_terms:
     """
     terms = str(request.args['first'])
-    print 'search terms', terms
+    print('search terms', terms)
     flow_spec = build_flow_spec(terms)
     t1 = datetime.datetime.now()
     #result = sorted(sdb.search(flow_spec))

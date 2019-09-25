@@ -41,7 +41,7 @@ class instance.  This is shown in the code snippet below using the
 ``Tenant`` class as the example.::
 
     Tenant.subscribe(session)
-    
+
 To check an event has arrived, the method ``has_events`` can be called
 on the subscribed class.::
 
@@ -71,8 +71,8 @@ To no longer receive events for this particular class, the class
 method ``unsubscribe`` can be called.  This will cause the
 subscription to be removed from the APIC.::
 
-    Tenant.unsubscribe(session)  
-	  
+    Tenant.unsubscribe(session)
+
 Under the covers, the event subscriptions use a web socket to
 communicate with the APIC to receive the events.  The events are then
 collected by a thread and placed into an event queue that is then
@@ -102,5 +102,5 @@ print a message if the instance was deleted.::
         if bob.has_events(session):
 	    bobs_event = bob.get_event(session)
 	    if bobs_event.is_deleted():
-	        print 'Bob was deleted'
+	        print('Bob was deleted')
 
