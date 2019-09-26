@@ -1,7 +1,7 @@
 ################################################################################
-# _    ____ ___                                 #
-# / \  / ___|_ _|                                #
-# / _ \| |    | |                                 #
+#                                _    ____ ___                                 #
+#                               / \  / ___|_ _|                                #
+#                              / _ \| |    | |                                 #
 #                             / ___ \ |___ | |                                 #
 #                 ____      _/_/  _\_\____|___|  _                             #
 #                / ___|__ _| |__ | | ___  |  _ \| | __ _ _ __                  #
@@ -1097,14 +1097,14 @@ def compare_cable_plans(session, file1, file2=None):
     extra_switches = cp2.difference_switch(cp1)
 
     if missing_switches:
-        print('\nThe following switches are in', source1 + ', but not in', source2)
+        print('\nThe following switches are in %s, but not in %s' % (source1, source2))
         for switch in missing_switches:
             print('   ', switch.get_name())
 
     if extra_switches:
-        print('\nThe following switches are in', source2 + ', but not in', source1)
+        print('\nThe following switches are in %s, but not in %s' % (source2, source1))
         for switch in missing_switches:
-            print('   ', switch.get_name())
+            print('   %s' % switch.get_name())
 
     if missing_switches or extra_switches:
         print('Link comparisons skipped because the switches are miss-matched')
@@ -1115,14 +1115,14 @@ def compare_cable_plans(session, file1, file2=None):
         if missing_links:
             print('\nThe following links in', source1, 'are not found in', source2)
             for link in missing_links:
-                print('   ', link.get_name())
+                print('   %s' % link.get_name())
 
         if extra_links:
-            print('\nThe following links in', source2, 'are not found in', source1)
+            print('\nThe following links in %s are not found in %s' % (source2, source1))
             for link in extra_links:
                 print('   ', link.get_name())
         if not missing_links and not extra_links:
-            print source1, 'and', source2, 'are the same'
+            print('%s and %s are the same' % (source1, source2))
 
 
 def export_to_file(session, file1=None):
