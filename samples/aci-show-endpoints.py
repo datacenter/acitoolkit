@@ -67,8 +67,8 @@ def main():
                      tenant.name, app_profile.name, epg.name))
 
     # Display the data downloaded
-    print tabulate(data, headers=["MACADDRESS", "IPADDRESS", "INTERFACE",
-                                  "ENCAP", "TENANT", "APP PROFILE", "EPG"])
+    print(tabulate(data, headers=["MACADDRESS", "IPADDRESS", "INTERFACE",
+                                  "ENCAP", "TENANT", "APP PROFILE", "EPG"]))
 
 if __name__ == '__main__':
     try:
