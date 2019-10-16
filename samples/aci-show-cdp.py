@@ -42,11 +42,12 @@ def main():
         for table_data in table.data:
             if table_data not in output_list:
                 output_list.append(table_data)
-    print tabulate(output_list, headers=["Node-ID",
+    print(tabulate(output_list, headers=["Node-ID",
                                          "Local Interface",
                                          "Neighbour Device",
                                          "Neighbour Platform",
-                                         "Neighbour Interface"])
+                                         "Neighbour Interface"]))
+
 
 if __name__ == '__main__':
     main()

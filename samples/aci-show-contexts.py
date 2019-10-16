@@ -10,6 +10,8 @@ import acitoolkit.acitoolkit as ACI
 data = []
 longest_names = {'Tenant': len('Tenant'),
                  'Context': len('Context')}
+
+
 def main():
     """
     Main execution routine
@@ -52,15 +54,18 @@ def main():
     for rec in sorted(data):
         print(template.format(*rec))
 
+
 def get_context(session, tenant):
     contexts = ACI.Context.get(session, tenant)
     for context in contexts:
         check_longest_name(context.name, "Context")
         data.append((tenant.name, context.name))
 
+
 def check_longest_name(item, title):
     if len(item) > longest_names[title]:
         longest_names[title] = len(item)
+
 
 if __name__ == '__main__':
     main()

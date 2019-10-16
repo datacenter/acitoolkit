@@ -7,6 +7,7 @@ of the Physical Domains, VMM Domains, and EPG associations.
 import sys
 import acitoolkit.acitoolkit as aci
 
+
 def main():
     """
     Main Show Domains Routine
@@ -29,12 +30,12 @@ def main():
     domains = aci.PhysDomain.get(session)
 
     if len(domains) > 0:
-        print ('---------------')
-        print ('Physical Domain')
-        print ('---------------')
+        print('---------------')
+        print('Physical Domain')
+        print('---------------')
 
     for domain in domains:
-        print domain.name
+        print(domain.name)
 
     if len(domains) > 0:
         print('\n')
@@ -42,41 +43,41 @@ def main():
     domains = aci.VmmDomain.get(session)
 
     if len(domains) > 0:
-        print ('----------')
-        print ('VMM Domain')
-        print ('----------')
+        print('----------')
+        print('VMM Domain')
+        print('----------')
 
     for domain in domains:
-        print (domain.name)
+        print(domain.name)
 
     if len(domains) > 0:
-        print ('\n')
+        print('\n')
 
     domains = aci.L2ExtDomain.get(session)
 
     if len(domains) > 0:
-        print ('------------------')
-        print ('L2 External Domain')
-        print ('------------------')
+        print('------------------')
+        print('L2 External Domain')
+        print('------------------')
 
     for domain in domains:
-        print (domain.name)
+        print(domain.name)
 
     if len(domains) > 0:
-        print ('\n')
+        print('\n')
 
     domains = aci.L3ExtDomain.get(session)
 
     if len(domains) > 0:
-        print ('------------------')
-        print ('L3 External Domain')
-        print ('------------------')
+        print('------------------')
+        print('L3 External Domain')
+        print('------------------')
 
     for domain in domains:
-        print (domain.name)
+        print(domain.name)
 
     if len(domains) > 0:
-        print ('\n')
+        print('\n')
 
     domains = aci.EPGDomain.get(session)
 
@@ -88,11 +89,11 @@ def main():
 
     if len(domains) > 0:
         template = '{0:20} {1:11} {2:26}'
-        print (template.format('Infra Domain Profile', 'Domain Type', 'TENANT:APP:EPG Association'))
+        print(template.format('Infra Domain Profile', 'Domain Type', 'TENANT:APP:EPG Association'))
         print(template.format("-" * 20, "-" * 11, "-" * 26))
         for rec in output:
-            print (template.format(*rec))
-        print ('\n')
+            print(template.format(*rec))
+        print('\n')
 
 
 if __name__ == '__main__':

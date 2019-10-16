@@ -48,7 +48,7 @@ def main():
                         epgs = EPG.get(session, app, tenant)
                         for epg in epgs:
                             data.append((imported_contract.name, tenant.name, app.name, epg.name))
-    print tabulate(data, headers=["IMPORTED_CONTRACT", "TENANT", "APP_PROFILE", "EPG"])
+    print(tabulate(data, headers=["IMPORTED_CONTRACT", "TENANT", "APP_PROFILE", "EPG"]))
 
 
 if __name__ == '__main__':

@@ -83,4 +83,4 @@ template = '{0:' + str(longest_names["Tenant"]) + '} {1:' + str(longest_names["F
 print(template.format("Tenant", "Filter", "Entry"))
 print(template.format('-' * longest_names["Tenant"], '-' * longest_names["Filter"], '-' * longest_names["Entry"]))
 for rec in data:
-    print(template.format(rec['Tenant'], rec['Filter'], rec['Entry']))
+    print(template.format(rec['Tenant'], rec['Filter'], rec['Entry'].name))

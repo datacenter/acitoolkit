@@ -10,6 +10,8 @@ import acitoolkit.acitoolkit as aci
 data = []
 longest_names = {'Tenant': len('Tenant'),
                  'Contract': len('Contract')}
+
+
 def main():
     """
     Main show contracts routine
@@ -52,15 +54,18 @@ def main():
     for rec in sorted(data):
         print(template.format(*rec))
 
+
 def get_contract(session, tenant):
     contracts = aci.Contract.get(session, tenant)
     for contract in contracts:
         check_longest_name(contract.name, "Contract")
         data.append((tenant.name, contract.name))
 
+
 def check_longest_name(item, title):
     if len(item) > longest_names[title]:
         longest_names[title] = len(item)
+
 
 if __name__ == '__main__':
     try:
