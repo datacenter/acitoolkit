@@ -872,7 +872,7 @@ class Session(object):
                         total_count -= 10000
                 resp_content = {'imdata': entries,
                                 'totalCount': orig_total_count}
-                resp._content = json.dumps(resp_content)
+                resp._content = json.dumps(resp_content).encode('ascii')
         elif 400 < resp.status_code < 600:
             logging.debug('Received error: %s %s', str(resp.status_code), resp.text)
             retries = 3
