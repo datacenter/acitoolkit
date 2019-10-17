@@ -16,13 +16,13 @@ import ast
 try:
     from apicservice_test_credentials import (LOGIN, PASSWORD, IPADDR)
 except ImportError:
-    print(''')
+    print('''
             Please create a file called apicservice_test_credentials.py with the following:
 
             IPADDR = ''
             LOGIN = ''
             PASSWORD = ''
-            '''
+            ''')
     sys.exit(0)
 
 

@@ -101,17 +101,17 @@ class FexCollector(object):
 
     @staticmethod
     def print_fex(fex_attr, chassis_attr, detail=False):
-        print('FEX:%s  Description: FEX0%s  state: %s' % (fex_attr['id'],)
+        print('FEX:%s  Description: FEX0%s  state: %s' % (fex_attr['id'],
                                                           fex_attr['id'],
-                                                          fex_attr['operSt'])
-        print('  FEX version: %s [Switch version: %s]' % (fex_attr['ver'],)
-                                                          fex_attr['swVer'])
+                                                          fex_attr['operSt']))
+        print('  FEX version: %s [Switch version: %s]' % (fex_attr['ver'],
+                                                          fex_attr['swVer']))
 
         if detail:
             print('  FEX Interim version:', fex_attr['intVer'])
             print('  Switch Interim version:', fex_attr['swIntVer'])
-        print('  Extender Model: %s, Extender Serial: %s' % (fex_attr['model'],)
-                                                             fex_attr['ser'])
+        print('  Extender Model: %s, Extender Serial: %s' % (fex_attr['model'],
+                                                             fex_attr['ser']))
         print('  Part No:', chassis_attr['partNum'])
         if detail:
             print('  Card Id: %s,' % fex_attr['swCId'])
@@ -260,9 +260,9 @@ class FexCollector(object):
                     print('  Fabric interface state:')
                     for interface in resp.json()['imdata']:
                         intf_attr = interface['satmFabP']['attributes']
-                        print('    %15s - Interface %4s. State: %s' % (intf_attr['id'],)
+                        print('    %15s - Interface %4s. State: %s' % (intf_attr['id'],
                                                                        intf_attr['operSt'],
-                                                                       intf_attr['fsmSt'])
+                                                                       intf_attr['fsmSt']))
                         if detailed:
                             query_url = ('/api/mo/topology/pod-1/node-%s/sys/satm/fabp-[%s].json?query-target=subtree'
                                          '&target-subtree-class=satmHostP' % (node_id, intf_attr['id']))
