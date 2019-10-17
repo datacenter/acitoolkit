@@ -137,7 +137,7 @@ class BaseConnSearchView(BaseView):
             flash('Connection failure.  Perhaps \'secure\' setting is wrong')
             return False
             # return redirect(url_for('credentialsview.index'))
-        except CredentialsError, e:
+        except CredentialsError as e:
             flash('There is a problem with your APIC credentials:' + e.message)
             return False
             # return redirect(url_for('credentialsview.index'))
@@ -396,13 +396,13 @@ def search_result_page(search_terms='1/101/1/49'):
     :param search_terms:
     """
     terms = str(request.args['first'])
-    print('search terms', terms)
+    print('search terms %s' % terms)
     flow_spec = build_flow_spec(terms)
     t1 = datetime.datetime.now()
     #result = sorted(sdb.search(flow_spec))
     result = sdb.search(flow_spec)
     t2 = datetime.datetime.now()
-    print "Search time:", t2 - t1
+    print("Search time: %s" % str(t2 - t1))
     return jsonify(result=prep_results(result))
 
 

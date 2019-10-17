@@ -28,7 +28,7 @@ def show_interface_description(apic, node_ids, apic_intf_class='l1PhysIf',
         resp = apic.get(query_url)
         if not resp.ok:
             print('Could not collect APIC data for switch %s.' % node_id)
-            print resp.text
+            print(resp.text)
             return
         data = []
         headers = []
@@ -46,7 +46,7 @@ def show_interface_description(apic, node_ids, apic_intf_class='l1PhysIf',
                 headers = ["Interfaces", "Description"]
         if len(headers) and len(data):
             print('Switch:', node_id)
-            print tabulate(data, headers=headers)
+            print(tabulate(data, headers=headers))
             print('\n')
 
 

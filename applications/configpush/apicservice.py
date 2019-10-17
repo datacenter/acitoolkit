@@ -887,7 +887,7 @@ class ApicService(GenericService):
         '''
         if self.prompt:
             logging.debug(object_delete.get_json())
-            print "----------------------------------"
+            print("----------------------------------")
             pprint(object_delete.get_json())
             msg = 'do u want to delete %s : %s' % (object_delete.__class__.__name__, object_delete.name)
             shall = raw_input("%s (y/n/all) " % msg).lower()
@@ -912,7 +912,7 @@ class ApicService(GenericService):
         '''
         if self.prompt:
             logging.debug(parentObject.get_json())
-            print "----------------------------------"
+            print("----------------------------------")
             pprint(parentObject.get_json())
             msg = 'do u want to remove relation of %s in  %s : %s' % (
                 childObject.name, parentObject.__class__.__name__, parentObject.name)
@@ -1008,7 +1008,7 @@ class ApicService(GenericService):
                     existing_appProfile.mark_as_deleted()
                     
             if self.displayonly:
-                print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+                print(json.dumps(tenant.get_json(), indent=4, sort_keys=True))
                 return 'OK'
             else:
                 logging.debug('Pushing contracts by deleting unwanted app profiles')
@@ -1065,7 +1065,7 @@ class ApicService(GenericService):
                         self.prompt_and_remove_relation(
                             apic, exist_contract_consuming_epg, existing_contract, 'consumed')
             if self.displayonly:
-                print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+                print(json.dumps(tenant.get_json(), indent=4, sort_keys=True))
                 return 'OK'
             else:
                 logging.debug('Pushing contracts by deleting unwanted contracts')
@@ -1119,7 +1119,7 @@ class ApicService(GenericService):
                                 if not matched:
                                     self.prompt_and_remove_relation(apic, child_contractSubject, child_filter)
         if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            print(json.dumps(tenant.get_json(), indent=4, sort_keys=True))
             return 'OK'
         else:
             logging.debug('Pushing contracts by deleting unwanted filters')
@@ -1196,7 +1196,7 @@ class ApicService(GenericService):
                         filter_not_exists = False
                 if filter_not_exists:
                     if self.prompt:
-                        print "----------------------------------"
+                        print("----------------------------------")
                         pprint(contract.get_json())
                         msg = "do u want to add a new filter relation %s in contract %s " % (entry_name, contract.name)
                         shall = raw_input("%s (y/n/all) " % msg).lower()
@@ -1239,7 +1239,7 @@ class ApicService(GenericService):
                         return resp.content
                     tenant = Tenant(self._tenant_name)
         if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            print(json.dumps(tenant.get_json(), indent=4, sort_keys=True))
             return 'OK'
         else:
             logging.debug('Pushing remaining contracts')
@@ -1267,7 +1267,7 @@ class ApicService(GenericService):
                 if not matched:
                     self.prompt_and_mark_as_deleted(apic, existing_filter)
             if self.displayonly:
-                print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+                print(json.dumps(tenant.get_json(), indent=4, sort_keys=True))
                 return 'OK'
             else:
                 resp = tenant.push_to_apic(apic)
@@ -1521,7 +1521,7 @@ class ApicService(GenericService):
                 epg = EPG(epg_policy.name, app)
                 epg.descr = epg_policy.descr[0:127]
                 if self.prompt:
-                    print "----------------------------------"
+                    print("----------------------------------")
                     pprint(epg.get_json())
                     msg = "do u want to add a new EPG %s" % epg_policy.name
                     shall = raw_input("%s (y/n/all) " % msg).lower()
@@ -1563,7 +1563,7 @@ class ApicService(GenericService):
                         existing_ip_address = criterion.get_ip_addresses()
                         if not str(net) in existing_ip_address:
                             if self.prompt:
-                                print "----------------------------------"
+                                print("----------------------------------")
                                 pprint(epg.get_json())
                                 msg = "do u want to add attribute Criterion with ip address %s to EPG %s " % (
                                     str(net), epg.name)
@@ -1649,7 +1649,7 @@ class ApicService(GenericService):
         tenant = Tenant(self._tenant_name)
         if not Tenant.exists(apic, tenant):
             # when adding tenant for the first time, all the config is added so prompt is made false
-            print ("tenant doesnot exist. so adding all the config without showing the prompt ")
+            print("tenant doesnot exist. so adding all the config without showing the prompt ")
             self.prompt = False
             tenant_created = True
 
@@ -1728,7 +1728,7 @@ class ApicService(GenericService):
                                         existing_epgs = app.get_children(EPG)
 
         if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            print(json.dumps(tenant.get_json(), indent=4, sort_keys=True))
             return 'OK'
         else:
             resp = tenant.push_to_apic(apic)
@@ -1774,7 +1774,7 @@ class ApicService(GenericService):
                             print("EPG doesnot exist " + l3out_epg_policy.name)
 
         if self.displayonly:
-            print json.dumps(tenant.get_json(), indent=4, sort_keys=True)
+            print(json.dumps(tenant.get_json(), indent=4, sort_keys=True))
             return 'OK'
         else:
             resp = tenant.push_to_apic(apic)

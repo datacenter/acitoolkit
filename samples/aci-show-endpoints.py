@@ -70,6 +70,7 @@ def main():
     print(tabulate(data, headers=["MACADDRESS", "IPADDRESS", "INTERFACE",
                                   "ENCAP", "TENANT", "APP PROFILE", "EPG"]))
 
+
 if __name__ == '__main__':
     try:
         main()

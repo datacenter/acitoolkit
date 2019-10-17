@@ -61,7 +61,7 @@ class LoadConfig(object):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
     def load_configFile(self, config_file, is_file=True, prompt=False, displayonly=False, tenant_name='configpush-test',
                         app_name='appProfile-test', l3ext_name='l3ext-test', useipEpgs=False):
@@ -104,7 +104,7 @@ class LoadConfig(object):
             self.tool.use_ip_epgs()
         resp = self.tool.add_config(self.config)
         if resp != 'OK':
-            print "ERROR in config. " + resp
+            print("ERROR in config. " + resp)
 
 
 class TestConfigpush(unittest.TestCase):
@@ -208,7 +208,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         load_config = LoadConfig()
         load_config.load_configFile(config_file, is_file=False)
@@ -334,7 +334,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         time.sleep(5)
         load_config = LoadConfig()
@@ -408,7 +408,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         time.sleep(5)
         load_config = LoadConfig()
@@ -483,7 +483,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         time.sleep(5)
         load_config = LoadConfig()
@@ -561,7 +561,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         time.sleep(5)
         load_config = LoadConfig()
@@ -722,7 +722,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         time.sleep(5)
         load_config = LoadConfig()
@@ -813,7 +813,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         time.sleep(5)
         load_config = LoadConfig()
@@ -828,7 +828,7 @@ class TestConfigpush(unittest.TestCase):
                 self.assertEquals(app[0].name, app_name, "application profile with given name doesnot exist" + app_name)
 
                 outsideL3s = tenant.get_children(OutsideL3)
-                print "outsideL3s[0].name  is  "+outsideL3s[0].name
+                print("outsideL3s[0].name  is  " + outsideL3s[0].name)
                 self.assertEquals(
                     outsideL3s[0].name,
                     l3ext_name,
@@ -925,7 +925,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         time.sleep(5)
         load_config = LoadConfig()
@@ -1975,7 +1975,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         load_config = LoadConfig()
         load_config.load_configFile(config_file, is_file=False)
@@ -2140,7 +2140,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         load_config = LoadConfig()
         load_config.load_configFile(config_file, is_file=False)
@@ -2594,7 +2594,7 @@ class TestConfigpush(unittest.TestCase):
                 tenant.mark_as_deleted()
                 resp = tenant.push_to_apic(load_config.session)
                 if not resp.ok:
-                    print "tenant deletion failed"
+                    print("tenant deletion failed")
 
         load_config = LoadConfig()
         load_config.load_configFile(config_file, is_file=False, useipEpgs=True)

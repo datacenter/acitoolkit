@@ -1515,8 +1515,8 @@ class SearchDb(object):
                 pro_con = contract_entry['pro_con']
                 int_ext = contract_entry['location']
 
-                print "{6:9} {0:20} {1:20} {2:20} {3:20} {4:20} {5:20}" \
-                    .format(epg_tenant, app_profile, epg, pro_con, contract_tenant, contract, int_ext)
+                print("{6:9} {0:20} {1:20} {2:20} {3:20} {4:20} {5:20}" \
+                    .format(epg_tenant, app_profile, epg, pro_con, contract_tenant, contract, int_ext))
 
     def build_contract_filter(self, contracts):
         """
@@ -1554,7 +1554,7 @@ class SearchDb(object):
         for (tenant, contract) in self.contract_filter:
             filters = self.contract_filter[(tenant, contract)]
             for filter_entry in filters:
-                print "{0:20} {1:20} {2:20}".format(tenant, contract, filter_entry)
+                print("{0:20} {1:20} {2:20}".format(tenant, contract, filter_entry))
 
     def search(self, flow_spec):
         """
@@ -1870,7 +1870,7 @@ def main():
     sdb.build()
     results = sorted(sdb.search(flow_spec))
     for result in results:
-        print result
+        print(result)
 
 
 if __name__ == '__main__':

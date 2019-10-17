@@ -123,4 +123,4 @@ if args.csv is not None:
 else:
     # Dump the output to the screen
     for entry in data:
-        print entry
+        print(entry)

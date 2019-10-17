@@ -50,7 +50,7 @@ import sys
 try:
     from credentials import URL, LOGIN, PASSWORD, CERT_NAME, KEY
 except ImportError:
-    print
+    print()
     print('To run live tests, please create a credentials.py file with the following variables filled in:')
     print("""
     URL = ''

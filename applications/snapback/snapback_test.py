@@ -958,7 +958,7 @@ class Test05Action(unittest.TestCase):
                                  data=data)
         if response.data != "":
             result = json.loads(response.data)
-            print response.data
+            print(response.data)
             self.assertEquals(response.status_code, 200)
             self.assertIsNotNone(result, "returned no data")
 

@@ -20,8 +20,8 @@ class FexCollector(object):
     def _get_query(self, query_url, error_msg):
         resp = self._apic.get(query_url)
         if not resp.ok:
-            print error_msg
-            print resp.text
+            print(error_msg)
+            print(resp.text)
             return []
         return resp.json()['imdata']
 
@@ -75,7 +75,7 @@ class FexCollector(object):
     def get_fex_ids(self, node_id):
         fex_attrs = self.get_fex_attributes(node_id)
         fex_ids = []
-        print fex_attrs
+        print(fex_attrs)
         for fex_attr in fex_attrs:
             fex_ids.append(str(fex_attr['satmDExtCh']['attributes']['id']))
         return fex_ids
@@ -219,7 +219,7 @@ class FexCollector(object):
                     data.sort(key=lambda tup: tup[0])
                     if len(data):
                         print('Switch:', node_id)
-                        print tabulate(data, headers=['Number', 'Description', 'State', 'Model', 'Serial'])
+                        print(tabulate(data, headers=['Number', 'Description', 'State', 'Model', 'Serial']))
                         print('\n')
                 elif detail:
                     # Show fex detail
@@ -254,7 +254,7 @@ class FexCollector(object):
                 resp = self._apic.get(query_url)
                 if not resp.ok:
                     print('Could not collect APIC data for switch %s.' % node_id)
-                    print resp.text
+                    print(resp.text)
                     return
                 if int(resp.json()['totalCount']) > 0:
                     print('  Fabric interface state:')
@@ -269,7 +269,7 @@ class FexCollector(object):
                             resp = self._apic.get(query_url)
                             if not resp.ok:
                                 print('Could not collect APIC data for switch %s.' % node_id)
-                                print resp.text
+                                print(resp.text)
                                 return
                             if int(resp.json()['totalCount']) > 0:
                                 data = []
@@ -277,7 +277,7 @@ class FexCollector(object):
                                     port_attr = port['satmHostP']['attributes']
                                     data.append((port_attr['id'], port_attr['operSt'], port_attr['fabricPort']))
                                 data.sort(key=lambda tup: tup[0])
-                                print tabulate(data, headers=['Fex Port', 'State', 'Fabric Port'])
+                                print(tabulate(data, headers=['Fex Port', 'State', 'Fabric Port']))
 
 
 def main():

@@ -391,8 +391,9 @@ class Checker(object):
                                         missing_filter = True
                     if missing_filter:
                         self.output_handler("Warning 014: In tenant '%s' contract "
-                                        "'%s' subject '%s' has no Filters." % (
-                                        tenant.name, contract.name, subject.name))
+                                            "'%s' subject '%s' has no Filters." % (tenant.name,
+                                                                                   contract.name,
+                                                                                   subject.name))
 
     def error_001(self):
         """
@@ -437,8 +438,13 @@ class Checker(object):
                     context_info[current_context] = {'v4list': [],
                                                      'v6list': []}
                 for subnet in bd.get_subnets():
-                    ip_subnet = ipaddress.ip_network(unicode(subnet.addr),
-                                                     strict=False)
+                    try:
+                        ip_subnet = ipaddress.ip_network(unicode(subnet.addr),
+                                                         strict=False)
+                    except NameError:
+                        # Python3 doesn't support unicode anymore
+                        ip_subnet = ipaddress.ip_network(str(subnet.addr),
+                                                         strict=False)
                     index = 0
                     index_to_insert = 0
                     if ip_subnet.version == 4:
@@ -681,6 +687,7 @@ def acilint():
 
     checker = Checker(session, args.output, html)
     checker.execute(methods)
+
 
 if __name__ == "__main__":
     acilint()

@@ -140,7 +140,7 @@ def tracker(args):
         try:
             data = (ep.mac, ep.ip, tenant.name, app_profile.name, epg.name,
                     ep.if_name, convert_timestamp_to_mysql(ep.timestamp))
-        except ValueError, e:
+        except ValueError as e:
             if args.daemon:
                 logging.info(e)
             continue

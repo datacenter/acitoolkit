@@ -671,7 +671,7 @@ class BaseTestCase(unittest.TestCase):
         site1 = Session(SITE1_URL, SITE1_LOGIN, SITE1_PASSWORD)
         resp = site1.login()
         if not resp.ok:
-            print resp, resp.text
+            print(str(resp.status_code) + ' ' + resp.text)
         self.assertTrue(resp.ok)
 
         tenant = Tenant('intersite-testsuite')

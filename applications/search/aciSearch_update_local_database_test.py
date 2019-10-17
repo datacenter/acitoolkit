@@ -14,12 +14,12 @@ class TestTenantUpdateInDatabase(unittest.TestCase):
         try:
             resp = session.login()
             self.session = session
-            print resp
+            print(resp)
             if not resp.ok:
                 print('%% Could not login to APIC')
                 sys.exit(0)
         except:
-            print "unable to login"
+            print("unable to login")
         conn = sqlite3.connect("searchdatabase.db")
         self.conn = conn.cursor()
 

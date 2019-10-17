@@ -38,7 +38,7 @@ import cableplan
 try:
     from credentials import URL, LOGIN, PASSWORD
 except ImportError:
-    print
+    print()
     print('To run live tests, please create a credentials.py file with the following variables filled in:')
     print("""
     URL = ''

@@ -775,7 +775,7 @@ def delete_all_randomized_tenants(session):
             resp = tenant.push_to_apic(session)
             if not resp.ok:
                 print('Could not delete tenant', tenant.name)
-                print resp.status_code, resp.text
+                print(str(resp.status_code) + ' ' + resp.text)
             else:
                 print('Deleted tenant', tenant.name)
 
@@ -795,15 +795,15 @@ def generate_config(session, args):
     for tenant in randomizer.tenants:
         print('TENANT CONFIG')
         print('-------------')
-        print tenant.get_json()
-        print
-        print
+        print(str(tenant.get_json()))
+        print()
+        print()
         if not args.printonly:
             resp = tenant.push_to_apic(session)
             if not resp.ok:
-                print resp.status_code, resp.text
+                print(str(resp.status_code) + ' ' + resp.text)
             assert resp.ok
-    print('Total number of tenants pushed:', len(randomizer.tenants))
+    print('Total number of tenants pushed: ' + str(len(randomizer.tenants)))
 
 
 def main():
@@ -825,7 +825,7 @@ def main():
     resp = session.login()
     if not resp.ok:
         print('%% Could not login to APIC')
-        print resp.status_code, resp.text
+        print(str(resp.status_code) + ' ' + resp.text)
         return
 
     # Handle the delete case

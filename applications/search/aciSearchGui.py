@@ -297,11 +297,11 @@ def search_result_page(search_terms='1/101/1/49'):
     :param search_terms:
     """
     terms = str(request.args['first'])
-    print('search terms', terms)
+    print('search terms %s' % terms)
     t1 = datetime.datetime.now()
     result, total_hits = sdb.search(terms)
     t2 = datetime.datetime.now()
-    print "SearchGui time:", t2-t1
+    print("SearchGui time: %s" % str(t2-t1))
     return jsonify(result=result, total_hits=total_hits)
 
 
@@ -312,7 +312,7 @@ def presearch_result_page(terms='1/101/1/49'):
     :param search_terms:
     """
     terms = str(request.args['searchString'])
-    print('search terms', terms)
+    print('search terms %s' % terms)
 
     result, total_hits = sdb.term_complete(terms)
     return jsonify(result=result, total_hits=total_hits)

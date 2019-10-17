@@ -561,7 +561,7 @@ class EndpointMonitor(threading.Thread):
         rendered_host_template = host_template.render({'all_host_ip': host_ips,
                                                        'new_host_ip': new_host_ips})
         print('hosts_file:')
-        print rendered_host_template
+        print(rendered_host_template)
         hosts_file = NamedTemporaryFile(delete=False)
         hosts_file.write(rendered_host_template)
         hosts_file.close()
@@ -571,7 +571,7 @@ class EndpointMonitor(threading.Thread):
         ferm_config_template = jinja2.Template(ferm_config)
         rendered_ferm_config_template = ferm_config_template.render({'ferm_conf': 'ferm.conf'})
         print('ferm.conf:')
-        print rendered_ferm_config_template
+        print(rendered_ferm_config_template)
         ferm_config_file = NamedTemporaryFile(delete=False)
         ferm_config_file.write(rendered_ferm_config_template)
         ferm_config_file.close()
@@ -582,7 +582,7 @@ class EndpointMonitor(threading.Thread):
                                                                      'user_name': SERVER_USERNAME})
         my_playbook_file = NamedTemporaryFile(delete=False)
         print('Playbook:')
-        print my_rendered_playbook_template
+        print(my_rendered_playbook_template)
         my_playbook_file.write(my_rendered_playbook_template)
         my_playbook_file.close()
 
@@ -693,7 +693,7 @@ class IntraEPGTool(object):
             self.config = IntraEPGConfiguration(config)
         except ValueError as e:
             print('Could not load improperly formatted configuration file')
-            print e
+            print(e)
             sys.exit(0)
         logging.debug('New configuration: %s', self.config.get_config())
 
@@ -702,7 +702,7 @@ class IntraEPGTool(object):
 
         for contract_policy in self.config.contract_policies:
             config = contract_policy.generate_configuration(endpoints=[])
-            print config
+            print(config)
 
         # Start the Endpoint Monitor
         self.monitor = EndpointMonitor(self)
@@ -721,7 +721,7 @@ class IntraEPGTool(object):
             self.config = IntraEPGConfiguration(config)
         except ValueError as e:
             print('Could not load improperly formatted configuration file')
-            print e
+            print(e)
             sys.exit(0)
 
         start_time = time.time()
@@ -776,7 +776,7 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'configfile':
             print('Configuration file is set to:', self.tool.config_filename)
         elif keyword == 'config':
-            print json.dumps(self.tool.config.get_config(), indent=4, separators=(',', ':'))
+            print(json.dumps(self.tool.config.get_config(), indent=4, separators=(',', ':')))
         elif keyword == 'log':
             p = subprocess.Popen(['less', 'intraepg.%s.log' % str(os.getpid())], stdin=subprocess.PIPE)
             p.communicate()
@@ -788,7 +788,7 @@ class CommandLine(cmd.Cmd):
                 state = 'Connected'
             else:
                 state = 'Not connected'
-            print self.tool.apic.get_name(), ':', state
+            print(self.tool.apic.get_name() + ':' + state)
         elif keyword == 'stats':
             raise NotImplementedError
 
@@ -1022,7 +1022,7 @@ def execute_tool(args, test_mode=False):
         json_data = json.dumps(config, indent=4, separators=(',', ': '))
         config_file = open('sample_config.json', 'w')
         print('Sample configuration file written to sample_config.json')
-        print "    Valid values for use_https and local are 'True' and 'False'"
+        print("    Valid values for use_https and local are 'True' and 'False'")
         print('Replicate the contract JSON for each IntraEPG contract.')
         print('Replicate the epg JSON for each EPG using the IntraEPG contract.')
         config_file.write(json_data)

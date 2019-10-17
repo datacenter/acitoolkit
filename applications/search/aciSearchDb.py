@@ -311,7 +311,7 @@ class SearchIndexLookup(object):
         for searchable in searchables:
             count += 1
             if count % 1000 == 0:
-                print count
+                print(count)
             atk_class = searchable.object_class
             atk_attrs = searchable.attr
             atk_values = searchable.value
@@ -373,7 +373,7 @@ class SearchIndexLookup(object):
         for searchable in searchables:
             count += 1
             if count % 1000 == 0:
-                print count
+                print(count)
             atk_class = searchable.object_class
             atk_attr_values = searchable.attr_value
             uid = searchable.primary.get_attributes()['dn']
@@ -404,7 +404,7 @@ class SearchIndexLookup(object):
         for searchable in searchables:
             count += 1
             if count % 1000 == 0:
-                print count
+                print(count)
             atk_class = searchable.object_class
             atk_attr_values = searchable.attr_value
             uid = searchable.primary.get_attributes()['dn']
@@ -422,7 +422,7 @@ class SearchIndexLookup(object):
                 for atk_attr_value in atk_attr_values:
                     (a, v) = atk_attr_value
                     v = v.replace('\n', ' ').replace('\r', '')
-                    print "attribute ", a, " value ", v
+                    print("attribute %s  value %s" % (a, v))
 
                     # add sql entry
 
@@ -493,7 +493,7 @@ class SearchIndexLookup(object):
         This will do the actual search.  The data must already be loaded and indexed before this is invoked.
         :param term_string: string that contains all the terms.
         """
-        print "start search sql ",
+        print("start search sql ")
         t1 = datetime.datetime.now()
         terms = self._get_terms(term_string)
         # terms = ['#AppProfile:name=APP1', 'leaf']
@@ -530,7 +530,7 @@ class SearchIndexLookup(object):
         :param term_string:
         :return:
         """
-        print "start term complete ",
+        print("start term complete ")
         t1 = datetime.datetime.now()
         terms = SearchIndexLookup._custom_split(term_string)
         last_term = terms.pop()
@@ -1057,9 +1057,9 @@ class SearchDb(object):
             else:
                 self.index.session = self.session.session
                 self.store.session = self.session.session
-        print "done loading initial database"
+        print("done loading initial database")
         if sync_database is True:
-            print "in updating"
+            print("in updating")
             self.update_db_thread = Update_db_on_event(self)
             self.update_db_thread.subscribed_classes = []
             self.update_db_thread.session = self.session.session
@@ -1127,7 +1127,7 @@ def main():
                        help='Force a rebuild of the search index')
 
     args = creds.get()
-    print args
+    print(args)
     # load all objects
     session = SearchSession(args)
     try:
@@ -1150,7 +1150,7 @@ def main():
     count = 0
     for res in result:
         count += 1
-        print res
+        print(res)
 
 
 def get_arg_parser():

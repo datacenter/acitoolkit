@@ -157,10 +157,10 @@ def setup_multisite_test(printonly=False, delete=False):
             # Print what was sent
             print('Pushed the following JSON to the APIC', resp.text)
         else:
-            print resp, resp.text
+            print(str(resp.status_code) + ' ' + resp.text)
     print('URL: '  + str(tenant1.get_url()))
     print('JSON:')
-    print json.dumps(tenant1.get_json(), indent=4, separators=(',',':'))
+    print(json.dumps(tenant1.get_json(), indent=4, separators=(',',':')))
 
 
     if not printonly:
@@ -175,10 +175,10 @@ def setup_multisite_test(printonly=False, delete=False):
             # Print what was sent
             print('Pushed the following JSON to the APIC', resp.text)
         else:
-            print resp, resp.text
+            print(str(resp.status_code) + ' ' + resp.text)
     print('URL: '  + str(tenant2.get_url()))
     print('JSON:')
-    print json.dumps(tenant2.get_json(), indent=4, separators=(',',':'))
+    print(json.dumps(tenant2.get_json(), indent=4, separators=(',',':')))
 
 if __name__ == '__main__':
     try:

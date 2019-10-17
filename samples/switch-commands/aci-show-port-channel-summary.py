@@ -22,8 +22,8 @@ class InterfaceCollector(object):
     def _get_query(self, query_url, error_msg):
         resp = self._apic.get(query_url)
         if not resp.ok:
-            print error_msg
-            print resp.text
+            print(error_msg)
+            print(resp.text)
             return []
         return resp.json()['imdata']
 
@@ -104,14 +104,14 @@ class InterfaceCollector(object):
             self.populate_port_channels(node_id, intf_id)
             if not len(self._port_channels):
                 continue
-            print "Switch:", node_id
-            print "Flags:  D - Down        P - Up in port-channel (members)"
-            print "        I - Individual  H - Hot-standby (LACP only)"
-            print "        s - Suspended   r - Module-removed"
-            print "        S - Switched    R - Routed"
-            print "        U - Up (port-channel)"
-            print "        M - Not in use. Min-links not met"
-            print "        F - Configuration failed"
+            print("Switch: %s" % str(node_id))
+            print("Flags:  D - Down        P - Up in port-channel (members)")
+            print("        I - Individual  H - Hot-standby (LACP only)")
+            print("        s - Suspended   r - Module-removed")
+            print("        S - Switched    R - Routed")
+            print("        U - Up (port-channel)")
+            print("        M - Not in use. Min-links not met")
+            print("        F - Configuration failed")
             data = []
             for interface in self._port_channels:
                 intf_attr = interface['pcAggrIf']['attributes']
@@ -142,7 +142,7 @@ class InterfaceCollector(object):
                 data.append((int(intf_attr['id'][2:]), name, 'eth', protocol, members))
             data.sort(key=lambda tup: tup[0])
             headers = ['Group', 'Port channel', 'Type', 'Protocol', 'Member Ports']
-            print tabulate(data, headers=headers)
+            print(tabulate(data, headers=headers))
 
 
 def main():

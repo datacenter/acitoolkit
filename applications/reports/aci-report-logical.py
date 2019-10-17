@@ -82,7 +82,7 @@ def show_tenant_short(tenant_id):
 
     tables = ACI.Tenant.get_table(tenants, title='All Tenants ')
     text_string = tables[0].get_text(tablefmt='fancy_grid') + '\n'
-    print text_string
+    print(text_string)
 
 
 def render_text_tenant(tenant):
@@ -196,7 +196,7 @@ def show_tenant_long():
         tenant = ACI.Tenant.get_deep(session, names=[tenant.name])
 
         if tenant:
-            print render_text_tenant(tenant[0])
+            print(render_text_tenant(tenant[0]))
 
 
 if (args.all or

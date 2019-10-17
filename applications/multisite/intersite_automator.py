@@ -273,7 +273,7 @@ class AutoIntersiteConfiguration(IntersiteConfiguration):
                             self._add_provide_contract(cobject)
                         if contract_type == 'consume_int_contract':
                             self._add_consume_interface(cobject)
-                    except ValueError, e:
+                    except ValueError as e:
                         print('Invalid AutoIntersite configuration given:', e)
                         sys.exit(1)
 

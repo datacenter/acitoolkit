@@ -21,7 +21,7 @@ def show_interface_fex(apic, node_ids):
         resp = apic.get(query_url)
         if not resp.ok:
             print('Could not collect APIC data for switch %s.' % node_id)
-            print resp.text
+            print(resp.text)
             return
         fex_list = {}
         for obj in resp.json()['imdata']:
@@ -32,7 +32,7 @@ def show_interface_fex(apic, node_ids):
         resp = apic.get(query_url)
         if not resp.ok:
             print('Could not collect APIC data for switch %s.' % node_id)
-            print resp.text
+            print(resp.text)
             return
         data = []
         for obj in resp.json()['imdata']:
@@ -51,8 +51,8 @@ def show_interface_fex(apic, node_ids):
         data.sort(key=lambda tup: tup[0])
         if len(data):
             print('Switch:', node_id)
-            print tabulate(data, headers=['Fex', 'Fabric Port', 'Fabric Port State',
-                                          'Fex uplink', 'Fex model', 'Fex serial'])
+            print(tabulate(data, headers=['Fex', 'Fabric Port', 'Fabric Port State',
+                                          'Fex uplink', 'Fex model', 'Fex serial']))
             print('\n')
 
 

@@ -88,7 +88,7 @@ def show_switch_short(switch_id, table_format):
 
     tables = ACI.Node.get_table(switches, title='All Switches')
     text_string = tables[0].get_text(tablefmt=table_format) + '\n'
-    print text_string
+    print(text_string)
 
 
 def render_text_switch(switch, table_format):

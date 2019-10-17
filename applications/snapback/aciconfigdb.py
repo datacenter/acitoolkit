@@ -402,7 +402,7 @@ class ConfigDB(object):
         }
         resp = self.session.push_to_apic(url, export_policy_payload)
         if not resp.ok:
-            print resp, resp.text
+            print(str(resp.status_code) + ' ' + resp.text)
 
         time.sleep(10)
         ssh = SSHClient()
@@ -413,7 +413,6 @@ class ConfigDB(object):
         sftp = ssh.open_sftp()
         sftp.chdir('/home/%s' % self.session.uid)
         file_names = sftp.listdir()
-        print file_names
         for file_name in file_names:
             if str(file_name).startswith('ce2_snapback-'):
                 sftp.get('/home/' + self.session.uid + '/' + file_name, './' + file_name)
@@ -704,10 +703,11 @@ class ConfigDB(object):
                     underline = len(item)
         else:
             underline = len(title)
-        print title
-        print('=' * underline)
+        print(title)
+        underline = '=' * underline
+        print(underline)
         for item in items:
-            print item
+            print(item)
 
     def print_versions(self):
         """
@@ -835,7 +835,7 @@ class ConfigDB(object):
             for data in old_version['imdata']:
                 self.session.push_to_apic(url, data)
                 print('Pushing....')
-                print data
+                print(data)
 
             # Get the current version
             current_version = self._get_from_apic(url)
@@ -992,7 +992,7 @@ def main(args=None):
         version = args.show[0]
         filename = args.show[1]
         config = cdb.get_file(version, filename)
-        print config
+        print(config)
 
 if __name__ == '__main__':
     try:
