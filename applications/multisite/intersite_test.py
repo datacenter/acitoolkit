@@ -25,7 +25,7 @@ try:
                                             SITE3_IPADDR, SITE3_LOGIN, SITE3_PASSWORD, SITE3_URL,
                                             SITE4_IPADDR, SITE4_LOGIN, SITE4_PASSWORD, SITE4_URL)
 except ImportError:
-    print(''')
+    print('''
             Please create a file called multisite_test_credentials.py with the following:
 
             SITE1_IPADDR = ''
@@ -47,7 +47,7 @@ except ImportError:
             SITE4_LOGIN = ''
             SITE4_PASSWORD = ''
             SITE4_URL = 'http://' + SITE3_IPADDR
-            '''
+            ''')
     sys.exit(0)
 
 
