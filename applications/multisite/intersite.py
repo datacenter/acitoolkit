@@ -1972,7 +1972,7 @@ def execute_tool(args, test_mode=False):
         with open(args.config) as config_file:
             config = json.load(config_file)
     except IOError:
-        print('%% Unable to open configuration file', args.config)
+        print('%% Unable to open configuration file ' + args.config)
         return
     except ValueError:
         print('%% File could not be decoded as JSON.')
