@@ -3596,13 +3596,13 @@ class TestCli(BaseTestCase):
         """
         Test show debug command
         """
-        self._test_show_cmd('debug', ['Debug level currently set to:', ' ', 'CRITICAL', '\n'])
+        self._test_show_cmd('debug', ['Debug level currently set to: CRITICAL', '\n'])
 
     def test_show_configfile(self):
         """
         Test show configfile command
         """
-        self._test_show_cmd('configfile', ['Configuration file is set to:', ' ', 'testsuite_cfg.json', '\n'])
+        self._test_show_cmd('configfile', ['Configuration file is set to: testsuite_cfg.json', '\n'])
 
     def test_show_config(self):
         """
@@ -3621,8 +3621,8 @@ class TestCli(BaseTestCase):
         """
         Test show stats command
         """
-        self._test_show_cmd('stats', ['Endpoint addition events:', ' ', '0', '\n',
-                                      'Endpoint deletion events:', ' ', '0', '\n'])
+        self._test_show_cmd('stats', ['Endpoint addition events: 0', '\n',
+                                      'Endpoint deletion events: 0', '\n'])
 
 
 def main_test():

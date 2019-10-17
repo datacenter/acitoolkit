@@ -1637,9 +1637,9 @@ class CommandLine(cmd.Cmd):
                 current_level = 'VERBOSE'
             elif current_level == 'WARNING':
                 current_level = 'WARNINGS'
-            print('Debug level currently set to:', current_level)
+            print('Debug level currently set to: ' + current_level)
         elif keyword == 'configfile':
-            print('Configuration file is set to:', self.collector.config_filename)
+            print('Configuration file is set to: ' + self.collector.config_filename)
         elif keyword == 'config':
             print json.dumps(self.collector.config.get_config(), indent=4, separators=(',', ':'))
         elif keyword == 'log':
@@ -1655,8 +1655,8 @@ class CommandLine(cmd.Cmd):
                 print site.name, ':', state
         elif keyword == 'stats':
             handler = self.collector.get_local_site().monitor._endpoints
-            print('Endpoint addition events:', handler.endpoint_add_events)
-            print('Endpoint deletion events:', handler.endpoint_del_events)
+            print('Endpoint addition events: ' + str(handler.endpoint_add_events))
+            print('Endpoint deletion events: ' + str(handler.endpoint_del_events))
 
     def emptyline(self):
         """
@@ -1697,7 +1697,7 @@ class CommandLine(cmd.Cmd):
         '''
         if len(filename):
             self.collector.config_filename = filename
-            print('Configuration file is set to:', self.collector.config_filename)
+            print('Configuration file is set to: ' + self.collector.config_filename)
         else:
             print('No config filename given.')
 
@@ -1741,7 +1741,7 @@ class CommandLine(cmd.Cmd):
         elif keyword == 'critical':
             level = logging.CRITICAL
         else:
-            print('Unknown debug level. Valid values are:', self.DEBUG_CMDS[:])
+            print('Unknown debug level. Valid values are: ' + str(self.DEBUG_CMDS[:]))
             return
         logging.getLogger().setLevel(level)
         level_name = logging.getLevelName(logging.getLogger().getEffectiveLevel())
@@ -1751,7 +1751,7 @@ class CommandLine(cmd.Cmd):
             level_name = 'warnings'
         elif level_name == 'CRITICAL':
             level_name = 'critical'
-        print('Debug level currently set to:', level_name)
+        print('Debug level currently set to: ' + level_name)
 
     def complete_debug(self, text, line, begidx, endidx):
         """
