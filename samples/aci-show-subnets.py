@@ -4,12 +4,11 @@
 Simple application that logs on to the APIC and displays all
 of the Subnets.
 """
-from acitoolkit import (Credentials, Session, Tenant, AppProfile,
+from acitoolkit import (Credentials, Session, Tenant,
                         BridgeDomain, Subnet)
 
 data = []
 longest_names = {'Tenant': len('Tenant'),
-                 'Application Profile': len('Application Profile'),
                  'Bridge Domain': len('Bridge Domain'),
                  'Subnet': len('Subnet'),
                  'Scope': len('Scope')}
@@ -47,14 +46,11 @@ def main():
 
     # Display the data downloaded
     template = '{0:' + str(longest_names["Tenant"]) + '} ' \
-               '{1:' + str(longest_names["Application Profile"]) + '} ' \
-               '{2:' + str(longest_names["Bridge Domain"]) + '} ' \
-               '{3:' + str(longest_names["Subnet"]) + '} ' \
-               '{4:' + str(longest_names["Scope"]) + '}'
-    print(template.format("Tenant", "Application Profile",
-                          "Bridge Domain", "Subnet", "Scope"))
+               '{1:' + str(longest_names["Bridge Domain"]) + '} ' \
+               '{2:' + str(longest_names["Subnet"]) + '} ' \
+               '{3:' + str(longest_names["Scope"]) + '}'
+    print(template.format("Tenant", "Bridge Domain", "Subnet", "Scope"))
     print(template.format('-' * longest_names["Tenant"],
-                          '-' * longest_names["Application Profile"],
                           '-' * longest_names["Bridge Domain"],
                           '-' * longest_names["Subnet"],
                           '-' * longest_names["Scope"]))
@@ -68,21 +64,18 @@ def get_subnet(session, tenant):
     :param session: Session class instance
     :param tenant: String containing tenant name
     """
-    apps = AppProfile.get(session, tenant)
-    for app in apps:
-        check_longest_name(app.name, "Application Profile")
-        bds = BridgeDomain.get(session, tenant)
-        for bd in bds:
-            check_longest_name(bd.name, "Bridge Domain")
-            subnets = Subnet.get(session, bd, tenant)
-            if len(subnets) == 0:
-                data.append((tenant.name, app.name, bd.name, "", ""))
-            else:
-                for subnet in subnets:
-                    check_longest_name(subnet.addr, "Subnet")
-                    check_longest_name(subnet.get_scope(), "Scope")
-                    data.append((tenant.name, app.name, bd.name,
-                                 subnet.addr, subnet.get_scope()))
+    bds = BridgeDomain.get(session, tenant)
+    for bd in bds:
+        check_longest_name(bd.name, "Bridge Domain")
+        subnets = Subnet.get(session, bd, tenant)
+        if len(subnets) == 0:
+            data.append((tenant.name, bd.name, "", ""))
+        else:
+            for subnet in subnets:
+                check_longest_name(subnet.addr, "Subnet")
+                check_longest_name(subnet.get_scope(), "Scope")
+                data.append((tenant.name, bd.name,
+                             subnet.addr, subnet.get_scope()))
 
 
 def check_longest_name(item, title):
