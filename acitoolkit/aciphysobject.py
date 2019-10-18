@@ -2970,7 +2970,7 @@ class Interface(BaseInterface):
             eth_query_url = ('/api/mo/' + dist_name + '/phys.json?query-target=self')
         # add the case where we return all of the ports of a given node
         elif node:
-            dist_name = 'topology/pod-1/node-{0}/sys'.format(node)
+            dist_name = 'topology/pod-{0}/node-{1}/sys'.format(pod_parent, node)
             interface_query_url = ('/api/mo/' + dist_name + '.json?query-target=children&target-subtree-class=l1PhysIf')
             eth_query_url = ('/api/mo/' + dist_name + '.json?query-target=subtree&target-subtree-class=ethpmPhysIf')
 
