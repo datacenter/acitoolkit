@@ -98,6 +98,6 @@ if __name__ == '__main__':
     print('Getting data from APIC....')
     get_data_from_apic(args.url, args.login, args.password)
 
-    print('Running server. Point your browser to http://%s:%s' % (args.ip,)
-                                                                  args.port)
+    print('Running server. Point your browser to http://%s:%s' % (args.ip,
+                                                                  args.port))
     flask_app.run(debug=False, host=args.ip, port=int(args.port))
