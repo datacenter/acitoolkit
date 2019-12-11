@@ -200,7 +200,7 @@ def show_switch_long():
 
             switch.populate_children(deep=True, include_concrete=True)
 
-            print render_text_switch(switch, args.tablefmt)
+            print(render_text_switch(switch, args.tablefmt))
 
 
 if (args.all or
