@@ -247,7 +247,7 @@ class Subscriber(threading.Thread):
             if self._ws is not None:
                 if not self._ws.connected:
                     logging.warning('Websocket not established on subscription refresh. Re-establishing websocket')
-                    self._open_web_socket('https://' in subscription)
+                    self._open_web_socket('wss://' in self._ws_url)
             try:
                 subscription_id = self._subscriptions[subscription]
             except KeyError:
