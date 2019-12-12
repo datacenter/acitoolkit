@@ -3626,7 +3626,6 @@ class TestLiveSubscription(TestLiveAPIC):
         with self.assertRaises(ValueError):
             session.get_event(url)
 
-
     def test_get_actual_event(self):
         """
         Test get_event
@@ -3670,6 +3669,23 @@ class TestLiveSubscription(TestLiveAPIC):
         resp = session.push_to_apic(new_tenant.get_url(),
                                     data=new_tenant.get_json())
         self.assertTrue(resp.ok)
+
+    def test_reconnect_websocket_on_subscription_refresh(self):
+        """
+        Test reconnect websocket on subscription refresh
+        """
+        session = self.login_to_apic()
+        Tenant.subscribe(session)
+
+        # Disconnect the websocket
+        session.subscription_thread._ws.close()
+
+        # Test the refresh used for subscription timeout
+        session.subscription_thread.refresh_subscriptions()
+
+        # Assert that the websocket has been established
+        self.assertTrue(session.subscription_thread._ws.connected)
+
 
     def test_resubscribe(self):
         """
