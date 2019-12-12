@@ -3670,6 +3670,20 @@ class TestLiveSubscription(TestLiveAPIC):
                                     data=new_tenant.get_json())
         self.assertTrue(resp.ok)
 
+    def test_reconnect_websocket_on_subscription(self):
+        """
+        Test reconnect websocket on subscription
+        """
+        session = self.login_to_apic()
+
+        # Disconnect the websocket
+        session.subscription_thread._ws.close()
+
+        Tenant.subscribe(session)
+
+        # Assert that the websocket has been established
+        self.assertTrue(session.subscription_thread._ws.connected)
+
     def test_reconnect_websocket_on_subscription_refresh(self):
         """
         Test reconnect websocket on subscription refresh
