@@ -29,7 +29,7 @@ from .acicounters import (  # noqa
 from .aciHealthScore import HealthScore  # noqa
 from .aciFaults import (Faults)  # noqa
 from .aciSearch import AciSearch, Searchable  # noqa
-from .acisession import EventHandler, Login, Session, Subscriber  # noqa
+from .acisession import EventHandler, Login, Session, Subscriber, CredentialsError  # noqa
 from .aciTable import Table  # noqa
 from .acibaseobject import BaseACIObject, BaseRelation
 from .acitoolkit import (  # noqa
