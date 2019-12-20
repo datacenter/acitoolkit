@@ -38,7 +38,7 @@ from acitoolkit import (
     PortChannel, Subnet, Taboo, Tenant, VmmDomain, LogicalModel, OutsideNetwork,
     AttributeCriterion, OutsideL2, TunnelInterface, FexInterface, VMM,
     OutsideL2EPG, AnyEPG, InputTerminal, OutputTerminal, AcitoolkitGraphBuilder,
-    Interface, Linecard, Node, Fabric, Table, Session, HealthScore)
+    Interface, Linecard, Node, Fabric, Table, Session, HealthScore, CredentialsError)
 import os.path
 import unittest
 import string
@@ -46,6 +46,8 @@ import random
 import time
 import json
 import sys
+import requests
+from requests.exceptions import ConnectionError
 
 try:
     from credentials import URL, LOGIN, PASSWORD, CERT_NAME, KEY
@@ -400,8 +402,44 @@ class TestSession(unittest.TestCase):
     Offline tests for the Session class
     """
     def test_session_with_https(self):
+        """
+        Test basic session creation
+        """
         session = Session('https://myapic.mydomain.com', 'admin', 'password')
         self.assertTrue(isinstance(session, Session))
+
+    def test_session_with_no_password(self):
+        """
+        Test no password raises CredentialsError exception
+        """
+        self.assertRaises(CredentialsError, Session, 'https://myapic.mydomain.com', 'admin')
+
+    def test_session_with_invalid_cert_name(self):
+        """
+        Test invalid cert name raises CredentialsError exception
+        """
+        self.assertRaises(CredentialsError, Session, 'https://myapic.mydomain.com', 'admin', 'password', 12345)
+
+    def test_session_with_invalid_cert_key(self):
+        """
+        Test invalid cert key raises CredentialsError exception
+        """
+        self.assertRaises(CredentialsError, Session, 'https://myapic.mydomain.com', 'admin', 'password',
+                          'cert_name', 12345)
+
+    def test_session_with_missing_cert_key(self):
+        """
+        Test missing cert key raises CredentialsError exception
+        """
+        self.assertRaises(CredentialsError, Session, 'https://myapic.mydomain.com', 'admin', 'password',
+                          'cert_name')
+
+    def test_session_with_invalid_relogin_forever(self):
+        """
+        Test invalid relogin_forever raises CredentialsError exception
+        """
+        self.assertRaises(CredentialsError, Session, 'https://myapic.mydomain.com', 'admin', 'password',
+                          'cert_name', 'key', False, False, True, None, 'BADVALUE')
 
 
 class TestAppProfile(unittest.TestCase):
@@ -3700,6 +3738,37 @@ class TestLiveSubscription(TestLiveAPIC):
         # Assert that the websocket has been established
         self.assertTrue(session.subscription_thread._ws.connected)
 
+    def error_cases(self, error_function):
+        session = Session(URL, LOGIN, PASSWORD)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+        self.assertTrue(session.logged_in())
+
+        # Mock in the fake function
+        session.subscription_thread._apic.get = error_function
+
+        self.assertFalse(Tenant.subscribe(session))
+
+    def test_subscribe_connection_error(self):
+        def raise_error(self):
+            raise ConnectionError
+        self.error_cases(raise_error)
+
+    def test_subscribe_bad_request(self):
+        def bad_request(self):
+            resp = requests.Response()
+            resp.status_code = 404
+            resp._content = '{"error": "Could not send subscription to APIC"}'
+            return resp
+        self.error_cases(bad_request)
+
+    def test_subscribe_bad_response(self):
+        def bad_response(self):
+            resp = requests.Response()
+            resp.status_code = 200
+            resp._content = '{"badresponse": "badresponse"}'
+            return resp
+        self.error_cases(bad_response)
 
     def test_resubscribe(self):
         """
