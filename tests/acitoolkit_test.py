@@ -3403,6 +3403,17 @@ class TestLiveAppcenterSubscription(unittest.TestCase):
         Tenant.unsubscribe(session)
 
 
+class FunctionCallTracker():
+    def __init__(self):
+        self.called = False
+
+    def call(self, other):
+        self.called = True
+
+    def has_been_called(self):
+        return self.called
+
+
 class TestLiveSession(unittest.TestCase):
     """
     Tests for the Session class
@@ -3418,6 +3429,30 @@ class TestLiveSession(unittest.TestCase):
         self.assertTrue(resp.ok)
         resp = session.refresh_login()
         self.assertTrue(resp.ok)
+
+    def test_relogin_forever(self):
+        session = Session(URL, LOGIN, 'badpassword', relogin_forever=True)
+        resp = session.login()
+        self.assertFalse(resp.ok)
+
+    def test_bad_url(self):
+        session = Session('http://badapic', LOGIN, PASSWORD)
+        resp = session.login()
+        self.assertFalse(resp.ok)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_login_callback(self):
+        tracker = FunctionCallTracker()
+        self.assertFalse(tracker.has_been_called())
+        session = Session('http://badapic', LOGIN, PASSWORD)
+        session.register_login_callback(tracker.call)
+        resp = session.login()
+        self.assertFalse(session.logged_in())
+        session.api = URL
+        time.sleep(1)
+        self.assertTrue(session.logged_in())
+        self.assertTrue(tracker.has_been_called())
+        session.deregister_login_callback(tracker.call)
 
     def test_close(self):
         session = Session(URL, LOGIN, PASSWORD)
@@ -3617,6 +3652,20 @@ class TestLiveSubscription(TestLiveAPIC):
         self.assertFalse(session.is_subscribed(url))
         session.subscribe(url)
         self.assertTrue(session.is_subscribed(url))
+        session.unsubscribe(url)
+
+    def test_is_subscribed_but_not_enabled(self):
+        """
+        Test is_subscribed function but subscription has not been enabled
+        """
+        session = Session(URL, LOGIN, PASSWORD, subscription_enabled=False)
+        resp = session.login()
+        self.assertTrue(resp.ok)
+
+        url = Tenant._get_subscription_urls()[0]
+        self.assertFalse(session.is_subscribed(url))
+        session.subscribe(url)
+        self.assertFalse(session.is_subscribed(url))
         session.unsubscribe(url)
 
     def test_get_event_count(self):
