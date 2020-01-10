@@ -3449,7 +3449,7 @@ class TestLiveSession(unittest.TestCase):
         resp = session.login()
         self.assertFalse(session.logged_in())
         session.api = URL
-        time.sleep(1)
+        time.sleep(4)
         self.assertTrue(session.logged_in())
         self.assertTrue(tracker.has_been_called())
         session.deregister_login_callback(tracker.call)
