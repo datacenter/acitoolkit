@@ -45,6 +45,9 @@ from .aciTable import Table
 import acitoolkit as ACI
 
 
+log = logging.getLogger(__name__)
+
+
 class Systemcontroller(BaseACIPhysModule):
     """ class of the motherboard of the APIC controller node   """
 
@@ -1053,7 +1056,7 @@ class Pod(BaseACIPhysObject):
         self.dn = dn
         self.pod = pod
         self.name = 'pod-' + str(self.pod)
-        logging.debug('Creating %s %s', self.__class__.__name__, self.pod)
+        log.debug('Creating %s %s', self.__class__.__name__, self.pod)
         if dn is not None:
             self.atomic_counters = AtomicCountersOnGoing(self, dn)
         if parent:
@@ -1210,8 +1213,8 @@ class Node(BaseACIPhysObject):
         self.v4_proxy_ip = None
         self.mac_proxy_ip = None
         self.dynamic_load_balancing_mode = None
-        logging.debug('Creating %s %s', self.__class__.__name__, 'pod-' +
-                      str(self.pod) + '/node-' + str(self.node))
+        log.debug('Creating %s %s', self.__class__.__name__, 'pod-' +
+                  str(self.pod) + '/node-' + str(self.node))
         # self._common_init(parent)
 
     @staticmethod
@@ -2162,8 +2165,8 @@ class Link(BaseACIPhysObject):
             raise TypeError("Parent object can't be a string")
         self.type = 'link'
         self._session = None
-        logging.debug('Creating %s %s', self.__class__.__name__,
-                      'pod-%s link-%s' % (self.pod, self.link))
+        log.debug('Creating %s %s', self.__class__.__name__,
+                  'pod-%s link-%s' % (self.pod, self.link))
         # self._common_init(parent)
 
     @staticmethod
