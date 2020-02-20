@@ -48,6 +48,9 @@ from .acicounters import InterfaceStats
 from .acitoolkitlib import Credentials
 
 
+log = logging.getLogger(__name__)
+
+
 class Tenant(BaseACIObject):
     """
     The Tenant class is used to represent the tenants within the acitoolkit
@@ -4189,7 +4192,7 @@ class Filter(BaseACIObject):
         # ContractSubject instead of Tenants
         contract_subject_parent = None
         if isinstance(parent, ContractSubject):
-            logging.warning('The parent of a Filter should be a Tenant Object!')
+            log.warning('The parent of a Filter should be a Tenant Object!')
             contract_subject_parent = parent
             parent = parent.get_parent().get_parent()
         super(Filter, self).__init__(filter_name, parent)
@@ -4511,7 +4514,7 @@ class FilterEntry(BaseACIObject):
 
         if isinstance(tenant, str):
             raise TypeError
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         if tenant is None:
             tenant_url = ''
         else:
@@ -4522,7 +4525,7 @@ class FilterEntry(BaseACIObject):
                      'target-subtree-class=%s' % (tenant_url, apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
         resp = []
         for object_data in data:
             dn = object_data['vzRsSubjFiltAtt']['attributes']['dn']
@@ -4542,7 +4545,7 @@ class FilterEntry(BaseACIObject):
                     filter_data = ret.json()['imdata']
                     if len(filter_data) == 0:
                         continue
-                    logging.debug('response returned %s', filter_data)
+                    log.debug('response returned %s', filter_data)
                     resp = []
                     obj = cls(entry_name, parent)
                     attribute_data = filter_data[0]['vzEntry']['attributes']
@@ -5706,7 +5709,7 @@ class IPEndpoint(BaseACIObject):
                 elif 'fvIp' in ep:
                     attr = ep['fvIp']['attributes']
                 else:
-                    logging.error('Could not get EPG endpoints from the APIC %s', ep)
+                    log.error('Could not get EPG endpoints from the APIC %s', ep)
                     break
                 ep_dn = str(attr['dn'])
                 ep_addr = str(attr['addr'])
@@ -5867,13 +5870,13 @@ class PhysDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree&'
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
 
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
         resp = []
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -5919,12 +5922,12 @@ class PhysDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree&'
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
             obj = toolkit_class(name, parent)
@@ -6013,12 +6016,12 @@ class VmmDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree&'
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
         resp = []
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -6044,12 +6047,12 @@ class VmmDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree&'
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
 
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -6133,12 +6136,12 @@ class L2ExtDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree&'
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
         resp = []
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -6164,12 +6167,12 @@ class L2ExtDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree&'
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
 
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -6253,12 +6256,12 @@ class L3ExtDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree'
                       '&target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
         resp = []
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -6285,12 +6288,12 @@ class L3ExtDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target=subtree&'
                       'target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
 
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -6473,12 +6476,12 @@ class EPGDomain(BaseACIObject):
         toolkit_class = cls
         apic_class = cls._get_apic_classes()[0]
         parent = None
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         query_url = (('/api/mo/uni.json?query-target='
                       'subtree&target-subtree-class=') + str(apic_class))
         ret = session.get(query_url)
         data = ret.json()['imdata']
-        logging.debug('response returned %s', data)
+        log.debug('response returned %s', data)
         resp = []
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['uid'])
@@ -6583,7 +6586,7 @@ class NetworkPool(BaseACIObject):
         toolkit_class = cls
         apic_classes = cls._get_apic_classes()
 
-        logging.debug('%s.get called', cls.__name__)
+        log.debug('%s.get called', cls.__name__)
         resp = []
         for ac in apic_classes:
             query_url = (('/api/mo/uni.json?query-target=subtree&'

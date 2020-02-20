@@ -28,6 +28,9 @@ from .acisession import Session
 import logging
 
 
+log = logging.getLogger(__name__)
+
+
 class FakeResponse(object):
     """
     Create a Fake shell of a Requests.Response object
@@ -162,7 +165,7 @@ class FakeSession(Session):
             try:
                 lst = self._classes[cl]
             except KeyError:
-                logging.error('Unknown class %s', cl)
+                log.error('Unknown class %s', cl)
                 return []
             return [cl_obj for _, cl_obj in lst]
         for _, lst in self._classes.iteritems():

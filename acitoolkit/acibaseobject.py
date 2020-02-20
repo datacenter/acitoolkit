@@ -38,6 +38,9 @@ from .aciSearch import AciSearch, Searchable
 from .acisession import Session
 
 
+log = logging.getLogger(__name__)
+
+
 class BaseRelation(object):
     """
     Class for all basic relations.
@@ -132,7 +135,7 @@ class BaseACIObject(AciSearch):
         # self.unsubscribe = self._instance_unsubscribe
         # self.has_events = self._instance_has_events
         # self.get_event = self._instance_get_event
-        logging.debug('Creating %s %s', self.__class__.__name__, name)
+        log.debug('Creating %s %s', self.__class__.__name__, name)
         if self._parent is not None:
             if self._parent.has_child(self):
                 self._parent.remove_child(self)
@@ -1109,7 +1112,7 @@ class BaseACIObject(AciSearch):
             raise ValueError
         if isinstance(tenant, str):
             raise TypeError
-        logging.debug('%s.get called', toolkit_class.__name__)
+        log.debug('%s.get called', toolkit_class.__name__)
         if tenant is None:
             tenant_url = ''
         else:
@@ -1122,9 +1125,9 @@ class BaseACIObject(AciSearch):
         resp = []
         if ret.ok:
             data = ret.json()['imdata']
-            logging.debug('response returned %s', data)
+            log.debug('response returned %s', data)
         else:
-            logging.error('Could not get %s. Received response: %s', query_url, ret.text)
+            log.error('Could not get %s. Received response: %s', query_url, ret.text)
             return resp
         for object_data in data:
             name = str(object_data[apic_class]['attributes']['name'])
@@ -1629,8 +1632,8 @@ class BaseACIPhysModule(BaseACIPhysObject):
                 self._parent = parent
                 self._parent.add_child(self)
 
-        logging.debug('Creating %s %s', self.__class__.__name__,
-                      'pod-' + self.pod + '/node-' + self.node + '/slot-' + self.slot)
+        log.debug('Creating %s %s', self.__class__.__name__,
+                  'pod-' + self.pod + '/node-' + self.node + '/slot-' + self.slot)
 
     def get_slot(self):
         """Gets slot id
