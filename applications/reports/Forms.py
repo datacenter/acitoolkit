@@ -23,23 +23,16 @@ Forms for report GUI
 from flask_wtf import Form
 from wtforms import StringField, SubmitField, PasswordField, BooleanField
 from wtforms import TextAreaField, SelectField
-from wtforms.validators import DataRequired, IPAddress
+from wtforms.validators import DataRequired, IPAddress, ValidationError
 from wtforms.compat import string_types, text_type
 import re
 import ipaddress
 
 __author__ = 'edsall'
 
-class ValidationError(ValueError):
-    """
-    Raised when a validator fails to validate its input.
-    """
-    def __init__(self, message='', *args, **kwargs):
-        ValueError.__init__(self, message, *args, **kwargs)
-
 class CustomValidation(object):
     """
-    Helper class for checking hostnames for validation. Validates IPv4 or IPv6 addresses
+    Custom validation class for checking APIC input. Validates IPv4 or IPv6 addresses
     If not an IP, uses a regex to invalidate symbols from FQDN
     """
 
