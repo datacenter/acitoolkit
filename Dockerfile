@@ -1,7 +1,7 @@
 # VERSION 1.0
-FROM ubuntu
+FROM python:3.7.8-buster
 
-MAINTAINER Kevin Corbin, kecorbin@cisco.com
+MAINTAINER Kevin Corbin, kecorbin@cisco.com, Updated by Quinn Snyder <qsnyder@cisco.com>
 
 RUN apt-get update \
  && apt-get -y install git graphviz-dev pkg-config python python-pip vim-tiny \
