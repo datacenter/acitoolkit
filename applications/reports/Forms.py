@@ -77,7 +77,7 @@ class CredentialsForm(Form):
     """
     class to hold the form definition for the credentials
     """
-    ipaddr = StringField('APIC IP Address:',
+    ipaddr = StringField('APIC IP Address/FQDN:',
                          validators=[DataRequired(), CustomValidation()])
     secure = BooleanField('Use secure connection', validators=[])
     username = StringField('APIC Username:', validators=[DataRequired()])
