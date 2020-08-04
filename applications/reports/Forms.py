@@ -23,10 +23,50 @@ Forms for report GUI
 from flask_wtf import Form
 from wtforms import StringField, SubmitField, PasswordField, BooleanField
 from wtforms import TextAreaField, SelectField
-from wtforms.validators import Required, IPAddress
+from wtforms.validators import DataRequired, IPAddress
+from wtforms.compat import string_types, text_type
+import re
+import ipaddress
 
 __author__ = 'edsall'
 
+class ValidationError(ValueError):
+    """
+    Raised when a validator fails to validate its input.
+    """
+    def __init__(self, message='', *args, **kwargs):
+        ValueError.__init__(self, message, *args, **kwargs)
+
+class CustomValidation(object):
+    """
+    Helper class for checking hostnames for validation. Validates IPv4 or IPv6 addresses
+    If not an IP, uses a regex to invalidate symbols from FQDN
+    """
+
+    def __init__(self, message=None):
+        self.message = message
+
+    def __call__(self, form, field):
+        value = field.data
+        valid = False
+        fqdn_re = re.compile('(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}\.?$)')
+        try:
+            apic_input = ipaddress.ip_address(value)
+            if apic_input.version == 4:
+                valid = True
+            elif apic_input.version == 6:
+                    valid = True
+        except ValueError:
+            if fqdn_re.search(value):
+                valid = True
+            else:
+                valid = False
+
+        if not valid:
+            message = self.message
+            if message is None:
+                message = field.gettext('Invalid IP or FQDN.')
+            raise ValidationError(message)
 
 class FeedbackForm(Form):
     """
@@ -36,7 +76,7 @@ class FeedbackForm(Form):
                                         ('enhancement', 'Enhancement Request'),
                                         ('question', 'General Question'),
                                         ('comment', 'General Comment')])
-    comment = TextAreaField('Comment', validators=[Required()])
+    comment = TextAreaField('Comment', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
 
@@ -45,10 +85,10 @@ class CredentialsForm(Form):
     class to hold the form definition for the credentials
     """
     ipaddr = StringField('APIC IP Address:',
-                         validators=[Required(), IPAddress()])
+                         validators=[DataRequired(), CustomValidation()])
     secure = BooleanField('Use secure connection', validators=[])
-    username = StringField('APIC Username:', validators=[Required()])
-    password = PasswordField('APIC Password:', validators=[Required()])
+    username = StringField('APIC Username:', validators=[DataRequired()])
+    password = PasswordField('APIC Password:', validators=[DataRequired()])
     submit = SubmitField('Save')
 
 
