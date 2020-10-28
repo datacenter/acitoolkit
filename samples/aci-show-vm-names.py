@@ -41,7 +41,7 @@ from tabulate import tabulate
 
 def main():
     """
-    Main Show Endpoints Routine
+    Main Show VM Names Routine
     :return: None
     """
     # Take login credentials from the command line if provided
