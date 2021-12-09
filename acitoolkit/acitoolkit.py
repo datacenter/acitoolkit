@@ -30,7 +30,13 @@
 """  Main ACI Toolkit module
      This is the main module that comprises the ACI Toolkit.
 """
-from collections import Sequence
+try:
+    # Python <=3.9
+    from collections import Sequence
+except ImportError:
+    # Python > 3.8
+    from collections.abc import Sequence
+
 import logging
 from operator import attrgetter, itemgetter
 import re
