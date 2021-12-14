@@ -5391,7 +5391,13 @@ class Endpoint(BaseACIObject):
                 epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
             endpoint = Endpoint(str(ep['name']), parent=epg)
             endpoint.mac = str(ep['mac'])
-            endpoint.ip = str(ep['ip'])
+            try:
+                endpoint.ip = str(ep['ip'])
+            except KeyError:
+                for child in children:
+                    if "fvIp" in child:
+                        endpoint.ip = str(child['fvIp']['attributes']['addr'])
+                        break
             endpoint.encap = str(ep['encap'])
             endpoint.timestamp = str(ep['modTs'])
             for child in children:
