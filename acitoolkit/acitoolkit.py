@@ -5395,7 +5395,7 @@ class Endpoint(BaseACIObject):
             endpoint.ip = str(ep.get('ip', ""))
             for child in children:
                 if "fvIp" in child:
-                    child_ip = str(child.get('fvIp', {}).get('attributes', {}).get('addr'))
+                    child_ip = child.get('fvIp', {}).get('attributes', {}).get('addr')
                     if child_ip:
                         endpoint.ips.append(child_ip)
             endpoint.encap = str(ep['encap'])
