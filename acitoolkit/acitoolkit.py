@@ -5135,6 +5135,7 @@ class Endpoint(BaseACIObject):
         super(Endpoint, self).__init__(name, parent=parent)
         self.mac = None
         self.ip = None
+        self.ips = []
         self.encap = None
         self.if_name = None
         self.if_dn = []
@@ -5210,7 +5211,7 @@ class Endpoint(BaseACIObject):
             self.encap = str(attributes.get('encap'))
         if 'lcC' in attributes:
             life_cycle = str(attributes.get('lcC'))
-        if life_cycle is not '':
+        if life_cycle != '':
             self.life_cycle = life_cycle
         if 'type' in attributes:
             self.type = str(attributes.get('type'))
@@ -5391,7 +5392,12 @@ class Endpoint(BaseACIObject):
                 epg = EPG(str(ep['dn']).split('/')[3][4:], app_profile)
             endpoint = Endpoint(str(ep['name']), parent=epg)
             endpoint.mac = str(ep['mac'])
-            endpoint.ip = str(ep['ip'])
+            endpoint.ip = str(ep.get('ip', ""))
+            for child in children:
+                if "fvIp" in child:
+                    child_ip = str(child.get('fvIp', {}).get('attributes', {}).get('addr'))
+                    if child_ip:
+                        endpoint.ips.append(child_ip)
             endpoint.encap = str(ep['encap'])
             endpoint.timestamp = str(ep['modTs'])
             for child in children:
