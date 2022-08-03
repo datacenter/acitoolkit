@@ -5135,7 +5135,6 @@ class Endpoint(BaseACIObject):
         super(Endpoint, self).__init__(name, parent=parent)
         self.mac = None
         self.ip = None
-        self.ips = []
         self.encap = None
         self.if_name = None
         self.if_dn = []
@@ -5393,11 +5392,6 @@ class Endpoint(BaseACIObject):
             endpoint = Endpoint(str(ep['name']), parent=epg)
             endpoint.mac = str(ep['mac'])
             endpoint.ip = str(ep.get('ip', ""))
-            for child in children:
-                if "fvIp" in child:
-                    child_ip = child.get('fvIp', {}).get('attributes', {}).get('addr')
-                    if child_ip:
-                        endpoint.ips.append(child_ip)
             endpoint.encap = str(ep['encap'])
             endpoint.timestamp = str(ep['modTs'])
             for child in children:
