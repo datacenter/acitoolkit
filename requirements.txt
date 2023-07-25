@@ -18,3 +18,5 @@ jsonschema
 graphviz
 ipaddress
 deepdiff==3.3.0
+attr
+attrs
