@@ -19,7 +19,7 @@ __title__ = "acitoolkit"
 __summary__ = "Toolkit for Cisco ACI Fabrics"
 __uri__ = "http://datacenter.github.io/acitoolkit/"
 
-__version__ = "0.4"
+__version__ = "0.41"
 
 __author__ = "Cisco Systems, Inc."
 __email__ = "acitoolkit@external.cisco.com"
